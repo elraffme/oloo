@@ -2,34 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Premium Dating App Design System - Romance meets Luxury */
+/* Afrocentric Dating App Design System - Vibrant Culture meets Modern Love */
 
 @layer base {
   :root {
-    /* Base Colors - Elegant Romance */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* Base Colors - Warm Earth Tones */
+    --background: 30 15% 97%;
+    --foreground: 25 15% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 35 20% 98%;
+    --card-foreground: 25 15% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 35 20% 98%;
+    --popover-foreground: 25 15% 15%;
 
-    /* Primary - Deep Orange */
-    --primary: 20 100% 50%;
+    /* Primary - Rich Terracotta & Gold */
+    --primary: 25 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 25 100% 60%;
+    --primary-glow: 35 90% 65%;
 
-    /* Secondary - Elegant Neutrals */
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    /* Secondary - Earthy Warm Tones */
+    --secondary: 45 25% 92%;
+    --secondary-foreground: 25 15% 20%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 45.1%;
+    --muted: 45 25% 92%;
+    --muted-foreground: 25 10% 45%;
 
-    --accent: 30 100% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 25 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -38,25 +38,27 @@
     --input: 240 5.9% 90%;
     --ring: 20 100% 50%;
 
-    /* Premium Tier Colors */
-    --silver: 240 4.8% 83.1%;
-    --silver-foreground: 240 5.9% 10%;
+    /* Afrocentric Tier Colors */
+    --silver: 200 15% 75%;
+    --silver-foreground: 25 15% 15%;
     --gold: 45 100% 51%;
-    --gold-foreground: 240 10% 3.9%;
-    --platinum: 240 5.9% 70%;
+    --gold-foreground: 25 15% 15%;
+    --platinum: 280 30% 60%;
     --platinum-foreground: 0 0% 100%;
 
-    /* Gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(20 100% 50%), hsl(25 100% 45%), hsl(30 100% 55%));
-    --gradient-luxury: linear-gradient(135deg, hsl(20 100% 50%), hsl(25 100% 55%), hsl(30 100% 60%));
-    --gradient-premium: linear-gradient(135deg, hsl(240 5.9% 70%), hsl(220 70% 85%), hsl(240 100% 95%));
-    --gradient-hero: linear-gradient(135deg, hsl(20 100% 50%) 0%, hsl(25 100% 45%) 50%, hsl(30 100% 55%) 100%);
+    /* Vibrant Afrocentric Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(25 85% 55%), hsl(35 90% 65%), hsl(45 100% 50%));
+    --gradient-luxury: linear-gradient(135deg, hsl(25 85% 55%), hsl(15 80% 50%), hsl(5 85% 60%));
+    --gradient-premium: linear-gradient(135deg, hsl(280 30% 60%), hsl(320 40% 70%), hsl(45 100% 80%));
+    --gradient-hero: linear-gradient(135deg, hsl(25 85% 55%) 0%, hsl(15 80% 50%) 30%, hsl(45 100% 50%) 70%, hsl(35 90% 65%) 100%);
+    --gradient-nsibidi: linear-gradient(135deg, hsl(15 80% 50%), hsl(25 85% 55%), hsl(45 100% 50%), hsl(35 90% 65%));
     
-    /* Shadows */
-    --shadow-romantic: 0 10px 40px -10px hsl(20 100% 50% / 0.4);
-    --shadow-luxury: 0 10px 40px -10px hsl(25 100% 45% / 0.3);
-    --shadow-premium: 0 20px 60px -15px hsl(240 5.9% 70% / 0.4);
-    --shadow-glow: 0 0 30px hsl(20 100% 50% / 0.6);
+    /* Afrocentric Shadows */
+    --shadow-romantic: 0 10px 40px -10px hsl(25 85% 55% / 0.4);
+    --shadow-luxury: 0 10px 40px -10px hsl(15 80% 50% / 0.3);
+    --shadow-premium: 0 20px 60px -15px hsl(280 30% 60% / 0.4);
+    --shadow-glow: 0 0 30px hsl(25 85% 55% / 0.6);
+    --shadow-cultural: 0 8px 32px -8px hsl(45 100% 50% / 0.3);
 
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -82,28 +84,28 @@
   }
 
   .dark {
-    /* Dark Mode - Elegant Night Romance */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Dark Mode - Rich Cultural Night */
+    --background: 25 20% 8%;
+    --foreground: 45 15% 95%;
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 25 15% 12%;
+    --card-foreground: 45 15% 95%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 25 15% 12%;
+    --popover-foreground: 45 15% 95%;
 
-    --primary: 20 100% 50%;
+    --primary: 25 85% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 25 100% 60%;
+    --primary-glow: 35 90% 65%;
 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 25 15% 18%;
+    --secondary-foreground: 45 15% 95%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 25 15% 18%;
+    --muted-foreground: 45 10% 65%;
 
-    --accent: 30 100% 45%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 25 20% 8%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -120,11 +122,12 @@
     --platinum: 240 5.9% 70%;
     --platinum-foreground: 240 10% 3.9%;
 
-    /* Dark Gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(20 90% 45%), hsl(25 85% 40%), hsl(30 90% 50%));
-    --gradient-luxury: linear-gradient(135deg, hsl(20 90% 45%), hsl(25 85% 50%), hsl(30 90% 55%));
-    --gradient-premium: linear-gradient(135deg, hsl(240 3.7% 15.9%), hsl(220 70% 25%), hsl(240 100% 35%));
-    --gradient-hero: linear-gradient(135deg, hsl(20 90% 45%) 0%, hsl(25 85% 40%) 50%, hsl(30 90% 50%) 100%);
+    /* Dark Afrocentric Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(25 80% 45%), hsl(35 85% 50%), hsl(45 95% 45%));
+    --gradient-luxury: linear-gradient(135deg, hsl(25 80% 45%), hsl(15 75% 40%), hsl(5 80% 50%));
+    --gradient-premium: linear-gradient(135deg, hsl(280 25% 40%), hsl(320 35% 50%), hsl(45 95% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(25 80% 45%) 0%, hsl(15 75% 40%) 30%, hsl(45 95% 45%) 70%, hsl(35 85% 50%) 100%);
+    --gradient-nsibidi: linear-gradient(135deg, hsl(15 75% 40%), hsl(25 80% 45%), hsl(45 95% 45%), hsl(35 85% 50%));
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -148,7 +151,7 @@
 }
 
 @layer components {
-  /* Premium Dating App Components */
+  /* Afrocentric Dating App Components */
   .romantic-gradient {
     background: var(--gradient-romantic);
   }
@@ -163,6 +166,45 @@
   
   .hero-gradient {
     background: var(--gradient-hero);
+  }
+
+  .nsibidi-gradient {
+    background: var(--gradient-nsibidi);
+  }
+
+  .nsibidi-text {
+    @apply font-nsibidi text-lg;
+    color: hsl(var(--primary));
+    text-shadow: 0 1px 3px hsl(var(--primary) / 0.3);
+  }
+
+  .afro-heading {
+    @apply font-afro-heading;
+    background: var(--gradient-nsibidi);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .cultural-pattern {
+    background-image: 
+      radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.1) 2px, transparent 2px),
+      radial-gradient(circle at 80% 50%, hsl(var(--accent) / 0.1) 2px, transparent 2px),
+      radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.1) 1px, transparent 1px);
+    background-size: 30px 30px, 25px 25px, 20px 20px;
+    background-position: 0 0, 15px 15px, 8px 8px;
+  }
+
+  .nsibidi-symbol {
+    @apply inline-block font-nsibidi text-2xl;
+    color: hsl(var(--primary));
+    filter: drop-shadow(0 2px 4px hsl(var(--primary) / 0.3));
+    animation: gentle-bounce 3s ease-in-out infinite;
+  }
+
+  @keyframes gentle-bounce {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-3px) rotate(2deg); }
   }
 
   .swipe-card {
@@ -265,5 +307,51 @@
     font-weight: bold;
     color: hsl(var(--primary-foreground));
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-family: 'Kalam', cursive;
+  }
+
+  /* Nsibidi-inspired decorative elements */
+  .nsibidi-decoration {
+    position: relative;
+  }
+
+  .nsibidi-decoration::before {
+    content: "⟡ ◈ ⟡";
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Kalam', cursive;
+    color: hsl(var(--primary) / 0.6);
+    font-size: 0.8rem;
+    letter-spacing: 8px;
+  }
+
+  .nsibidi-decoration::after {
+    content: "◊ ⬟ ◊";
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Kalam', cursive;
+    color: hsl(var(--accent) / 0.6);
+    font-size: 0.8rem;
+    letter-spacing: 8px;
+  }
+
+  .cultural-card {
+    @apply bg-card/80 backdrop-blur-sm border border-primary/20 rounded-2xl;
+    box-shadow: var(--shadow-cultural);
+    background-image: 
+      linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, transparent 50%, hsl(var(--accent) / 0.05) 100%);
+  }
+
+  .african-pattern-bg {
+    background-image: 
+      radial-gradient(circle at 25% 25%, hsl(var(--primary) / 0.1) 1px, transparent 2px),
+      radial-gradient(circle at 75% 75%, hsl(var(--accent) / 0.1) 1px, transparent 2px),
+      linear-gradient(45deg, transparent 30%, hsl(var(--primary-glow) / 0.05) 50%, transparent 70%);
+    background-size: 40px 40px, 35px 35px, 80px 80px;
+    background-position: 0 0, 20px 20px, 0 0;
   }
 }

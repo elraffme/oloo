@@ -58,7 +58,7 @@ const membershipTiers = [
 
 const MembershipTiers = () => {
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-background to-secondary/20" id="premium">
+    <section className="py-20 px-4 bg-gradient-to-b from-background to-secondary/20 african-pattern-bg" id="premium">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
@@ -67,14 +67,17 @@ const MembershipTiers = () => {
             </div>
           </div>
           
-          <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-gold via-primary to-platinum bg-clip-text text-transparent">
-              Premium Memberships
+          <h2 className="text-3xl md:text-5xl font-afro-heading mb-6">
+            <span className="nsibidi-gradient bg-clip-text text-transparent">
+              <span className="nsibidi-symbol">◊</span> Premium Memberships <span className="nsibidi-symbol">◊</span>
             </span>
           </h2>
           
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Unlock exclusive features and elevate your dating experience with our premium tiers
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-afro-body">
+            Unlock exclusive cultural features and elevate your dating experience with our heritage-rich premium tiers
+            <div className="text-base font-nsibidi text-primary/60 mt-2">
+              ⟡ ◈ ⬟ Cultural Connections Await ⬟ ◈ ⟡
+            </div>
           </p>
         </div>
 
@@ -85,13 +88,14 @@ const MembershipTiers = () => {
             return (
               <Card 
                 key={tier.name}
-                className={`${tier.gradient} relative overflow-hidden transition-all duration-300 hover:scale-105 ${tier.popular ? 'ring-2 ring-gold shadow-2xl' : ''}`}
+                className={`${tier.gradient} relative overflow-hidden transition-all duration-300 hover:scale-105 cultural-card ${tier.popular ? 'ring-2 ring-gold shadow-2xl' : ''}`}
               >
                 {/* Popular Badge */}
                 {tier.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-gold text-gold-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                    <div className="nsibidi-gradient text-primary-foreground px-4 py-1 rounded-full text-sm font-afro-body flex items-center gap-1">
                       <Star className="w-3 h-3" />
+                      <span className="nsibidi-symbol">◈</span>
                       Most Popular
                     </div>
                   </div>
@@ -100,18 +104,24 @@ const MembershipTiers = () => {
                 <div className="p-8">
                   {/* Icon and Title */}
                   <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 cultural-pattern">
                       <IconComponent className="w-8 h-8" />
                     </div>
-                    <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-                    <p className="text-sm opacity-90">{tier.description}</p>
+                    <h3 className="text-2xl font-afro-heading mb-2">
+                      <span className="nsibidi-symbol mr-2">◊</span>
+                      {tier.name}
+                    </h3>
+                    <p className="text-sm opacity-90 font-afro-body">{tier.description}</p>
                   </div>
 
                   {/* Pricing */}
                   <div className="text-center mb-8">
                     <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold">{tier.price}</span>
-                      <span className="text-lg opacity-75">{tier.period}</span>
+                      <span className="text-4xl font-afro-heading">{tier.price}</span>
+                      <span className="text-lg opacity-75 font-afro-body">{tier.period}</span>
+                    </div>
+                    <div className="font-nsibidi text-sm text-primary/60 mt-1">
+                      ⟡ Cultural Value ⟡
                     </div>
                   </div>
 
@@ -122,14 +132,17 @@ const MembershipTiers = () => {
                         <div className="w-5 h-5 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0">
                           <Check className="w-3 h-3" />
                         </div>
-                        <span className="text-sm">{feature}</span>
+                        <span className="text-sm font-afro-body">
+                          <span className="nsibidi-symbol text-xs mr-1">◈</span>
+                          {feature}
+                        </span>
                       </div>
                     ))}
                   </div>
 
                   {/* CTA Button */}
                   <Button 
-                    className={`w-full py-3 font-semibold transition-all duration-300 ${
+                    className={`w-full py-3 font-afro-body transition-all duration-300 ${
                       tier.popular 
                         ? 'bg-white text-gold hover:bg-white/90 hover:scale-105' 
                         : 'bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-105'
@@ -138,11 +151,13 @@ const MembershipTiers = () => {
                     {tier.popular ? (
                       <>
                         <Heart className="w-4 h-4 mr-2" />
+                        <span className="nsibidi-symbol mr-2">♦</span>
                         Start Premium
                       </>
                     ) : (
                       <>
                         <Video className="w-4 h-4 mr-2" />
+                        <span className="nsibidi-symbol mr-2">⬟</span>
                         Upgrade Now
                       </>
                     )}
@@ -155,11 +170,13 @@ const MembershipTiers = () => {
 
         {/* Bottom CTA */}
         <div className="text-center mt-12">
-          <p className="text-muted-foreground mb-4">All plans include 7-day free trial</p>
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-            <span>✓ Cancel anytime</span>
-            <span>✓ No hidden fees</span>
-            <span>✓ Secure payments</span>
+          <p className="text-muted-foreground mb-4 font-afro-body">
+            <span className="nsibidi-symbol">⟡</span> All plans include 7-day free trial <span className="nsibidi-symbol">⟡</span>
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground font-afro-body">
+            <span><span className="nsibidi-symbol">◈</span> Cancel anytime</span>
+            <span><span className="nsibidi-symbol">◊</span> No hidden fees</span>
+            <span><span className="nsibidi-symbol">⬟</span> Secure payments</span>
           </div>
         </div>
       </div>

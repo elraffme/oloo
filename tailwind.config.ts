@@ -18,6 +18,12 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'nsibidi': ['Kalam', 'cursive'],
+				'afro-display': ['Pacifico', 'cursive'],
+				'afro-heading': ['Righteous', 'sans-serif'],
+				'afro-body': ['Ubuntu', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',

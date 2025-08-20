@@ -26,46 +26,53 @@ const Navigation = () => {
           <div className="heart-logo">
             <span className="logo-text">Ò</span>
           </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <span className="text-xl font-afro-display nsibidi-gradient bg-clip-text text-transparent">
             Òloo
           </span>
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-8">
-          <a href="#discover" className="text-foreground hover:text-primary transition-colors">
+        <div className="hidden md:flex items-center space-x-8 font-afro-body">
+          <a href="#discover" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+            <span className="nsibidi-symbol">◊</span>
             Discover
           </a>
           <a href="#streaming" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <Video className="w-4 h-4" />
+            <span className="nsibidi-symbol">⬟</span>
             Live Stream
           </a>
           <a href="#premium" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <Crown className="w-4 h-4" />
+            <span className="nsibidi-symbol">◈</span>
             Premium
           </a>
         </div>
 
         {/* CTA Buttons */}
-        <div className="hidden md:flex items-center space-x-3">
+        <div className="hidden md:flex items-center space-x-3 font-afro-body">
           {user ? (
             <>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground nsibidi-text">
+                <span className="nsibidi-symbol mr-1">⟡</span>
                 Welcome, {user.user_metadata?.display_name || user.email}
               </span>
-              <Button variant="ghost" onClick={handleSignOut}>
+              <Button variant="ghost" onClick={handleSignOut} className="font-afro-body">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" onClick={() => navigate('/auth')}>Sign In</Button>
+              <Button variant="ghost" onClick={() => navigate('/auth')} className="font-afro-body">
+                Sign In
+              </Button>
               <Button 
                 variant="default" 
-                className="bg-gradient-to-r from-primary to-accent text-primary-foreground border-0 hover:scale-105 transition-transform"
+                className="nsibidi-gradient text-primary-foreground border-0 hover:scale-105 transition-transform font-afro-body"
                 onClick={() => navigate('/auth')}
               >
+                <span className="nsibidi-symbol mr-1">♦</span>
                 Join Now
               </Button>
             </>
