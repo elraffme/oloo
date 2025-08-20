@@ -22,7 +22,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 romantic-gradient rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
-            <span className="text-primary-foreground font-bold text-xl">L</span>
+            <span className="text-primary-foreground font-bold text-xl">Ò</span>
           </div>
           <p className="text-muted-foreground">Loading...</p>
         </div>
@@ -48,10 +48,10 @@ const Index = () => {
           <div className="text-center">
             <div className="flex items-center justify-center space-x-2 mb-4">
               <div className="w-8 h-8 romantic-gradient rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">L</span>
+                <span className="text-primary-foreground font-bold">Ò</span>
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                LuxeMatch
+                Òloo
               </span>
             </div>
             <p className="text-muted-foreground mb-6">
