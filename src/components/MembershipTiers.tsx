@@ -5,7 +5,7 @@ import { Check, Crown, Gem, Sparkles, Video, Heart, Star } from "lucide-react";
 const membershipTiers = [
   {
     name: "Silver",
-    price: "$9.99",
+    price: "$1.99",
     period: "/month",
     description: "Essential features for meaningful connections",
     features: [
@@ -21,7 +21,7 @@ const membershipTiers = [
   },
   {
     name: "Gold",
-    price: "$19.99",
+    price: "$4.99",
     period: "/month",
     description: "Premium experience with exclusive streaming",
     features: [
@@ -38,7 +38,7 @@ const membershipTiers = [
   },
   {
     name: "Platinum",
-    price: "$39.99",
+    price: "$9.99",
     period: "/month",
     description: "Ultimate luxury dating experience",
     features: [
