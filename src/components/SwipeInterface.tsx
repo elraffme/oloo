@@ -21,7 +21,7 @@ const mockProfiles = [
     age: 25,
     location: "Accra, Ghana",
     bio: "Cultural heritage photographer capturing the beauty of our motherland 📸🏺",
-    image: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=400&h=600&fit=crop&crop=face",
+    image: "https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=400&h=600&fit=crop&crop=face",
     interests: ["Photography", "Travel", "History", "Kente Weaving"],
     isStreaming: false,
     isPremium: true
