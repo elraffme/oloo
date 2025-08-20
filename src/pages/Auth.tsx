@@ -79,19 +79,19 @@ const Auth = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <div className="w-10 h-10 romantic-gradient rounded-full flex items-center justify-center">
-              <Heart className="w-6 h-6 text-primary-foreground" />
+              <span className="text-xl font-bold text-primary-foreground">Ò</span>
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              LuxeMatch
+              Òloo
             </span>
           </div>
           <CardTitle className="text-2xl">
-            {isSignUp ? 'Join LuxeMatch' : 'Welcome Back'}
+            {isSignUp ? 'Join Òloo' : 'Welcome Back'}
           </CardTitle>
           <CardDescription>
             {isSignUp 
               ? 'Create your premium dating profile' 
-              : 'Sign in to your LuxeMatch account'
+              : 'Sign in to your Òloo account'
             }
           </CardDescription>
         </CardHeader>
