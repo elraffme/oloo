@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import SwipeInterface from "@/components/SwipeInterface";
@@ -5,6 +8,32 @@ import StreamingSection from "@/components/StreamingSection";
 import MembershipTiers from "@/components/MembershipTiers";
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 romantic-gradient rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
+            <span className="text-primary-foreground font-bold text-xl">L</span>
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to auth
+  }
+
   return (
     <div className="min-h-screen">
       <Navigation />
