@@ -65,7 +65,7 @@ const mockProfiles = [
     age: 29,
     location: "Dakar, Senegal",
     bio: "Musician blending traditional mbalax with modern sounds 🎵🇸🇳",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face",
+    image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=600&fit=crop&crop=face",
     interests: ["Music", "Mbalax", "Sabar Dancing", "Teranga Culture"],
     isStreaming: true,
     isPremium: true
