@@ -23,8 +23,8 @@ const Navigation = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 romantic-gradient rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-primary-foreground">Ò</span>
+          <div className="heart-logo">
+            <span className="logo-text">Ò</span>
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Òloo

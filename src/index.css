@@ -221,4 +221,49 @@
       box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
     }
   }
+
+  .heart-logo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    background: var(--gradient-romantic);
+    transform: rotate(-45deg);
+    border-radius: 50% 50% 50% 50% / 60% 60% 35% 35%;
+    transition: var(--transition-smooth);
+  }
+
+  .heart-logo::before,
+  .heart-logo::after {
+    content: '';
+    position: absolute;
+    background: var(--gradient-romantic);
+    width: 26px;
+    height: 40px;
+    border-radius: 50px 50px 0 0;
+  }
+
+  .heart-logo::before {
+    left: 20px;
+    transform: rotate(-45deg);
+    transform-origin: 0 100%;
+  }
+
+  .heart-logo::after {
+    left: 0;
+    transform: rotate(45deg);
+    transform-origin: 100% 100%;
+  }
+
+  .heart-logo .logo-text {
+    position: relative;
+    z-index: 2;
+    transform: rotate(45deg);
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: hsl(var(--primary-foreground));
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 }
