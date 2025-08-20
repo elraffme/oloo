@@ -18,6 +18,11 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Premium dating app variants
+        romantic: "bg-gradient-to-r from-primary to-accent text-primary-foreground hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl border-0",
+        luxury: "bg-gradient-to-r from-gold to-gold/80 text-gold-foreground hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl border-0",
+        premium: "bg-gradient-to-r from-platinum to-platinum/80 text-platinum-foreground hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl border-0",
+        swipe: "rounded-full hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl",
       },
       size: {
         default: "h-10 px-4 py-2",

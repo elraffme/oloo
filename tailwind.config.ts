@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -61,6 +62,19 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Premium membership tier colors
+				silver: {
+					DEFAULT: 'hsl(var(--silver))',
+					foreground: 'hsl(var(--silver-foreground))'
+				},
+				gold: {
+					DEFAULT: 'hsl(var(--gold))',
+					foreground: 'hsl(var(--gold-foreground))'
+				},
+				platinum: {
+					DEFAULT: 'hsl(var(--platinum))',
+					foreground: 'hsl(var(--platinum-foreground))'
 				}
 			},
 			borderRadius: {
@@ -84,11 +98,38 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				// Dating app specific animations
+				'swipe-right': {
+					'0%': { transform: 'translateX(0) rotate(0deg)', opacity: '1' },
+					'100%': { transform: 'translateX(100vw) rotate(30deg)', opacity: '0' }
+				},
+				'swipe-left': {
+					'0%': { transform: 'translateX(0) rotate(0deg)', opacity: '1' },
+					'100%': { transform: 'translateX(-100vw) rotate(-30deg)', opacity: '0' }
+				},
+				'float-hearts': {
+					'0%': { transform: 'translateY(0px) rotate(0deg)', opacity: '0.7' },
+					'50%': { transform: 'translateY(-20px) rotate(180deg)', opacity: '1' },
+					'100%': { transform: 'translateY(-40px) rotate(360deg)', opacity: '0' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { boxShadow: '0 0 5px hsl(var(--primary))', transform: 'scale(1)' },
+					'50%': { boxShadow: '0 0 20px hsl(var(--primary)), 0 0 30px hsl(var(--primary))', transform: 'scale(1.05)' }
+				},
+				'premium-shine': {
+					'0%': { backgroundPosition: '-200% center' },
+					'100%': { backgroundPosition: '200% center' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'swipe-right': 'swipe-right 0.6s ease-in-out forwards',
+				'swipe-left': 'swipe-left 0.6s ease-in-out forwards',
+				'float-hearts': 'float-hearts 3s ease-in-out infinite',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'premium-shine': 'premium-shine 2s ease-in-out infinite'
 			}
 		}
 	},
