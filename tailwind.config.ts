@@ -81,6 +81,12 @@ export default {
 				platinum: {
 					DEFAULT: 'hsl(var(--platinum))',
 					foreground: 'hsl(var(--platinum-foreground))'
+				},
+				// Verification color
+				orange: {
+					500: 'hsl(var(--orange-verified))',
+					600: 'hsl(var(--orange-verified))',
+					foreground: 'hsl(var(--orange-verified-foreground))'
 				}
 			},
 			borderRadius: {

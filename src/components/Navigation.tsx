@@ -1,4 +1,4 @@
-import { Heart, Video, Crown, Menu, LogOut } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +42,14 @@ const Navigation = () => {
             <span className="nsibidi-symbol">⬟</span>
             Live Stream
           </a>
+          <button
+            onClick={() => navigate('/verification')}
+            className="text-foreground hover:text-orange-500 transition-colors flex items-center gap-1"
+          >
+            <Shield className="w-4 h-4" />
+            <span className="nsibidi-symbol">◈</span>
+            Get Verified
+          </button>
           <a href="#premium" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <Crown className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>

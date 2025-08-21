@@ -45,6 +45,10 @@
     --gold-foreground: 25 15% 15%;
     --platinum: 280 30% 60%;
     --platinum-foreground: 0 0% 100%;
+    
+    /* Verification Orange */
+    --orange-verified: 25 95% 53%;
+    --orange-verified-foreground: 0 0% 100%;
 
     /* Vibrant Afrocentric Gradients */
     --gradient-romantic: linear-gradient(135deg, hsl(25 85% 55%), hsl(35 90% 65%), hsl(45 100% 50%));

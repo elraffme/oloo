@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { Heart, X, Star, MapPin, Video } from "lucide-react";
 
 const mockProfiles = [
@@ -13,7 +14,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=600&fit=crop&crop=face",
     interests: ["Art", "Fashion", "Entrepreneurship", "Afrobeats"],
     isStreaming: true,
-    isPremium: true
+    isPremium: true,
+    verified: true
   },
   {
     id: 2,
@@ -24,7 +26,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=400&h=600&fit=crop&crop=face",
     interests: ["Photography", "Travel", "History", "Kente Weaving"],
     isStreaming: false,
-    isPremium: true
+    isPremium: true,
+    verified: true
   },
   {
     id: 3,
@@ -35,7 +38,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=400&h=600&fit=crop&crop=face",
     interests: ["Traditional Dance", "Drumming", "Storytelling", "Ubuntu Philosophy"],
     isStreaming: true,
-    isPremium: false
+    isPremium: false,
+    verified: false
   },
   {
     id: 4,
@@ -46,7 +50,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face",
     interests: ["Conservation", "Maasai Culture", "Safari", "Nature"],
     isStreaming: false,
-    isPremium: true
+    isPremium: true,
+    verified: true
   },
   {
     id: 5,
@@ -57,7 +62,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?w=400&h=600&fit=crop&crop=face",
     interests: ["Coffee Culture", "Ancient History", "Orthodox Traditions", "Injera Cooking"],
     isStreaming: true,
-    isPremium: false
+    isPremium: false,
+    verified: false
   },
   {
     id: 6,
@@ -68,7 +74,8 @@ const mockProfiles = [
     image: "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=600&fit=crop&crop=face",
     interests: ["Music", "Mbalax", "Sabar Dancing", "Teranga Culture"],
     isStreaming: true,
-    isPremium: true
+    isPremium: true,
+    verified: true
   }
 ];
 
@@ -125,23 +132,30 @@ const SwipeInterface = () => {
               <div className="absolute inset-0 cultural-pattern opacity-20"></div>
             </div>
 
-            {/* Premium Badge */}
-            {currentProfile.isPremium && (
-              <div className="absolute top-4 right-4 nsibidi-gradient text-primary-foreground px-3 py-1 rounded-full text-xs font-afro-body flex items-center gap-1">
-                <Star className="w-3 h-3" />
-                <span className="nsibidi-symbol">◈</span>
-                Premium
+            {/* Top badges row */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+              {/* Streaming Badge */}
+              {currentProfile.isStreaming && (
+                <div className="bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-afro-body flex items-center gap-1 animate-pulse-glow">
+                  <Video className="w-3 h-3" />
+                  <span className="nsibidi-symbol">⬟</span>
+                  Live
+                </div>
+              )}
+              
+              {/* Right side badges */}
+              <div className="flex gap-2">
+                <VerifiedBadge verified={currentProfile.verified} size="sm" />
+                {currentProfile.isPremium && (
+                  <div className="nsibidi-gradient text-primary-foreground px-3 py-1 rounded-full text-xs font-afro-body flex items-center gap-1">
+                    <Star className="w-3 h-3" />
+                    <span className="nsibidi-symbol">◈</span>
+                    Premium
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            {/* Streaming Badge */}
-            {currentProfile.isStreaming && (
-              <div className="absolute top-4 left-4 bg-accent text-accent-foreground px-3 py-1 rounded-full text-xs font-afro-body flex items-center gap-1 animate-pulse-glow">
-                <Video className="w-3 h-3" />
-                <span className="nsibidi-symbol">⬟</span>
-                Live
-              </div>
-            )}
 
             {/* Profile Info */}
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white cultural-card">
