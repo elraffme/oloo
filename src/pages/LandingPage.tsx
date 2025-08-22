@@ -4,14 +4,22 @@ import { Play, Pause } from "lucide-react";
 import landingImage from "@/assets/landing-video-frame.jpg";
 
 const LandingPage = () => {
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Auto-start the "video"
   const videoRef = useRef<HTMLDivElement>(null);
 
   // Simulate video with animated background image
   useEffect(() => {
-    if (isVideoPlaying) {
+    if (isVideoPlaying && videoRef.current) {
+      let frame = 0;
       const interval = setInterval(() => {
-        // Video-like animation effect
+        frame += 1;
+        if (videoRef.current) {
+          // Create breathing/pulsing effect
+          const scale = 1 + Math.sin(frame * 0.1) * 0.02;
+          const brightness = 1 + Math.sin(frame * 0.15) * 0.1;
+          videoRef.current.style.transform = `scale(${scale})`;
+          videoRef.current.style.filter = `brightness(${brightness})`;
+        }
       }, 100);
       return () => clearInterval(interval);
     }
