@@ -7,35 +7,21 @@ const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Auto-start the "video"
   const videoRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced video-like animations
+  // Simulate video with animated background image
   useEffect(() => {
     if (isVideoPlaying && videoRef.current) {
       let frame = 0;
       const interval = setInterval(() => {
         frame += 1;
         if (videoRef.current) {
-          // Multiple layered animations for realistic effect
-          const breathingScale = 1 + Math.sin(frame * 0.08) * 0.015; // Slow breathing
-          const microMovement = Math.sin(frame * 0.12) * 0.3; // Subtle movement
-          const brightness = 1 + Math.sin(frame * 0.06) * 0.08; // Gentle brightness variation
-          const contrast = 1 + Math.cos(frame * 0.04) * 0.05; // Subtle contrast changes
-          const saturation = 1 + Math.sin(frame * 0.1) * 0.1; // Color saturation variation
-          
-          // Apply combined transformations
-          videoRef.current.style.transform = `scale(${breathingScale}) translateX(${microMovement}px)`;
-          videoRef.current.style.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
-          
-          // Subtle opacity pulse for depth
-          const opacityPulse = 0.95 + Math.sin(frame * 0.05) * 0.05;
-          videoRef.current.style.opacity = opacityPulse.toString();
+          // Create breathing/pulsing effect
+          const scale = 1 + Math.sin(frame * 0.1) * 0.02;
+          const brightness = 1 + Math.sin(frame * 0.15) * 0.1;
+          videoRef.current.style.transform = `scale(${scale})`;
+          videoRef.current.style.filter = `brightness(${brightness})`;
         }
-      }, 80); // Slightly faster for smoother animation
+      }, 100);
       return () => clearInterval(interval);
-    } else if (videoRef.current) {
-      // Reset to default state when paused
-      videoRef.current.style.transform = 'scale(1) translateX(0px)';
-      videoRef.current.style.filter = 'brightness(1) contrast(1) saturate(1)';
-      videoRef.current.style.opacity = '1';
     }
   }, [isVideoPlaying]);
 
