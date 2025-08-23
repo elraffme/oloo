@@ -91,7 +91,6 @@ const LandingPage = () => {
           <Button 
             className="w-full h-14 text-lg font-semibold rounded-full bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-lg"
             style={{ backgroundColor: '#CC5500' }}
-            onClick={() => window.location.href = '/auth'}
           >
             Create account
           </Button>
@@ -100,7 +99,6 @@ const LandingPage = () => {
           <Button 
             variant="ghost" 
             className="w-full h-12 text-lg font-medium text-white hover:bg-white/10 rounded-full"
-            onClick={() => window.location.href = '/auth'}
           >
             Sign in
           </Button>
