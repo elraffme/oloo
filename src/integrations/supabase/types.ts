@@ -98,6 +98,72 @@ export type Database = {
         }
         Relationships: []
       }
+      face_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          provider: string | null
+          provider_job_id: string | null
+          score: number | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          verification_data: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          provider?: string | null
+          provider_job_id?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_data?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          provider?: string | null
+          provider_job_id?: string | null
+          score?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verification_data?: Json | null
+        }
+        Relationships: []
+      }
+      gifts: {
+        Row: {
+          asset_url: string | null
+          category: string | null
+          cost_tokens: number
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          asset_url?: string | null
+          category?: string | null
+          cost_tokens: number
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          asset_url?: string | null
+          category?: string | null
+          cost_tokens?: number
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           created_at: string
@@ -134,6 +200,39 @@ export type Database = {
           tier?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          message_type: string | null
+          metadata: Json | null
+          read_at: string | null
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          message_type?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
         }
         Relationships: []
       }
@@ -210,6 +309,7 @@ export type Database = {
           created_at: string
           display_name: string
           education: string | null
+          gender: string | null
           height_cm: number | null
           id: string
           interests: string[] | null
@@ -218,6 +318,7 @@ export type Database = {
           location: string
           membership_tier: string | null
           occupation: string | null
+          phone: string | null
           profile_photos: string[] | null
           prompt_responses: Json | null
           relationship_goals: string | null
@@ -235,6 +336,7 @@ export type Database = {
           created_at?: string
           display_name: string
           education?: string | null
+          gender?: string | null
           height_cm?: number | null
           id?: string
           interests?: string[] | null
@@ -243,6 +345,7 @@ export type Database = {
           location: string
           membership_tier?: string | null
           occupation?: string | null
+          phone?: string | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
@@ -260,6 +363,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           education?: string | null
+          gender?: string | null
           height_cm?: number | null
           id?: string
           interests?: string[] | null
@@ -268,6 +372,7 @@ export type Database = {
           location?: string
           membership_tier?: string | null
           occupation?: string | null
+          phone?: string | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
@@ -362,6 +467,36 @@ export type Database = {
           status?: string
           stream_key?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      token_transactions: {
+        Row: {
+          balance: number
+          created_at: string
+          delta: number
+          id: string
+          metadata: Json | null
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          delta: number
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          delta?: number
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -489,6 +624,10 @@ export type Database = {
           stream_id: string
           title: string
         }[]
+      }
+      get_user_token_balance: {
+        Args: { target_user_id?: string }
+        Returns: number
       }
       has_role: {
         Args: {
