@@ -1,320 +1,228 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
+import { Heart, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface SignUpData {
+  email: string;
+  password: string;
+  display_name: string;
+  age: number;
+  location: string;
+  bio: string;
+}
 
 const Auth = () => {
-  const { user, loading, signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    displayName: '',
-    age: '',
-    location: '',
-    bio: '',
-    acceptTerms: false,
-    biometricConsent: false
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
 
-  // Redirect if already authenticated
-  if (user && !loading) {
-    return <Navigate to="/app" replace />;
-  }
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<SignUpData>();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-    
-    setIsSubmitting(true);
+  const onSubmit = async (data: SignUpData) => {
+    setLoading(true);
     try {
-      await signIn(formData.email, formData.password);
+      if (isSignUp) {
+        const userData = {
+          display_name: data.display_name,
+          age: data.age,
+          location: data.location,
+          bio: data.bio
+        };
+        const { error } = await signUp(data.email, data.password, userData);
+        if (error) {
+          if (error.message.includes('already registered')) {
+            toast.error('This email is already registered. Try signing in instead.');
+          } else {
+            toast.error(error.message);
+          }
+        } else {
+          toast.success('Account created successfully! Please check your email for verification.');
+          navigate('/');
+        }
+      } else {
+        const { error } = await signIn(data.email, data.password);
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            toast.error('Invalid email or password. Please try again.');
+          } else {
+            toast.error(error.message);
+          }
+        } else {
+          toast.success('Welcome back!');
+          navigate('/');
+        }
+      }
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-
-    if (!formData.acceptTerms) {
-      alert('Please accept the Terms of Service');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const metadata = {
-        display_name: formData.displayName,
-        age: parseInt(formData.age),
-        location: formData.location,
-        bio: formData.bio || 'Hello, I\'m new to Òloo!',
-        biometric_consent: formData.biometricConsent
-      };
-
-      await signUp(formData.email, formData.password, metadata);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    reset();
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
-        <div className="animate-pulse">
-          <div className="heart-logo mx-auto mb-4">
-            <span className="logo-text">Ò</span>
-          </div>
-          <p className="text-muted-foreground text-center">Loading Òloo...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 cultural-pattern">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          
-          <div className="heart-logo mx-auto mb-4">
-            <span className="logo-text">Ò</span>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-background to-secondary/20">
+      <Card className="w-full max-w-md shadow-xl border-0 bg-card/80 backdrop-blur-sm">
+        <CardHeader className="text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="w-10 h-10 romantic-gradient rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-primary-foreground">Ò</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Òloo
+            </span>
           </div>
-          
-          <h1 className="text-4xl font-bold font-afro-heading mb-2">
-            <span className="afro-heading">Òloo</span>
-          </h1>
-          <p className="text-xl text-muted-foreground font-afro-body">
-            Cultured in connection
-          </p>
-        </div>
+          <CardTitle className="text-2xl">
+            {isSignUp ? 'Join Òloo' : 'Welcome Back'}
+          </CardTitle>
+          <CardDescription>
+            {isSignUp 
+              ? 'Create your premium dating profile' 
+              : 'Sign in to your Òloo account'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                {...register('email', { 
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                })}
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            </div>
 
-        {/* Auth Form */}
-        <div className="max-w-md mx-auto">
-          <Card className="cultural-card">
-            <CardHeader className="text-center pb-4">
-              <CardTitle className="text-2xl font-afro-heading">Join the Community</CardTitle>
-              <CardDescription className="text-base">
-                Experience meaningful connections rooted in culture and heritage
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <Tabs defaultValue="signup" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signup" className="font-afro-body">Sign Up</TabsTrigger>
-                  <TabsTrigger value="signin" className="font-afro-body">Sign In</TabsTrigger>
-                </TabsList>
-
-                {/* Sign Up Tab */}
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="displayName">Name</Label>
-                        <Input
-                          id="displayName"
-                          name="displayName"
-                          value={formData.displayName}
-                          onChange={handleInputChange}
-                          placeholder="Your name"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="age">Age</Label>
-                        <Input
-                          id="age"
-                          name="age"
-                          type="number"
-                          min="18"
-                          max="100"
-                          value={formData.age}
-                          onChange={handleInputChange}
-                          placeholder="25"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="your@email.com"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        name="location"
-                        value={formData.location}
-                        onChange={handleInputChange}
-                        placeholder="Lagos, Nigeria"
-                        required
-                      />
-                    </div>
-
-                    <div className="relative">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        placeholder="Create a strong password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    <div className="relative">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        placeholder="Confirm your password"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-start space-x-2">
-                        <Checkbox
-                          id="acceptTerms"
-                          checked={formData.acceptTerms}
-                          onCheckedChange={(checked) => 
-                            setFormData(prev => ({ ...prev, acceptTerms: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
-                          I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
-                          <span className="text-primary underline">Privacy Policy</span>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <Checkbox
-                          id="biometricConsent"
-                          checked={formData.biometricConsent}
-                          onCheckedChange={(checked) => 
-                            setFormData(prev => ({ ...prev, biometricConsent: checked as boolean }))
-                          }
-                        />
-                        <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
-                          <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security
-                        </Label>
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                {/* Sign In Tab */}
-                <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div>
-                      <Label htmlFor="signin-email">Email</Label>
-                      <Input
-                        id="signin-email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="your@email.com"
-                        required
-                      />
-                    </div>
-
-                    <div className="relative">
-                      <Label htmlFor="signin-password">Password</Label>
-                      <Input
-                        id="signin-password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        placeholder="Your password"
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? 'Signing In...' : 'Sign In'}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-
-              {/* Footer */}
-              <div className="mt-6 pt-6 border-t border-border text-center">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  By joining Òloo, you agree to our community guidelines and commit to respectful, 
-                  authentic connections within our culturally-rich environment.
-                </p>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  {...register('password', { 
+                    required: 'Password is required',
+                    minLength: {
+                      value: 6,
+                      message: 'Password must be at least 6 characters'
+                    }
+                  })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+
+            {isSignUp && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="display_name">Display Name</Label>
+                  <Input
+                    id="display_name"
+                    type="text"
+                    placeholder="Your display name"
+                    {...register('display_name', { required: 'Display name is required' })}
+                  />
+                  {errors.display_name && <p className="text-sm text-destructive">{errors.display_name.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      placeholder="25"
+                      {...register('age', { 
+                        required: 'Age is required',
+                        min: { value: 18, message: 'Must be 18 or older' },
+                        max: { value: 100, message: 'Please enter a valid age' }
+                      })}
+                    />
+                    {errors.age && <p className="text-sm text-destructive">{errors.age.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      type="text"
+                      placeholder="City, Country"
+                      {...register('location', { required: 'Location is required' })}
+                    />
+                    {errors.location && <p className="text-sm text-destructive">{errors.location.message}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <textarea
+                    id="bio"
+                    placeholder="Tell us about yourself..."
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    {...register('bio', { required: 'Bio is required' })}
+                  />
+                  {errors.bio && <p className="text-sm text-destructive">{errors.bio.message}</p>}
+                </div>
+              </>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full romantic-gradient hover:scale-105 transition-transform" 
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+              <Button 
+                variant="link" 
+                className="ml-1 p-0 h-auto font-semibold text-primary hover:text-accent"
+                onClick={toggleMode}
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
+              </Button>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
