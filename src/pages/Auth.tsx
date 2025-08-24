@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
+import ProfileCreation from '@/components/ProfileCreation';
+import FaceVerification from '@/components/FaceVerification';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [showProfileCreation, setShowProfileCreation] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -71,11 +75,44 @@ const Auth = () => {
         biometric_consent: formData.biometricConsent
       };
 
-      await signUp(formData.email, formData.password, metadata);
+      const result = await signUp(formData.email, formData.password, metadata);
+      
+      if (!result.error) {
+        // Show profile creation after successful signup
+        if (formData.biometricConsent) {
+          setShowVerification(true);
+        } else {
+          setShowProfileCreation(true);
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleVerificationComplete = (success: boolean) => {
+    setShowVerification(false);
+    setShowProfileCreation(true);
+  };
+
+  const handleProfileCreationComplete = () => {
+    setShowProfileCreation(false);
+    // User will be redirected to the app by the useAuth hook
+  };
+
+  // Show profile creation flow
+  if (showProfileCreation) {
+    return <ProfileCreation onComplete={handleProfileCreationComplete} />;
+  }
+
+  // Show verification flow
+  if (showVerification) {
+    return (
+      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+        <FaceVerification onVerificationComplete={handleVerificationComplete} />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -91,7 +128,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 cultural-pattern">
+    <div className="min-h-screen dark bg-gradient-to-br from-background via-primary/5 to-accent/10 cultural-pattern">
       <div className="container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -242,7 +279,7 @@ const Auth = () => {
                           }
                         />
                         <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
-                          <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security
+                          <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security and profile authenticity
                         </Label>
                       </div>
                     </div>
