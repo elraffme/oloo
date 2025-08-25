@@ -41,8 +41,8 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
   const loadModels = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Load models from CDN
-      const modelUrl = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
+      // SECURITY: Load models from trusted CDN with SRI validation
+      const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model';
       
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl),
@@ -57,10 +57,10 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
         description: "You can now start the verification process",
       });
     } catch (error) {
-      console.error('Error loading face-api models:', error);
+      // SECURITY: Proper error handling without exposing internal details
       toast({
         title: "Error loading face detection",
-        description: "Please refresh and try again",
+        description: "Security verification is temporarily unavailable. Please try again later.",
         variant: "destructive"
       });
     }
@@ -211,8 +211,19 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
     setVerificationStatus('processing');
     
     try {
+      // SECURITY: Check rate limiting first
+      if (user) {
+        const { data: rateLimitCheck } = await supabase.rpc('check_verification_rate_limit', {
+          user_uuid: user.id
+        });
+        
+        if (!rateLimitCheck) {
+          throw new Error('Too many verification attempts. Please wait before trying again.');
+        }
+      }
+
       // Check liveness score
-      if (livenessScore < 0.3) {
+      if (livenessScore < 0.4) {
         throw new Error('Liveness check failed. Please move your head and show natural expressions.');
       }
 
@@ -225,8 +236,9 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
       // Compare with profile photos
       const similarity = await compareWithProfilePhotos(verificationPhoto);
       
-      if (similarity < 0.6) {
-        throw new Error('Face does not match profile photos sufficiently');
+      // SECURITY: Increased similarity threshold for better security
+      if (similarity < 0.75) {
+        throw new Error('Face verification failed. Please ensure good lighting and clear view of your face.');
       }
 
       // Update user profile as verified

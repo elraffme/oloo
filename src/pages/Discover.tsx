@@ -18,11 +18,12 @@ const Discover = () => {
 
   const loadProfiles = async () => {
     try {
-      // First try to load demo profiles for demonstration
+      // SECURITY: Use paginated function to prevent mass data scraping
       const { data: demoProfiles, error: demoError } = await supabase
-        .from('demo_profiles')
-        .select('*')
-        .limit(10);
+        .rpc('get_demo_profiles_paginated', {
+          page_size: 10,
+          page_offset: 0
+        });
 
       if (demoProfiles && demoProfiles.length > 0) {
         setProfiles(demoProfiles);
@@ -31,7 +32,7 @@ const Discover = () => {
         setProfiles(mockProfiles);
       }
     } catch (error) {
-      console.error('Error loading profiles:', error);
+      // SECURITY: Don't expose internal errors to users
       setProfiles(mockProfiles);
     } finally {
       setLoading(false);

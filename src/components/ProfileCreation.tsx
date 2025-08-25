@@ -133,7 +133,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
         }, 'image/png');
       });
     } catch (error) {
-      console.error('Background removal failed:', error);
+      // SECURITY: Proper error handling without exposing internal details
       // Return original file if background removal fails
       return imageFile;
     }
@@ -168,10 +168,10 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
         description: "Your photos have been processed and background removed.",
       });
     } catch (error) {
-      console.error('Upload error:', error);
+      // SECURITY: Don't expose internal errors to users
       toast({
         title: "Upload failed",
-        description: "There was an error processing your photos.",
+        description: "Unable to process photos. Please try again with different images.",
         variant: "destructive",
       });
     } finally {
@@ -234,10 +234,10 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
       
       onComplete();
     } catch (error: any) {
-      console.error('Profile creation error:', error);
+      // SECURITY: Don't expose internal errors to users
       toast({
         title: "Error creating profile",
-        description: error.message || "Please try again.",
+        description: "Unable to create profile. Please check your information and try again.",
         variant: "destructive",
       });
     } finally {

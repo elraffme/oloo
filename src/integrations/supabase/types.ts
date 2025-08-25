@@ -551,6 +551,33 @@ export type Database = {
         }
         Relationships: []
       }
+      verification_attempts: {
+        Row: {
+          attempt_count: number | null
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          last_attempt_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -564,9 +591,32 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      check_verification_rate_limit: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
+      }
+      get_demo_profiles_paginated: {
+        Args: { page_offset?: number; page_size?: number }
+        Returns: {
+          age: number
+          bio: string | null
+          created_at: string
+          display_name: string
+          education: string | null
+          height_cm: number | null
+          id: string
+          interests: string[] | null
+          languages: string[] | null
+          location: string
+          occupation: string | null
+          profile_photos: string[] | null
+          prompt_responses: Json | null
+          relationship_goals: string | null
+        }[]
       }
       get_public_profile_data: {
         Args: { profile_user_id: string }
