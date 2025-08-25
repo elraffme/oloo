@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { pipeline, env } from '@huggingface/transformers';
-import FaceVerification from './FaceVerification';
+import { FaceVerification } from './FaceVerification';
 
 // Configure transformers.js
 env.allowLocalModels = false;

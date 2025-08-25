@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import ProfileCreation from '@/components/ProfileCreation';
-import FaceVerification from '@/components/FaceVerification';
+import { FaceVerification } from '@/components/FaceVerification';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -109,7 +109,10 @@ const Auth = () => {
   if (showVerification) {
     return (
       <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
-        <FaceVerification onVerificationComplete={handleVerificationComplete} />
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={[]}
+        />
       </div>
     );
   }
