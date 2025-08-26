@@ -263,6 +263,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_audit_log: {
+        Row: {
+          amount_cents: number | null
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          operation_type: string
+          payment_intent_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          operation_type: string
+          payment_intent_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          operation_type?: string
+          payment_intent_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_intents: {
         Row: {
           amount_cents: number
@@ -703,8 +745,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      secure_payment_operation: {
+        Args: {
+          operation_type: string
+          payment_data?: Json
+          payment_intent_id?: string
+        }
+        Returns: Json
+      }
       validate_membership_operation: {
         Args: { target_user_id: string }
+        Returns: boolean
+      }
+      validate_payment_amount: {
+        Args: { amount_cents: number; tier: string }
         Returns: boolean
       }
     }
