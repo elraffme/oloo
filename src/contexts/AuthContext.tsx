@@ -43,13 +43,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         // Log auth events for security audit
         if (event === 'SIGNED_IN' && session?.user) {
-          // Don't await this to avoid blocking
-          setTimeout(() => {
-            supabase.from('security_audit_log').insert({
-              user_id: session.user.id,
-              action: 'login',
-              details: { event }
-            });
+          // Use secure audit logging function instead of direct insert
+          setTimeout(async () => {
+            try {
+              await supabase.rpc('log_security_event', {
+                p_action: 'login',
+                p_resource_type: 'auth',
+                p_details: { event, timestamp: new Date().toISOString() }
+              });
+            } catch (error) {
+              console.error('Failed to log security event:', error);
+            }
           }, 0);
         }
       }
@@ -129,12 +133,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Log signout
+      // Log signout using secure audit function
       if (user) {
-        await supabase.from('security_audit_log').insert({
-          user_id: user.id,
-          action: 'logout'
-        });
+        try {
+          await supabase.rpc('log_security_event', {
+            p_action: 'logout',
+            p_resource_type: 'auth',
+            p_details: { timestamp: new Date().toISOString() }
+          });
+        } catch (error) {
+          console.error('Failed to log security event:', error);
+        }
       }
       
       const { error } = await supabase.auth.signOut();

@@ -745,6 +745,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_system_security_event: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_resource_id?: string
+          p_resource_type?: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       secure_payment_operation: {
         Args: {
           operation_type: string
