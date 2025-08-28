@@ -149,9 +149,13 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background text-foreground;
+}
 }
 
 @layer components {

@@ -126,7 +126,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 dark bg-background p-4">
       {/* Profile Header */}
       <Card className="cultural-card">
         <CardContent className="p-6">
@@ -331,7 +331,6 @@ const Profile = () => {
           />
         </TabsContent>
 
-        {/* Settings Tab */}
         <TabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>
@@ -342,7 +341,7 @@ const Profile = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <h4 className="font-medium">Privacy</h4>
+                <h4 className="font-medium">Privacy & Dating Preferences</h4>
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center justify-between">
                     <span>Show my profile to others</span>
@@ -362,6 +361,10 @@ const Profile = () => {
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Want to have kids in the future</span>
+                    <input type="checkbox" className="rounded" />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span>Already have kids</span>
                     <input type="checkbox" className="rounded" />
                   </label>
                 </div>
