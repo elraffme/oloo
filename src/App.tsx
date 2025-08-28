@@ -13,21 +13,23 @@ import Profile from "./pages/Profile";
 import Premium from "./pages/Premium";
 
 const App = () => (
-  <Router>
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/app" element={<AppLayout />}>
-        <Route index element={<Discover />} />
-        <Route path="streaming" element={<Streaming />} />
-        <Route path="messages" element={<Messages />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="premium" element={<Premium />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  </Router>
+  <AuthProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<Discover />} />
+          <Route path="streaming" element={<Streaming />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="premium" element={<Premium />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  </AuthProvider>
 );
 
 export default App;
