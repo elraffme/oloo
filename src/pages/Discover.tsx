@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProfileCard } from '@/components/ProfileCard';
+import { MatchModal } from '@/components/MatchModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
 
 const Discover = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [matchModal, setMatchModal] = useState<{ isOpen: boolean; profile: any | null }>({
+    isOpen: false,
+    profile: null
+  });
 
   useEffect(() => {
     loadProfiles();
@@ -42,12 +49,26 @@ const Discover = () => {
     const currentProfile = profiles[currentIndex];
     
     if (direction === 'right') {
-      // Record like
+      // Record like and check for match
       try {
         await supabase.from('user_connections').insert({
           connected_user_id: currentProfile.id,
           connection_type: 'like'
         });
+
+        // Simulate match detection (10% chance for demo)
+        const isMatch = Math.random() < 0.1;
+        
+        if (isMatch) {
+          setTimeout(() => {
+            setMatchModal({ isOpen: true, profile: currentProfile });
+          }, 700);
+        } else {
+          toast({
+            title: "Profile liked! 💖",
+            description: `You liked ${currentProfile.display_name}. If they like you back, you'll get a match!`,
+          });
+        }
       } catch (error) {
         console.error('Error recording like:', error);
       }
@@ -61,8 +82,25 @@ const Discover = () => {
     }, 600);
   };
 
-  const handleMessage = () => {
-    navigate('/app/messages');
+  const handleMessage = (profileId: string) => {
+    // Create or navigate to conversation with this profile
+    console.log(`Starting conversation with profile ${profileId}`);
+    navigate('/app/messages', { state: { newConversation: profileId } });
+  };
+
+  const handleSendMessage = (profileId: string, message: string) => {
+    console.log(`Sending message to ${profileId}: ${message}`);
+    navigate('/app/messages', { 
+      state: { 
+        newConversation: profileId,
+        initialMessage: message 
+      } 
+    });
+    
+    toast({
+      title: "Message sent! 💬",
+      description: "Your message has been sent successfully.",
+    });
   };
 
   if (loading) {
@@ -112,7 +150,7 @@ const Discover = () => {
         <ProfileCard
           profile={currentProfile}
           onSwipe={handleSwipe}
-          onMessage={handleMessage}
+          onMessage={() => handleMessage(currentProfile.id)}
           swipeDirection={swipeDirection}
         />
 
@@ -123,48 +161,118 @@ const Discover = () => {
           </p>
         </div>
       </div>
+
+      {/* Match Modal */}
+      <MatchModal
+        isOpen={matchModal.isOpen}
+        onClose={() => setMatchModal({ isOpen: false, profile: null })}
+        matchedProfile={matchModal.profile}
+        onSendMessage={handleSendMessage}
+      />
     </div>
   );
 };
 
 // Mock data for demonstration
 const mockProfiles = [
-  {
-    id: '1',
-    display_name: 'Amara',
-    age: 28,
-    location: 'Lagos, Nigeria',
-    bio: 'Passionate about art, culture, and meaningful connections. Love exploring new places and trying authentic cuisines.',
-    occupation: 'Graphic Designer',
-    education: 'University Degree',
-    interests: ['Art', 'Travel', 'Photography', 'Music', 'Cooking'],
-    verified: true,
-    profile_photos: ['https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=600&fit=crop&crop=face']
-  },
-  {
-    id: '2', 
-    display_name: 'Kwame',
-    age: 32,
-    location: 'Accra, Ghana',
-    bio: 'Entrepreneur with a love for music and community building. Always down for good conversation and dancing.',
-    occupation: 'Business Owner',
-    education: 'Masters Degree',
-    interests: ['Music', 'Dancing', 'Business', 'Community', 'Fitness'],
-    verified: true,
-    profile_photos: ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face']
-  },
-  {
-    id: '3',
-    display_name: 'Zara',
-    age: 25,
-    location: 'Cape Town, South Africa',
-    bio: 'Writer and cultural enthusiast. Exploring the beauty of African stories and traditions.',
-    occupation: 'Writer',
-    education: 'University Degree',
-    interests: ['Writing', 'Culture', 'Literature', 'History', 'Nature'],
-    verified: false,
-    profile_photos: ['https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=400&h=600&fit=crop&crop=face']
-  }
+    {
+      id: '1',
+      display_name: 'Amara',
+      age: 28,
+      location: 'Lagos, Nigeria',
+      bio: 'Passionate about art, culture, and meaningful connections. Love exploring new places and trying authentic cuisines. Always up for spontaneous adventures and deep conversations over coffee.',
+      occupation: 'Creative Director',
+      education: 'Bachelor of Fine Arts',
+      interests: ['Art', 'Travel', 'Photography', 'Music', 'Cooking', 'Cultural Events'],
+      verified: true,
+      height_cm: 165,
+      languages: ['English', 'Yoruba', 'French'],
+      personality: 'ENFP',
+      relationship_goals: 'Looking for someone who shares my passion for creativity and adventure. I believe in building meaningful connections based on mutual respect and shared experiences.',
+      profile_photos: [
+        'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=400&h=600&fit=crop&crop=face'
+      ]
+    },
+    {
+      id: '2', 
+      display_name: 'Kwame',
+      age: 32,
+      location: 'Accra, Ghana',
+      bio: 'Entrepreneur with a love for music and community building. Always down for good conversation and dancing. Building something meaningful in the tech space while staying connected to my roots.',
+      occupation: 'Tech Entrepreneur',
+      education: 'MBA, Computer Science',
+      interests: ['Music', 'Dancing', 'Business', 'Community', 'Fitness', 'Afrobeats'],
+      verified: true,
+      height_cm: 182,
+      languages: ['English', 'Twi', 'French'],
+      personality: 'ENTJ',
+      relationship_goals: 'Seeking a partner who is ambitious, family-oriented, and shares my vision for making a positive impact. Love is partnership in every sense.',
+      profile_photos: [
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1615109398623-88346a601842?w=400&h=600&fit=crop&crop=face'
+      ]
+    },
+    {
+      id: '3',
+      display_name: 'Zara',
+      age: 25,
+      location: 'Cape Town, South Africa',
+      bio: 'Writer and cultural enthusiast. Exploring the beauty of African stories and traditions through my writing. Poetry is my love language, and I find magic in everyday moments.',
+      occupation: 'Author & Journalist',
+      education: 'Masters in Literature',
+      interests: ['Writing', 'Culture', 'Literature', 'History', 'Nature', 'Poetry'],
+      verified: false,
+      height_cm: 158,
+      languages: ['English', 'Afrikaans', 'Xhosa'],
+      personality: 'INFP',
+      relationship_goals: 'Looking for someone who appreciates depth, creativity, and authentic connection. I value emotional intelligence and shared growth.',
+      profile_photos: [
+        'https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?w=400&h=600&fit=crop&crop=face'
+      ]
+    },
+    {
+      id: '4',
+      display_name: 'Kofi',
+      age: 29,
+      location: 'Nairobi, Kenya',
+      bio: 'Wildlife photographer and conservation enthusiast. Spent the last 5 years documenting the beauty of East African wildlife. When I\'m not behind the camera, you\'ll find me hiking or trying new restaurants.',
+      occupation: 'Wildlife Photographer',
+      education: 'Bachelors in Environmental Science',
+      interests: ['Photography', 'Wildlife', 'Conservation', 'Hiking', 'Travel', 'Documentary'],
+      verified: true,
+      height_cm: 177,
+      languages: ['English', 'Swahili', 'Spanish'],
+      personality: 'ISFP',
+      relationship_goals: 'Seeking someone who loves adventure and has a passion for making the world a better place. Let\'s explore life together!',
+      profile_photos: [
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=600&fit=crop&crop=face'
+      ]
+    },
+    {
+      id: '5',
+      display_name: 'Asha',
+      age: 26,
+      location: 'Addis Ababa, Ethiopia',
+      bio: 'Doctor by day, dancer by night! Working in pediatrics and passionate about community health. Love traditional Ethiopian coffee ceremonies and modern dance. Life is about balance and joy.',
+      occupation: 'Pediatrician',
+      education: 'Medical Degree',
+      interests: ['Medicine', 'Dancing', 'Coffee', 'Community Health', 'Traditional Music', 'Fitness'],
+      verified: true,
+      height_cm: 162,
+      languages: ['Amharic', 'English', 'French'],
+      personality: 'ESFJ',
+      relationship_goals: 'Looking for someone kind, family-oriented, and supportive. I believe in growing together and supporting each other\'s dreams.',
+      profile_photos: [
+        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face',
+        'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=600&fit=crop&crop=face'
+      ]
+    }
 ];
 
 export default Discover;

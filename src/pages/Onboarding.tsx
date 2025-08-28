@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const OnboardingStep = ({ 
@@ -397,42 +397,69 @@ const Onboarding = () => {
           currentStep={step}
           totalSteps={totalSteps}
         >
-            <div className="space-y-4">
-              <div 
-                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                onClick={() => document.getElementById('photo-upload')?.click()}
-              >
-                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  {formData.photos.length > 0 
-                    ? `${formData.photos.length} photo(s) selected` 
-                    : "Click to select photos"
-                  }
-                </p>
-                <Input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="photo-upload"
-                />
-                <Button type="button" variant="outline" className="w-full pointer-events-none">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Select Photos
-                </Button>
-              </div>
-              
-              {formData.photos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {formData.photos.slice(0, 6).map((photo, index) => (
-                    <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                      <span className="text-xs text-muted-foreground">Photo {index + 1}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="space-y-4">
+            <div 
+              className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+              onClick={() => document.getElementById('photo-upload')?.click()}
+            >
+              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-2">
+                {formData.photos.length > 0 
+                  ? `${formData.photos.length} photo(s) selected` 
+                  : "Add at least 2 photos (max 6)"
+                }
+              </p>
+              <Input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="photo-upload"
+              />
+              <Button type="button" variant="outline" className="w-full pointer-events-none">
+                <Upload className="w-4 h-4 mr-2" />
+                Select Photos
+              </Button>
             </div>
+            
+            {formData.photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {formData.photos.slice(0, 6).map((photo, index) => (
+                  <div key={index} className="relative aspect-square group">
+                    <img
+                      src={URL.createObjectURL(photo)}
+                      alt={`Upload ${index + 1}`}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newPhotos = formData.photos.filter((_, i) => i !== index);
+                        updateData('photos', newPhotos);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                    {index === 0 && (
+                      <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
+                        Main
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="bg-accent/10 p-3 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                💡 <strong>Tip:</strong> Your first photo will be your main profile picture. Add multiple angles and genuine smiles!
+              </p>
+            </div>
+          </div>
         </OnboardingStep>
       );
 
