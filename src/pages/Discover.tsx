@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Heart, X, MapPin, Briefcase, GraduationCap, Info } from 'lucide-react';
-import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { ProfileCard } from '@/components/ProfileCard';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const Discover = () => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -62,6 +61,10 @@ const Discover = () => {
     }, 600);
   };
 
+  const handleMessage = () => {
+    navigate('/app/messages');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -106,124 +109,12 @@ const Discover = () => {
   return (
     <div className="max-w-sm mx-auto">
       <div className="relative">
-        <Card 
-          className={`swipe-card relative overflow-hidden transition-all duration-600 ${
-            swipeDirection === 'right' ? 'animate-swipe-right' : 
-            swipeDirection === 'left' ? 'animate-swipe-left' : ''
-          }`}
-        >
-          <CardContent className="p-0">
-            {/* Profile Image */}
-            <div className="relative h-96 bg-gradient-to-br from-primary/20 to-accent/20">
-              {currentProfile.profile_photos?.[0] ? (
-                <img 
-                  src={currentProfile.profile_photos[0]} 
-                  alt={currentProfile.display_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-6xl">
-                  <span className="heart-logo scale-150">
-                    <span className="logo-text">Ò</span>
-                  </span>
-                </div>
-              )}
-              
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-              
-              {/* Status Badges */}
-              <div className="absolute top-4 left-4 flex gap-2">
-                <VerifiedBadge verified={currentProfile.verified || Math.random() > 0.5} />
-                {Math.random() > 0.7 && (
-                  <Badge className="bg-green-500 hover:bg-green-600 text-white">
-                    Online
-                  </Badge>
-                )}
-              </div>
-
-              {/* Info Button */}
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm hover:bg-white/30"
-              >
-                <Info className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Profile Info */}
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="text-2xl font-bold font-afro-heading flex items-center gap-2">
-                  {currentProfile.display_name}
-                  <span className="text-lg text-muted-foreground font-normal">
-                    {currentProfile.age}
-                  </span>
-                </h3>
-                
-                {currentProfile.location && (
-                  <p className="text-muted-foreground flex items-center gap-1 mt-1">
-                    <MapPin className="w-4 h-4" />
-                    {currentProfile.location}
-                  </p>
-                )}
-              </div>
-
-              {currentProfile.bio && (
-                <p className="text-sm leading-relaxed">{currentProfile.bio}</p>
-              )}
-
-              {/* Quick Info */}
-              <div className="space-y-2">
-                {currentProfile.occupation && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" />
-                    <span>{currentProfile.occupation}</span>
-                  </div>
-                )}
-                
-                {currentProfile.education && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                    <span>{currentProfile.education}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Interests */}
-              {currentProfile.interests && currentProfile.interests.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {currentProfile.interests.slice(0, 4).map((interest: string, index: number) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-6 mt-6">
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-16 h-16 rounded-full border-2 border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={() => handleSwipe('left')}
-          >
-            <X className="w-8 h-8" />
-          </Button>
-          
-          <Button
-            size="lg"
-            className="w-16 h-16 rounded-full bg-primary hover:bg-primary/90 pulse-romantic"
-            onClick={() => handleSwipe('right')}
-          >
-            <Heart className="w-8 h-8" />
-          </Button>
-        </div>
+        <ProfileCard
+          profile={currentProfile}
+          onSwipe={handleSwipe}
+          onMessage={handleMessage}
+          swipeDirection={swipeDirection}
+        />
 
         {/* Profile Counter */}
         <div className="text-center mt-4">

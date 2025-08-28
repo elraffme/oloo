@@ -361,16 +361,25 @@ const Onboarding = () => {
             <Label>Personality Type</Label>
             <Select value={formData.personality} onValueChange={(value) => updateData('personality', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose your personality type" />
+                <SelectValue placeholder="Choose your Myers-Briggs personality type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="introvert">Introvert</SelectItem>
-                <SelectItem value="extrovert">Extrovert</SelectItem>
-                <SelectItem value="ambivert">Ambivert</SelectItem>
-                <SelectItem value="creative">Creative Type</SelectItem>
-                <SelectItem value="analytical">Analytical</SelectItem>
-                <SelectItem value="adventurous">Adventurous</SelectItem>
-                <SelectItem value="homebody">Homebody</SelectItem>
+                <SelectItem value="INTJ">INTJ - The Architect (Introverted, Intuitive, Thinking, Judging)</SelectItem>
+                <SelectItem value="INTP">INTP - The Thinker (Introverted, Intuitive, Thinking, Perceiving)</SelectItem>
+                <SelectItem value="ENTJ">ENTJ - The Commander (Extraverted, Intuitive, Thinking, Judging)</SelectItem>
+                <SelectItem value="ENTP">ENTP - The Debater (Extraverted, Intuitive, Thinking, Perceiving)</SelectItem>
+                <SelectItem value="INFJ">INFJ - The Advocate (Introverted, Intuitive, Feeling, Judging)</SelectItem>
+                <SelectItem value="INFP">INFP - The Mediator (Introverted, Intuitive, Feeling, Perceiving)</SelectItem>
+                <SelectItem value="ENFJ">ENFJ - The Protagonist (Extraverted, Intuitive, Feeling, Judging)</SelectItem>
+                <SelectItem value="ENFP">ENFP - The Campaigner (Extraverted, Intuitive, Feeling, Perceiving)</SelectItem>
+                <SelectItem value="ISTJ">ISTJ - The Logistician (Introverted, Sensing, Thinking, Judging)</SelectItem>
+                <SelectItem value="ISFJ">ISFJ - The Protector (Introverted, Sensing, Feeling, Judging)</SelectItem>
+                <SelectItem value="ESTJ">ESTJ - The Executive (Extraverted, Sensing, Thinking, Judging)</SelectItem>
+                <SelectItem value="ESFJ">ESFJ - The Consul (Extraverted, Sensing, Feeling, Judging)</SelectItem>
+                <SelectItem value="ISTP">ISTP - The Virtuoso (Introverted, Sensing, Thinking, Perceiving)</SelectItem>
+                <SelectItem value="ISFP">ISFP - The Adventurer (Introverted, Sensing, Feeling, Perceiving)</SelectItem>
+                <SelectItem value="ESTP">ESTP - The Entrepreneur (Extraverted, Sensing, Thinking, Perceiving)</SelectItem>
+                <SelectItem value="ESFP">ESFP - The Entertainer (Extraverted, Sensing, Feeling, Perceiving)</SelectItem>
               </SelectContent>
             </Select>
           </div>
