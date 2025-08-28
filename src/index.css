@@ -16,10 +16,10 @@
     --popover: 35 20% 98%;
     --popover-foreground: 25 15% 15%;
 
-    /* Primary - Rich Terracotta & Gold */
-    --primary: 25 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 35 90% 65%;
+    /* Primary - Lemony Beige */
+    --primary: 55 45% 78%;
+    --primary-foreground: 25 15% 15%;
+    --primary-glow: 58 55% 85%;
 
     /* Secondary - Earthy Warm Tones */
     --secondary: 45 25% 92%;
@@ -28,7 +28,7 @@
     --muted: 45 25% 92%;
     --muted-foreground: 25 10% 45%;
 
-    --accent: 45 100% 50%;
+    --accent: 52 65% 70%;
     --accent-foreground: 25 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
@@ -36,7 +36,7 @@
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 20 100% 50%;
+    --ring: 55 45% 78%;
 
     /* Afrocentric Tier Colors */
     --silver: 200 15% 75%;
@@ -46,23 +46,23 @@
     --platinum: 280 30% 60%;
     --platinum-foreground: 0 0% 100%;
     
-    /* Verification Orange */
-    --orange-verified: 25 95% 53%;
-    --orange-verified-foreground: 0 0% 100%;
+    /* Verification Lemony */
+    --orange-verified: 55 60% 65%;
+    --orange-verified-foreground: 25 15% 15%;
 
-    /* Vibrant Afrocentric Gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(25 85% 55%), hsl(35 90% 65%), hsl(45 100% 50%));
-    --gradient-luxury: linear-gradient(135deg, hsl(25 85% 55%), hsl(15 80% 50%), hsl(5 85% 60%));
-    --gradient-premium: linear-gradient(135deg, hsl(280 30% 60%), hsl(320 40% 70%), hsl(45 100% 80%));
-    --gradient-hero: linear-gradient(135deg, hsl(25 85% 55%) 0%, hsl(15 80% 50%) 30%, hsl(45 100% 50%) 70%, hsl(35 90% 65%) 100%);
-    --gradient-nsibidi: linear-gradient(135deg, hsl(15 80% 50%), hsl(25 85% 55%), hsl(45 100% 50%), hsl(35 90% 65%));
+    /* Lemony Beige Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(55 45% 78%), hsl(58 55% 85%), hsl(52 65% 70%));
+    --gradient-luxury: linear-gradient(135deg, hsl(55 45% 78%), hsl(50 40% 75%), hsl(48 50% 68%));
+    --gradient-premium: linear-gradient(135deg, hsl(280 30% 60%), hsl(320 40% 70%), hsl(58 60% 82%));
+    --gradient-hero: linear-gradient(135deg, hsl(55 45% 78%) 0%, hsl(50 40% 75%) 30%, hsl(52 65% 70%) 70%, hsl(58 55% 85%) 100%);
+    --gradient-nsibidi: linear-gradient(135deg, hsl(50 40% 75%), hsl(55 45% 78%), hsl(52 65% 70%), hsl(58 55% 85%));
     
-    /* Afrocentric Shadows */
-    --shadow-romantic: 0 10px 40px -10px hsl(25 85% 55% / 0.4);
-    --shadow-luxury: 0 10px 40px -10px hsl(15 80% 50% / 0.3);
+    /* Lemony Beige Shadows */
+    --shadow-romantic: 0 10px 40px -10px hsl(55 45% 78% / 0.4);
+    --shadow-luxury: 0 10px 40px -10px hsl(50 40% 75% / 0.3);
     --shadow-premium: 0 20px 60px -15px hsl(280 30% 60% / 0.4);
-    --shadow-glow: 0 0 30px hsl(25 85% 55% / 0.6);
-    --shadow-cultural: 0 8px 32px -8px hsl(45 100% 50% / 0.3);
+    --shadow-glow: 0 0 30px hsl(55 45% 78% / 0.6);
+    --shadow-cultural: 0 8px 32px -8px hsl(52 65% 70% / 0.3);
 
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -98,9 +98,9 @@
     --popover: 25 15% 12%;
     --popover-foreground: 45 15% 95%;
 
-    --primary: 25 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 35 90% 65%;
+    --primary: 55 45% 78%;
+    --primary-foreground: 25 15% 15%;
+    --primary-glow: 58 55% 85%;
 
     --secondary: 25 15% 18%;
     --secondary-foreground: 45 15% 95%;
@@ -108,7 +108,7 @@
     --muted: 25 15% 18%;
     --muted-foreground: 45 10% 65%;
 
-    --accent: 45 100% 50%;
+    --accent: 52 65% 70%;
     --accent-foreground: 25 20% 8%;
 
     --destructive: 0 62.8% 30.6%;
@@ -116,7 +116,7 @@
 
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 20 100% 50%;
+    --ring: 55 45% 78%;
 
     /* Dark Premium Colors */
     --silver: 240 5% 64.9%;
@@ -126,12 +126,12 @@
     --platinum: 240 5.9% 70%;
     --platinum-foreground: 240 10% 3.9%;
 
-    /* Dark Afrocentric Gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(25 80% 45%), hsl(35 85% 50%), hsl(45 95% 45%));
-    --gradient-luxury: linear-gradient(135deg, hsl(25 80% 45%), hsl(15 75% 40%), hsl(5 80% 50%));
-    --gradient-premium: linear-gradient(135deg, hsl(280 25% 40%), hsl(320 35% 50%), hsl(45 95% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(25 80% 45%) 0%, hsl(15 75% 40%) 30%, hsl(45 95% 45%) 70%, hsl(35 85% 50%) 100%);
-    --gradient-nsibidi: linear-gradient(135deg, hsl(15 75% 40%), hsl(25 80% 45%), hsl(45 95% 45%), hsl(35 85% 50%));
+    /* Dark Lemony Beige Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(55 35% 45%), hsl(58 45% 50%), hsl(52 55% 45%));
+    --gradient-luxury: linear-gradient(135deg, hsl(55 35% 45%), hsl(50 30% 40%), hsl(48 40% 42%));
+    --gradient-premium: linear-gradient(135deg, hsl(280 25% 40%), hsl(320 35% 50%), hsl(58 50% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(55 35% 45%) 0%, hsl(50 30% 40%) 30%, hsl(52 55% 45%) 70%, hsl(58 45% 50%) 100%);
+    --gradient-nsibidi: linear-gradient(135deg, hsl(50 30% 40%), hsl(55 35% 45%), hsl(52 55% 45%), hsl(58 45% 50%));
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
