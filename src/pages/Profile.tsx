@@ -425,9 +425,6 @@ const Profile = () => {
                 <p className="text-sm opacity-80">Cancel anytime</p>
               </div>
               
-              <Button className="w-full bg-white text-gold hover:bg-gray-100">
-                Upgrade to Premium
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>

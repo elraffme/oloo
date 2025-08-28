@@ -138,9 +138,6 @@ const Streaming = () => {
               <p className="text-muted-foreground">
                 Join exclusive cultural events, masterclasses, and premium streaming content.
               </p>
-              <Button className="bg-gradient-to-r from-gold to-accent text-foreground hover:opacity-90">
-                Upgrade to Premium
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>

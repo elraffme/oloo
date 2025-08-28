@@ -153,17 +153,6 @@ const AppLayout = () => {
         </div>
       </nav>
 
-      {/* Premium Upgrade Banner - Conditional */}
-      <div className="fixed bottom-20 md:bottom-6 right-4 z-40">
-        <Button 
-          variant="default"
-          size="sm"
-          className="bg-gradient-to-r from-gold to-accent text-foreground shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse-glow"
-        >
-          <Crown className="w-4 h-4 mr-2" />
-          Upgrade to Premium
-        </Button>
-      </div>
     </div>
   );
 };
