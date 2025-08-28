@@ -89,9 +89,8 @@ const LandingPage = () => {
           
           {/* Primary CTA */}
           <Button 
-            className="w-full h-14 text-lg font-semibold rounded-full bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-lg"
-            style={{ backgroundColor: '#CC5500' }}
-            onClick={() => window.location.href = '/auth'}
+            className="w-full h-14 text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform"
+            onClick={() => window.location.href = '/onboarding'}
           >
             Create account
           </Button>
