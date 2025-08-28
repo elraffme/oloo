@@ -22,6 +22,7 @@ import {
   Camera
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { PhotoUpload } from '@/components/PhotoUpload';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -67,6 +68,24 @@ const Profile = () => {
       setTokenBalance(data || 0);
     } catch (error) {
       console.error('Error loading token balance:', error);
+    }
+  };
+
+  const updateProfilePhotos = async (photos: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_photos: photos })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProfile((prev: any) => ({
+        ...prev,
+        profile_photos: photos
+      }));
+    } catch (error) {
+      console.error('Error updating profile photos:', error);
     }
   };
 
@@ -306,27 +325,10 @@ const Profile = () => {
 
         {/* Photos Tab */}
         <TabsContent value="photos" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Photos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Add photo slots */}
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square bg-muted rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors border-2 border-dashed border-border"
-                  >
-                    <div className="text-center">
-                      <Camera className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Add Photo</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <PhotoUpload 
+            profilePhotos={profile?.profile_photos || []}
+            onPhotosUpdate={updateProfilePhotos}
+          />
         </TabsContent>
 
         {/* Settings Tab */}
@@ -353,6 +355,14 @@ const Profile = () => {
                   <label className="flex items-center justify-between">
                     <span>Show online status</span>
                     <input type="checkbox" defaultChecked className="rounded" />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span>Open to people with kids</span>
+                    <input type="checkbox" className="rounded" />
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <span>Want to have kids in the future</span>
+                    <input type="checkbox" className="rounded" />
                   </label>
                 </div>
               </div>
