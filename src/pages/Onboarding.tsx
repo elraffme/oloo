@@ -361,7 +361,7 @@ const Onboarding = () => {
             <Label>Personality Type</Label>
             <Select value={formData.personality} onValueChange={(value) => updateData('personality', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose your Myers-Briggs personality type" />
+                <SelectValue placeholder="Select" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="INTJ">INTJ - The Architect (Introverted, Intuitive, Thinking, Judging)</SelectItem>

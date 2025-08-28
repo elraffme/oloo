@@ -4,16 +4,15 @@ import heroImage from "@/assets/hero-dating.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden african-pattern-bg">
-      {/* Background Image with Overlay */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
+      {/* Background Image with White Overlay */}
       <div className="absolute inset-0">
         <img 
           src={heroImage} 
           alt="Romantic couple silhouette" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-20"
         />
-        <div className="absolute inset-0 hero-gradient opacity-70"></div>
-        <div className="absolute inset-0 bg-background/10"></div>
+        <div className="absolute inset-0 bg-white/80"></div>
       </div>
 
       {/* Floating Logo Animation */}
