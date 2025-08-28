@@ -16,19 +16,23 @@ const HeroSection = () => {
         <div className="absolute inset-0 bg-background/10"></div>
       </div>
 
-      {/* Floating Hearts Animation */}
+      {/* Floating Logo Animation */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(6)].map((_, i) => (
-          <Heart 
+          <div 
             key={i}
-            className={`absolute text-primary/30 animate-float-hearts`}
+            className="absolute animate-float-hearts"
             style={{
               left: `${20 + (i * 15)}%`,
               top: `${30 + (i * 10)}%`,
               animationDelay: `${i * 0.5}s`,
               fontSize: `${1.5 + (i * 0.3)}rem`
             }}
-          />
+          >
+            <div className="romantic-gradient rounded-full p-2 opacity-30">
+              <span className="text-primary-foreground font-bold">Ò</span>
+            </div>
+          </div>
         ))}
       </div>
 
@@ -61,7 +65,9 @@ const HeroSection = () => {
             size="lg" 
             className="nsibidi-gradient text-primary-foreground border-0 hover:scale-105 transition-all duration-300 px-8 py-6 text-lg font-afro-body shadow-lg hover:shadow-xl"
           >
-            <Heart className="w-5 h-5 mr-2" />
+            <div className="w-5 h-5 mr-2 romantic-gradient rounded-full flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-xs">Ò</span>
+            </div>
             <span className="nsibidi-symbol mr-2">♦</span>
             Start Matching
           </Button>

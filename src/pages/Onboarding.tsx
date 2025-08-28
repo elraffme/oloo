@@ -514,7 +514,7 @@ const Onboarding = () => {
     case 15:
       return (
         <OnboardingStep
-          title="Quick Tutorial"
+          title="Oloo Insight"
           description="Let's show you how Òloo works"
           onNext={nextStep}
           onBack={prevStep}
@@ -523,7 +523,9 @@ const Onboarding = () => {
         >
           <div className="space-y-6">
             <div className="text-center">
-              <Heart className="w-16 h-16 mx-auto mb-4 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 romantic-gradient rounded-full flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-3xl">Ò</span>
+              </div>
               <h3 className="font-semibold mb-2">Swipe to Connect</h3>
               <p className="text-sm text-muted-foreground">
                 Swipe right to like someone, left to pass. If you both like each other, it's a match!

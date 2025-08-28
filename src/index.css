@@ -16,10 +16,10 @@
     --popover: 35 20% 98%;
     --popover-foreground: 25 15% 15%;
 
-    /* Primary - Lemony Beige */
-    --primary: 55 45% 78%;
+    /* Primary - Brighter Lemony Beige */
+    --primary: 55 65% 65%;
     --primary-foreground: 25 15% 15%;
-    --primary-glow: 58 55% 85%;
+    --primary-glow: 58 75% 75%;
 
     /* Secondary - Earthy Warm Tones */
     --secondary: 45 25% 92%;
@@ -28,7 +28,7 @@
     --muted: 45 25% 92%;
     --muted-foreground: 25 10% 45%;
 
-    --accent: 52 65% 70%;
+    --accent: 52 85% 60%;
     --accent-foreground: 25 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
@@ -280,37 +280,13 @@ body {
     width: 40px;
     height: 36px;
     background: var(--gradient-romantic);
-    transform: rotate(-45deg);
-    border-radius: 50% 50% 50% 50% / 60% 60% 35% 35%;
+    border-radius: 50%;
     transition: var(--transition-smooth);
-  }
-
-  .heart-logo::before,
-  .heart-logo::after {
-    content: '';
-    position: absolute;
-    background: var(--gradient-romantic);
-    width: 26px;
-    height: 40px;
-    border-radius: 50px 50px 0 0;
-  }
-
-  .heart-logo::before {
-    left: 20px;
-    transform: rotate(-45deg);
-    transform-origin: 0 100%;
-  }
-
-  .heart-logo::after {
-    left: 0;
-    transform: rotate(45deg);
-    transform-origin: 100% 100%;
   }
 
   .heart-logo .logo-text {
     position: relative;
     z-index: 2;
-    transform: rotate(45deg);
     font-size: 1.25rem;
     font-weight: bold;
     color: hsl(var(--primary-foreground));
