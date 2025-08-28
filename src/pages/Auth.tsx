@@ -131,32 +131,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen dark relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 romantic-gradient opacity-90"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/30"></div>
-        <div className="absolute inset-0 cultural-pattern opacity-30"></div>
-        
-        {/* Floating Elements */}
-        <div className="absolute top-20 left-20 w-32 h-32 rounded-full bg-gradient-to-r from-primary/20 to-accent/20 blur-xl animate-pulse"></div>
-        <div className="absolute top-40 right-32 w-24 h-24 rounded-full bg-gradient-to-r from-accent/30 to-primary/20 blur-lg animate-pulse delay-1000"></div>
-        <div className="absolute bottom-32 left-1/4 w-40 h-40 rounded-full bg-gradient-to-r from-primary/15 to-accent/25 blur-2xl animate-pulse delay-2000"></div>
-        <div className="absolute bottom-20 right-20 w-28 h-28 rounded-full bg-gradient-to-r from-accent/25 to-primary/15 blur-xl animate-pulse delay-500"></div>
-        
-        {/* Floating Hearts */}
-        <div className="floating-hearts">
-          <div className="floating-heart" style={{left: '10%', animationDelay: '0s'}}>♥</div>
-          <div className="floating-heart" style={{left: '20%', animationDelay: '1s'}}>♥</div>
-          <div className="floating-heart" style={{left: '30%', animationDelay: '2s'}}>♥</div>
-          <div className="floating-heart" style={{left: '40%', animationDelay: '3s'}}>♥</div>
-          <div className="floating-heart" style={{left: '50%', animationDelay: '4s'}}>♥</div>
-          <div className="floating-heart" style={{left: '60%', animationDelay: '5s'}}>♥</div>
-          <div className="floating-heart" style={{left: '70%', animationDelay: '6s'}}>♥</div>
-          <div className="floating-heart" style={{left: '80%', animationDelay: '7s'}}>♥</div>
-          <div className="floating-heart" style={{left: '90%', animationDelay: '8s'}}>♥</div>
-        </div>
-      </div>
+    <div className="min-h-screen" style={{ backgroundColor: '#f7f4e8' }}>
       
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
