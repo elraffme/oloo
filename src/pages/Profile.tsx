@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoUpload } from '@/components/PhotoUpload';
+import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -393,6 +394,8 @@ const Profile = () => {
               </Button>
             </CardContent>
           </Card>
+          {/* Secure Contact Information */}
+          <SensitiveInfoManager />
         </TabsContent>
 
         {/* Premium Tab */}

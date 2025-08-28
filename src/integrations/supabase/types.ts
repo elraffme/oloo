@@ -360,7 +360,6 @@ export type Database = {
           location: string
           membership_tier: string | null
           occupation: string | null
-          phone: string | null
           profile_photos: string[] | null
           prompt_responses: Json | null
           relationship_goals: string | null
@@ -387,7 +386,6 @@ export type Database = {
           location: string
           membership_tier?: string | null
           occupation?: string | null
-          phone?: string | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
@@ -414,7 +412,6 @@ export type Database = {
           location?: string
           membership_tier?: string | null
           occupation?: string | null
-          phone?: string | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
@@ -593,6 +590,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sensitive_info: {
+        Row: {
+          created_at: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          id: string
+          last_accessed_at: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       verification_attempts: {
         Row: {
           attempt_count: number | null
@@ -702,6 +732,10 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: string
       }
+      get_user_sensitive_info: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_user_streams: {
         Args: { target_user_id?: string }
         Returns: {
@@ -762,6 +796,14 @@ export type Database = {
           payment_intent_id?: string
         }
         Returns: Json
+      }
+      update_user_sensitive_info: {
+        Args: {
+          new_emergency_contact_name?: string
+          new_emergency_contact_phone?: string
+          new_phone?: string
+        }
+        Returns: boolean
       }
       validate_membership_operation: {
         Args: { target_user_id: string }
