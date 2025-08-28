@@ -33,7 +33,7 @@ export const MatchModal = ({ isOpen, onClose, matchedProfile, onSendMessage }: M
       <DialogContent className="max-w-md p-0 overflow-hidden">
         <div className="relative">
           {/* Header with gradient */}
-          <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-6 text-white text-center">
+          <div className="romantic-gradient p-6 text-white text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
                 <Heart className="w-8 h-8 fill-current" />
@@ -46,7 +46,7 @@ export const MatchModal = ({ isOpen, onClose, matchedProfile, onSendMessage }: M
           </div>
 
           {/* Profile photos */}
-          <div className="flex justify-center gap-4 p-6 bg-gradient-to-b from-purple-50 to-white">
+          <div className="flex justify-center gap-4 p-6 bg-gradient-to-b from-muted/20 to-background">
             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
               <img 
                 src={matchedProfile.profile_photos?.[0]} 
@@ -55,7 +55,7 @@ export const MatchModal = ({ isOpen, onClose, matchedProfile, onSendMessage }: M
               />
             </div>
             <div className="flex items-center justify-center">
-              <Heart className="w-8 h-8 text-pink-500 fill-current animate-pulse" />
+              <Heart className="w-8 h-8 text-primary fill-current animate-pulse" />
             </div>
             <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
               <img 
@@ -93,7 +93,7 @@ export const MatchModal = ({ isOpen, onClose, matchedProfile, onSendMessage }: M
                 Keep Swiping
               </Button>
               <Button
-                className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                className="flex-1 romantic-gradient hover:opacity-90"
                 onClick={handleSendMessage}
                 disabled={!message.trim()}
               >
