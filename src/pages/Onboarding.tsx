@@ -388,30 +388,42 @@ const Onboarding = () => {
           currentStep={step}
           totalSteps={totalSteps}
         >
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-2">
-                {formData.photos.length > 0 
-                  ? `${formData.photos.length} photo(s) selected` 
-                  : "Add your photos"
-                }
-              </p>
-              <Input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="photo-upload"
-              />
-              <Label htmlFor="photo-upload" className="cursor-pointer">
-                <Button type="button" variant="outline" className="w-full">
-                  Choose Photos
+            <div className="space-y-4">
+              <div 
+                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                onClick={() => document.getElementById('photo-upload')?.click()}
+              >
+                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  {formData.photos.length > 0 
+                    ? `${formData.photos.length} photo(s) selected` 
+                    : "Click to select photos"
+                  }
+                </p>
+                <Input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="photo-upload"
+                />
+                <Button type="button" variant="outline" className="w-full pointer-events-none">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Select Photos
                 </Button>
-              </Label>
+              </div>
+              
+              {formData.photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {formData.photos.slice(0, 6).map((photo, index) => (
+                    <div key={index} className="aspect-square bg-muted rounded-lg flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">Photo {index + 1}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
         </OnboardingStep>
       );
 

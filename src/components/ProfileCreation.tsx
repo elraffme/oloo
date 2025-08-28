@@ -488,8 +488,16 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                     className="w-full"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {isUploading ? 'Processing...' : 'Upload Photos'}
+                    {isUploading ? 'Processing Photos...' : `Select Photos (${profilePhotos.length}/6)`}
                   </Button>
+                  
+                  {profilePhotos.length === 0 && (
+                    <div className="text-center p-4 bg-muted/50 rounded-lg mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        📸 Click above to select your best photos
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {profilePhotos.length > 0 && (
