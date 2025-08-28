@@ -667,6 +667,19 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      create_secure_token_transaction: {
+        Args: {
+          operation_reason: string
+          operation_type?: string
+          target_user_id: string
+          token_amount: number
+        }
+        Returns: string
+      }
+      emergency_freeze_user_tokens: {
+        Args: { freeze_reason: string; target_user_id: string }
+        Returns: boolean
+      }
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
@@ -811,6 +824,15 @@ export type Database = {
       }
       validate_payment_amount: {
         Args: { amount_cents: number; tier: string }
+        Returns: boolean
+      }
+      validate_token_operation: {
+        Args: {
+          operation_reason?: string
+          operation_type: string
+          target_user_id: string
+          token_delta: number
+        }
         Returns: boolean
       }
     }
