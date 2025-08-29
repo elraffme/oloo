@@ -279,7 +279,7 @@ body {
     justify-content: center;
     width: 40px;
     height: 40px;
-    background: var(--gradient-romantic);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
     border-radius: 50%;
     transition: var(--transition-smooth);
   }
@@ -289,9 +289,9 @@ body {
     z-index: 2;
     font-size: 1.25rem;
     font-weight: bold;
-    color: hsl(var(--primary-foreground));
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-family: 'Kalam', cursive;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-family: 'Arial', sans-serif;
   }
 
   /* Nsibidi-inspired decorative elements */
