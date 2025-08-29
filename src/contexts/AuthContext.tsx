@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, metadata = {}) => {
+  const signUp = async (email: string, password: string, metadata: any = {}) => {
     try {
       setLoading(true);
       const redirectUrl = `${window.location.origin}/`;
@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       } else {
         // Create initial profile after successful signup
-        if (data.user) {
+        if (data.user && data.user.id) {
           try {
             const profileData = {
               user_id: data.user.id,

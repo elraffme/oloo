@@ -86,7 +86,7 @@ const Onboarding = () => {
     nearbyStudents: false
   });
 
-  const totalSteps = 16;
+  const totalSteps = 15;
 
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -519,7 +519,7 @@ const Onboarding = () => {
       );
 
 
-    case 15:
+    case 14:
       return (
         <OnboardingStep
           title="Oloo Insight"
@@ -546,7 +546,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 16:
+    case 15:
       return (
         <OnboardingStep
           title="You're All Set!"

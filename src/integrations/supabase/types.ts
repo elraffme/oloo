@@ -650,6 +650,42 @@ export type Database = {
         }
         Relationships: []
       }
+      video_verification_requests: {
+        Row: {
+          call_link: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          requester_id: string
+          requester_name: string
+          status: string
+          target_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          call_link?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          requester_id: string
+          requester_name: string
+          status?: string
+          target_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          call_link?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          requester_id?: string
+          requester_name?: string
+          status?: string
+          target_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
