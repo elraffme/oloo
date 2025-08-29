@@ -67,7 +67,7 @@ const LandingPage = () => {
           
           {/* Logo/Brand */}
           <div className="mb-8">
-            <h1 className="text-6xl md:text-7xl font-bold text-white mb-2 font-afro-heading" style={{ color: 'white' }}>
+            <h1 className="text-6xl md:text-7xl font-bold text-primary mb-2 font-afro-heading">
               Òloo
             </h1>
             <p className="text-xl md:text-2xl text-white/90 font-light tracking-wide">

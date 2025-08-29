@@ -215,7 +215,7 @@ export const ProfileCard = ({
           {/* Like Button */}
           <Button
             size="lg"
-            className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white hover:scale-110 transition-all duration-200 shadow-lg border-2 border-green-500"
+            className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-white hover:scale-110 transition-all duration-200 shadow-lg border-2 border-primary"
             onClick={() => onSwipe('right')}
           >
             <Heart className="w-7 h-7" />
