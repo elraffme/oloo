@@ -518,34 +518,6 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 14:
-      return (
-        <OnboardingStep
-          title="Nearby Students"
-          description="Connect with students from nearby schools"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="nearbyStudents" 
-                checked={formData.nearbyStudents}
-                onCheckedChange={(checked) => updateData('nearbyStudents', checked)}
-              />
-              <Label htmlFor="nearbyStudents" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Show me students from nearby schools
-              </Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Great for meeting people from other universities and colleges in your area.
-            </p>
-          </div>
-        </OnboardingStep>
-      );
 
     case 15:
       return (

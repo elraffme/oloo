@@ -304,19 +304,19 @@ const Profile = () => {
 
           {/* Verification Status */}
           {!profile?.verified && (
-            <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800">
+            <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800" style={{borderColor: '#93C5A6', backgroundColor: 'rgba(147, 197, 166, 0.1)'}}>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                <CardTitle className="flex items-center gap-2" style={{color: '#93C5A6'}}>
                   <Shield className="w-5 h-5" />
                   Account Verification
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-orange-600 dark:text-orange-400">
+                <p className="text-sm" style={{color: '#7BA688'}}>
                   Verify your identity to gain trust and increase your matches. 
                   Verified profiles get 3x more likes!
                 </p>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button className="text-white hover:opacity-90" style={{backgroundColor: '#93C5A6'}}>
                   Start Verification
                 </Button>
               </CardContent>

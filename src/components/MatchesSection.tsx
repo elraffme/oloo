@@ -59,7 +59,7 @@ const MatchesSection: React.FC<MatchesSectionProps> = ({ onStartConversation }) 
         <div className="heart-logo mb-4 opacity-50">
           <span className="logo-text">Ò</span>
         </div>
-        <h3 className="text-lg font-semibold mb-2">No matches yet</h3>
+        <h3 className="text-lg font-semibold mb-2 text-white">No matches yet</h3>
         <p className="text-muted-foreground">
           Keep swiping to find your perfect match!
         </p>

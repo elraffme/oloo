@@ -78,9 +78,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
+        const errorMessage = error.message.toLowerCase().includes('invalid') || 
+                           error.message.toLowerCase().includes('password') ||
+                           error.message.toLowerCase().includes('credentials')
+          ? "Wrong password or email. Please check your credentials and try again."
+          : error.message;
+        
         toast({
           title: "Sign In Error",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
         });
       } else {
@@ -101,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -117,6 +123,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           variant: "destructive",
         });
       } else {
+        // Create initial profile after successful signup
+        if (data.user) {
+          try {
+            const profileData = {
+              user_id: data.user.id,
+              display_name: metadata?.display_name || 'New User',
+              age: metadata?.age || 25,
+              location: metadata?.location || 'Unknown',
+              bio: metadata?.bio || 'Hello, I\'m new here!',
+              occupation: metadata?.occupation || null,
+              verified: false
+            };
+            
+            await supabase
+              .from('profiles')
+              .insert(profileData);
+          } catch (profileError) {
+            console.error('Error creating initial profile:', profileError);
+          }
+        }
+        
         toast({
           title: "Welcome to Òloo!",
           description: "Please check your email to confirm your account",
