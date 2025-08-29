@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Video, Shield, User, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VideoVerificationRequestProps {
   targetUserId: string;
@@ -25,9 +26,20 @@ const VideoVerificationRequest: React.FC<VideoVerificationRequestProps> = ({
     if (!user) return;
 
     try {
+      const { error } = await supabase
+        .from('video_verification_requests')
+        .insert({
+          requester_id: user.id,
+          target_user_id: targetUserId,
+          requester_name: user.email?.split('@')[0] || 'Someone',
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
       toast({
-        title: "Video Verification Feature",
-        description: "Video verification will be available soon! Stay tuned for this exciting feature.",
+        title: "Request Sent",
+        description: `Video verification request sent to ${targetUserName}`,
       });
 
       setIsDialogOpen(false);
@@ -35,9 +47,9 @@ const VideoVerificationRequest: React.FC<VideoVerificationRequestProps> = ({
     } catch (error) {
       console.error('Error sending verification request:', error);
       toast({
-        title: "Feature Coming Soon",
-        description: "Video verification is currently under development.",
-        variant: "default",
+        title: "Error",
+        description: "Failed to send verification request. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -85,10 +97,10 @@ const VideoVerificationRequest: React.FC<VideoVerificationRequestProps> = ({
             </div>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-700 dark:text-blue-400">
-              <strong>Coming Soon:</strong> Video verification is currently under development. 
-              This feature will allow you to request live video calls with other users for identity confirmation.
+          <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <p className="text-sm text-green-700 dark:text-green-400">
+              <strong>Ready to Use:</strong> Send a video verification request to {targetUserName}. 
+              They'll receive a notification and can accept to start a secure video call for identity verification.
             </p>
           </div>
 
@@ -97,7 +109,7 @@ const VideoVerificationRequest: React.FC<VideoVerificationRequestProps> = ({
               onClick={sendVerificationRequest}
               className="flex-1"
             >
-              Notify Me When Available
+              Send Request
             </Button>
             <Button 
               variant="outline" 
