@@ -49,28 +49,61 @@ const Discover = () => {
     const currentProfile = profiles[currentIndex];
     
     if (direction === 'right') {
-      // Record like and check for match
+      // Record like and check for mutual match
       try {
-        await supabase.from('user_connections').insert({
+        // First, record the like
+        const { error } = await supabase.from('user_connections').insert({
           connected_user_id: currentProfile.id,
           connection_type: 'like'
         });
 
-        // Simulate match detection (10% chance for demo)
-        const isMatch = Math.random() < 0.1;
-        
-        if (isMatch) {
-          setTimeout(() => {
-            setMatchModal({ isOpen: true, profile: currentProfile });
-          }, 700);
-        } else {
-          toast({
-            title: "Profile liked! 💖",
-            description: `You liked ${currentProfile.display_name}. If they like you back, you'll get a match!`,
-          });
+        if (error && error.code !== '23505') { // Ignore duplicate key errors
+          throw error;
+        }
+
+        // Check if this creates a mutual match
+        const { data: user } = await supabase.auth.getUser();
+        if (user?.user?.id) {
+          const { data: isMatch, error: matchError } = await supabase
+            .rpc('check_mutual_match', {
+              user1_id: user.user.id,
+              user2_id: currentProfile.id
+            });
+
+          if (matchError) {
+            console.error('Error checking match:', matchError);
+          }
+
+          if (isMatch) {
+            setTimeout(() => {
+              setMatchModal({ isOpen: true, profile: currentProfile });
+            }, 700);
+          } else {
+            toast({
+              title: "Profile liked! 💖",
+              description: `You liked ${currentProfile.display_name}. If they like you back, you'll get a match!`,
+            });
+          }
         }
       } catch (error) {
         console.error('Error recording like:', error);
+        toast({
+          title: "Error",
+          description: "Failed to record like. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      // Record dislike/pass
+      try {
+        await supabase.from('user_connections').insert({
+          connected_user_id: currentProfile.id,
+          connection_type: 'pass'
+        });
+      } catch (error) {
+        if (error.code !== '23505') { // Ignore duplicate key errors
+          console.error('Error recording pass:', error);
+        }
       }
     }
 

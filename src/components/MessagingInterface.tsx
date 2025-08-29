@@ -48,41 +48,70 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
-  // Mock data for demo purposes
+  // Load matches and conversations
   useEffect(() => {
-    const mockConversations: Conversation[] = [
-      {
-        user_id: '1',
-        display_name: 'Amara Johnson',
-        avatar_url: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-        last_message: 'Hey! How was your day?',
-        last_message_time: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        unread_count: 2,
-        online: true
-      },
-      {
-        user_id: '2',
-        display_name: 'Kwame Asante',
-        avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        last_message: 'The cultural event was amazing!',
-        last_message_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        unread_count: 0,
-        online: false
-      },
-      {
-        user_id: '3',
-        display_name: 'Zara Okafor',
-        avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop&crop=face',
-        last_message: 'Thank you for the gift! 💝',
-        last_message_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        unread_count: 1,
-        online: true
-      }
-    ];
+    loadMatchedConversations();
+  }, [user]);
+
+  const loadMatchedConversations = async () => {
+    if (!user) return;
     
-    setConversations(mockConversations);
-    setIsLoading(false);
-  }, []);
+    setIsLoading(true);
+    try {
+      // Get user's matches
+      const { data: matches, error } = await supabase.rpc('get_user_matches');
+      
+      if (error) throw error;
+
+      if (!matches || matches.length === 0) {
+        setConversations([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get last messages for each match
+      const conversationsWithMessages = await Promise.all(
+        matches.map(async (match: any) => {
+          const { data: lastMessage } = await supabase
+            .from('messages')
+            .select('content, created_at, sender_id')
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${match.match_user_id}),and(sender_id.eq.${match.match_user_id},receiver_id.eq.${user.id})`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          // Get unread count
+          const { count: unreadCount } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('sender_id', match.match_user_id)
+            .eq('receiver_id', user.id)
+            .is('read_at', null);
+
+          return {
+            user_id: match.match_user_id,
+            display_name: match.display_name,
+            avatar_url: match.profile_photos?.[0] || match.avatar_url,
+            last_message: lastMessage?.content || 'You matched! Send a message.',
+            last_message_time: lastMessage?.created_at || match.match_created_at,
+            unread_count: unreadCount || 0,
+            online: Math.random() > 0.5 // Mock online status
+          };
+        })
+      );
+
+      setConversations(conversationsWithMessages);
+    } catch (error) {
+      console.error('Error loading matched conversations:', error);
+      toast({
+        title: "Error loading matches",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Load messages for selected conversation
   useEffect(() => {
@@ -286,7 +315,18 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
 
         <ScrollArea className="h-[calc(100vh-80px)]">
           <div className="space-y-2 p-4">
-            {conversations.map((conversation) => (
+            {conversations.length === 0 && !isLoading ? (
+              <div className="text-center py-8">
+                <div className="heart-logo mb-4 opacity-50">
+                  <span className="logo-text">Ò</span>
+                </div>
+                <h3 className="font-semibold mb-2">No matches yet</h3>
+                <p className="text-sm text-muted-foreground">
+                  Start swiping to find your perfect match!
+                </p>
+              </div>
+            ) : (
+              conversations.map((conversation) => (
               <Card
                 key={conversation.user_id}
                 className={`cursor-pointer transition-colors hover:bg-muted/50 ${
@@ -331,7 +371,8 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            )}
           </div>
         </ScrollArea>
       </div>

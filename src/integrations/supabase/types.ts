@@ -659,6 +659,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      check_mutual_match: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: boolean
+      }
       check_otp_threshold: {
         Args: { user_uuid: string }
         Returns: boolean
@@ -735,6 +739,16 @@ export type Database = {
           started_at: string
           status: string
           title: string
+        }[]
+      }
+      get_user_matches: {
+        Args: { target_user_id?: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          match_created_at: string
+          match_user_id: string
+          profile_photos: string[]
         }[]
       }
       get_user_membership_status: {
