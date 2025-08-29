@@ -158,7 +158,7 @@ const Auth = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Join the Community
+                Create Account
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
                 Experience meaningful connections rooted in culture and heritage
@@ -170,189 +170,147 @@ const Auth = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 rounded-b-lg pointer-events-none"></div>
               
               <div className="relative z-10">
-                <Tabs defaultValue="signup" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-6">
-                    <TabsTrigger value="signup" className="font-afro-body">Sign Up</TabsTrigger>
-                    <TabsTrigger value="signin" className="font-afro-body">Sign In</TabsTrigger>
-                  </TabsList>
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="displayName">Name</Label>
+                      <Input
+                        id="displayName"
+                        name="displayName"
+                        value={formData.displayName}
+                        onChange={handleInputChange}
+                        placeholder="Your name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="age">Age</Label>
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        min="18"
+                        max="100"
+                        value={formData.age}
+                        onChange={handleInputChange}
+                        placeholder="25"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                  {/* Sign Up Tab */}
-                  <TabsContent value="signup">
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="displayName">Name</Label>
-                          <Input
-                            id="displayName"
-                            name="displayName"
-                            value={formData.displayName}
-                            onChange={handleInputChange}
-                            placeholder="Your name"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="age">Age</Label>
-                          <Input
-                            id="age"
-                            name="age"
-                            type="number"
-                            min="18"
-                            max="100"
-                            value={formData.age}
-                            onChange={handleInputChange}
-                            placeholder="25"
-                            required
-                          />
-                        </div>
-                      </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="your@email.com"
+                      required
+                    />
+                  </div>
 
-                      <div>
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="your@email.com"
-                          required
-                        />
-                      </div>
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      placeholder="Lagos, Nigeria"
+                      required
+                    />
+                  </div>
 
-                      <div>
-                        <Label htmlFor="location">Location</Label>
-                        <Input
-                          id="location"
-                          name="location"
-                          value={formData.location}
-                          onChange={handleInputChange}
-                          placeholder="Lagos, Nigeria"
-                          required
-                        />
-                      </div>
+                  <div className="relative">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Create a strong password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
 
-                      <div className="relative">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          name="password"
-                          type={showPassword ? 'text' : 'password'}
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          placeholder="Create a strong password"
-                          required
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
+                  <div className="relative">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm your password"
+                      required
+                    />
+                  </div>
 
-                      <div className="relative">
-                        <Label htmlFor="confirmPassword">Confirm Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          type={showPassword ? 'text' : 'password'}
-                          value={formData.confirmPassword}
-                          onChange={handleInputChange}
-                          placeholder="Confirm your password"
-                          required
-                        />
-                      </div>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, acceptTerms: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
+                        I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
+                        <span className="text-primary underline">Privacy Policy</span>
+                      </Label>
+                    </div>
 
-                      <div className="space-y-3">
-                        <div className="flex items-start space-x-2">
-                          <Checkbox
-                            id="acceptTerms"
-                            checked={formData.acceptTerms}
-                            onCheckedChange={(checked) => 
-                              setFormData(prev => ({ ...prev, acceptTerms: checked as boolean }))
-                            }
-                          />
-                          <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
-                            I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
-                            <span className="text-primary underline">Privacy Policy</span>
-                          </Label>
-                        </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="biometricConsent"
+                        checked={formData.biometricConsent}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, biometricConsent: checked as boolean }))
+                        }
+                      />
+                      <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
+                        <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security and profile authenticity
+                      </Label>
+                    </div>
+                  </div>
 
-                        <div className="flex items-start space-x-2">
-                          <Checkbox
-                            id="biometricConsent"
-                            checked={formData.biometricConsent}
-                            onCheckedChange={(checked) => 
-                              setFormData(prev => ({ ...prev, biometricConsent: checked as boolean }))
-                            }
-                          />
-                          <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
-                            <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security and profile authenticity
-                          </Label>
-                        </div>
-                      </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                  </Button>
+                </form>
 
-                      <Button 
-                        type="submit" 
-                        className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-
-                  {/* Sign In Tab */}
-                  <TabsContent value="signin">
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div>
-                        <Label htmlFor="signin-email">Email</Label>
-                        <Input
-                          id="signin-email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="your@email.com"
-                          required
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <Label htmlFor="signin-password">Password</Label>
-                        <Input
-                          id="signin-password"
-                          name="password"
-                          type={showPassword ? 'text' : 'password'}
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          placeholder="Your password"
-                          required
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-
-                      <Button 
-                        type="submit" 
-                        className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? 'Signing In...' : 'Sign In'}
-                      </Button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
+                {/* Sign In Link */}
+                <div className="mt-6 pt-6 border-t border-border text-center">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Already have an account?
+                  </p>
+                  <Button 
+                    variant="ghost" 
+                    className="text-primary hover:text-primary/80 hover:bg-primary/5"
+                    onClick={() => window.location.href = '/signin'}
+                  >
+                    Sign In
+                  </Button>
+                </div>
 
                 {/* Footer */}
-                <div className="mt-6 pt-6 border-t border-border text-center">
+                <div className="mt-4 pt-4 border-t border-border text-center">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     By joining Òloo, you agree to our community guidelines and commit to respectful, 
                     authentic connections within our culturally-rich environment.
