@@ -301,8 +301,8 @@ const Auth = () => {
                     Already have an account?
                   </p>
                   <Button 
-                    variant="ghost" 
-                    className="text-primary hover:text-primary/80 hover:bg-primary/5"
+                    variant="outline" 
+                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300"
                     onClick={() => window.location.href = '/signin'}
                   >
                     Sign In
