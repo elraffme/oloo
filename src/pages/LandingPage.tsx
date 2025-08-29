@@ -43,8 +43,8 @@ const LandingPage = () => {
             backgroundRepeat: 'no-repeat'
           }}
         />
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/60" />
+        {/* Dark Juniper Green overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-primary/70" />
       </div>
 
       {/* Video Control */}
