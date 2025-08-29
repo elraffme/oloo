@@ -16,10 +16,10 @@
     --popover: 35 20% 98%;
     --popover-foreground: 25 15% 15%;
 
-    /* Primary - Brighter Lemony Beige */
-    --primary: 55 65% 65%;
+    /* Primary - Light Beige Yellow (#FFFEB6) */
+    --primary: 58 100% 85%;
     --primary-foreground: 25 15% 15%;
-    --primary-glow: 58 75% 75%;
+    --primary-glow: 58 100% 90%;
 
     /* Secondary - Earthy Warm Tones */
     --secondary: 45 25% 92%;
@@ -28,7 +28,7 @@
     --muted: 45 25% 92%;
     --muted-foreground: 25 10% 45%;
 
-    --accent: 52 85% 60%;
+    --accent: 58 100% 82%;
     --accent-foreground: 25 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
@@ -36,7 +36,7 @@
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 55 45% 78%;
+    --ring: 58 100% 85%;
 
     /* Afrocentric Tier Colors */
     --silver: 200 15% 75%;
@@ -46,23 +46,23 @@
     --platinum: 280 30% 60%;
     --platinum-foreground: 0 0% 100%;
     
-    /* Verification Lemony */
-    --orange-verified: 55 60% 65%;
+    /* Verification Light Beige */
+    --orange-verified: 58 100% 85%;
     --orange-verified-foreground: 25 15% 15%;
 
-    /* Lemony Beige Gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(55 45% 78%), hsl(58 55% 85%), hsl(52 65% 70%));
-    --gradient-luxury: linear-gradient(135deg, hsl(55 45% 78%), hsl(50 40% 75%), hsl(48 50% 68%));
-    --gradient-premium: linear-gradient(135deg, hsl(280 30% 60%), hsl(320 40% 70%), hsl(58 60% 82%));
-    --gradient-hero: linear-gradient(135deg, hsl(55 45% 78%) 0%, hsl(50 40% 75%) 30%, hsl(52 65% 70%) 70%, hsl(58 55% 85%) 100%);
-    --gradient-nsibidi: linear-gradient(135deg, hsl(50 40% 75%), hsl(55 45% 78%), hsl(52 65% 70%), hsl(58 55% 85%));
+    /* Light Beige Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(58 100% 85%), hsl(58 100% 90%), hsl(58 100% 80%));
+    --gradient-luxury: linear-gradient(135deg, hsl(58 100% 85%), hsl(55 90% 82%), hsl(60 95% 78%));
+    --gradient-premium: linear-gradient(135deg, hsl(280 30% 60%), hsl(320 40% 70%), hsl(58 100% 85%));
+    --gradient-hero: linear-gradient(135deg, hsl(58 100% 85%) 0%, hsl(55 90% 82%) 30%, hsl(60 95% 78%) 70%, hsl(58 100% 90%) 100%);
+    --gradient-nsibidi: linear-gradient(135deg, hsl(55 90% 82%), hsl(58 100% 85%), hsl(60 95% 78%), hsl(58 100% 90%));
     
-    /* Lemony Beige Shadows */
-    --shadow-romantic: 0 10px 40px -10px hsl(55 45% 78% / 0.4);
-    --shadow-luxury: 0 10px 40px -10px hsl(50 40% 75% / 0.3);
+    /* Light Beige Shadows */
+    --shadow-romantic: 0 10px 40px -10px hsl(58 100% 85% / 0.4);
+    --shadow-luxury: 0 10px 40px -10px hsl(58 100% 85% / 0.3);
     --shadow-premium: 0 20px 60px -15px hsl(280 30% 60% / 0.4);
-    --shadow-glow: 0 0 30px hsl(55 45% 78% / 0.6);
-    --shadow-cultural: 0 8px 32px -8px hsl(52 65% 70% / 0.3);
+    --shadow-glow: 0 0 30px hsl(58 100% 85% / 0.6);
+    --shadow-cultural: 0 8px 32px -8px hsl(58 100% 85% / 0.3);
 
     /* Animations */
     --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
