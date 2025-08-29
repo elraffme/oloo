@@ -694,6 +694,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_verification_data: {
+        Args: { admin_reason: string; verification_id: string }
+        Returns: Json
+      }
       check_deployment_readiness: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -820,6 +824,10 @@ export type Database = {
       get_user_token_balance: {
         Args: { target_user_id?: string }
         Returns: number
+      }
+      get_user_verification_status: {
+        Args: { target_user_id?: string }
+        Returns: Json
       }
       has_role: {
         Args: {
