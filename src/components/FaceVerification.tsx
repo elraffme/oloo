@@ -241,8 +241,9 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
         throw new Error('Face verification failed. Please ensure good lighting and clear view of your face.');
       }
 
-      // SECURITY: Store verification data securely instead of direct profile update
+      // SECURITY: Store verification data securely with enhanced audit logging
       if (user) {
+        // Insert verification record with comprehensive audit trail
         const { error: verificationError } = await supabase
           .from('face_verifications')
           .insert({
@@ -254,11 +255,16 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
               liveness_score: livenessScore,
               similarity_score: similarity,
               timestamp: new Date().toISOString(),
-              verification_steps_completed: VERIFICATION_STEPS.length
+              verification_steps_completed: VERIFICATION_STEPS.length,
+              ip_address: 'client_side_verification', // Client-side marker
+              security_version: '2.0'
             }
           });
 
-        if (verificationError) throw verificationError;
+        if (verificationError) {
+          console.error('Verification insert error:', verificationError);
+          throw new Error('Failed to save verification data. Please try again.');
+        }
 
         // Update profile verification status
         const { error: profileError } = await supabase
@@ -266,7 +272,10 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
           .update({ verified: true })
           .eq('user_id', user.id);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          throw new Error('Failed to update profile verification status.');
+        }
       }
 
       setVerificationStatus('success');
