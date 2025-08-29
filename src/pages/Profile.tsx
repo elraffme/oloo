@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -36,6 +39,17 @@ const Profile = () => {
     giftsReceived: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    display_name: '',
+    bio: '',
+    location: '',
+    occupation: '',
+    education: '',
+    interests: [] as string[],
+    relationship_goals: '',
+    age: 0
+  });
 
   useEffect(() => {
     if (user) {
@@ -55,6 +69,16 @@ const Profile = () => {
 
       if (data) {
         setProfile(data);
+        setEditForm({
+          display_name: data.display_name || '',
+          bio: data.bio || '',
+          location: data.location || '',
+          occupation: data.occupation || '',
+          education: data.education || '',
+          interests: data.interests || [],
+          relationship_goals: data.relationship_goals || '',
+          age: data.age || 0
+        });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -111,6 +135,62 @@ const Profile = () => {
     }
   };
 
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+    if (!isEditing && profile) {
+      // Reset form when entering edit mode
+      setEditForm({
+        display_name: profile.display_name || '',
+        bio: profile.bio || '',
+        location: profile.location || '',
+        occupation: profile.occupation || '',
+        education: profile.education || '',
+        interests: profile.interests || [],
+        relationship_goals: profile.relationship_goals || '',
+        age: profile.age || 0
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(editForm)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, ...editForm });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    }
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setEditForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleInterestAdd = (interest: string) => {
+    if (interest.trim() && !editForm.interests.includes(interest.trim())) {
+      setEditForm(prev => ({
+        ...prev,
+        interests: [...prev.interests, interest.trim()]
+      }));
+    }
+  };
+
+  const handleInterestRemove = (index: number) => {
+    setEditForm(prev => ({
+      ...prev,
+      interests: prev.interests.filter((_, i) => i !== index)
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -151,62 +231,183 @@ const Profile = () => {
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl font-bold font-afro-heading">
-                      {profile?.display_name || 'Complete Your Profile'}
-                    </h1>
-                    <VerifiedBadge verified={profile?.verified} size="sm" />
-                  </div>
-                  {profile?.age && (
-                    <p className="text-muted-foreground">
-                      {profile.age} years old
-                    </p>
+                <div className="flex-1 mr-4">
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="display_name">Display Name</Label>
+                        <Input
+                          id="display_name"
+                          value={editForm.display_name}
+                          onChange={(e) => handleInputChange('display_name', e.target.value)}
+                          placeholder="Your display name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="age">Age</Label>
+                        <Input
+                          id="age"
+                          type="number"
+                          value={editForm.age}
+                          onChange={(e) => handleInputChange('age', parseInt(e.target.value) || 0)}
+                          placeholder="Your age"
+                          min="18"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-2xl font-bold font-afro-heading">
+                          {profile?.display_name || 'Complete Your Profile'}
+                        </h1>
+                        <VerifiedBadge verified={profile?.verified} size="sm" />
+                      </div>
+                      {profile?.age && (
+                        <p className="text-muted-foreground">
+                          {profile.age} years old
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-                <Button variant="outline">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <Button onClick={handleSave} size="sm">
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleEditToggle} size="sm">
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={handleEditToggle}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
               </div>
 
               {/* Quick Info */}
-              <div className="space-y-2">
-                {profile?.location && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>{profile.location}</span>
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={editForm.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="Your location"
+                    />
                   </div>
-                )}
-                
-                {profile?.occupation && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" />
-                    <span>{profile.occupation}</span>
+                  <div>
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={editForm.occupation}
+                      onChange={(e) => handleInputChange('occupation', e.target.value)}
+                      placeholder="Your occupation"
+                    />
                   </div>
-                )}
-                
-                {profile?.education && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                    <span>{profile.education}</span>
+                  <div>
+                    <Label htmlFor="education">Education</Label>
+                    <Input
+                      id="education"
+                      value={editForm.education}
+                      onChange={(e) => handleInputChange('education', e.target.value)}
+                      placeholder="Your education"
+                    />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <Label htmlFor="relationship_goals">Relationship Goals</Label>
+                    <Input
+                      id="relationship_goals"
+                      value={editForm.relationship_goals}
+                      onChange={(e) => handleInputChange('relationship_goals', e.target.value)}
+                      placeholder="What are you looking for?"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {profile?.location && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{profile.location}</span>
+                    </div>
+                  )}
+                  
+                  {profile?.occupation && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      <span>{profile.occupation}</span>
+                    </div>
+                  )}
+                  
+                  {profile?.education && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <GraduationCap className="w-4 h-4 text-muted-foreground" />
+                      <span>{profile.education}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {profile?.bio && (
-                <p className="text-sm leading-relaxed">{profile.bio}</p>
+              {isEditing ? (
+                <div>
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    value={editForm.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    rows={3}
+                  />
+                </div>
+              ) : (
+                profile?.bio && (
+                  <p className="text-sm leading-relaxed">{profile.bio}</p>
+                )
               )}
 
               {/* Interests */}
-              {profile?.interests && profile.interests.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {profile.interests.slice(0, 6).map((interest: string, index: number) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {interest}
-                    </Badge>
-                  ))}
+              {isEditing ? (
+                <div className="space-y-3">
+                  <Label>Interests</Label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {editForm.interests.map((interest, index) => (
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className="text-xs cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => handleInterestRemove(index)}
+                      >
+                        {interest} ×
+                      </Badge>
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="Add an interest and press Enter"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleInterestAdd(e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
                 </div>
+              ) : (
+                profile?.interests && profile.interests.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.interests.slice(0, 6).map((interest: string, index: number) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>
