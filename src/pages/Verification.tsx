@@ -15,24 +15,36 @@ const Verification: React.FC = () => {
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<any>(null);
+  const [verificationStatus, setVerificationStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndVerification = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Fetch profile data
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
-        if (error) throw error;
-        setProfile(data);
+        if (profileError) throw profileError;
+        setProfile(profileData);
+
+        // SECURITY: Use secure function to get verification status
+        const { data: verificationData, error: verificationError } = await supabase
+          .rpc('get_secure_verification_status', { target_user_id: user.id });
+        
+        if (verificationError) {
+          console.error('Error fetching verification status:', verificationError);
+        } else {
+          setVerificationStatus(verificationData);
+        }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error fetching data:', error);
         toast({
           title: "Error loading profile",
           description: "Please try again",
@@ -43,12 +55,21 @@ const Verification: React.FC = () => {
       }
     };
 
-    fetchProfile();
+    fetchProfileAndVerification();
   }, [user, toast]);
 
-  const handleVerificationComplete = (verified: boolean) => {
+  const handleVerificationComplete = async (verified: boolean) => {
     if (verified) {
-      setProfile({ ...profile, verified: true });
+      // Refresh verification status after successful verification
+      try {
+        const { data: updatedVerificationData } = await supabase
+          .rpc('get_secure_verification_status', { target_user_id: user?.id });
+        setVerificationStatus(updatedVerificationData);
+        setProfile({ ...profile, verified: true });
+      } catch (error) {
+        console.error('Error refreshing verification status:', error);
+      }
+      
       setTimeout(() => {
         navigate('/', { 
           state: { message: 'Verification successful! You now have a verified badge.' }
@@ -107,7 +128,7 @@ const Verification: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {profile.verified ? (
+        {(profile?.verified || verificationStatus?.verified) ? (
           /* Already Verified */
           <Card className="max-w-2xl mx-auto cultural-card">
             <CardHeader className="text-center">

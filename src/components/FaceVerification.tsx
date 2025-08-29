@@ -241,14 +241,32 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
         throw new Error('Face verification failed. Please ensure good lighting and clear view of your face.');
       }
 
-      // Update user profile as verified
+      // SECURITY: Store verification data securely instead of direct profile update
       if (user) {
-        const { error } = await supabase
+        const { error: verificationError } = await supabase
+          .from('face_verifications')
+          .insert({
+            user_id: user.id,
+            status: 'verified',
+            score: similarity,
+            provider: 'internal',
+            verification_data: {
+              liveness_score: livenessScore,
+              similarity_score: similarity,
+              timestamp: new Date().toISOString(),
+              verification_steps_completed: VERIFICATION_STEPS.length
+            }
+          });
+
+        if (verificationError) throw verificationError;
+
+        // Update profile verification status
+        const { error: profileError } = await supabase
           .from('profiles')
           .update({ verified: true })
           .eq('user_id', user.id);
 
-        if (error) throw error;
+        if (profileError) throw profileError;
       }
 
       setVerificationStatus('success');

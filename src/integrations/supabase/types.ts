@@ -784,6 +784,10 @@ export type Database = {
           title: string
         }[]
       }
+      get_secure_verification_status: {
+        Args: { target_user_id?: string }
+        Returns: Json
+      }
       get_user_matches: {
         Args: { target_user_id?: string }
         Returns: {
