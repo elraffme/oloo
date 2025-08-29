@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoUpload } from '@/components/PhotoUpload';
+import { MainPhotoSelector } from '@/components/MainPhotoSelector';
 import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 
 const Profile = () => {
@@ -94,6 +95,23 @@ const Profile = () => {
     } catch (error) {
       console.error('Error loading token balance:', error);
     }
+  };
+
+  const getMainProfilePhoto = () => {
+    if (!profile?.profile_photos || profile.profile_photos.length === 0) {
+      return profile?.avatar_url;
+    }
+    
+    const mainIndex = profile.main_profile_photo_index || 0;
+    return profile.profile_photos[mainIndex] || profile.profile_photos[0];
+  };
+
+  const handleMainPhotoUpdate = (newIndex: number) => {
+    setProfile((prev: any) => ({
+      ...prev,
+      main_profile_photo_index: newIndex,
+      avatar_url: prev.profile_photos?.[newIndex] || prev.avatar_url
+    }));
   };
 
   const updateProfilePhotos = async (photos: string[]) => {
@@ -215,7 +233,7 @@ const Profile = () => {
             {/* Profile Image */}
             <div className="relative">
               <Avatar className="w-32 h-32">
-                <AvatarImage src={profile?.avatar_url} alt={profile?.display_name} />
+                <AvatarImage src={getMainProfilePhoto()} alt={profile?.display_name} />
                 <AvatarFallback className="text-2xl">
                   {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
                 </AvatarFallback>
@@ -527,6 +545,24 @@ const Profile = () => {
 
         {/* Photos Tab */}
         <TabsContent value="photos" className="space-y-6">
+          {/* Main Photo Selection */}
+          {profile?.profile_photos && profile.profile_photos.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Main Profile Photo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MainPhotoSelector 
+                  profilePhotos={profile.profile_photos}
+                  mainPhotoIndex={profile.main_profile_photo_index || 0}
+                  userId={user?.id || ''}
+                  onUpdate={handleMainPhotoUpdate}
+                />
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Photo Upload */}
           <PhotoUpload 
             profilePhotos={profile?.profile_photos || []}
             onPhotosUpdate={updateProfilePhotos}

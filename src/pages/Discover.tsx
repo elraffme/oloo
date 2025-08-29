@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProfileCard } from '@/components/ProfileCard';
 import { MatchModal } from '@/components/MatchModal';
+import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -17,6 +18,10 @@ const Discover = () => {
     isOpen: false,
     profile: null
   });
+  const [profileViewerModal, setProfileViewerModal] = useState<{ isOpen: boolean; profileId: string | null }>({
+    isOpen: false,
+    profileId: null
+  });
 
   useEffect(() => {
     loadProfiles();
@@ -24,21 +29,43 @@ const Discover = () => {
 
   const loadProfiles = async () => {
     try {
-      // SECURITY: Use paginated function to prevent mass data scraping
-      const { data: demoProfiles, error: demoError } = await supabase
-        .rpc('get_demo_profiles_paginated', {
+      // Load both verified user profiles and demo profiles
+      const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('verified', true)
+          .eq('is_demo_profile', false)
+          .limit(20),
+        supabase.rpc('get_demo_profiles_paginated', {
           page_size: 10,
           page_offset: 0
-        });
+        })
+      ]);
 
-      if (demoProfiles && demoProfiles.length > 0) {
-        setProfiles(demoProfiles);
+      let allProfiles: any[] = [];
+
+      // Add real verified profiles
+      if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
+        allProfiles = [...allProfiles, ...realProfilesRes.value.data];
+      }
+
+      // Add demo profiles
+      if (demoProfilesRes.status === 'fulfilled' && demoProfilesRes.value && Array.isArray(demoProfilesRes.value)) {
+        allProfiles = [...allProfiles, ...demoProfilesRes.value];
+      }
+
+      // Shuffle the combined profiles for variety
+      const shuffledProfiles = allProfiles.sort(() => Math.random() - 0.5);
+
+      if (shuffledProfiles.length > 0) {
+        setProfiles(shuffledProfiles);
       } else {
-        // Fallback to mock data if no demo profiles
+        // Fallback to mock data if no profiles
         setProfiles(mockProfiles);
       }
     } catch (error) {
-      // SECURITY: Don't expose internal errors to users
+      console.error('Error loading profiles:', error);
       setProfiles(mockProfiles);
     } finally {
       setLoading(false);
@@ -87,6 +114,10 @@ const Discover = () => {
         description: "Went back to previous profile",
       });
     }
+  };
+
+  const handleViewProfile = (profileId: string) => {
+    setProfileViewerModal({ isOpen: true, profileId });
   };
 
   const handleBoost = () => {
@@ -255,6 +286,13 @@ const Discover = () => {
         onClose={() => setMatchModal({ isOpen: false, profile: null })}
         matchedProfile={matchModal.profile}
         onSendMessage={handleSendMessage}
+      />
+      {/* Public Profile Viewer */}
+      <PublicProfileViewer 
+        profileId={profileViewerModal.profileId || ''}
+        isOpen={profileViewerModal.isOpen}
+        onClose={() => setProfileViewerModal({ isOpen: false, profileId: null })}
+        onSwipe={handleSwipe}
       />
     </div>
   );

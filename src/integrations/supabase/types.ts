@@ -358,6 +358,7 @@ export type Database = {
           is_demo_profile: boolean | null
           languages: string[] | null
           location: string
+          main_profile_photo_index: number | null
           membership_tier: string | null
           occupation: string | null
           profile_photos: string[] | null
@@ -384,6 +385,7 @@ export type Database = {
           is_demo_profile?: boolean | null
           languages?: string[] | null
           location: string
+          main_profile_photo_index?: number | null
           membership_tier?: string | null
           occupation?: string | null
           profile_photos?: string[] | null
@@ -410,6 +412,7 @@ export type Database = {
           is_demo_profile?: boolean | null
           languages?: string[] | null
           location?: string
+          main_profile_photo_index?: number | null
           membership_tier?: string | null
           occupation?: string | null
           profile_photos?: string[] | null

@@ -19,6 +19,7 @@ interface Profile {
   interests?: string[];
   verified?: boolean;
   profile_photos?: string[];
+  main_profile_photo_index?: number;
   personality?: string;
 }
 
@@ -29,6 +30,7 @@ interface ProfileCardProps {
   onUndo?: () => void;
   onBoost?: () => void;
   onMessage?: () => void;
+  onViewProfile?: (profileId: string) => void;
   showActions?: boolean;
   swipeDirection?: 'left' | 'right' | null;
 }
@@ -40,6 +42,7 @@ export const ProfileCard = ({
   onUndo,
   onBoost,
   onMessage, 
+  onViewProfile,
   showActions = true, 
   swipeDirection 
 }: ProfileCardProps) => {
@@ -74,7 +77,7 @@ export const ProfileCard = ({
           <div className="relative h-96 bg-gradient-to-br from-primary/20 to-accent/20">
             {profile.profile_photos?.[0] ? (
               <img 
-                src={profile.profile_photos[0]} 
+                src={profile.profile_photos[profile.main_profile_photo_index || 0] || profile.profile_photos[0]} 
                 alt={profile.display_name}
                 className="w-full h-full object-cover"
               />
@@ -99,18 +102,31 @@ export const ProfileCard = ({
               )}
             </div>
 
-            {/* Info Button */}
-            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-              <DialogTrigger asChild>
+            {/* Info and View Profile Buttons */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
+                  >
+                    <Info className="w-4 h-4" />
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+              
+              {onViewProfile && (
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="absolute top-4 right-4 bg-white/20 backdrop-blur-sm hover:bg-white/30"
+                  className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
+                  onClick={() => onViewProfile(profile.id)}
                 >
-                  <Info className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                 </Button>
-              </DialogTrigger>
-            </Dialog>
+              )}
+            </div>
           </div>
 
           {/* Profile Info */}
