@@ -28,12 +28,11 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   
   const [formData, setFormData] = useState({
     displayName: '',
-    age: '',
-    location: '',
     bio: '',
     occupation: '',
     education: '',
-    height: '',
+    heightFeet: '',
+    heightInches: '',
     interests: [] as string[],
     relationshipGoals: '',
     languages: [] as string[]
@@ -209,14 +208,17 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setIsSubmitting(true);
     
     try {
+      // Convert feet and inches to cm
+      const heightCm = formData.heightFeet && formData.heightInches 
+        ? Math.round((parseInt(formData.heightFeet) * 30.48) + (parseInt(formData.heightInches) * 2.54))
+        : null;
+
       const profileData = {
         display_name: formData.displayName,
-        age: parseInt(formData.age),
-        location: formData.location,
         bio: formData.bio,
         occupation: formData.occupation,
         education: formData.education,
-        height_cm: formData.height ? parseInt(formData.height) : null,
+        height_cm: heightCm,
         interests: formData.interests,
         relationship_goals: formData.relationshipGoals,
         languages: formData.languages,
@@ -288,39 +290,13 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
           <CardContent className="space-y-6">
             {currentStep === 1 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="displayName">Display Name</Label>
-                    <Input
-                      id="displayName"
-                      value={formData.displayName}
-                      onChange={(e) => handleInputChange('displayName', e.target.value)}
-                      placeholder="Your name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="age">Age</Label>
-                    <Input
-                      id="age"
-                      type="number"
-                      min="18"
-                      max="100"
-                      value={formData.age}
-                      onChange={(e) => handleInputChange('age', e.target.value)}
-                      placeholder="25"
-                      required
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="displayName">Display Name</Label>
                   <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Lagos, Nigeria"
+                    id="displayName"
+                    value={formData.displayName}
+                    onChange={(e) => handleInputChange('displayName', e.target.value)}
+                    placeholder="Your name"
                     required
                   />
                 </div>
@@ -336,50 +312,52 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="height">Height (cm)</Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      min="140"
-                      max="220"
-                      value={formData.height}
-                      onChange={(e) => handleInputChange('height', e.target.value)}
-                      placeholder="170"
-                    />
+                    <Label htmlFor="education">Education</Label>
+                    <Select onValueChange={(value) => handleInputChange('education', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select education level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high_school">High School</SelectItem>
+                        <SelectItem value="university">University Degree</SelectItem>
+                        <SelectItem value="masters">Master's Degree</SelectItem>
+                        <SelectItem value="phd">PhD</SelectItem>
+                        <SelectItem value="professional">Professional Certification</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="education">Education</Label>
-                  <Select onValueChange={(value) => handleInputChange('education', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select education level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high_school">High School</SelectItem>
-                      <SelectItem value="university">University Degree</SelectItem>
-                      <SelectItem value="masters">Master's Degree</SelectItem>
-                      <SelectItem value="phd">PhD</SelectItem>
-                      <SelectItem value="professional">Professional Certification</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Height</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Input
+                        type="number"
+                        min="4"
+                        max="7"
+                        value={formData.heightFeet}
+                        onChange={(e) => handleInputChange('heightFeet', e.target.value)}
+                        placeholder="Feet"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="11"
+                        value={formData.heightInches}
+                        onChange={(e) => handleInputChange('heightInches', e.target.value)}
+                        placeholder="Inches"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="space-y-6">
-                <div>
-                  <Label htmlFor="bio">About You</Label>
-                  <Textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell others about yourself, your passions, and what you're looking for..."
-                    rows={4}
-                  />
-                </div>
-
                 <div>
                   <Label htmlFor="relationshipGoals">Relationship Goals</Label>
                   <Select onValueChange={(value) => handleInputChange('relationshipGoals', value)}>
@@ -413,6 +391,17 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 </div>
 
                 <div>
+                  <Label htmlFor="bio">About You</Label>
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    placeholder="Tell others about yourself, your passions, and what you're looking for..."
+                    rows={4}
+                  />
+                </div>
+
+                <div>
                   <Label>Languages</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {availableLanguages.map(language => (
@@ -436,7 +425,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 <div>
                   <Label>Profile Photos (Up to 6)</Label>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Upload photos that show your personality. We'll automatically enhance them for you.
+                    Upload photos that show your personality. Photos will be optimized automatically.
                   </p>
                   
                   <div className="grid grid-cols-3 gap-4 mb-4">
@@ -525,7 +514,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 <Button
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.location)) ||
+                    (currentStep === 1 && !formData.displayName) ||
                     (currentStep === 2 && (!formData.bio || formData.interests.length === 0))
                   }
                 >

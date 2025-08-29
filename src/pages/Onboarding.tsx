@@ -78,15 +78,15 @@ const Onboarding = () => {
     interestedIn: "",
     lookingFor: "",
     distance: [25],
+    heightFeet: "",
+    heightInches: "",
     hobbies: "",
-    personality: "",
     photos: [] as File[],
     location: false,
-    blockContacts: false,
-    nearbyStudents: false
+    blockContacts: false
   });
 
-  const totalSteps = 15;
+  const totalSteps = 12;
 
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -297,6 +297,44 @@ const Onboarding = () => {
     case 8:
       return (
         <OnboardingStep
+          title="What's your height?"
+          description="This helps with better matching"
+          onNext={nextStep}
+          onBack={prevStep}
+          currentStep={step}
+          totalSteps={totalSteps}
+        >
+          <div className="space-y-4">
+            <Label>Height</Label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  min="4"
+                  max="7"
+                  value={formData.heightFeet}
+                  onChange={(e) => updateData('heightFeet', e.target.value)}
+                  placeholder="Feet"
+                />
+              </div>
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  min="0"
+                  max="11"
+                  value={formData.heightInches}
+                  onChange={(e) => updateData('heightInches', e.target.value)}
+                  placeholder="Inches"
+                />
+              </div>
+            </div>
+          </div>
+        </OnboardingStep>
+      );
+
+    case 9:
+      return (
+        <OnboardingStep
           title="Distance Range"
           description="How far are you willing to travel for love?"
           onNext={nextStep}
@@ -322,7 +360,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 9:
+    case 10:
       return (
         <OnboardingStep
           title="Hobbies & Lifestyle"
@@ -342,46 +380,6 @@ const Onboarding = () => {
               placeholder="Tell us about your hobbies, interests, and lifestyle..."
               className="min-h-24"
             />
-          </div>
-        </OnboardingStep>
-      );
-
-    case 10:
-      return (
-        <OnboardingStep
-          title="Personality Type"
-          description="Help others understand your vibe"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.personality.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Personality Type</Label>
-            <Select value={formData.personality} onValueChange={(value) => updateData('personality', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INTJ">INTJ - The Architect (Introverted, Intuitive, Thinking, Judging)</SelectItem>
-                <SelectItem value="INTP">INTP - The Thinker (Introverted, Intuitive, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ENTJ">ENTJ - The Commander (Extraverted, Intuitive, Thinking, Judging)</SelectItem>
-                <SelectItem value="ENTP">ENTP - The Debater (Extraverted, Intuitive, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="INFJ">INFJ - The Advocate (Introverted, Intuitive, Feeling, Judging)</SelectItem>
-                <SelectItem value="INFP">INFP - The Mediator (Introverted, Intuitive, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ENFJ">ENFJ - The Protagonist (Extraverted, Intuitive, Feeling, Judging)</SelectItem>
-                <SelectItem value="ENFP">ENFP - The Campaigner (Extraverted, Intuitive, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ISTJ">ISTJ - The Logistician (Introverted, Sensing, Thinking, Judging)</SelectItem>
-                <SelectItem value="ISFJ">ISFJ - The Protector (Introverted, Sensing, Feeling, Judging)</SelectItem>
-                <SelectItem value="ESTJ">ESTJ - The Executive (Extraverted, Sensing, Thinking, Judging)</SelectItem>
-                <SelectItem value="ESFJ">ESFJ - The Consul (Extraverted, Sensing, Feeling, Judging)</SelectItem>
-                <SelectItem value="ISTP">ISTP - The Virtuoso (Introverted, Sensing, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ISFP">ISFP - The Adventurer (Introverted, Sensing, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ESTP">ESTP - The Entrepreneur (Extraverted, Sensing, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ESFP">ESFP - The Entertainer (Extraverted, Sensing, Feeling, Perceiving)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </OnboardingStep>
       );
@@ -464,89 +462,6 @@ const Onboarding = () => {
       );
 
     case 12:
-      return (
-        <OnboardingStep
-          title="Location Settings"
-          description="Help us show you people nearby"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="location" 
-                checked={formData.location}
-                onCheckedChange={(checked) => updateData('location', checked)}
-              />
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Enable location services
-              </Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              We'll use your location to show you potential matches nearby and help you discover local events.
-            </p>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 13:
-      return (
-        <OnboardingStep
-          title="Block Contacts"
-          description="Prevent people from your contacts from finding you"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="blockContacts" 
-                checked={formData.blockContacts}
-                onCheckedChange={(checked) => updateData('blockContacts', checked)}
-              />
-              <Label htmlFor="blockContacts">Block people from my contacts</Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              This prevents people in your phone contacts from seeing your profile.
-            </p>
-          </div>
-        </OnboardingStep>
-      );
-
-
-    case 14:
-      return (
-        <OnboardingStep
-          title="Oloo Insight"
-          description="Let's show you how Òloo works"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 romantic-gradient rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-3xl">Ò</span>
-              </div>
-              <h3 className="font-semibold mb-2">Swipe to Connect</h3>
-              <p className="text-sm text-muted-foreground">
-                Swipe right to like someone, left to pass. If you both like each other, it's a match!
-              </p>
-            </div>
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <p className="text-sm"><strong>Pro tip:</strong> Take your time to read profiles and find meaningful connections.</p>
-            </div>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 15:
       return (
         <OnboardingStep
           title="You're All Set!"

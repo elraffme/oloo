@@ -27,7 +27,6 @@ import {
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoUpload } from '@/components/PhotoUpload';
 import { MainPhotoSelector } from '@/components/MainPhotoSelector';
-import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -632,7 +631,7 @@ const Profile = () => {
             </CardContent>
           </Card>
           {/* Secure Contact Information */}
-          <SensitiveInfoManager />
+          
         </TabsContent>
 
         {/* Premium Tab */}

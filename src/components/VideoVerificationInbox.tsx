@@ -80,12 +80,12 @@ const VideoVerificationInbox: React.FC = () => {
         setIsDialogOpen(false);
         
         toast({
-          title: "Call Starting",
+          title: "✅ Request Accepted",
           description: `Starting video call with ${requesterName}`,
         });
       } else {
         toast({
-          title: "Request Declined",
+          title: "❌ Request Declined",
           description: `Declined verification request from ${requesterName}`,
         });
       }
