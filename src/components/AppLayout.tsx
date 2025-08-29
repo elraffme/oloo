@@ -75,13 +75,9 @@ const AppLayout = () => {
                 return (
                   <NavLink key={item.path} to={item.path}>
                     <Button
-                      variant={isActive ? "default" : "ghost"}
+                      variant="default"
                       size="sm"
-                      className={`flex items-center space-x-2 ${
-                        isActive 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-primary/10'
-                      }`}
+                      className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
@@ -136,14 +132,10 @@ const AppLayout = () => {
                 className="flex flex-col items-center justify-center space-y-1"
               >
                 <item.icon 
-                  className={`w-5 h-5 ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
-                  }`} 
+                  className="w-5 h-5 text-primary" 
                 />
                 <span 
-                  className={`text-xs ${
-                    isActive ? 'text-primary font-medium' : 'text-muted-foreground'
-                  }`}
+                  className="text-xs text-primary font-medium"
                 >
                   {item.label}
                 </span>
