@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
 
@@ -24,6 +24,9 @@ interface Profile {
 interface ProfileCardProps {
   profile: Profile;
   onSwipe: (direction: 'left' | 'right') => void;
+  onSuperLike?: () => void;
+  onUndo?: () => void;
+  onBoost?: () => void;
   onMessage?: () => void;
   showActions?: boolean;
   swipeDirection?: 'left' | 'right' | null;
@@ -32,6 +35,9 @@ interface ProfileCardProps {
 export const ProfileCard = ({ 
   profile, 
   onSwipe, 
+  onSuperLike,
+  onUndo,
+  onBoost,
   onMessage, 
   showActions = true, 
   swipeDirection 
@@ -171,35 +177,57 @@ export const ProfileCard = ({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {/* Tinder-Style Action Buttons */}
       {showActions && (
-        <div className="flex justify-center gap-6 mt-6">
+        <div className="flex justify-center items-center gap-4 mt-6 px-4">
+          {/* Undo Button */}
           <Button
             size="lg"
             variant="outline"
-            className="w-16 h-16 rounded-full border-2 border-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={() => onSwipe('left')}
+            className="w-12 h-12 rounded-full border-2 border-muted hover:bg-muted hover:scale-110 transition-all duration-200"
+            onClick={onUndo}
+            disabled={!onUndo}
           >
-            <X className="w-8 h-8" />
+            <RotateCcw className="w-5 h-5 text-muted-foreground" />
           </Button>
-          
-          {onMessage && (
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-16 h-16 rounded-full border-2 border-primary hover:bg-primary hover:text-primary-foreground"
-              onClick={onMessage}
-            >
-              <MessageCircle className="w-7 h-7" />
-            </Button>
-          )}
-          
+
+          {/* Pass/Dislike Button */}
           <Button
             size="lg"
-            className="w-16 h-16 rounded-full bg-primary hover:bg-primary/90 pulse-romantic"
+            variant="outline"
+            className="w-14 h-14 rounded-full border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
+            onClick={() => onSwipe('left')}
+          >
+            <X className="w-7 h-7" />
+          </Button>
+
+          {/* Super Like Button */}
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-12 h-12 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
+            onClick={onSuperLike}
+          >
+            <Star className="w-5 h-5" />
+          </Button>
+
+          {/* Like Button */}
+          <Button
+            size="lg"
+            className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white hover:scale-110 transition-all duration-200 shadow-lg border-2 border-green-500"
             onClick={() => onSwipe('right')}
           >
-            <Heart className="w-8 h-8" />
+            <Heart className="w-7 h-7" />
+          </Button>
+
+          {/* Boost Button */}
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-12 h-12 rounded-full border-2 border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
+            onClick={onBoost}
+          >
+            <Send className="w-5 h-5" />
           </Button>
         </div>
       )}

@@ -45,6 +45,57 @@ const Discover = () => {
     }
   };
 
+  const handleSuperLike = async () => {
+    const currentProfile = profiles[currentIndex];
+    
+    try {
+      // Record super like (treat as special like)
+      const { error } = await supabase.from('user_connections').insert({
+        connected_user_id: currentProfile.id,
+        connection_type: 'super_like'
+      });
+
+      if (error && error.code !== '23505') {
+        throw error;
+      }
+
+      toast({
+        title: "Super Like sent! ⭐",
+        description: `You super liked ${currentProfile.display_name}!`,
+      });
+
+      setSwipeDirection('right');
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setSwipeDirection(null);
+      }, 600);
+    } catch (error) {
+      console.error('Error recording super like:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send super like. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUndo = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+      toast({
+        title: "Undone",
+        description: "Went back to previous profile",
+      });
+    }
+  };
+
+  const handleBoost = () => {
+    toast({
+      title: "Boost feature coming soon! 🚀",
+      description: "This feature will increase your profile visibility.",
+    });
+  };
+
   const handleSwipe = async (direction: 'left' | 'right') => {
     const currentProfile = profiles[currentIndex];
     
@@ -183,6 +234,9 @@ const Discover = () => {
         <ProfileCard
           profile={currentProfile}
           onSwipe={handleSwipe}
+          onSuperLike={handleSuperLike}
+          onUndo={currentIndex > 0 ? handleUndo : undefined}
+          onBoost={handleBoost}
           onMessage={() => handleMessage(currentProfile.id)}
           swipeDirection={swipeDirection}
         />
