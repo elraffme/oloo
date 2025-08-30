@@ -86,7 +86,7 @@ const Onboarding = () => {
     blockContacts: false
   });
 
-  const totalSteps = 12;
+  const totalSteps = 6;
 
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -96,7 +96,7 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      navigate('/app');
+      navigate('/discover');
     }
   };
 
@@ -141,23 +141,50 @@ const Onboarding = () => {
     case 2:
       return (
         <OnboardingStep
-          title="What's your name?"
-          description="This will be displayed on your profile"
+          title="Tell us about yourself"
+          description="Basic information for your profile"
           onNext={nextStep}
           onBack={prevStep}
-          canProceed={formData.name.length >= 2}
+          canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0}
           currentStep={step}
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <Label htmlFor="name">First Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => updateData('name', e.target.value)}
-              placeholder="Enter your first name"
-              className="text-lg"
-            />
+            <div>
+              <Label htmlFor="name">First Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => updateData('name', e.target.value)}
+                placeholder="Enter your first name"
+                className="text-lg"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="birthDate">Date of Birth</Label>
+              <Input
+                id="birthDate"
+                type="date"
+                value={formData.birthDate}
+                onChange={(e) => updateData('birthDate', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
+            </div>
+            
+            <div>
+              <Label>Gender</Label>
+              <Select value={formData.gender} onValueChange={(value) => updateData('gender', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="man">Man</SelectItem>
+                  <SelectItem value="woman">Woman</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </OnboardingStep>
       );
@@ -165,22 +192,61 @@ const Onboarding = () => {
     case 3:
       return (
         <OnboardingStep
-          title="When's your birthday?"
-          description="Your age will be public, but not your birthday"
+          title="Dating preferences"
+          description="Help us find your perfect match"
           onNext={nextStep}
           onBack={prevStep}
-          canProceed={formData.birthDate.length > 0}
+          canProceed={formData.orientation.length > 0 && formData.interestedIn.length > 0 && formData.lookingFor.length > 0}
           currentStep={step}
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
-            <Input
-              id="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={(e) => updateData('birthDate', e.target.value)}
-            />
+            <div>
+              <Label>Sexual Orientation</Label>
+              <Select value={formData.orientation} onValueChange={(value) => updateData('orientation', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your orientation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="straight">Straight</SelectItem>
+                  <SelectItem value="gay">Gay</SelectItem>
+                  <SelectItem value="lesbian">Lesbian</SelectItem>
+                  <SelectItem value="bisexual">Bisexual</SelectItem>
+                  <SelectItem value="pansexual">Pansexual</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Show me</Label>
+              <Select value={formData.interestedIn} onValueChange={(value) => updateData('interestedIn', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Who you're interested in" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="men">Men</SelectItem>
+                  <SelectItem value="women">Women</SelectItem>
+                  <SelectItem value="everyone">Everyone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>What are you looking for?</Label>
+              <Select value={formData.lookingFor} onValueChange={(value) => updateData('lookingFor', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Relationship goals" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="long-term">Long-term relationship</SelectItem>
+                  <SelectItem value="open-to-short">Open to short-term</SelectItem>
+                  <SelectItem value="short-term">Short-term dating</SelectItem>
+                  <SelectItem value="open-to-long">Open to long-term</SelectItem>
+                  <SelectItem value="not-sure">Not really sure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </OnboardingStep>
       );
@@ -188,183 +254,8 @@ const Onboarding = () => {
     case 4:
       return (
         <OnboardingStep
-          title="What's your gender?"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.gender.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Gender</Label>
-            <Select value={formData.gender} onValueChange={(value) => updateData('gender', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="man">Man</SelectItem>
-                <SelectItem value="woman">Woman</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 5:
-      return (
-        <OnboardingStep
-          title="Sexual Orientation"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.orientation.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Sexual Orientation</Label>
-            <Select value={formData.orientation} onValueChange={(value) => updateData('orientation', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your orientation" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="straight">Straight</SelectItem>
-                <SelectItem value="gay">Gay</SelectItem>
-                <SelectItem value="lesbian">Lesbian</SelectItem>
-                <SelectItem value="bisexual">Bisexual</SelectItem>
-                <SelectItem value="pansexual">Pansexual</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 6:
-      return (
-        <OnboardingStep
-          title="Who are you interested in?"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.interestedIn.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Show me</Label>
-            <Select value={formData.interestedIn} onValueChange={(value) => updateData('interestedIn', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Who you're interested in" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="men">Men</SelectItem>
-                <SelectItem value="women">Women</SelectItem>
-                <SelectItem value="everyone">Everyone</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 7:
-      return (
-        <OnboardingStep
-          title="What are you looking for?"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.lookingFor.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Relationship Goals</Label>
-            <Select value={formData.lookingFor} onValueChange={(value) => updateData('lookingFor', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="What you're looking for" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="long-term">Long-term relationship</SelectItem>
-                <SelectItem value="open-to-short">Open to short-term</SelectItem>
-                <SelectItem value="short-term">Short-term dating</SelectItem>
-                <SelectItem value="open-to-long">Open to long-term</SelectItem>
-                <SelectItem value="not-sure">Not really sure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 8:
-      return (
-        <OnboardingStep
-          title="What's your height?"
-          description="This helps with better matching"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Height</Label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  min="4"
-                  max="7"
-                  value={formData.heightFeet}
-                  onChange={(e) => updateData('heightFeet', e.target.value)}
-                  placeholder="Feet"
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  min="0"
-                  max="11"
-                  value={formData.heightInches}
-                  onChange={(e) => updateData('heightInches', e.target.value)}
-                  placeholder="Inches"
-                />
-              </div>
-            </div>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 9:
-      return (
-        <OnboardingStep
-          title="Distance Range"
-          description="How far are you willing to travel for love?"
-          onNext={nextStep}
-          onBack={prevStep}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Maximum Distance: {formData.distance[0]} miles</Label>
-            <Slider
-              value={formData.distance}
-              onValueChange={(value) => updateData('distance', value)}
-              max={100}
-              min={1}
-              step={1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>1 mi</span>
-              <span>100+ mi</span>
-            </div>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 10:
-      return (
-        <OnboardingStep
-          title="Hobbies & Lifestyle"
-          description="Tell us about your interests"
+          title="Your preferences"
+          description="Height, distance, and interests"
           onNext={nextStep}
           onBack={prevStep}
           canProceed={formData.hobbies.length > 10}
@@ -372,19 +263,63 @@ const Onboarding = () => {
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <Label htmlFor="hobbies">What do you enjoy doing?</Label>
-            <Textarea
-              id="hobbies"
-              value={formData.hobbies}
-              onChange={(e) => updateData('hobbies', e.target.value)}
-              placeholder="Tell us about your hobbies, interests, and lifestyle..."
-              className="min-h-24"
-            />
+            <div>
+              <Label>Height</Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    min="4"
+                    max="7"
+                    value={formData.heightFeet}
+                    onChange={(e) => updateData('heightFeet', e.target.value)}
+                    placeholder="Feet"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="11"
+                    value={formData.heightInches}
+                    onChange={(e) => updateData('heightInches', e.target.value)}
+                    placeholder="Inches"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <Label>Maximum Distance: {formData.distance[0]} miles</Label>
+              <Slider
+                value={formData.distance}
+                onValueChange={(value) => updateData('distance', value)}
+                max={100}
+                min={1}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>1 mi</span>
+                <span>100+ mi</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="hobbies">What do you enjoy doing?</Label>
+              <Textarea
+                id="hobbies"
+                value={formData.hobbies}
+                onChange={(e) => updateData('hobbies', e.target.value)}
+                placeholder="Tell us about your hobbies, interests, and lifestyle..."
+                className="min-h-24"
+              />
+            </div>
           </div>
         </OnboardingStep>
       );
 
-    case 11:
+    case 5:
       return (
         <OnboardingStep
           title="Add Photos"
@@ -461,7 +396,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 12:
+    case 6:
       return (
         <OnboardingStep
           title="You're All Set!"
