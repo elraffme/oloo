@@ -7,8 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from '@/contexts/AuthContext';
 
 const OnboardingStep = ({ 
   title, 
@@ -68,10 +69,21 @@ const OnboardingStep = ({
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [step, setStep] = useState(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    agreed: false,
+    // Account creation fields
+    email: "",
+    password: "",
+    confirmPassword: "",
+    acceptTerms: false,
+    biometricConsent: false,
+    // Profile fields
     name: "",
+    age: "",
+    location: "",
     birthDate: "",
     gender: "",
     orientation: "",
@@ -81,18 +93,53 @@ const Onboarding = () => {
     heightFeet: "",
     heightInches: "",
     hobbies: "",
-    photos: [] as File[],
-    location: false,
-    blockContacts: false
+    photos: [] as File[]
   });
 
-  const totalSteps = 12;
+  const totalSteps = 11;
 
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    // If we're on step 1 (account creation), create the account
+    if (step === 1) {
+      if (formData.password !== formData.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
+
+      if (!formData.acceptTerms) {
+        alert('Please accept the Terms of Service');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const metadata = {
+          display_name: formData.name,
+          age: parseInt(formData.age),
+          location: formData.location,
+          biometric_consent: formData.biometricConsent
+        };
+
+        const result = await signUp(formData.email, formData.password, metadata);
+        
+        if (result.error) {
+          alert(result.error.message);
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        setIsSubmitting(false);
+        return;
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
@@ -115,54 +162,123 @@ const Onboarding = () => {
     case 1:
       return (
         <OnboardingStep
-          title="Terms of Service"
-          description="Please review and accept our terms"
+          title="Create Your Account"
+          description="Join Òloo and start your journey of meaningful connections"
           onNext={nextStep}
-          canProceed={formData.agreed}
+          canProceed={formData.email && formData.password && formData.confirmPassword && formData.name && formData.age && formData.location && formData.acceptTerms}
           currentStep={step}
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg max-h-32 overflow-y-auto text-sm">
-              <p>Welcome to Òloo! By using our service, you agree to our terms of service and privacy policy. We prioritize your safety and cultural connections.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => updateData('name', e.target.value)}
+                  placeholder="Your name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  min="18"
+                  max="100"
+                  value={formData.age}
+                  onChange={(e) => updateData('age', e.target.value)}
+                  placeholder="25"
+                  required
+                />
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="agree" 
-                checked={formData.agreed}
-                onCheckedChange={(checked) => updateData('agreed', checked)}
+
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => updateData('email', e.target.value)}
+                placeholder="your@email.com"
+                required
               />
-              <Label htmlFor="agree" className="text-sm">I agree to the Terms of Service and Privacy Policy</Label>
+            </div>
+
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => updateData('location', e.target.value)}
+                placeholder="Lagos, Nigeria"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.password}
+                onChange={(e) => updateData('password', e.target.value)}
+                placeholder="Create a strong password"
+                required
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="relative">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => updateData('confirmPassword', e.target.value)}
+                placeholder="Confirm your password"
+                required
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="acceptTerms"
+                  checked={formData.acceptTerms}
+                  onCheckedChange={(checked) => updateData('acceptTerms', checked)}
+                />
+                <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
+                  I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
+                  <span className="text-primary underline">Privacy Policy</span>
+                </Label>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="biometricConsent"
+                  checked={formData.biometricConsent}
+                  onCheckedChange={(checked) => updateData('biometricConsent', checked)}
+                />
+                <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
+                  <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security
+                </Label>
+              </div>
             </div>
           </div>
         </OnboardingStep>
       );
 
     case 2:
-      return (
-        <OnboardingStep
-          title="What's your name?"
-          description="This will be displayed on your profile"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.name.length >= 2}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label htmlFor="name">First Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => updateData('name', e.target.value)}
-              placeholder="Enter your first name"
-              className="text-lg"
-            />
-          </div>
-        </OnboardingStep>
-      );
-
-    case 3:
       return (
         <OnboardingStep
           title="When's your birthday?"
@@ -185,7 +301,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 4:
+    case 3:
       return (
         <OnboardingStep
           title="What's your gender?"
@@ -211,7 +327,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 5:
+    case 4:
       return (
         <OnboardingStep
           title="Sexual Orientation"
@@ -240,7 +356,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 6:
+    case 5:
       return (
         <OnboardingStep
           title="Who are you interested in?"
@@ -266,7 +382,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 7:
+    case 6:
       return (
         <OnboardingStep
           title="What are you looking for?"
@@ -294,7 +410,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 8:
+    case 7:
       return (
         <OnboardingStep
           title="What's your height?"
@@ -332,7 +448,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 9:
+    case 8:
       return (
         <OnboardingStep
           title="Distance Range"
@@ -360,7 +476,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 10:
+    case 9:
       return (
         <OnboardingStep
           title="Hobbies & Lifestyle"
@@ -384,7 +500,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 11:
+    case 10:
       return (
         <OnboardingStep
           title="Add Photos"
@@ -461,7 +577,7 @@ const Onboarding = () => {
         </OnboardingStep>
       );
 
-    case 12:
+    case 11:
       return (
         <OnboardingStep
           title="You're All Set!"
