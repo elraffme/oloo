@@ -259,6 +259,17 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  if (showVerification) {
+    return (
+      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={profilePhotos}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-2xl mx-auto">

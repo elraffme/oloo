@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import VideoVerificationRequest from '@/components/VideoVerificationRequest';
+import { FaceVerification } from '@/components/FaceVerification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ArrowLeft, Video, Users, Heart, CheckCircle, Camera } from 'lucide-react';
+import { Shield, ArrowLeft, Camera, Users, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Verification: React.FC = () => {
@@ -15,8 +15,9 @@ const Verification: React.FC = () => {
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<any>(null);
-  const [videoVerificationStatus, setVideoVerificationStatus] = useState<'none' | 'pending' | 'verified'>('none');
-  const [isLoading, setIsLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
     const fetchProfileAndVerification = async () => {
@@ -40,7 +41,7 @@ const Verification: React.FC = () => {
         if (verificationError) {
           console.error('Error fetching verification status:', verificationError);
         } else {
-          setVideoVerificationStatus(verificationData ? 'verified' : 'none');
+          setVerificationStatus(verificationData);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -50,7 +51,7 @@ const Verification: React.FC = () => {
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
@@ -63,7 +64,7 @@ const Verification: React.FC = () => {
       try {
         const { data: updatedVerificationData } = await supabase
           .rpc('get_secure_verification_status', { target_user_id: user?.id });
-        setVideoVerificationStatus(updatedVerificationData ? 'verified' : 'none');
+        setVerificationStatus(updatedVerificationData);
         setProfile({ ...profile, verified: true });
       } catch (error) {
         console.error('Error refreshing verification status:', error);
@@ -77,7 +78,7 @@ const Verification: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
@@ -127,7 +128,7 @@ const Verification: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {(profile?.verified || videoVerificationStatus === 'verified') ? (
+        {(profile?.verified || verificationStatus?.verified) ? (
           /* Already Verified */
           <Card className="max-w-2xl mx-auto cultural-card">
             <CardHeader className="text-center">
@@ -174,7 +175,7 @@ const Verification: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
-        ) : (
+        ) : !showVerification ? (
           /* Verification Info */
           <div className="max-w-2xl mx-auto space-y-6">
             <Card className="cultural-card">
@@ -239,23 +240,29 @@ const Verification: React.FC = () => {
 
                 <div className="flex gap-4">
                   <Button
-                    onClick={() => handleVerificationComplete(true)}
+                    onClick={() => setShowVerification(true)}
                     className="luxury-gradient text-white px-8 py-3 flex-1"
                     disabled={!profile.profile_photos || profile.profile_photos.length === 0}
                   >
-                    <Video className="w-5 h-5 mr-2" />
-                    Enable Video Verification
+                    <Camera className="w-5 h-5 mr-2" />
+                    Start Verification
                   </Button>
                 </div>
 
                 {(!profile.profile_photos || profile.profile_photos.length === 0) && (
                   <p className="text-sm text-destructive text-center">
-                    Please add at least one profile photo for video verification
+                    Please add at least one profile photo before verification
                   </p>
                 )}
               </CardContent>
             </Card>
           </div>
+        ) : (
+          /* Verification Process */
+          <FaceVerification
+            onVerificationComplete={handleVerificationComplete}
+            profilePhotos={profile.profile_photos || []}
+          />
         )}
       </div>
     </div>

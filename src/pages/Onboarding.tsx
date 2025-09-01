@@ -7,9 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from '@/contexts/AuthContext';
 
 const OnboardingStep = ({ 
   title, 
@@ -69,18 +68,9 @@ const OnboardingStep = ({
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
   const [step, setStep] = useState(1);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    // Account creation fields
-    email: "",
-    password: "",
-    confirmPassword: "",
-    acceptTerms: false,
-    videoVerificationConsent: false,
-    // Profile fields
+    agreed: false,
     name: "",
     birthDate: "",
     gender: "",
@@ -92,46 +82,17 @@ const Onboarding = () => {
     heightInches: "",
     hobbies: "",
     photos: [] as File[],
-    location: "",
-    occupation: "",
-    education: ""
+    location: false,
+    blockContacts: false
   });
 
-  const totalSteps = 7;
+  const totalSteps = 6;
 
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const nextStep = async () => {
-    if (step === 1 && formData.acceptTerms && formData.email && formData.password) {
-      // Handle account creation on step 1
-      if (formData.password !== formData.confirmPassword) {
-        alert('Passwords do not match');
-        return;
-      }
-
-      setIsSubmitting(true);
-      try {
-        const metadata = {
-          onboarding_step: 'account_created'
-        };
-
-        const result = await signUp(formData.email, formData.password, metadata);
-        
-        if (result.error) {
-          alert(result.error.message);
-          setIsSubmitting(false);
-          return;
-        }
-      } catch (error) {
-        console.error('Signup error:', error);
-        setIsSubmitting(false);
-        return;
-      }
-      setIsSubmitting(false);
-    }
-
+  const nextStep = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
@@ -154,80 +115,24 @@ const Onboarding = () => {
     case 1:
       return (
         <OnboardingStep
-          title="Create Your Account"
-          description="Join Òloo - where culture meets connection"
+          title="Terms of Service"
+          description="Please review and accept our terms"
           onNext={nextStep}
-          canProceed={formData.email && formData.password && formData.confirmPassword && formData.acceptTerms && !isSubmitting}
+          canProceed={formData.agreed}
           currentStep={step}
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => updateData('email', e.target.value)}
-                placeholder="your@email.com"
-                required
-              />
+            <div className="bg-muted p-4 rounded-lg max-h-32 overflow-y-auto text-sm">
+              <p>Welcome to Òloo! By using our service, you agree to our terms of service and privacy policy. We prioritize your safety and cultural connections.</p>
             </div>
-
-            <div className="relative">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => updateData('password', e.target.value)}
-                placeholder="Create a strong password"
-                required
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="agree" 
+                checked={formData.agreed}
+                onCheckedChange={(checked) => updateData('agreed', checked)}
               />
-              <button
-                type="button"
-                className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-
-            <div className="relative">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => updateData('confirmPassword', e.target.value)}
-                placeholder="Confirm your password"
-                required
-              />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="acceptTerms"
-                  checked={formData.acceptTerms}
-                  onCheckedChange={(checked) => updateData('acceptTerms', checked)}
-                />
-                <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
-                  I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
-                  <span className="text-primary underline">Privacy Policy</span>
-                </Label>
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="videoVerificationConsent"
-                  checked={formData.videoVerificationConsent}
-                  onCheckedChange={(checked) => updateData('videoVerificationConsent', checked)}
-                />
-                <Label htmlFor="videoVerificationConsent" className="text-sm leading-relaxed">
-                  <span className="text-orange-500">Optional:</span> I consent to video verification for enhanced trust and safety
-                </Label>
-              </div>
+              <Label htmlFor="agree" className="text-sm">I agree to the Terms of Service and Privacy Policy</Label>
             </div>
           </div>
         </OnboardingStep>
@@ -240,7 +145,7 @@ const Onboarding = () => {
           description="Basic information for your profile"
           onNext={nextStep}
           onBack={prevStep}
-          canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.location.length > 0}
+          canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0}
           currentStep={step}
           totalSteps={totalSteps}
         >
@@ -279,17 +184,6 @@ const Onboarding = () => {
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => updateData('location', e.target.value)}
-                placeholder="Lagos, Nigeria"
-                required
-              />
             </div>
           </div>
         </OnboardingStep>
@@ -505,51 +399,6 @@ const Onboarding = () => {
     case 6:
       return (
         <OnboardingStep
-          title="Complete Your Profile"
-          description="Add your display name, occupation, and education"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={true}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="displayName">Display Name (Optional)</Label>
-              <Input
-                id="displayName"
-                value={formData.name}
-                onChange={(e) => updateData('name', e.target.value)}
-                placeholder="How should others see your name?"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="occupation">Occupation (Optional)</Label>
-              <Input
-                id="occupation"
-                value={formData.occupation || ""}
-                onChange={(e) => updateData('occupation', e.target.value)}
-                placeholder="Software Engineer, Teacher, etc."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="education">Education (Optional)</Label>
-              <Input
-                id="education"
-                value={formData.education || ""}
-                onChange={(e) => updateData('education', e.target.value)}
-                placeholder="University of Lagos, High School, etc."
-              />
-            </div>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 7:
-      return (
-        <OnboardingStep
           title="You're All Set!"
           description="Welcome to Òloo - let's find your perfect match"
           onNext={nextStep}
@@ -566,11 +415,6 @@ const Onboarding = () => {
             <p className="text-sm text-muted-foreground">
               Your profile is complete and you're ready to discover amazing people who share your culture and values.
             </p>
-            {formData.videoVerificationConsent && (
-              <p className="text-sm text-orange-500 font-medium">
-                💡 You can complete video verification later for enhanced trust
-              </p>
-            )}
           </div>
         </OnboardingStep>
       );
