@@ -328,20 +328,49 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                   </div>
                 </div>
 
+                <div>
+                  <Label>Height</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Input
+                        type="number"
+                        min="4"
+                        max="7"
+                        value={formData.heightFeet}
+                        onChange={(e) => handleInputChange('heightFeet', e.target.value)}
+                        placeholder="Feet"
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="11"
+                        value={formData.heightInches}
+                        onChange={(e) => handleInputChange('heightInches', e.target.value)}
+                        placeholder="Inches"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <Label htmlFor="bio">About You</Label>
-                  <Textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell others about yourself, your passions, and what you're looking for..."
-                    rows={4}
-                  />
+                  <Label htmlFor="relationshipGoals">Relationship Goals</Label>
+                  <Select onValueChange={(value) => handleInputChange('relationshipGoals', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="What are you looking for?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="serious_relationship">Serious relationship</SelectItem>
+                      <SelectItem value="casual_dating">Casual dating</SelectItem>
+                      <SelectItem value="friendship">Friendship first</SelectItem>
+                      <SelectItem value="networking">Cultural networking</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -359,6 +388,17 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                       </Badge>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="bio">About You</Label>
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => handleInputChange('bio', e.target.value)}
+                    placeholder="Tell others about yourself, your passions, and what you're looking for..."
+                    rows={4}
+                  />
                 </div>
 
                 <div>
