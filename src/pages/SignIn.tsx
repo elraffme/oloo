@@ -141,7 +141,7 @@ const SignIn = () => {
                   <Button 
                     variant="ghost" 
                     className="text-primary hover:text-primary/80 hover:bg-primary/5"
-                    onClick={() => window.location.href = '/auth'}
+                    onClick={() => window.location.href = '/onboarding'}
                   >
                     Create Account
                   </Button>
