@@ -29,11 +29,12 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   const [formData, setFormData] = useState({
     displayName: '',
     age: '',
-    location: '',
     bio: '',
     occupation: '',
     education: '',
-    height: '',
+    heightFeet: '',
+    heightInches: '',
+    bodyType: '',
     interests: [] as string[],
     relationshipGoals: '',
     languages: [] as string[]
@@ -209,14 +210,19 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setIsSubmitting(true);
     
     try {
+      // Convert feet and inches to cm for storage
+      const heightInCm = formData.heightFeet && formData.heightInches 
+        ? Math.round((parseInt(formData.heightFeet) * 12 + parseInt(formData.heightInches)) * 2.54)
+        : null;
+
       const profileData = {
         display_name: formData.displayName,
         age: parseInt(formData.age),
-        location: formData.location,
         bio: formData.bio,
         occupation: formData.occupation,
         education: formData.education,
-        height_cm: formData.height ? parseInt(formData.height) : null,
+        height_cm: heightInCm,
+        body_type: formData.bodyType,
         interests: formData.interests,
         relationship_goals: formData.relationshipGoals,
         languages: formData.languages,
@@ -315,37 +321,58 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 </div>
 
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="occupation">Occupation</Label>
                   <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Lagos, Nigeria"
+                    id="occupation"
+                    value={formData.occupation}
+                    onChange={(e) => handleInputChange('occupation', e.target.value)}
+                    placeholder="Software Engineer"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="occupation">Occupation</Label>
-                    <Input
-                      id="occupation"
-                      value={formData.occupation}
-                      onChange={(e) => handleInputChange('occupation', e.target.value)}
-                      placeholder="Software Engineer"
-                    />
+                    <Label>Height</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Input
+                          type="number"
+                          min="4"
+                          max="7"
+                          value={formData.heightFeet}
+                          onChange={(e) => handleInputChange('heightFeet', e.target.value)}
+                          placeholder="5"
+                        />
+                        <Label className="text-xs text-muted-foreground">Feet</Label>
+                      </div>
+                      <div>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="11"
+                          value={formData.heightInches}
+                          onChange={(e) => handleInputChange('heightInches', e.target.value)}
+                          placeholder="8"
+                        />
+                        <Label className="text-xs text-muted-foreground">Inches</Label>
+                      </div>
+                    </div>
                   </div>
                   <div>
-                    <Label htmlFor="height">Height (cm)</Label>
-                    <Input
-                      id="height"
-                      type="number"
-                      min="140"
-                      max="220"
-                      value={formData.height}
-                      onChange={(e) => handleInputChange('height', e.target.value)}
-                      placeholder="170"
-                    />
+                    <Label htmlFor="bodyType">Body Type</Label>
+                    <Select onValueChange={(value) => handleInputChange('bodyType', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select body type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="slim">Slim</SelectItem>
+                        <SelectItem value="athletic">Athletic</SelectItem>
+                        <SelectItem value="average">Average</SelectItem>
+                        <SelectItem value="curvy">Curvy</SelectItem>
+                        <SelectItem value="heavyset">Heavyset</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -525,7 +552,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 <Button
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.location)) ||
+                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.occupation)) ||
                     (currentStep === 2 && (!formData.bio || formData.interests.length === 0))
                   }
                 >
