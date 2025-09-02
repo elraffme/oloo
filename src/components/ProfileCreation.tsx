@@ -11,7 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { pipeline, env } from '@huggingface/transformers';
-import { FaceVerification } from './FaceVerification';
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -43,7 +42,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   const [profilePhotos, setProfilePhotos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [showVerification, setShowVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableInterests = [
@@ -184,25 +182,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setProfilePhotos(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleVerificationComplete = async (success: boolean, score?: number) => {
-    setShowVerification(false);
-    
-    if (success) {
-      toast({
-        title: "Verification successful!",
-        description: `Face verification completed with ${Math.round((score || 0) * 100)}% confidence.`,
-      });
-    } else {
-      toast({
-        title: "Verification skipped",
-        description: "You can verify your profile later in settings.",
-        variant: "destructive",
-      });
-    }
-    
-    // Continue to profile completion
-    await submitProfile();
-  };
 
   const submitProfile = async () => {
     if (!user) return;
@@ -252,8 +231,8 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   };
 
   const nextStep = () => {
-    if (currentStep === 3 && profilePhotos.length > 0) {
-      setShowVerification(true);
+    if (currentStep === 3) {
+      submitProfile();
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, 3));
@@ -263,16 +242,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  if (showVerification) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <FaceVerification 
-          onVerificationComplete={handleVerificationComplete}
-          profilePhotos={profilePhotos}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -287,7 +256,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
             <CardTitle className="text-center">
               {currentStep === 1 && "Basic Information"}
               {currentStep === 2 && "About You"}
-              {currentStep === 3 && "Photos & Verification"}
+              {currentStep === 3 && "Photos"}
             </CardTitle>
           </CardHeader>
           
