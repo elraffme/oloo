@@ -8,18 +8,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
 import ProfileCreation from '@/components/ProfileCreation';
+import { FaceVerification } from '@/components/FaceVerification';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
-  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showProfileCreation, setShowProfileCreation] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
+    displayName: '',
+    age: '',
     location: '',
     bio: '',
     acceptTerms: false,
@@ -66,6 +68,8 @@ const Auth = () => {
     setIsSubmitting(true);
     try {
       const metadata = {
+        display_name: formData.displayName,
+        age: parseInt(formData.age),
         location: formData.location,
         bio: formData.bio || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
@@ -75,21 +79,25 @@ const Auth = () => {
       
       if (!result.error) {
         // Show profile creation after successful signup
-        setShowProfileCreation(true);
+        if (formData.biometricConsent) {
+          setShowVerification(true);
+        } else {
+          setShowProfileCreation(true);
+        }
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleVerificationComplete = (success: boolean) => {
+    setShowVerification(false);
+    setShowProfileCreation(true);
+  };
+
   const handleProfileCreationComplete = () => {
     setShowProfileCreation(false);
-    toast({
-      title: "Profile created successfully!",
-      description: "Please sign in with your new account.",
-    });
-    // Redirect to sign in page
-    window.location.href = '/signin';
+    // User will be redirected to the app by the useAuth hook
   };
 
   // Show profile creation flow
@@ -97,6 +105,17 @@ const Auth = () => {
     return <ProfileCreation onComplete={handleProfileCreationComplete} />;
   }
 
+  // Show verification flow
+  if (showVerification) {
+    return (
+      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={[]}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -152,6 +171,34 @@ const Auth = () => {
               
               <div className="relative z-10">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="displayName">Name</Label>
+                      <Input
+                        id="displayName"
+                        name="displayName"
+                        value={formData.displayName}
+                        onChange={handleInputChange}
+                        placeholder="Your name"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="age">Age</Label>
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        min="18"
+                        max="100"
+                        value={formData.age}
+                        onChange={handleInputChange}
+                        placeholder="25"
+                        required
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="email">Email</Label>
                     <Input

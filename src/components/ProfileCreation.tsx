@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { pipeline, env } from '@huggingface/transformers';
+import { FaceVerification } from './FaceVerification';
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -28,12 +29,11 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   const [formData, setFormData] = useState({
     displayName: '',
     age: '',
+    location: '',
     bio: '',
     occupation: '',
     education: '',
-    heightFeet: '',
-    heightInches: '',
-    bodyType: '',
+    height: '',
     interests: [] as string[],
     relationshipGoals: '',
     languages: [] as string[]
@@ -42,6 +42,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   const [profilePhotos, setProfilePhotos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showVerification, setShowVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableInterests = [
@@ -182,6 +183,25 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setProfilePhotos(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleVerificationComplete = async (success: boolean, score?: number) => {
+    setShowVerification(false);
+    
+    if (success) {
+      toast({
+        title: "Verification successful!",
+        description: `Face verification completed with ${Math.round((score || 0) * 100)}% confidence.`,
+      });
+    } else {
+      toast({
+        title: "Verification skipped",
+        description: "You can verify your profile later in settings.",
+        variant: "destructive",
+      });
+    }
+    
+    // Continue to profile completion
+    await submitProfile();
+  };
 
   const submitProfile = async () => {
     if (!user) return;
@@ -189,19 +209,14 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setIsSubmitting(true);
     
     try {
-      // Convert feet and inches to cm for storage
-      const heightInCm = formData.heightFeet && formData.heightInches 
-        ? Math.round((parseInt(formData.heightFeet) * 12 + parseInt(formData.heightInches)) * 2.54)
-        : null;
-
       const profileData = {
         display_name: formData.displayName,
         age: parseInt(formData.age),
+        location: formData.location,
         bio: formData.bio,
         occupation: formData.occupation,
         education: formData.education,
-        height_cm: heightInCm,
-        body_type: formData.bodyType,
+        height_cm: formData.height ? parseInt(formData.height) : null,
         interests: formData.interests,
         relationship_goals: formData.relationshipGoals,
         languages: formData.languages,
@@ -231,8 +246,8 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   };
 
   const nextStep = () => {
-    if (currentStep === 3) {
-      submitProfile();
+    if (currentStep === 3 && profilePhotos.length > 0) {
+      setShowVerification(true);
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, 3));
@@ -242,6 +257,16 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  if (showVerification) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={profilePhotos}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -256,7 +281,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
             <CardTitle className="text-center">
               {currentStep === 1 && "Basic Information"}
               {currentStep === 2 && "About You"}
-              {currentStep === 3 && "Photos"}
+              {currentStep === 3 && "Photos & Verification"}
             </CardTitle>
           </CardHeader>
           
@@ -290,58 +315,37 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 </div>
 
                 <div>
-                  <Label htmlFor="occupation">Occupation</Label>
+                  <Label htmlFor="location">Location</Label>
                   <Input
-                    id="occupation"
-                    value={formData.occupation}
-                    onChange={(e) => handleInputChange('occupation', e.target.value)}
-                    placeholder="Software Engineer"
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    placeholder="Lagos, Nigeria"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Height</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Input
-                          type="number"
-                          min="4"
-                          max="7"
-                          value={formData.heightFeet}
-                          onChange={(e) => handleInputChange('heightFeet', e.target.value)}
-                          placeholder="5"
-                        />
-                        <Label className="text-xs text-muted-foreground">Feet</Label>
-                      </div>
-                      <div>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="11"
-                          value={formData.heightInches}
-                          onChange={(e) => handleInputChange('heightInches', e.target.value)}
-                          placeholder="8"
-                        />
-                        <Label className="text-xs text-muted-foreground">Inches</Label>
-                      </div>
-                    </div>
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={formData.occupation}
+                      onChange={(e) => handleInputChange('occupation', e.target.value)}
+                      placeholder="Software Engineer"
+                    />
                   </div>
                   <div>
-                    <Label htmlFor="bodyType">Body Type</Label>
-                    <Select onValueChange={(value) => handleInputChange('bodyType', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select body type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="slim">Slim</SelectItem>
-                        <SelectItem value="athletic">Athletic</SelectItem>
-                        <SelectItem value="average">Average</SelectItem>
-                        <SelectItem value="curvy">Curvy</SelectItem>
-                        <SelectItem value="heavyset">Heavyset</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      min="140"
+                      max="220"
+                      value={formData.height}
+                      onChange={(e) => handleInputChange('height', e.target.value)}
+                      placeholder="170"
+                    />
                   </div>
                 </div>
 
@@ -521,7 +525,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 <Button
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.occupation)) ||
+                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.location)) ||
                     (currentStep === 2 && (!formData.bio || formData.interests.length === 0))
                   }
                 >
