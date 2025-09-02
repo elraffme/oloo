@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { pipeline, env } from '@huggingface/transformers';
 import { FaceVerification } from './FaceVerification';
+import { PhotoUpload } from './PhotoUpload';
 
 // Configure transformers.js
 env.allowLocalModels = false;
@@ -287,7 +288,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
             <CardTitle className="text-center">
               {currentStep === 1 && "Basic Information"}
               {currentStep === 2 && "About You"}
-              {currentStep === 3 && "Photos & Verification"}
+              {currentStep === 3 && "Photos"}
             </CardTitle>
           </CardHeader>
           
@@ -459,83 +460,11 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
             )}
 
             {currentStep === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <Label>Profile Photos (Up to 6)</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Upload photos that show your personality. We'll automatically enhance them for you.
-                  </p>
-                  
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    {profilePhotos.map((photo, index) => (
-                      <div key={index} className="relative aspect-square">
-                        <img
-                          src={photo}
-                          alt={`Profile ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg"
-                        />
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={() => removePhoto(index)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    {profilePhotos.length < 6 && (
-                      <div
-                        className="aspect-square border-2 border-dashed border-muted-foreground rounded-lg flex items-center justify-center cursor-pointer hover:border-primary"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {isUploading ? (
-                          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                        ) : (
-                          <Plus className="w-6 h-6 text-muted-foreground" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-
-                  <Button
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || profilePhotos.length >= 6}
-                    className="w-full"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isUploading ? 'Processing Photos...' : `Select Photos (${profilePhotos.length}/6)`}
-                  </Button>
-                  
-                  {profilePhotos.length === 0 && (
-                    <div className="text-center p-4 bg-muted/50 rounded-lg mt-2">
-                      <p className="text-sm text-muted-foreground">
-                        📸 Click above to select your best photos
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {profilePhotos.length > 0 && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm">
-                      Great! Next, we'll verify your identity using face recognition to ensure
-                      profile authenticity and build trust in our community.
-                    </p>
-                  </div>
-                )}
-              </div>
+              <PhotoUpload 
+                profilePhotos={profilePhotos}
+                onPhotosUpdate={setProfilePhotos}
+                maxPhotos={6}
+              />
             )}
 
             {/* Navigation */}
