@@ -20,8 +20,6 @@ const Auth = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    displayName: '',
-    age: '',
     location: '',
     bio: '',
     acceptTerms: false,
@@ -68,8 +66,6 @@ const Auth = () => {
     setIsSubmitting(true);
     try {
       const metadata = {
-        display_name: formData.displayName,
-        age: parseInt(formData.age),
         location: formData.location,
         bio: formData.bio || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
@@ -171,34 +167,6 @@ const Auth = () => {
               
               <div className="relative z-10">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="displayName">Name</Label>
-                      <Input
-                        id="displayName"
-                        name="displayName"
-                        value={formData.displayName}
-                        onChange={handleInputChange}
-                        placeholder="Your name"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="age">Age</Label>
-                      <Input
-                        id="age"
-                        name="age"
-                        type="number"
-                        min="18"
-                        max="100"
-                        value={formData.age}
-                        onChange={handleInputChange}
-                        placeholder="25"
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div>
                     <Label htmlFor="email">Email</Label>
                     <Input
