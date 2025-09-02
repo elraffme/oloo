@@ -8,14 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
 import ProfileCreation from '@/components/ProfileCreation';
+import { FaceVerification } from '@/components/FaceVerification';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
-  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showProfileCreation, setShowProfileCreation] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -75,21 +75,25 @@ const Auth = () => {
       
       if (!result.error) {
         // Show profile creation after successful signup
-        setShowProfileCreation(true);
+        if (formData.biometricConsent) {
+          setShowVerification(true);
+        } else {
+          setShowProfileCreation(true);
+        }
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleVerificationComplete = (success: boolean) => {
+    setShowVerification(false);
+    setShowProfileCreation(true);
+  };
+
   const handleProfileCreationComplete = () => {
     setShowProfileCreation(false);
-    toast({
-      title: "Profile created successfully!",
-      description: "Please sign in with your new account.",
-    });
-    // Redirect to sign in page
-    window.location.href = '/signin';
+    // User will be redirected to the app by the useAuth hook
   };
 
   // Show profile creation flow
@@ -97,6 +101,17 @@ const Auth = () => {
     return <ProfileCreation onComplete={handleProfileCreationComplete} />;
   }
 
+  // Show verification flow
+  if (showVerification) {
+    return (
+      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={[]}
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
