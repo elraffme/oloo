@@ -259,7 +259,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
 
   if (showVerification) {
     return (
-      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <FaceVerification 
           onVerificationComplete={handleVerificationComplete}
           profilePhotos={profilePhotos}
@@ -269,7 +269,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   }
 
   return (
-    <div className="min-h-screen dark bg-background p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-afro-heading mb-2">Complete Your Profile</h1>
