@@ -280,7 +280,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-afro-heading mb-2">Complete Your Profile</h1>
-          <p className="text-muted-foreground">Step {currentStep} of 3</p>
         </div>
 
         <Card className="cultural-card">
