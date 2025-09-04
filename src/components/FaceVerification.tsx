@@ -266,14 +266,15 @@ export const FaceVerification: React.FC<FaceVerificationProps> = ({
           throw new Error('Failed to save verification data. Please try again.');
         }
 
-        // Update profile verification status
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ verified: true })
-          .eq('user_id', user.id);
+        // Update profile verification status using secure function
+        const { data: updateResult, error: profileUpdateError } = await supabase
+          .rpc('update_profile_verification_status', {
+            target_user_id: user.id,
+            is_verified: true
+          });
 
-        if (profileError) {
-          console.error('Profile update error:', profileError);
+        if (profileUpdateError) {
+          console.error('Profile verification status update error:', profileUpdateError);
           throw new Error('Failed to update profile verification status.');
         }
       }

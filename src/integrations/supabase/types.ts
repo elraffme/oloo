@@ -875,6 +875,10 @@ export type Database = {
         }
         Returns: Json
       }
+      update_profile_verification_status: {
+        Args: { is_verified: boolean; target_user_id: string }
+        Returns: boolean
+      }
       update_user_sensitive_info: {
         Args: {
           new_emergency_contact_name?: string
