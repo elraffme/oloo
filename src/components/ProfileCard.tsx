@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
-import VideoVerificationRequest from './VideoVerificationRequest';
+
 
 interface Profile {
   id: string;
@@ -345,14 +345,6 @@ export const ProfileCard = ({
                 <X className="w-5 h-5 mr-2" />
                 Pass
               </Button>
-              
-              {/* Video Verification Request */}
-              <div className="flex-1">
-                <VideoVerificationRequest
-                  targetUserId={profile.id}
-                  targetUserName={profile.display_name}
-                />
-              </div>
               
               {onMessage && (
                 <Button

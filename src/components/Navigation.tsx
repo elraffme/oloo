@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import VideoVerificationInbox from "@/components/VideoVerificationInbox";
+
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -71,7 +71,6 @@ const Navigation = () => {
         <div className="hidden md:flex items-center space-x-3 font-afro-body">
           {user ? (
             <>
-              <VideoVerificationInbox />
               <span className="text-sm text-muted-foreground nsibidi-text">
                 <span className="nsibidi-symbol mr-1">⟡</span>
                 Welcome, {user.user_metadata?.display_name || user.email}
