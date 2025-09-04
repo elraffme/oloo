@@ -41,10 +41,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     languages: [] as string[]
   });
   
-  const [profilePhotos, setProfilePhotos] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [showVerification, setShowVerification] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const availableInterests = [
@@ -80,130 +77,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
     }));
   };
 
-  const removeBackground = async (imageFile: File): Promise<Blob> => {
-    try {
-      // Load the image
-      const img = new Image();
-      const imageUrl = URL.createObjectURL(imageFile);
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      // Initialize the background removal pipeline
-      const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512');
-      
-      // Process the image
-      const result = await segmenter(imageUrl);
-      
-      // Create canvas for processing
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context not available');
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-      
-      // Draw original image
-      ctx.drawImage(img, 0, 0);
-      
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Apply mask (assuming first result is person segmentation)
-      if (result && result.length > 0 && result[0].mask) {
-        const mask = result[0].mask;
-        for (let i = 0; i < mask.data.length; i++) {
-          // Set alpha based on mask (keep person, remove background)
-          const alpha = Math.round(mask.data[i] * 255);
-          data[i * 4 + 3] = alpha;
-        }
-      }
-      
-      // Put processed image data back
-      ctx.putImageData(imageData, 0, 0);
-      
-      // Convert to blob
-      return new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-          URL.revokeObjectURL(imageUrl);
-          if (blob) resolve(blob);
-          else reject(new Error('Failed to create processed image'));
-        }, 'image/png');
-      });
-    } catch (error) {
-      // SECURITY: Proper error handling without exposing internal details
-      // Return original file if background removal fails
-      return imageFile;
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0 || profilePhotos.length >= 6) return;
-
-    setIsUploading(true);
-    
-    try {
-      for (const file of files.slice(0, 6 - profilePhotos.length)) {
-        if (!file.type.startsWith('image/')) continue;
-
-        // Process image with background removal
-        const processedImage = await removeBackground(file);
-        
-        // Convert to data URL for preview
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(processedImage);
-        });
-
-        setProfilePhotos(prev => [...prev, dataUrl]);
-      }
-
-      toast({
-        title: "Photos uploaded",
-        description: "Your photos have been processed and background removed.",
-      });
-    } catch (error) {
-      // SECURITY: Don't expose internal errors to users
-      toast({
-        title: "Upload failed",
-        description: "Unable to process photos. Please try again with different images.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setProfilePhotos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleVerificationComplete = async (success: boolean, score?: number) => {
-    setShowVerification(false);
-    
-    if (success) {
-      toast({
-        title: "Verification successful!",
-        description: `Face verification completed with ${Math.round((score || 0) * 100)}% confidence.`,
-      });
-    } else {
-      toast({
-        title: "Verification skipped",
-        description: "You can verify your profile later in settings.",
-        variant: "destructive",
-      });
-    }
-    
-    // Continue to profile completion
-    await submitProfile();
-  };
 
   const submitProfile = async () => {
     if (!user) return;
@@ -226,8 +99,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
         body_type: formData.bodyType,
         interests: formData.interests,
         relationship_goals: formData.relationshipGoals,
-        languages: formData.languages,
-        profile_photos: profilePhotos
+        languages: formData.languages
       };
 
       const { error } = await updateProfile(profileData);
@@ -253,27 +125,17 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
   };
 
   const nextStep = () => {
-    if (currentStep === 3 && profilePhotos.length > 0) {
-      setShowVerification(true);
+    if (currentStep === 2) {
+      submitProfile();
       return;
     }
-    setCurrentStep(prev => Math.min(prev + 1, 3));
+    setCurrentStep(prev => Math.min(prev + 1, 2));
   };
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  if (showVerification) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <FaceVerification 
-          onVerificationComplete={handleVerificationComplete}
-          profilePhotos={profilePhotos}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -287,7 +149,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
             <CardTitle className="text-center">
               {currentStep === 1 && "Basic Information"}
               {currentStep === 2 && "About You"}
-              {currentStep === 3 && "Photos"}
             </CardTitle>
           </CardHeader>
           
@@ -458,13 +319,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
               </div>
             )}
 
-            {currentStep === 3 && (
-              <PhotoUpload 
-                profilePhotos={profilePhotos}
-                onPhotosUpdate={setProfilePhotos}
-                maxPhotos={6}
-              />
-            )}
 
             {/* Navigation */}
             <div className="flex justify-between pt-6">
@@ -476,22 +330,21 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
                 Previous
               </Button>
               
-              {currentStep < 3 ? (
+              {currentStep < 2 ? (
                 <Button
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.occupation)) ||
-                    (currentStep === 2 && (!formData.bio || formData.interests.length === 0))
+                    (currentStep === 1 && (!formData.displayName || !formData.age || !formData.occupation))
                   }
                 >
-                  Next
+                  Continue
                 </Button>
               ) : (
                 <Button
                   onClick={nextStep}
-                  disabled={profilePhotos.length === 0 || isSubmitting}
+                  disabled={!formData.bio || isSubmitting}
                 >
-                  {isSubmitting ? 'Creating Profile...' : 'Complete Profile'}
+                  {isSubmitting ? "Creating Profile..." : "Complete Profile"}
                 </Button>
               )}
             </div>
