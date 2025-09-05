@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { FaceVerification } from '@/components/FaceVerification';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showProfileCreation, setShowProfileCreation] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -93,7 +94,8 @@ const Auth = () => {
 
   const handleProfileCreationComplete = () => {
     setShowProfileCreation(false);
-    // User will be redirected to the app by the useAuth hook
+    // Navigate to discovery page to start swiping
+    navigate('/app');
   };
 
   // Show profile creation flow
