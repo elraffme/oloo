@@ -342,7 +342,7 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({ onComplete }) => {
               ) : (
                 <Button
                   onClick={nextStep}
-                  disabled={!formData.bio || isSubmitting}
+                  disabled={!formData.bio || !formData.relationshipGoals || formData.interests.length === 0 || formData.languages.length === 0 || isSubmitting}
                 >
                   {isSubmitting ? "Creating Profile..." : "Complete Profile"}
                 </Button>
