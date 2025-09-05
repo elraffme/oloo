@@ -277,9 +277,19 @@ const Profile = () => {
                   ) : (
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <h1 className="text-2xl font-bold font-afro-heading">
-                          {profile?.display_name || 'Complete Your Profile'}
-                        </h1>
+                        {profile?.display_name ? (
+                          <h1 className="text-2xl font-bold font-afro-heading">
+                            {profile.display_name}
+                          </h1>
+                        ) : (
+                          <Button
+                            variant="link"
+                            className="text-2xl font-bold font-afro-heading p-0 h-auto text-primary hover:text-primary/80"
+                            onClick={() => window.location.href = '/app'}
+                          >
+                            Complete Your Profile
+                          </Button>
+                        )}
                         <VerifiedBadge verified={profile?.verified} size="sm" />
                       </div>
                       {profile?.age && (
