@@ -203,6 +203,10 @@ const Discover = () => {
     navigate('/app/messages', { state: { newConversation: profileId } });
   };
 
+  const handleStartChat = (userId: string) => {
+    navigate('/app/messages', { state: { selectedUser: userId } });
+  };
+
   const handleSendMessage = (profileId: string, message: string) => {
     console.log(`Sending message to ${profileId}: ${message}`);
     navigate('/app/messages', { 
@@ -293,6 +297,7 @@ const Discover = () => {
         isOpen={profileViewerModal.isOpen}
         onClose={() => setProfileViewerModal({ isOpen: false, profileId: null })}
         onSwipe={handleSwipe}
+        onStartChat={handleStartChat}
       />
     </div>
   );

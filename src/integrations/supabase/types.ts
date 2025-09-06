@@ -714,6 +714,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      check_user_can_message: {
+        Args: { receiver_uuid: string; sender_uuid: string }
+        Returns: boolean
+      }
       check_verification_rate_limit: {
         Args: { user_uuid: string }
         Returns: boolean
