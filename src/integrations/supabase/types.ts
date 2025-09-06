@@ -694,6 +694,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_friend_request: {
+        Args: { requester_user_id: string }
+        Returns: Json
+      }
       admin_get_verification_data: {
         Args: { admin_reason: string; verification_id: string }
         Returns: Json
@@ -750,6 +754,16 @@ export type Database = {
           relationship_goals: string | null
         }[]
       }
+      get_friend_requests: {
+        Args: { target_user_id?: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          profile_photos: string[]
+          request_date: string
+          requester_user_id: string
+        }[]
+      }
       get_public_profile_data: {
         Args: { profile_user_id: string }
         Returns: Json
@@ -787,6 +801,16 @@ export type Database = {
       get_secure_verification_status: {
         Args: { target_user_id?: string }
         Returns: Json
+      }
+      get_user_friends: {
+        Args: { target_user_id?: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          friend_since: string
+          friend_user_id: string
+          profile_photos: string[]
+        }[]
       }
       get_user_matches: {
         Args: { target_user_id?: string }
@@ -873,6 +897,10 @@ export type Database = {
           payment_data?: Json
           payment_intent_id?: string
         }
+        Returns: Json
+      }
+      send_friend_request: {
+        Args: { target_user_id: string }
         Returns: Json
       }
       update_profile_verification_status: {

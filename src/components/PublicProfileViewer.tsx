@@ -13,9 +13,14 @@ import {
   Target,
   Languages,
   Ruler,
-  Calendar
+  Calendar,
+  UserPlus,
+  MessageCircle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sendFriendRequest, checkFriendshipStatus } from "@/utils/friendsUtils";
+import { useToast } from "@/components/ui/use-toast";
+import { Clock } from "lucide-react";
 
 interface PublicProfile {
   id: string;
@@ -41,21 +46,27 @@ interface PublicProfileViewerProps {
   isOpen: boolean;
   onClose: () => void;
   onSwipe?: (direction: 'left' | 'right') => void;
+  onStartChat?: (userId: string) => void;
 }
 
 export const PublicProfileViewer = ({ 
   profileId, 
   isOpen, 
   onClose,
-  onSwipe 
+  onSwipe,
+  onStartChat 
 }: PublicProfileViewerProps) => {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'friend' | 'request_sent' | 'request_received'>('none');
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen && profileId) {
       fetchProfile();
+      checkFriendship();
     }
   }, [isOpen, profileId]);
 
@@ -76,6 +87,47 @@ export const PublicProfileViewer = ({
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkFriendship = async () => {
+    const status = await checkFriendshipStatus(profileId);
+    setFriendshipStatus(status);
+  };
+
+  const handleSendFriendRequest = async () => {
+    setSendingRequest(true);
+    try {
+      const result = await sendFriendRequest(profileId);
+      if (result.success) {
+        if (result.type === 'accepted') {
+          setFriendshipStatus('friend');
+          toast({
+            title: "You're now friends!",
+            description: "You can now start chatting with each other.",
+          });
+        } else {
+          setFriendshipStatus('request_sent');
+          toast({
+            title: "Friend request sent!",
+            description: "You'll be notified when they accept your request.",
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to send friend request",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingRequest(false);
     }
   };
 
@@ -245,33 +297,70 @@ export const PublicProfileViewer = ({
               )}
             </div>
 
-            {/* Action Buttons */}
-            {onSwipe && (
-              <div className="flex justify-center gap-4 pt-4">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-16 h-16 rounded-full border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                  onClick={() => {
-                    onSwipe('left');
-                    onClose();
-                  }}
-                >
-                  <X className="w-8 h-8" />
-                </Button>
+            {/* Friends and Action Buttons */}
+            <div className="space-y-4 pt-4">
+              {/* Friend Actions */}
+              <div className="flex justify-center gap-3">
+                {friendshipStatus === 'none' && (
+                  <Button
+                    onClick={handleSendFriendRequest}
+                    disabled={sendingRequest}
+                    className="flex-1 max-w-xs"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    {sendingRequest ? 'Sending...' : 'Add Friend'}
+                  </Button>
+                )}
                 
-                <Button
-                  size="lg"
-                  className="w-16 h-16 rounded-full bg-primary hover:bg-primary/90"
-                  onClick={() => {
-                    onSwipe('right');
-                    onClose();
-                  }}
-                >
-                  <Heart className="w-8 h-8" />
-                </Button>
+                {friendshipStatus === 'request_sent' && (
+                  <Button disabled className="flex-1 max-w-xs" variant="outline">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Request Sent
+                  </Button>
+                )}
+                
+                {friendshipStatus === 'friend' && onStartChat && (
+                  <Button
+                    onClick={() => {
+                      onStartChat(profileId);
+                      onClose();
+                    }}
+                    className="flex-1 max-w-xs"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                )}
               </div>
-            )}
+
+              {/* Swipe Actions */}
+              {onSwipe && (
+                <div className="flex justify-center gap-4">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-16 h-16 rounded-full border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                    onClick={() => {
+                      onSwipe('left');
+                      onClose();
+                    }}
+                  >
+                    <X className="w-8 h-8" />
+                  </Button>
+                  
+                  <Button
+                    size="lg"
+                    className="w-16 h-16 rounded-full bg-primary hover:bg-primary/90"
+                    onClick={() => {
+                      onSwipe('right');
+                      onClose();
+                    }}
+                  >
+                    <Heart className="w-8 h-8" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </DialogContent>

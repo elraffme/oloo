@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MessagingInterface from '@/components/MessagingInterface';
 import MatchesSection from '@/components/MatchesSection';
-import { MessageCircle, Heart } from 'lucide-react';
+import FriendsSection from '@/components/FriendsSection';
+import { MessageCircle, Heart, Users } from 'lucide-react';
 
 const Messages = () => {
-  const [activeTab, setActiveTab] = useState('matches');
+  const [activeTab, setActiveTab] = useState('friends');
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
 
   const handleStartConversation = (matchId: string) => {
@@ -13,11 +14,20 @@ const Messages = () => {
     setActiveTab('messages');
   };
 
+  const handleStartChat = (friendId: string) => {
+    setSelectedMatch(friendId);
+    setActiveTab('messages');
+  };
+
   return (
     <div className="h-screen bg-background">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         <div className="border-b border-border px-4 pt-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
+            <TabsTrigger value="friends" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Friends
+            </TabsTrigger>
             <TabsTrigger value="matches" className="flex items-center gap-2">
               <Heart className="w-4 h-4" />
               Matches
@@ -29,13 +39,17 @@ const Messages = () => {
           </TabsList>
         </div>
 
+        <TabsContent value="friends" className="flex-1 p-4 m-0">
+          <FriendsSection onStartChat={handleStartChat} />
+        </TabsContent>
+
         <TabsContent value="matches" className="flex-1 p-4 m-0">
           <MatchesSection onStartConversation={handleStartConversation} />
         </TabsContent>
 
         <TabsContent value="messages" className="flex-1 m-0">
           <MessagingInterface 
-            onBack={() => setActiveTab('matches')}
+            onBack={() => setActiveTab('friends')}
           />
         </TabsContent>
       </Tabs>
