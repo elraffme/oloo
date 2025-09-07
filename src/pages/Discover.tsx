@@ -26,6 +26,10 @@ const Discover = () => {
     profileId: null
   });
 
+  // Helpers for interaction validation
+  const isValidUuid = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+  const getTargetUserId = (profile: any) => (profile?.user_id && isValidUuid(profile.user_id)) ? (profile.user_id as string) : null;
+
   useEffect(() => {
     loadProfiles();
   }, []);
@@ -82,8 +86,28 @@ const Discover = () => {
     
     try {
       // Record super like (treat as special like)
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to use Super Like.",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
+
+      const targetUserId = getTargetUserId(currentProfile);
+      if (!targetUserId) {
+        toast({
+          title: "Demo profile",
+          description: "Interactions are disabled for demo profiles.",
+        });
+        return;
+      }
+
       const { error } = await supabase.from('user_connections').insert({
-        connected_user_id: currentProfile.id,
+        user_id: user.id,
+        connected_user_id: targetUserId,
         connection_type: 'super_like'
       });
 
@@ -141,8 +165,19 @@ const Discover = () => {
       // Record like and check for mutual match
       try {
         // First, record the like
+        if (!user) {
+          toast({ title: "Authentication Required", description: "Please sign in to like profiles.", variant: "destructive" });
+          navigate('/auth');
+          return;
+        }
+        const targetUserId = getTargetUserId(currentProfile);
+        if (!targetUserId) {
+          toast({ title: "Demo profile", description: "Likes are disabled for demo profiles." });
+          return;
+        }
         const { error } = await supabase.from('user_connections').insert({
-          connected_user_id: currentProfile.id,
+          user_id: user.id,
+          connected_user_id: targetUserId,
           connection_type: 'like'
         });
 
@@ -151,13 +186,13 @@ const Discover = () => {
         }
 
         // Check if this creates a mutual match
-        const { data: user } = await supabase.auth.getUser();
-        if (user?.user?.id) {
-          const { data: isMatch, error: matchError } = await supabase
-            .rpc('check_mutual_match', {
-              user1_id: user.user.id,
-              user2_id: currentProfile.id
-            });
+          const { data: authUser } = await supabase.auth.getUser();
+          if (authUser?.user?.id) {
+            const { data: isMatch, error: matchError } = await supabase
+              .rpc('check_mutual_match', {
+                user1_id: authUser.user.id,
+                user2_id: targetUserId
+              });
 
           if (matchError) {
             console.error('Error checking match:', matchError);
@@ -185,8 +220,16 @@ const Discover = () => {
     } else {
       // Record dislike/pass
       try {
+        if (!user) {
+          toast({ title: "Authentication Required", description: "Please sign in to continue.", variant: "destructive" });
+          navigate('/auth');
+          return;
+        }
+        const targetUserId = getTargetUserId(currentProfile);
+        if (!targetUserId) return;
         await supabase.from('user_connections').insert({
-          connected_user_id: currentProfile.id,
+          user_id: user.id,
+          connected_user_id: targetUserId,
           connection_type: 'pass'
         });
       } catch (error) {
@@ -205,9 +248,12 @@ const Discover = () => {
   };
 
   const handleMessage = (profileId: string) => {
-    // Create or navigate to conversation with this profile
     console.log(`Starting conversation with profile ${profileId}`);
-    navigate('/app/messages', { state: { newConversation: profileId } });
+    if (!isValidUuid(profileId)) {
+      toast({ title: "Demo profile", description: "Messaging is only available with real users." });
+      return;
+    }
+    navigate('/app/messages', { state: { selectedUser: profileId, newConversation: profileId } });
   };
 
   const handleStartChat = (userId: string) => {
@@ -216,17 +262,17 @@ const Discover = () => {
 
   const handleSendMessage = (profileId: string, message: string) => {
     console.log(`Sending message to ${profileId}: ${message}`);
+    if (!isValidUuid(profileId)) {
+      toast({ title: "Demo profile", description: "Messaging is only available with real users." });
+      return;
+    }
     navigate('/app/messages', { 
       state: { 
         newConversation: profileId,
         initialMessage: message 
       } 
     });
-    
-    toast({
-      title: "Message sent! 💬",
-      description: "Your message has been sent successfully.",
-    });
+    toast({ title: "Message sent! 💬", description: "Your message has been sent successfully." });
   };
 
   const handleAddFriend = async () => {
@@ -246,7 +292,12 @@ const Discover = () => {
     }
     
     try {
-      const result = await sendFriendRequest(currentProfile.id);
+      const targetUserId = getTargetUserId(currentProfile);
+      if (!targetUserId) {
+        toast({ title: "Demo profile", description: "You can only add real users as friends." });
+        return;
+      }
+      const result = await sendFriendRequest(targetUserId);
       
       console.log('Friend request result:', result);
       
@@ -318,6 +369,7 @@ const Discover = () => {
   }
 
   const currentProfile = profiles[currentIndex];
+  const targetUserId = getTargetUserId(currentProfile);
 
   return (
     <div className="max-w-sm mx-auto">
@@ -328,7 +380,7 @@ const Discover = () => {
           onSuperLike={handleSuperLike}
           onUndo={currentIndex > 0 ? handleUndo : undefined}
           onBoost={handleBoost}
-          onMessage={() => handleMessage(currentProfile.id)}
+          onMessage={() => handleMessage(targetUserId || '')}
           onAddFriend={handleAddFriend}
           swipeDirection={swipeDirection}
         />
