@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send, UserPlus } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
 
@@ -31,6 +31,7 @@ interface ProfileCardProps {
   onBoost?: () => void;
   onMessage?: () => void;
   onViewProfile?: (profileId: string) => void;
+  onAddFriend?: () => void;
   showActions?: boolean;
   swipeDirection?: 'left' | 'right' | null;
 }
@@ -43,6 +44,7 @@ export const ProfileCard = ({
   onBoost,
   onMessage, 
   onViewProfile,
+  onAddFriend,
   showActions = true, 
   swipeDirection 
 }: ProfileCardProps) => {
@@ -245,6 +247,19 @@ export const ProfileCard = ({
             onClick={onBoost}
           >
             <Send className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
+      {/* Add Friends Button */}
+      {onAddFriend && (
+        <div className="flex justify-center mt-4">
+          <Button
+            onClick={onAddFriend}
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-2 rounded-full flex items-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Friend
           </Button>
         </div>
       )}

@@ -6,6 +6,7 @@ import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import { sendFriendRequest } from '@/utils/friendsUtils';
 
 const Discover = () => {
   const navigate = useNavigate();
@@ -222,6 +223,40 @@ const Discover = () => {
     });
   };
 
+  const handleAddFriend = async () => {
+    const currentProfile = profiles[currentIndex];
+    
+    try {
+      const result = await sendFriendRequest(currentProfile.id);
+      
+      if (result.success) {
+        if (result.type === 'accepted') {
+          toast({
+            title: "Now Friends! 🎉",
+            description: `You and ${currentProfile.display_name} are now friends!`,
+          });
+        } else {
+          toast({
+            title: "Friend Request Sent! 👋",
+            description: `Friend request sent to ${currentProfile.display_name}`,
+          });
+        }
+      } else {
+        toast({
+          title: "Info",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send friend request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -273,6 +308,7 @@ const Discover = () => {
           onUndo={currentIndex > 0 ? handleUndo : undefined}
           onBoost={handleBoost}
           onMessage={() => handleMessage(currentProfile.id)}
+          onAddFriend={handleAddFriend}
           swipeDirection={swipeDirection}
         />
 

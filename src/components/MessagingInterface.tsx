@@ -58,24 +58,47 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
     
     setIsLoading(true);
     try {
-      // Get user's matches
-      const { data: matches, error } = await supabase.rpc('get_user_matches');
-      
-      if (error) throw error;
+      // Get user's matches and friends
+      const [matchesResult, friendsResult] = await Promise.allSettled([
+        supabase.rpc('get_user_matches'),
+        supabase.rpc('get_user_friends')
+      ]);
 
-      if (!matches || matches.length === 0) {
+      let allContacts: any[] = [];
+
+      // Add matches
+      if (matchesResult.status === 'fulfilled' && matchesResult.value.data) {
+        allContacts = [...allContacts, ...matchesResult.value.data.map((match: any) => ({
+          ...match,
+          user_id: match.match_user_id,
+          connection_type: 'match'
+        }))];
+      }
+
+      // Add friends
+      if (friendsResult.status === 'fulfilled' && friendsResult.value.data) {
+        allContacts = [...allContacts, ...friendsResult.value.data.map((friend: any) => ({
+          ...friend,
+          user_id: friend.friend_user_id,
+          display_name: friend.display_name,
+          avatar_url: friend.profile_photos?.[0] || friend.avatar_url,
+          connection_type: 'friend'
+        }))];
+      }
+
+      if (allContacts.length === 0) {
         setConversations([]);
         setIsLoading(false);
         return;
       }
 
-      // Get last messages for each match
+      // Get last messages for each contact
       const conversationsWithMessages = await Promise.all(
-        matches.map(async (match: any) => {
+        allContacts.map(async (contact: any) => {
           const { data: lastMessage } = await supabase
             .from('messages')
             .select('content, created_at, sender_id')
-            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${match.match_user_id}),and(sender_id.eq.${match.match_user_id},receiver_id.eq.${user.id})`)
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contact.user_id}),and(sender_id.eq.${contact.user_id},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -84,27 +107,33 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
           const { count: unreadCount } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
-            .eq('sender_id', match.match_user_id)
+            .eq('sender_id', contact.user_id)
             .eq('receiver_id', user.id)
             .is('read_at', null);
 
           return {
-            user_id: match.match_user_id,
-            display_name: match.display_name,
-            avatar_url: match.profile_photos?.[0] || match.avatar_url,
-            last_message: lastMessage?.content || 'You matched! Send a message.',
-            last_message_time: lastMessage?.created_at || match.match_created_at,
+            user_id: contact.user_id,
+            display_name: contact.display_name,
+            avatar_url: contact.profile_photos?.[0] || contact.avatar_url,
+            last_message: lastMessage?.content || (contact.connection_type === 'match' ? 'You matched! Send a message.' : 'You\'re now friends! Start chatting.'),
+            last_message_time: lastMessage?.created_at || (contact.match_created_at || contact.friend_since),
             unread_count: unreadCount || 0,
-            online: Math.random() > 0.5 // Mock online status
+            online: Math.random() > 0.5, // Mock online status
+            connection_type: contact.connection_type
           };
         })
       );
 
+      // Sort by last message time
+      conversationsWithMessages.sort((a, b) => 
+        new Date(b.last_message_time || 0).getTime() - new Date(a.last_message_time || 0).getTime()
+      );
+
       setConversations(conversationsWithMessages);
     } catch (error) {
-      console.error('Error loading matched conversations:', error);
+      console.error('Error loading conversations:', error);
       toast({
-        title: "Error loading matches",
+        title: "Error loading conversations",
         description: "Please try again.",
         variant: "destructive",
       });
@@ -320,9 +349,9 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
                 <div className="heart-logo mb-4 opacity-50">
                   <span className="logo-text">Ò</span>
                 </div>
-                <h3 className="font-semibold mb-2 text-white">No matches yet</h3>
+                <h3 className="font-semibold mb-2 text-white">No conversations yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Start swiping to find your perfect match!
+                  Start swiping to find matches or add friends to start chatting!
                 </p>
               </div>
             ) : (
