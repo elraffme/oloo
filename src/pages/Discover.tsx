@@ -5,12 +5,14 @@ import { MatchModal } from '@/components/MatchModal';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Discover = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
@@ -76,6 +78,8 @@ const Discover = () => {
   const handleSuperLike = async () => {
     const currentProfile = profiles[currentIndex];
     
+    console.log('Super liking profile:', currentProfile.id);
+    
     try {
       // Record super like (treat as special like)
       const { error } = await supabase.from('user_connections').insert({
@@ -130,6 +134,8 @@ const Discover = () => {
 
   const handleSwipe = async (direction: 'left' | 'right') => {
     const currentProfile = profiles[currentIndex];
+    
+    console.log('Swiping:', direction, 'on profile:', currentProfile.id);
     
     if (direction === 'right') {
       // Record like and check for mutual match
@@ -226,8 +232,23 @@ const Discover = () => {
   const handleAddFriend = async () => {
     const currentProfile = profiles[currentIndex];
     
+    console.log('Adding friend:', currentProfile.id, currentProfile.display_name);
+    console.log('Current user:', user);
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add friends.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    
     try {
       const result = await sendFriendRequest(currentProfile.id);
+      
+      console.log('Friend request result:', result);
       
       if (result.success) {
         if (result.type === 'accepted') {
@@ -342,7 +363,7 @@ const Discover = () => {
 // Mock data for demonstration
 const mockProfiles = [
     {
-      id: '1',
+      id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
       display_name: 'Amara',
       age: 28,
       location: 'Lagos, Nigeria',
@@ -363,7 +384,7 @@ const mockProfiles = [
       ]
     },
     {
-      id: '2', 
+      id: 'b2c3d4e5-f6g7-8901-2345-678901bcdefg', 
       display_name: 'Kwame',
       age: 32,
       location: 'Accra, Ghana',
@@ -383,7 +404,7 @@ const mockProfiles = [
       ]
     },
     {
-      id: '3',
+      id: 'c3d4e5f6-g7h8-9012-3456-789012cdefgh',
       display_name: 'Zara',
       age: 25,
       location: 'Cape Town, South Africa',
@@ -402,7 +423,7 @@ const mockProfiles = [
       ]
     },
     {
-      id: '4',
+      id: 'd4e5f6g7-h8i9-0123-4567-890123defghi',
       display_name: 'Kofi',
       age: 29,
       location: 'Nairobi, Kenya',
@@ -421,7 +442,7 @@ const mockProfiles = [
       ]
     },
     {
-      id: '5',
+      id: 'e5f6g7h8-i9j0-1234-5678-901234efghij',
       display_name: 'Asha',
       age: 26,
       location: 'Addis Ababa, Ethiopia',
