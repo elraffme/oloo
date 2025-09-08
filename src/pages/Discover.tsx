@@ -29,6 +29,8 @@ const Discover = () => {
   const [searchMode, setSearchMode] = useState(false);
   const [searchedProfile, setSearchedProfile] = useState<any>(null);
   const [friendRequestStates, setFriendRequestStates] = useState<Record<string, 'idle' | 'loading' | 'sent' | 'friends' | 'error'>>({});
+  const [loadingNext, setLoadingNext] = useState(false);
+  const [pageOffset, setPageOffset] = useState(0);
 
   // Helpers for interaction validation
   const isValidUuid = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
@@ -38,8 +40,12 @@ const Discover = () => {
     loadProfiles();
   }, []);
 
-  const loadProfiles = async () => {
+  const loadProfiles = async (append = false) => {
     try {
+      if (append) setLoadingNext(true);
+
+      const currentOffset = append ? pageOffset : 0;
+      
       // Load both verified user profiles and demo profiles
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
         supabase
@@ -47,39 +53,68 @@ const Discover = () => {
           .select('*')
           .eq('verified', true)
           .eq('is_demo_profile', false)
+          .range(currentOffset, currentOffset + 19)
           .limit(20),
         supabase.rpc('get_demo_profiles_paginated', {
           page_size: 10,
-          page_offset: 0
+          page_offset: Math.floor(currentOffset / 2)
         })
       ]);
 
-      let allProfiles: any[] = [];
+      let newProfiles: any[] = [];
 
       // Add real verified profiles
       if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
-        allProfiles = [...allProfiles, ...realProfilesRes.value.data];
+        newProfiles = [...newProfiles, ...realProfilesRes.value.data];
       }
 
       // Add demo profiles
       if (demoProfilesRes.status === 'fulfilled' && demoProfilesRes.value && Array.isArray(demoProfilesRes.value)) {
-        allProfiles = [...allProfiles, ...demoProfilesRes.value];
+        newProfiles = [...newProfiles, ...demoProfilesRes.value];
       }
 
-      // Shuffle the combined profiles for variety
-      const shuffledProfiles = allProfiles.sort(() => Math.random() - 0.5);
+      // Shuffle the new profiles for variety
+      const shuffledNewProfiles = newProfiles.sort(() => Math.random() - 0.5);
 
-      if (shuffledProfiles.length > 0) {
-        setProfiles(shuffledProfiles);
+      if (append) {
+        // Append to existing profiles
+        if (shuffledNewProfiles.length > 0) {
+          setProfiles(prev => [...prev, ...shuffledNewProfiles]);
+          setPageOffset(prev => prev + 20);
+          toast({
+            title: "More profiles loaded! 🎉",
+            description: `Found ${shuffledNewProfiles.length} more people for you to meet.`,
+          });
+        } else {
+          toast({
+            title: "No more profiles",
+            description: "You've seen all available profiles for now. Check back later!",
+          });
+        }
       } else {
-        // Fallback to mock data if no profiles
-        setProfiles(mockProfiles);
+        // Initial load
+        if (shuffledNewProfiles.length > 0) {
+          setProfiles(shuffledNewProfiles);
+          setPageOffset(20);
+        } else {
+          // Fallback to mock data if no profiles
+          setProfiles(mockProfiles);
+        }
       }
     } catch (error) {
       console.error('Error loading profiles:', error);
-      setProfiles(mockProfiles);
+      if (!append) {
+        setProfiles(mockProfiles);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load more profiles. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
+      setLoadingNext(false);
     }
   };
 
@@ -508,12 +543,46 @@ const Discover = () => {
           swipeDirection={searchMode ? null : swipeDirection}
         />
 
-        {/* Profile Counter - Only show in browse mode */}
+        {/* Profile Counter and Next Button - Only show in browse mode */}
         {!searchMode && (
-          <div className="text-center mt-4">
+          <div className="text-center mt-4 space-y-3">
             <p className="text-sm text-muted-foreground">
               {currentIndex + 1} of {profiles.length}
             </p>
+            
+            {/* Next Profile Button */}
+            <div className="flex justify-center gap-3">
+              {currentIndex < profiles.length - 1 ? (
+                <Button
+                  onClick={() => {
+                    setSwipeDirection('right');
+                    setTimeout(() => {
+                      setCurrentIndex(prev => prev + 1);
+                      setSwipeDirection(null);
+                    }, 600);
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300"
+                  disabled={loadingNext}
+                >
+                  Next Profile →
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => loadProfiles(true)}
+                  disabled={loadingNext}
+                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300"
+                >
+                  {loadingNext ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                      Loading More...
+                    </>
+                  ) : (
+                    'Load More Profiles'
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </div>
