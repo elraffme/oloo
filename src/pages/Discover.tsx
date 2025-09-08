@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ProfileCard } from '@/components/ProfileCard';
 import { MatchModal } from '@/components/MatchModal';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
+import { SearchBar } from '@/components/SearchBar';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,8 @@ const Discover = () => {
     isOpen: false,
     profileId: null
   });
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchedProfile, setSearchedProfile] = useState<any>(null);
 
   // Helpers for interaction validation
   const isValidUuid = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
@@ -329,6 +332,70 @@ const Discover = () => {
     }
   };
 
+  const handleSearchSelect = (profile: any) => {
+    setSearchedProfile(profile);
+    setSearchMode(true);
+  };
+
+  const exitSearchMode = () => {
+    setSearchMode(false);
+    setSearchedProfile(null);
+  };
+
+  const getCurrentProfile = () => {
+    return searchMode ? searchedProfile : profiles[currentIndex];
+  };
+
+  const handleSearchAddFriend = async () => {
+    if (!searchedProfile) return;
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add friends.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    
+    try {
+      const targetUserId = getTargetUserId(searchedProfile);
+      if (!targetUserId) {
+        toast({ title: "Demo profile", description: "You can only add real users as friends." });
+        return;
+      }
+      
+      const result = await sendFriendRequest(targetUserId);
+      
+      if (result.success) {
+        if (result.type === 'accepted') {
+          toast({
+            title: "Now Friends! 🎉",
+            description: `You and ${searchedProfile.display_name} are now friends!`,
+          });
+        } else {
+          toast({
+            title: "Friend Request Sent! 👋",
+            description: `Friend request sent to ${searchedProfile.display_name}`,
+          });
+        }
+      } else {
+        toast({
+          title: "Info",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send friend request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -373,24 +440,54 @@ const Discover = () => {
 
   return (
     <div className="max-w-sm mx-auto">
+      {/* Search Bar */}
+      <div className="mb-6 px-4">
+        <SearchBar 
+          onSelectProfile={handleSearchSelect}
+          className="mx-auto"
+        />
+      </div>
+
+      {/* Search Mode Header */}
+      {searchMode && searchedProfile && (
+        <div className="mb-4 px-4">
+          <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-primary font-medium">Search Result:</span>
+              <span className="font-semibold">{searchedProfile.display_name}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={exitSearchMode}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="relative">
         <ProfileCard
-          profile={currentProfile}
-          onSwipe={handleSwipe}
-          onSuperLike={handleSuperLike}
-          onUndo={currentIndex > 0 ? handleUndo : undefined}
-          onBoost={handleBoost}
-          onMessage={() => handleMessage(targetUserId || '')}
-          onAddFriend={handleAddFriend}
-          swipeDirection={swipeDirection}
+          profile={getCurrentProfile()}
+          onSwipe={searchMode ? undefined : handleSwipe}
+          onSuperLike={searchMode ? undefined : handleSuperLike}
+          onUndo={searchMode ? undefined : (currentIndex > 0 ? handleUndo : undefined)}
+          onBoost={searchMode ? undefined : handleBoost}
+          onMessage={() => handleMessage(getTargetUserId(getCurrentProfile()) || '')}
+          onAddFriend={searchMode ? handleSearchAddFriend : handleAddFriend}
+          swipeDirection={searchMode ? null : swipeDirection}
         />
 
-        {/* Profile Counter */}
-        <div className="text-center mt-4">
-          <p className="text-sm text-muted-foreground">
-            {currentIndex + 1} of {profiles.length}
-          </p>
-        </div>
+        {/* Profile Counter - Only show in browse mode */}
+        {!searchMode && (
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground">
+              {currentIndex + 1} of {profiles.length}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Match Modal */}
