@@ -127,7 +127,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
           placeholder="Search for people..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-10 bg-background border-border focus:border-primary/50 focus:ring-primary/20"
+          className="pl-10 pr-10 bg-background border-border focus:border-primary/50 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
         />
         {query && (
           <Button

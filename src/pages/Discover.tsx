@@ -28,6 +28,7 @@ const Discover = () => {
   });
   const [searchMode, setSearchMode] = useState(false);
   const [searchedProfile, setSearchedProfile] = useState<any>(null);
+  const [friendRequestStates, setFriendRequestStates] = useState<Record<string, 'idle' | 'loading' | 'sent' | 'friends' | 'error'>>({});
 
   // Helpers for interaction validation
   const isValidUuid = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
@@ -280,9 +281,7 @@ const Discover = () => {
 
   const handleAddFriend = async () => {
     const currentProfile = profiles[currentIndex];
-    
-    console.log('Adding friend:', currentProfile.id, currentProfile.display_name);
-    console.log('Current user:', user);
+    const targetUserId = getTargetUserId(currentProfile);
     
     if (!user) {
       toast({
@@ -294,41 +293,54 @@ const Discover = () => {
       return;
     }
     
+    if (!targetUserId) {
+      toast({ title: "Demo profile", description: "You can only add real users as friends." });
+      return;
+    }
+
+    // Set loading state
+    setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'loading' }));
+    
     try {
-      const targetUserId = getTargetUserId(currentProfile);
-      if (!targetUserId) {
-        toast({ title: "Demo profile", description: "You can only add real users as friends." });
-        return;
-      }
       const result = await sendFriendRequest(targetUserId);
-      
-      console.log('Friend request result:', result);
       
       if (result.success) {
         if (result.type === 'accepted') {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'friends' }));
           toast({
             title: "Now Friends! 🎉",
             description: `You and ${currentProfile.display_name} are now friends!`,
           });
         } else {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'sent' }));
           toast({
             title: "Friend Request Sent! 👋",
             description: `Friend request sent to ${currentProfile.display_name}`,
           });
         }
       } else {
+        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
         toast({
           title: "Info",
           description: result.message,
         });
+        // Reset to idle after 3 seconds for retry
+        setTimeout(() => {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
+        }, 3000);
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
+      setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
       toast({
         title: "Error",
         description: "Failed to send friend request. Please try again.",
         variant: "destructive",
       });
+      // Reset to idle after 3 seconds for retry
+      setTimeout(() => {
+        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
+      }, 3000);
     }
   };
 
@@ -348,6 +360,7 @@ const Discover = () => {
 
   const handleSearchAddFriend = async () => {
     if (!searchedProfile) return;
+    const targetUserId = getTargetUserId(searchedProfile);
     
     if (!user) {
       toast({
@@ -359,40 +372,54 @@ const Discover = () => {
       return;
     }
     
+    if (!targetUserId) {
+      toast({ title: "Demo profile", description: "You can only add real users as friends." });
+      return;
+    }
+
+    // Set loading state
+    setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'loading' }));
+    
     try {
-      const targetUserId = getTargetUserId(searchedProfile);
-      if (!targetUserId) {
-        toast({ title: "Demo profile", description: "You can only add real users as friends." });
-        return;
-      }
-      
       const result = await sendFriendRequest(targetUserId);
       
       if (result.success) {
         if (result.type === 'accepted') {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'friends' }));
           toast({
             title: "Now Friends! 🎉",
             description: `You and ${searchedProfile.display_name} are now friends!`,
           });
         } else {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'sent' }));
           toast({
             title: "Friend Request Sent! 👋",
             description: `Friend request sent to ${searchedProfile.display_name}`,
           });
         }
       } else {
+        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
         toast({
           title: "Info",
           description: result.message,
         });
+        // Reset to idle after 3 seconds for retry
+        setTimeout(() => {
+          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
+        }, 3000);
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
+      setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
       toast({
         title: "Error",
         description: "Failed to send friend request. Please try again.",
         variant: "destructive",
       });
+      // Reset to idle after 3 seconds for retry
+      setTimeout(() => {
+        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
+      }, 3000);
     }
   };
 
@@ -477,6 +504,7 @@ const Discover = () => {
           onBoost={searchMode ? undefined : handleBoost}
           onMessage={() => handleMessage(getTargetUserId(getCurrentProfile()) || '')}
           onAddFriend={searchMode ? handleSearchAddFriend : handleAddFriend}
+          friendRequestState={friendRequestStates[getTargetUserId(getCurrentProfile()) || ''] || 'idle'}
           swipeDirection={searchMode ? null : swipeDirection}
         />
 

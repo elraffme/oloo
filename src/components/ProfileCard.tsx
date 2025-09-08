@@ -32,6 +32,7 @@ interface ProfileCardProps {
   onMessage?: () => void;
   onViewProfile?: (profileId: string) => void;
   onAddFriend?: () => void;
+  friendRequestState?: 'idle' | 'loading' | 'sent' | 'friends' | 'error';
   showActions?: boolean;
   swipeDirection?: 'left' | 'right' | null;
 }
@@ -45,6 +46,7 @@ export const ProfileCard = ({
   onMessage, 
   onViewProfile,
   onAddFriend,
+  friendRequestState = 'idle',
   showActions = true, 
   swipeDirection 
 }: ProfileCardProps) => {
@@ -256,10 +258,47 @@ export const ProfileCard = ({
         <div className="flex justify-center mt-4">
           <Button
             onClick={onAddFriend}
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-2 rounded-full flex items-center gap-2"
+            disabled={friendRequestState === 'loading' || friendRequestState === 'sent' || friendRequestState === 'friends'}
+            className={`px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300 ${
+              friendRequestState === 'friends' 
+                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                : friendRequestState === 'sent'
+                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                : friendRequestState === 'error'
+                ? 'bg-red-500 hover:bg-red-600 text-white'
+                : 'bg-secondary hover:bg-secondary/90 text-secondary-foreground'
+            }`}
           >
-            <UserPlus className="w-4 h-4" />
-            Add Friend
+            {friendRequestState === 'loading' ? (
+              <>
+                <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                Sending...
+              </>
+            ) : friendRequestState === 'sent' ? (
+              <>
+                <div className="w-4 h-4 rounded-full bg-current flex items-center justify-center">
+                  <span className="text-[8px] text-blue-500">✓</span>
+                </div>
+                Request Sent
+              </>
+            ) : friendRequestState === 'friends' ? (
+              <>
+                <div className="w-4 h-4 rounded-full bg-current flex items-center justify-center">
+                  <span className="text-[8px] text-green-500">✓</span>
+                </div>
+                Friends
+              </>
+            ) : friendRequestState === 'error' ? (
+              <>
+                <UserPlus className="w-4 h-4" />
+                Try Again
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" />
+                Add Friend
+              </>
+            )}
           </Button>
         </div>
       )}
