@@ -545,13 +545,13 @@ const Discover = () => {
 
         {/* Profile Counter and Next Button - Only show in browse mode */}
         {!searchMode && (
-          <div className="text-center mt-4 space-y-3">
-            <p className="text-sm text-muted-foreground">
+          <div className="text-center mt-6 space-y-3">
+            <p className="text-xs text-muted-foreground">
               {currentIndex + 1} of {profiles.length}
             </p>
             
             {/* Next Profile Button */}
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center">
               {currentIndex < profiles.length - 1 ? (
                 <Button
                   onClick={() => {
@@ -561,7 +561,9 @@ const Discover = () => {
                       setSwipeDirection(null);
                     }, 600);
                   }}
-                  className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300"
+                  size="sm"
+                  variant="secondary"
+                  className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200 text-sm border border-border"
                   disabled={loadingNext}
                 >
                   Next Profile →
@@ -570,15 +572,17 @@ const Discover = () => {
                 <Button
                   onClick={() => loadProfiles(true)}
                   disabled={loadingNext}
-                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300"
+                  size="sm"
+                  variant="outline"
+                  className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200 text-sm border border-border"
                 >
                   {loadingNext ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
-                      Loading More...
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                      Loading...
                     </>
                   ) : (
-                    'Load More Profiles'
+                    'Load More'
                   )}
                 </Button>
               )}

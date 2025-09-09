@@ -198,104 +198,75 @@ export const ProfileCard = ({
         </CardContent>
       </Card>
 
-      {/* Tinder-Style Action Buttons */}
+      {/* Core Action Buttons */}
       {showActions && (
-        <div className="flex justify-center items-center gap-4 mt-6 px-4">
-          {/* Undo Button */}
+        <div className="flex justify-center items-center gap-3 mt-4 px-4">
+          {/* Pass Button */}
           <Button
-            size="lg"
+            size="sm"
             variant="outline"
-            className="w-12 h-12 rounded-full border-2 border-muted hover:bg-muted hover:scale-110 transition-all duration-200"
-            onClick={onUndo}
-            disabled={!onUndo}
-          >
-            <RotateCcw className="w-5 h-5 text-muted-foreground" />
-          </Button>
-
-          {/* Pass/Dislike Button */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-14 h-14 rounded-full border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
+            className="w-10 h-10 rounded-full border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all duration-200"
             onClick={() => onSwipe('left')}
           >
-            <X className="w-7 h-7" />
-          </Button>
-
-          {/* Super Like Button */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-12 h-12 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
-            onClick={onSuperLike}
-          >
-            <Star className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </Button>
 
           {/* Like Button */}
           <Button
-            size="lg"
-            className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-white hover:scale-110 transition-all duration-200 shadow-lg border-2 border-primary"
+            size="sm"
+            variant="romantic"
+            className="w-10 h-10 rounded-full hover:scale-105 transition-all duration-200"
             onClick={() => onSwipe('right')}
           >
-            <Heart className="w-7 h-7" />
-          </Button>
-
-          {/* Boost Button */}
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-12 h-12 rounded-full border-2 border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white hover:scale-110 transition-all duration-200 bg-white shadow-lg"
-            onClick={onBoost}
-          >
-            <Send className="w-5 h-5" />
+            <Heart className="w-4 h-4" />
           </Button>
         </div>
       )}
 
       {/* Add Friends Button */}
       {onAddFriend && (
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-3">
           <Button
             onClick={onAddFriend}
+            size="sm"
             disabled={friendRequestState === 'loading' || friendRequestState === 'sent' || friendRequestState === 'friends'}
-            className={`px-6 py-2 rounded-full flex items-center gap-2 transition-all duration-300 ${
+            className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200 text-sm ${
               friendRequestState === 'friends' 
-                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white border-0' 
                 : friendRequestState === 'sent'
-                ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                ? 'bg-blue-500 hover:bg-blue-600 text-white border-0'
                 : friendRequestState === 'error'
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-secondary hover:bg-secondary/90 text-secondary-foreground'
+                ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground border-0'
+                : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border'
             }`}
           >
             {friendRequestState === 'loading' ? (
               <>
-                <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin rounded-full" />
+                <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full" />
                 Sending...
               </>
             ) : friendRequestState === 'sent' ? (
               <>
-                <div className="w-4 h-4 rounded-full bg-current flex items-center justify-center">
-                  <span className="text-[8px] text-blue-500">✓</span>
+                <div className="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-[10px] text-white">✓</span>
                 </div>
                 Request Sent
               </>
             ) : friendRequestState === 'friends' ? (
               <>
-                <div className="w-4 h-4 rounded-full bg-current flex items-center justify-center">
-                  <span className="text-[8px] text-green-500">✓</span>
+                <div className="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
+                  <span className="text-[10px] text-white">✓</span>
                 </div>
                 Friends
               </>
             ) : friendRequestState === 'error' ? (
               <>
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-3 h-3" />
                 Try Again
               </>
             ) : (
               <>
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-3 h-3" />
                 Add Friend
               </>
             )}
@@ -386,9 +357,9 @@ export const ProfileCard = ({
             )}
 
             {/* Action Buttons in Modal */}
-            <div className="flex justify-center gap-3 pt-4 border-t">
+            <div className="flex justify-center gap-2 pt-4 border-t">
               <Button
-                size="lg"
+                size="sm"
                 variant="outline"
                 className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 onClick={() => {
@@ -396,13 +367,13 @@ export const ProfileCard = ({
                   setIsProfileOpen(false);
                 }}
               >
-                <X className="w-5 h-5 mr-2" />
+                <X className="w-4 h-4 mr-1" />
                 Pass
               </Button>
               
               {onMessage && (
                 <Button
-                  size="lg"
+                  size="sm"
                   variant="outline"
                   className="flex-1 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                   onClick={() => {
@@ -410,20 +381,21 @@ export const ProfileCard = ({
                     setIsProfileOpen(false);
                   }}
                 >
-                  <MessageCircle className="w-5 h-5 mr-2" />
+                  <MessageCircle className="w-4 h-4 mr-1" />
                   Message
                 </Button>
               )}
               
               <Button
-                size="lg"
-                className="flex-1 bg-primary hover:bg-primary/90"
+                size="sm"
+                variant="romantic"
+                className="flex-1"
                 onClick={() => {
                   onSwipe('right');
                   setIsProfileOpen(false);
                 }}
               >
-                <Heart className="w-5 h-5 mr-2" />
+                <Heart className="w-4 h-4 mr-1" />
                 Like
               </Button>
             </div>
