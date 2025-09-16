@@ -98,6 +98,57 @@ export type Database = {
         }
         Relationships: []
       }
+      drivers: {
+        Row: {
+          created_at: string
+          current_location: Json | null
+          id: string
+          is_available: boolean
+          license_number: string
+          license_plate: string
+          rating: number | null
+          total_rides: number | null
+          updated_at: string
+          user_id: string
+          vehicle_color: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+        }
+        Insert: {
+          created_at?: string
+          current_location?: Json | null
+          id?: string
+          is_available?: boolean
+          license_number: string
+          license_plate: string
+          rating?: number | null
+          total_rides?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_color: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+        }
+        Update: {
+          created_at?: string
+          current_location?: Json | null
+          id?: string
+          is_available?: boolean
+          license_number?: string
+          license_plate?: string
+          rating?: number | null
+          total_rides?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_color?: string
+          vehicle_make?: string
+          vehicle_model?: string
+          vehicle_year?: number
+        }
+        Relationships: []
+      }
       face_verifications: {
         Row: {
           created_at: string
@@ -425,6 +476,78 @@ export type Database = {
         }
         Relationships: []
       }
+      rides: {
+        Row: {
+          accepted_at: string | null
+          actual_duration_minutes: number | null
+          actual_price: number | null
+          completed_at: string | null
+          created_at: string
+          destination: string
+          destination_coordinates: Json | null
+          driver_id: string | null
+          driver_notes: string | null
+          driver_rating: number | null
+          estimated_duration_minutes: number | null
+          estimated_price: number
+          id: string
+          pickup_coordinates: Json | null
+          pickup_location: string
+          ride_type: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          user_rating: number | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          actual_duration_minutes?: number | null
+          actual_price?: number | null
+          completed_at?: string | null
+          created_at?: string
+          destination: string
+          destination_coordinates?: Json | null
+          driver_id?: string | null
+          driver_notes?: string | null
+          driver_rating?: number | null
+          estimated_duration_minutes?: number | null
+          estimated_price: number
+          id?: string
+          pickup_coordinates?: Json | null
+          pickup_location: string
+          ride_type: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_rating?: number | null
+        }
+        Update: {
+          accepted_at?: string | null
+          actual_duration_minutes?: number | null
+          actual_price?: number | null
+          completed_at?: string | null
+          created_at?: string
+          destination?: string
+          destination_coordinates?: Json | null
+          driver_id?: string | null
+          driver_notes?: string | null
+          driver_rating?: number | null
+          estimated_duration_minutes?: number | null
+          estimated_price?: number
+          id?: string
+          pickup_coordinates?: Json | null
+          pickup_location?: string
+          ride_type?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_rating?: number | null
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -691,7 +814,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      available_drivers: {
+        Row: {
+          driver_avatar: string | null
+          driver_name: string | null
+          id: string | null
+          location_info: Json | null
+          rating: number | null
+          total_rides: number | null
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: number | null
+        }
+        Relationships: []
+      }
+      ride_history: {
+        Row: {
+          actual_duration_minutes: number | null
+          actual_price: number | null
+          completed_at: string | null
+          created_at: string | null
+          destination: string | null
+          driver_id: string | null
+          driver_name: string | null
+          driver_rating: number | null
+          estimated_duration_minutes: number | null
+          estimated_price: number | null
+          id: string | null
+          license_plate: string | null
+          pickup_location: string | null
+          ride_type: string | null
+          status: string | null
+          user_id: string | null
+          user_name: string | null
+          user_rating: number | null
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_friend_request: {
@@ -738,6 +901,21 @@ export type Database = {
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
+      }
+      get_available_drivers_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          driver_avatar: string
+          driver_name: string
+          id: string
+          location_info: Json
+          rating: number
+          total_rides: number
+          vehicle_color: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+        }[]
       }
       get_demo_profiles_paginated: {
         Args: { page_offset?: number; page_size?: number }
