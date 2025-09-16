@@ -58,18 +58,32 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
 
   // Handle pre-selected user from navigation (Facebook-style direct messaging)
   useEffect(() => {
-    if (selectedUserId && conversations.length > 0) {
+    if (selectedUserId) {
+      // Immediately set the selected chat and load messages
+      setSelectedChat(selectedUserId);
+      
       // Check if we already have this user in our conversations
       const existingConversation = conversations.find(conv => conv.user_id === selectedUserId);
       if (existingConversation) {
-        setSelectedChat(selectedUserId);
         loadMessages(selectedUserId);
       } else {
         // Create a new conversation for any user (Facebook-style)
         createNewConversation(selectedUserId);
       }
     }
-  }, [selectedUserId, conversations]);
+  }, [selectedUserId]); // Remove conversations dependency to avoid timing issues
+
+  // Load conversations separately 
+  useEffect(() => {
+    if (selectedUserId && conversations.length > 0) {
+      // If we have conversations loaded and a selectedUserId, ensure it's properly set
+      const existingConversation = conversations.find(conv => conv.user_id === selectedUserId);
+      if (existingConversation && !selectedChat) {
+        setSelectedChat(selectedUserId);
+        loadMessages(selectedUserId);
+      }
+    }
+  }, [conversations, selectedUserId, selectedChat]);
 
   const loadMatchedConversations = async () => {
     if (!user) return;
@@ -163,6 +177,10 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
   // Create new conversation for direct messaging (Facebook-style)
   const createNewConversation = async (userId: string) => {
     try {
+      // Immediately set the selected chat
+      setSelectedChat(userId);
+      setMessages([]); // Clear previous messages
+      
       // Fetch user profile for the conversation
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -190,10 +208,14 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
         online: isUserOnline(userId)
       };
 
-      // Add to conversations list and select it
-      setConversations(prev => [newConversation, ...prev]);
-      setSelectedChat(userId);
-      setMessages([]); // Start with empty messages
+      // Check if conversation already exists, if not add it
+      setConversations(prev => {
+        const exists = prev.find(conv => conv.user_id === userId);
+        if (exists) {
+          return prev; // Don't add duplicate
+        }
+        return [newConversation, ...prev];
+      });
       
     } catch (error) {
       console.error('Error creating new conversation:', error);
