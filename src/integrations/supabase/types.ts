@@ -829,22 +829,7 @@ export type Database = {
       }
     }
     Views: {
-      drivers_safe_data: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          is_available: boolean | null
-          rating: number | null
-          sensitive_data_note: string | null
-          total_rides: number | null
-          updated_at: string | null
-          vehicle_color: string | null
-          vehicle_make: string | null
-          vehicle_model: string | null
-          vehicle_year: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_friend_request: {
