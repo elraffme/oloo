@@ -554,22 +554,28 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                   className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
                       message.sender_id === user?.id
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                        : 'bg-muted text-foreground border border-border'
                     }`}
                   >
                     {message.message_type === 'gift' && (
                       <div className="flex items-center space-x-2 mb-1">
                         <Gift className="w-4 h-4" />
-                        <span className="text-xs">Gift</span>
+                        <span className="text-xs font-medium">Gift</span>
                       </div>
                     )}
-                    <p className={`text-sm ${message.message_type !== 'text' ? 'text-center' : ''}`}>
+                    <p className={`text-sm leading-relaxed font-medium ${
+                      message.message_type !== 'text' ? 'text-center' : ''
+                    } ${message.sender_id === user?.id ? 'text-primary-foreground' : 'text-foreground'}`}>
                       {message.content}
                     </p>
-                    <p className={`text-xs mt-1 opacity-70`}>
+                    <p className={`text-xs mt-2 font-medium ${
+                      message.sender_id === user?.id 
+                        ? 'text-primary-foreground/80' 
+                        : 'text-muted-foreground'
+                    }`}>
                       {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                     </p>
                   </div>
@@ -605,6 +611,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                   placeholder="Type a message..."
                   onKeyPress={(e) => e.key === 'Enter' && handleSendText()}
                   disabled={isSending}
+                  className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base"
                 />
                 <Button 
                   onClick={handleSendText} 
