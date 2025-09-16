@@ -24,6 +24,57 @@ export interface FriendRequestResult {
 
 export const sendFriendRequest = async (targetUserId: string): Promise<FriendRequestResult> => {
   try {
+    // First check if connection already exists
+    const { data: user } = await supabase.auth.getUser();
+    if (!user?.user?.id) {
+      return { success: false, message: 'Authentication required' };
+    }
+
+    // Check if there's already a connection between these users
+    const { data: existingConnection, error: checkError } = await supabase
+      .from('user_connections')
+      .select('connection_type, user_id')
+      .or(`and(user_id.eq.${user.user.id},connected_user_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},connected_user_id.eq.${user.user.id})`)
+      .maybeSingle();
+    
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+
+    if (existingConnection) {
+      if (existingConnection.connection_type === 'friend') {
+        return { success: false, message: 'Already friends' };
+      }
+      if (existingConnection.connection_type === 'friend_request') {
+        if (existingConnection.user_id === user.user.id) {
+          return { success: false, message: 'Friend request already sent' };
+        } else {
+          // Accept the existing request
+          const { error: acceptError } = await supabase
+            .from('user_connections')
+            .update({ connection_type: 'friend' })
+            .eq('user_id', targetUserId)
+            .eq('connected_user_id', user.user.id)
+            .eq('connection_type', 'friend_request');
+
+          if (acceptError) throw acceptError;
+
+          // Create reciprocal friend connection
+          await supabase
+            .from('user_connections')
+            .insert({
+              user_id: user.user.id,
+              connected_user_id: targetUserId,
+              connection_type: 'friend'
+            });
+
+          return { success: true, message: 'Friend request accepted', type: 'accepted' };
+        }
+      }
+      // For other connection types (like, block), we can still send friend request
+    }
+
+    // Send new friend request using the RPC function
     const { data, error } = await supabase
       .rpc('send_friend_request', { target_user_id: targetUserId });
     
