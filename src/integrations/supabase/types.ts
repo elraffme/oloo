@@ -829,48 +829,7 @@ export type Database = {
       }
     }
     Views: {
-      drivers_public_info: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          is_available: boolean | null
-          license_redacted: string | null
-          location_redacted: string | null
-          rating: number | null
-          total_rides: number | null
-          vehicle_color: string | null
-          vehicle_make: string | null
-          vehicle_model: string | null
-          vehicle_year: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          is_available?: boolean | null
-          license_redacted?: never
-          location_redacted?: never
-          rating?: number | null
-          total_rides?: number | null
-          vehicle_color?: string | null
-          vehicle_make?: string | null
-          vehicle_model?: string | null
-          vehicle_year?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          is_available?: boolean | null
-          license_redacted?: never
-          location_redacted?: never
-          rating?: number | null
-          total_rides?: number | null
-          vehicle_color?: string | null
-          vehicle_make?: string | null
-          vehicle_model?: string | null
-          vehicle_year?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_friend_request: {
