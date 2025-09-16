@@ -49,34 +49,36 @@ const Discover = () => {
       // Get current user to exclude them from discovery
       const { data: currentUser } = await supabase.auth.getUser();
       
-      // Load both verified user profiles and demo profiles
+      // Load both real user profiles and demo profiles for discovery
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
+        // Load ALL real profiles (not just verified ones) for better discovery
         supabase
           .from('profiles')
           .select('*')
           .eq('is_demo_profile', false)
           .neq('user_id', currentUser?.user?.id || '') // Exclude current user
-          .range(currentOffset, currentOffset + 19)
-          .limit(20),
+          .range(currentOffset, currentOffset + 15)
+          .limit(15),
+        // Load demo profiles for variety
         supabase.rpc('get_demo_profiles_paginated', {
-          page_size: 10,
+          page_size: 15,
           page_offset: Math.floor(currentOffset / 2)
         })
       ]);
 
       let newProfiles: any[] = [];
 
-      // Add real verified profiles
+      // Add real user profiles (both verified and unverified for better discovery)
       if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
         newProfiles = [...newProfiles, ...realProfilesRes.value.data];
       }
 
-      // Add demo profiles
+      // Add demo profiles for variety
       if (demoProfilesRes.status === 'fulfilled' && demoProfilesRes.value && Array.isArray(demoProfilesRes.value)) {
         newProfiles = [...newProfiles, ...demoProfilesRes.value];
       }
 
-      // Shuffle the new profiles for variety
+      // Shuffle the new profiles for variety and better discovery experience
       const shuffledNewProfiles = newProfiles.sort(() => Math.random() - 0.5);
 
       if (append) {
