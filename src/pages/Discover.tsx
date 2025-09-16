@@ -84,6 +84,10 @@ const Discover = () => {
         if (shuffledNewProfiles.length > 0) {
           setProfiles(prev => [...prev, ...shuffledNewProfiles]);
           setPageOffset(prev => prev + 20);
+          
+          // Load friendship states for new profiles
+          await loadFriendshipStates(shuffledNewProfiles);
+          
           toast({
             title: "More profiles loaded! 🎉",
             description: `Found ${shuffledNewProfiles.length} more people for you to meet.`,
@@ -99,6 +103,9 @@ const Discover = () => {
         if (shuffledNewProfiles.length > 0) {
           setProfiles(shuffledNewProfiles);
           setPageOffset(20);
+          
+          // Load friendship states for initial profiles
+          await loadFriendshipStates(shuffledNewProfiles);
         } else {
           // Fallback to mock data if no profiles
           setProfiles(mockProfiles);
@@ -119,6 +126,48 @@ const Discover = () => {
       setLoading(false);
       setLoadingNext(false);
     }
+  };
+
+  // Load friendship states for profiles
+  const loadFriendshipStates = async (profiles: any[]) => {
+    const states: Record<string, 'idle' | 'loading' | 'sent' | 'friends' | 'error'> = {};
+    
+    for (const profile of profiles) {
+      const targetUserId = getTargetUserId(profile);
+      if (targetUserId) {
+        try {
+          // Check existing connections
+          const { data, error } = await supabase
+            .from('user_connections')
+            .select('connection_type')
+            .or(`and(user_id.eq.${user?.id},connected_user_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},connected_user_id.eq.${user?.id})`)
+            .maybeSingle();
+          
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error checking friendship status:', error);
+            states[targetUserId] = 'idle';
+            continue;
+          }
+          
+          if (data) {
+            if (data.connection_type === 'friend') {
+              states[targetUserId] = 'friends';
+            } else if (data.connection_type === 'friend_request') {
+              states[targetUserId] = 'sent';
+            } else {
+              states[targetUserId] = 'idle';
+            }
+          } else {
+            states[targetUserId] = 'idle';
+          }
+        } catch (error) {
+          console.error('Error loading friendship state:', error);
+          states[targetUserId] = 'idle';
+        }
+      }
+    }
+    
+    setFriendRequestStates(prev => ({ ...prev, ...states }));
   };
 
   const handleSuperLike = async () => {
