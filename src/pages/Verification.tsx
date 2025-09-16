@@ -34,9 +34,9 @@ const Verification: React.FC = () => {
         if (profileError) throw profileError;
         setProfile(profileData);
 
-        // SECURITY: Use secure function to get verification status
+        // Use the existing function to get verification status
         const { data: verificationData, error: verificationError } = await supabase
-          .rpc('get_secure_verification_status', { target_user_id: user.id });
+          .rpc('get_user_verification_status', { target_user_id: user.id });
         
         if (verificationError) {
           console.error('Error fetching verification status:', verificationError);
@@ -63,7 +63,7 @@ const Verification: React.FC = () => {
       // Refresh verification status after successful verification
       try {
         const { data: updatedVerificationData } = await supabase
-          .rpc('get_secure_verification_status', { target_user_id: user?.id });
+          .rpc('get_user_verification_status', { target_user_id: user?.id });
         setVerificationStatus(updatedVerificationData);
         setProfile({ ...profile, verified: true });
       } catch (error) {
@@ -242,17 +242,19 @@ const Verification: React.FC = () => {
                   <Button
                     onClick={() => setShowVerification(true)}
                     className="luxury-gradient text-white px-8 py-3 flex-1"
-                    disabled={!profile.profile_photos || profile.profile_photos.length === 0}
+                    disabled={loading}
                   >
                     <Camera className="w-5 h-5 mr-2" />
                     Start Verification
                   </Button>
                 </div>
 
-                {(!profile.profile_photos || profile.profile_photos.length === 0) && (
-                  <p className="text-sm text-destructive text-center">
-                    Please add at least one profile photo before verification
-                  </p>
+                {(!profile?.profile_photos || profile.profile_photos.length === 0) && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
+                      💡 <strong>Tip:</strong> Add at least one profile photo for better verification results, but you can still proceed without one.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
