@@ -358,33 +358,48 @@ export type Database = {
       }
       payment_intents: {
         Row: {
+          access_restricted_until: string | null
           amount_cents: number
           created_at: string
           currency: string
           customer_id: string
+          data_classification: string | null
+          encrypted_amount_hash: string | null
+          encrypted_customer_id: string | null
           id: string
+          security_flags: Json | null
           status: string
           tier: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          access_restricted_until?: string | null
           amount_cents: number
           created_at?: string
           currency?: string
           customer_id: string
+          data_classification?: string | null
+          encrypted_amount_hash?: string | null
+          encrypted_customer_id?: string | null
           id: string
+          security_flags?: Json | null
           status?: string
           tier: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          access_restricted_until?: string | null
           amount_cents?: number
           created_at?: string
           currency?: string
           customer_id?: string
+          data_classification?: string | null
+          encrypted_amount_hash?: string | null
+          encrypted_customer_id?: string | null
           id?: string
+          security_flags?: Json | null
           status?: string
           tier?: string
           updated_at?: string
@@ -894,9 +909,21 @@ export type Database = {
         }
         Returns: string
       }
+      decrypt_payment_field: {
+        Args: {
+          encrypted_data: string
+          field_type: string
+          plaintext_reference: string
+        }
+        Returns: boolean
+      }
       emergency_freeze_user_tokens: {
         Args: { freeze_reason: string; target_user_id: string }
         Returns: boolean
+      }
+      encrypt_payment_field: {
+        Args: { field_type: string; plaintext: string }
+        Returns: string
       }
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
@@ -1054,6 +1081,15 @@ export type Database = {
         Args: { action_type: string; target_user_id: string }
         Returns: undefined
       }
+      log_payment_security_event: {
+        Args: {
+          p_details?: Json
+          p_operation: string
+          p_payment_intent_id: string
+          p_user_id?: string
+        }
+        Returns: undefined
+      }
       log_security_event: {
         Args: {
           p_action: string
@@ -1099,6 +1135,10 @@ export type Database = {
       }
       validate_membership_operation: {
         Args: { target_user_id: string }
+        Returns: boolean
+      }
+      validate_payment_access: {
+        Args: { p_operation_type?: string; p_payment_intent_id: string }
         Returns: boolean
       }
       validate_payment_amount: {
