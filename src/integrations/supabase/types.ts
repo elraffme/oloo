@@ -829,47 +829,7 @@ export type Database = {
       }
     }
     Views: {
-      available_drivers: {
-        Row: {
-          driver_avatar: string | null
-          driver_name: string | null
-          id: string | null
-          location_info: Json | null
-          rating: number | null
-          total_rides: number | null
-          vehicle_color: string | null
-          vehicle_make: string | null
-          vehicle_model: string | null
-          vehicle_year: number | null
-        }
-        Relationships: []
-      }
-      ride_history: {
-        Row: {
-          actual_duration_minutes: number | null
-          actual_price: number | null
-          completed_at: string | null
-          created_at: string | null
-          destination: string | null
-          driver_id: string | null
-          driver_name: string | null
-          driver_rating: number | null
-          estimated_duration_minutes: number | null
-          estimated_price: number | null
-          id: string | null
-          license_plate: string | null
-          pickup_location: string | null
-          ride_type: string | null
-          status: string | null
-          user_id: string | null
-          user_name: string | null
-          user_rating: number | null
-          vehicle_color: string | null
-          vehicle_make: string | null
-          vehicle_model: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_friend_request: {
