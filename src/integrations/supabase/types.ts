@@ -929,6 +929,21 @@ export type Database = {
         Args: { batch_size?: number }
         Returns: number
       }
+      get_available_drivers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          driver_avatar: string
+          driver_name: string
+          id: string
+          location_info: Json
+          rating: number
+          total_rides: number
+          vehicle_color: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+        }[]
+      }
       get_available_drivers_safe: {
         Args: Record<PropertyKey, never>
         Returns: {
