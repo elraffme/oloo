@@ -34,9 +34,10 @@ interface Conversation {
 
 interface MessagingInterfaceProps {
   onBack?: () => void;
+  selectedUserId?: string | null;
 }
 
-const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
+const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selectedUserId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,6 +53,21 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
   useEffect(() => {
     loadMatchedConversations();
   }, [user]);
+
+  // Handle pre-selected user from navigation (Facebook-style direct messaging)
+  useEffect(() => {
+    if (selectedUserId && conversations.length > 0) {
+      // Check if we already have this user in our conversations
+      const existingConversation = conversations.find(conv => conv.user_id === selectedUserId);
+      if (existingConversation) {
+        setSelectedChat(selectedUserId);
+        loadMessages(selectedUserId);
+      } else {
+        // Create a new conversation for any user (Facebook-style)
+        createNewConversation(selectedUserId);
+      }
+    }
+  }, [selectedUserId, conversations]);
 
   const loadMatchedConversations = async () => {
     if (!user) return;
@@ -139,6 +155,51 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack }) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Create new conversation for direct messaging (Facebook-style)
+  const createNewConversation = async (userId: string) => {
+    try {
+      // Fetch user profile for the conversation
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !profile) {
+        toast({
+          title: "Error",
+          description: "Could not load user profile",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create conversation object
+      const newConversation: Conversation = {
+        user_id: userId,
+        display_name: profile.display_name,
+        avatar_url: profile.profile_photos?.[0] || profile.avatar_url || '/placeholder.svg',
+        last_message: "",
+        last_message_time: new Date().toISOString(),
+        unread_count: 0,
+        online: false
+      };
+
+      // Add to conversations list and select it
+      setConversations(prev => [newConversation, ...prev]);
+      setSelectedChat(userId);
+      setMessages([]); // Start with empty messages
+      
+    } catch (error) {
+      console.error('Error creating new conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start conversation",
+        variant: "destructive",
+      });
     }
   };
 

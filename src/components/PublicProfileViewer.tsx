@@ -299,12 +299,28 @@ export const PublicProfileViewer = ({
 
             {/* Friends and Action Buttons */}
             <div className="space-y-4 pt-4">
-              {/* Friend Actions */}
+              {/* Action Buttons - Facebook-style: Message anyone */}
               <div className="flex justify-center gap-3">
+                {/* Always show Message button (Facebook-style) */}
+                {onStartChat && (
+                  <Button
+                    onClick={() => {
+                      onStartChat(profileId);
+                      onClose();
+                    }}
+                    className="flex-1 max-w-xs"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                )}
+                
+                {/* Friend request actions */}
                 {friendshipStatus === 'none' && (
                   <Button
                     onClick={handleSendFriendRequest}
                     disabled={sendingRequest}
+                    variant="outline"
                     className="flex-1 max-w-xs"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
@@ -319,16 +335,10 @@ export const PublicProfileViewer = ({
                   </Button>
                 )}
                 
-                {friendshipStatus === 'friend' && onStartChat && (
-                  <Button
-                    onClick={() => {
-                      onStartChat(profileId);
-                      onClose();
-                    }}
-                    className="flex-1 max-w-xs"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
+                {friendshipStatus === 'friend' && (
+                  <Button disabled className="flex-1 max-w-xs" variant="outline">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Friends
                   </Button>
                 )}
               </div>

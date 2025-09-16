@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MessagingInterface from '@/components/MessagingInterface';
 import MatchesSection from '@/components/MatchesSection';
@@ -6,8 +7,18 @@ import FriendsSection from '@/components/FriendsSection';
 import { MessageCircle, Heart, Users } from 'lucide-react';
 
 const Messages = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('friends');
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+
+  // Handle navigation from profile viewer (Facebook-style messaging)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.selectedUser) {
+      setSelectedMatch(state.selectedUser);
+      setActiveTab('messages');
+    }
+  }, [location.state]);
 
   const handleStartConversation = (matchId: string) => {
     setSelectedMatch(matchId);
@@ -49,6 +60,7 @@ const Messages = () => {
 
         <TabsContent value="messages" className="flex-1 m-0">
           <MessagingInterface 
+            selectedUserId={selectedMatch}
             onBack={() => setActiveTab('friends')}
           />
         </TabsContent>
