@@ -944,6 +944,21 @@ export type Database = {
           vehicle_year: number
         }[]
       }
+      get_available_drivers_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          driver_avatar: string
+          driver_name: string
+          id: string
+          location_info: Json
+          rating: number
+          total_rides: number
+          vehicle_color: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_year: number
+        }[]
+      }
       get_demo_profiles_paginated: {
         Args: { page_offset?: number; page_size?: number }
         Returns: {
