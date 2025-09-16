@@ -3,19 +3,36 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Clock, Check, X } from 'lucide-react';
+import { MessageCircle, Clock, Check, X, Users, Circle } from 'lucide-react';
 import { getUserFriends, getFriendRequests, acceptFriendRequest, Friend, FriendRequest } from '@/utils/friendsUtils';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePresence } from '@/hooks/usePresence';
 
 interface FriendsSectionProps {
   onStartChat: (friendId: string) => void;
 }
 
+interface AllUser {
+  user_id: string;
+  display_name: string;
+  avatar_url?: string;
+  profile_photos?: string[];
+  location?: string;
+  age?: number;
+  bio?: string;
+  is_friend?: boolean;
+}
+
 const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [allUsers, setAllUsers] = useState<AllUser[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { isUserOnline } = usePresence();
 
   useEffect(() => {
     loadData();
@@ -24,16 +41,45 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [friendsData, requestsData] = await Promise.all([
+      const [friendsData, requestsData, allUsersData] = await Promise.all([
         getUserFriends(),
-        getFriendRequests()
+        getFriendRequests(),
+        loadAllUsers()
       ]);
       setFriends(friendsData);
       setFriendRequests(requestsData);
+      setAllUsers(allUsersData);
     } catch (error) {
       console.error('Error loading friends data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAllUsers = async (): Promise<AllUser[]> => {
+    if (!user) return [];
+
+    try {
+      // Get all real users (not demo profiles) except current user
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url, profile_photos, location, age, bio')
+        .eq('is_demo_profile', false)
+        .neq('user_id', user.id)
+        .limit(100);
+
+      if (error) throw error;
+
+      // Get current user's friends to mark them
+      const friendIds = new Set(friends.map(friend => friend.friend_user_id));
+
+      return (profiles || []).map(profile => ({
+        ...profile,
+        is_friend: friendIds.has(profile.user_id)
+      }));
+    } catch (error) {
+      console.error('Error loading all users:', error);
+      return [];
     }
   };
 
@@ -62,11 +108,11 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
     }
   };
 
-  const getAvatarUrl = (friend: Friend | FriendRequest) => {
-    if (friend.profile_photos && friend.profile_photos.length > 0) {
-      return friend.profile_photos[0];
+  const getAvatarUrl = (item: Friend | FriendRequest | AllUser) => {
+    if (item.profile_photos && item.profile_photos.length > 0) {
+      return item.profile_photos[0];
     }
-    return friend.avatar_url || '/placeholder.svg';
+    return item.avatar_url || '/placeholder.svg';
   };
 
   if (loading) {
@@ -161,6 +207,69 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Chat
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* All Users Available for Chat */}
+      <div>
+        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Users className="w-5 h-5" />
+          All Users
+          <Badge variant="secondary">{allUsers.length}</Badge>
+        </h3>
+        
+        {allUsers.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">No other users found.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allUsers.map((user) => (
+              <Card key={user.user_id} className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={getAvatarUrl(user)} />
+                        <AvatarFallback>
+                          {user.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* Online status indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center ${
+                        isUserOnline(user.user_id) 
+                          ? 'bg-green-500' 
+                          : 'bg-gray-400'
+                      }`}>
+                        <Circle className="w-2 h-2 fill-current" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{user.display_name}</h4>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className={isUserOnline(user.user_id) ? 'text-green-500' : 'text-gray-400'}>
+                          {isUserOnline(user.user_id) ? 'Online' : 'Offline'}
+                        </span>
+                        {user.is_friend && (
+                          <Badge variant="outline" className="text-xs">Friend</Badge>
+                        )}
+                      </div>
+                      {user.location && (
+                        <p className="text-xs text-muted-foreground">{user.location}</p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => onStartChat(user.user_id)}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
                   </Button>
                 </CardContent>
               </Card>

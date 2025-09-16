@@ -5,11 +5,15 @@ import MessagingInterface from '@/components/MessagingInterface';
 import MatchesSection from '@/components/MatchesSection';
 import FriendsSection from '@/components/FriendsSection';
 import { MessageCircle, Heart, Users } from 'lucide-react';
+import { usePresence } from '@/hooks/usePresence';
 
 const Messages = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('friends');
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  
+  // Initialize presence tracking
+  usePresence();
 
   // Handle navigation from profile viewer (Facebook-style messaging)
   useEffect(() => {

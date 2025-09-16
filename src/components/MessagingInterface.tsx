@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Heart, Gift, Phone, Video, MoreVertical, ArrowLeft } from 'lucide-react';
+import { Send, Heart, Gift, Phone, Video, MoreVertical, ArrowLeft, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { usePresence } from '@/hooks/usePresence';
 
 interface Message {
   id: string;
@@ -41,6 +42,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
   const { user } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isUserOnline } = usePresence();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -134,7 +136,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
             last_message: lastMessage?.content || (contact.connection_type === 'match' ? 'You matched! Send a message.' : 'You\'re now friends! Start chatting.'),
             last_message_time: lastMessage?.created_at || (contact.match_created_at || contact.friend_since),
             unread_count: unreadCount || 0,
-            online: Math.random() > 0.5, // Mock online status
+            online: isUserOnline(contact.user_id),
             connection_type: contact.connection_type
           };
         })
@@ -185,7 +187,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
         last_message: "",
         last_message_time: new Date().toISOString(),
         unread_count: 0,
-        online: false
+        online: isUserOnline(userId)
       };
 
       // Add to conversations list and select it
@@ -433,9 +435,14 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                           {conversation.display_name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      {conversation.online && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
-                      )}
+                      {/* Online status indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center ${
+                        isUserOnline(conversation.user_id) 
+                          ? 'bg-green-500' 
+                          : 'bg-gray-400'
+                      }`}>
+                        <Circle className="w-2 h-2 fill-current" />
+                      </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
@@ -494,8 +501,8 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                     </Avatar>
                     <div>
                       <h3 className="font-medium">{conversation.display_name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {conversation.online ? 'Online' : 'Offline'}
+                      <p className={`text-sm ${isUserOnline(conversation.user_id) ? 'text-green-500' : 'text-muted-foreground'}`}>
+                        {isUserOnline(conversation.user_id) ? 'Online' : 'Offline'}
                       </p>
                     </div>
                   </>
