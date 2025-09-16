@@ -46,13 +46,16 @@ const Discover = () => {
 
       const currentOffset = append ? pageOffset : 0;
       
+      // Get current user to exclude them from discovery
+      const { data: currentUser } = await supabase.auth.getUser();
+      
       // Load both verified user profiles and demo profiles
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
         supabase
           .from('profiles')
           .select('*')
-          .eq('verified', true)
           .eq('is_demo_profile', false)
+          .neq('user_id', currentUser?.user?.id || '') // Exclude current user
           .range(currentOffset, currentOffset + 19)
           .limit(20),
         supabase.rpc('get_demo_profiles_paginated', {

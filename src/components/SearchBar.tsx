@@ -15,6 +15,9 @@ interface SearchResult {
   profile_photos?: string[];
   verified?: boolean;
   is_demo_profile?: boolean;
+  bio?: string;
+  occupation?: string;
+  interests?: string[];
 }
 
 interface SearchBarProps {
@@ -50,15 +53,18 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
 
       setIsLoading(true);
       try {
+        // Get current user to exclude them from search results
+        const { data: currentUser } = await supabase.auth.getUser();
+        
         // Search in both real profiles and demo profiles
         const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
           supabase
             .from('profiles')
-            .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile')
-            .eq('verified', true)
+            .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile, bio, occupation, interests')
             .eq('is_demo_profile', false)
-            .or(`display_name.ilike.%${query}%,location.ilike.%${query}%`)
-            .limit(10),
+            .neq('user_id', currentUser?.user?.id || '') // Exclude current user
+            .or(`display_name.ilike.%${query}%,location.ilike.%${query}%,bio.ilike.%${query}%,occupation.ilike.%${query}%`)
+            .limit(15),
           supabase
             .from('demo_profiles')
             .select('id, display_name, age, location, profile_photos')
@@ -177,10 +183,18 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
                       {profile.is_demo_profile && (
                         <span className="ml-2 text-xs text-muted-foreground">(Demo)</span>
                       )}
+                      {!profile.verified && !profile.is_demo_profile && (
+                        <span className="ml-2 text-xs text-amber-500">⏳</span>
+                      )}
                     </p>
                     <p className="text-sm text-muted-foreground truncate">
                       {profile.age} • {profile.location}
                     </p>
+                    {profile.occupation && (
+                      <p className="text-xs text-muted-foreground/80 truncate">
+                        {profile.occupation}
+                      </p>
+                    )}
                   </div>
                 </button>
               ))}
