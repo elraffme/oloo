@@ -198,9 +198,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!user) return { error: new Error('No user logged in') };
       
+      // Use upsert to create or update profile
       const { error } = await supabase
         .from('profiles')
-        .update(data)
+        .upsert({ 
+          user_id: user.id,
+          ...data,
+          updated_at: new Date().toISOString()
+        })
         .eq('user_id', user.id);
       
       if (error) {
