@@ -38,6 +38,108 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
     loadData();
   }, []);
 
+  // Set up real-time listener for friend requests
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('friend-requests-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'user_connections',
+          filter: `connected_user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newConnection = payload.new as any;
+          
+          // If it's a friend request, update the friend requests list
+          if (newConnection.connection_type === 'friend_request') {
+            console.log('New friend request received:', newConnection);
+            
+            // Fetch the requester's profile and add to friend requests
+            fetchRequesterProfile(newConnection.user_id, newConnection.created_at);
+            
+            // Show notification
+            toast({
+              title: "New Friend Request!",
+              description: "You have received a new friend request.",
+            });
+          }
+          
+          // If it's a friend acceptance, refresh data
+          if (newConnection.connection_type === 'friend') {
+            console.log('Friend request accepted:', newConnection);
+            loadData(); // Refresh all data
+            
+            toast({
+              title: "Friend Request Accepted!",
+              description: "Someone accepted your friend request.",
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_connections',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const updatedConnection = payload.new as any;
+          
+          // If a friend request was accepted, refresh data
+          if (updatedConnection.connection_type === 'friend') {
+            console.log('Your friend request was accepted:', updatedConnection);
+            loadData(); // Refresh all data
+            
+            toast({
+              title: "Friend Request Accepted!",
+              description: "Your friend request was accepted!",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, toast]);
+
+  // Fetch requester profile when new friend request arrives
+  const fetchRequesterProfile = async (requesterId: string, requestDate: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url, profile_photos')
+        .eq('user_id', requesterId)
+        .single();
+
+      if (error || !profile) {
+        console.error('Error fetching requester profile:', error);
+        return;
+      }
+
+      const newRequest: FriendRequest = {
+        requester_user_id: profile.user_id,
+        display_name: profile.display_name,
+        avatar_url: profile.avatar_url,
+        profile_photos: profile.profile_photos,
+        request_date: requestDate
+      };
+
+      // Add to friend requests list
+      setFriendRequests(prev => [newRequest, ...prev]);
+    } catch (error) {
+      console.error('Error fetching requester profile:', error);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {

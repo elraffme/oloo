@@ -2,6 +2,7 @@ import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { 
   Heart, 
   Video, 
@@ -18,6 +19,9 @@ import {
 const AppLayout = () => {
   const { user, signOut, loading } = useAuth();
   const location = useLocation();
+  
+  // Enable global real-time notifications
+  useRealtimeNotifications();
 
   // Redirect to auth if not logged in
   if (!user && !loading) {
