@@ -1159,6 +1159,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      reject_friend_request: {
+        Args: { requester_user_id: string }
+        Returns: Json
+      }
       secure_payment_operation: {
         Args: {
           operation_type: string

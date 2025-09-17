@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Clock, Check, X, Users, Circle } from 'lucide-react';
-import { getUserFriends, getFriendRequests, acceptFriendRequest, Friend, FriendRequest } from '@/utils/friendsUtils';
+import { getUserFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, Friend, FriendRequest } from '@/utils/friendsUtils';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -190,7 +190,7 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
       const result = await acceptFriendRequest(requesterId);
       if (result.success) {
         toast({
-          title: "Friend request accepted!",
+          title: "Friend request accepted! ✅",
           description: "You are now friends and can start chatting.",
         });
         loadData(); // Refresh the data
@@ -198,6 +198,31 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
         toast({
           title: "Error",
           description: result.message || "Failed to accept friend request",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error", 
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectRequest = async (requesterId: string) => {
+    try {
+      const result = await rejectFriendRequest(requesterId);
+      if (result.success) {
+        toast({
+          title: "Friend request rejected",
+          description: "The friend request has been declined.",
+        });
+        loadData(); // Refresh the data
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to reject friend request",
           variant: "destructive",
         });
       }
@@ -260,7 +285,12 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
                       >
                         <Check className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleRejectRequest(request.requester_user_id)}
+                        className="hover:bg-red-50 hover:border-red-300"
+                      >
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
