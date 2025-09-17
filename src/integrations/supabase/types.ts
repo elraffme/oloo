@@ -733,32 +733,44 @@ export type Database = {
       }
       user_sensitive_info: {
         Row: {
+          access_count: number | null
           created_at: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
+          encrypted_emergency_contact_phone_hash: string | null
+          encrypted_phone_hash: string | null
           id: string
           last_accessed_at: string | null
           phone: string | null
+          security_flags: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          access_count?: number | null
           created_at?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          encrypted_emergency_contact_phone_hash?: string | null
+          encrypted_phone_hash?: string | null
           id?: string
           last_accessed_at?: string | null
           phone?: string | null
+          security_flags?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          access_count?: number | null
           created_at?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
+          encrypted_emergency_contact_phone_hash?: string | null
+          encrypted_phone_hash?: string | null
           id?: string
           last_accessed_at?: string | null
           phone?: string | null
+          security_flags?: Json | null
           updated_at?: string
           user_id?: string
         }
@@ -852,6 +864,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      check_sensitive_info_rate_limit: {
+        Args: { user_uuid?: string }
+        Returns: boolean
+      }
       check_user_can_message: {
         Args: { receiver_uuid: string; sender_uuid: string }
         Returns: boolean
@@ -883,6 +899,10 @@ export type Database = {
       }
       encrypt_payment_field: {
         Args: { field_type: string; plaintext: string }
+        Returns: string
+      }
+      encrypt_sensitive_field: {
+        Args: { field_type: string; plaintext_data: string; user_uuid?: string }
         Returns: string
       }
       generate_afrocentric_profiles: {
@@ -1074,6 +1094,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_sensitive_info_access: {
+        Args: {
+          access_type: string
+          additional_metadata?: Json
+          field_accessed: string
+          user_uuid?: string
+        }
+        Returns: undefined
+      }
       log_system_security_event: {
         Args: {
           p_action: string
@@ -1118,6 +1147,15 @@ export type Database = {
       }
       validate_payment_amount: {
         Args: { amount_cents: number; tier: string }
+        Returns: boolean
+      }
+      validate_sensitive_field: {
+        Args: {
+          encrypted_data: string
+          field_type: string
+          plaintext_data: string
+          user_uuid?: string
+        }
         Returns: boolean
       }
       validate_token_operation: {
