@@ -491,6 +491,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ride_access_attempts: {
+        Row: {
+          access_count: number | null
+          blocked_until: string | null
+          created_at: string | null
+          id: string
+          last_access_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          last_access_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_count?: number | null
+          blocked_until?: string | null
+          created_at?: string | null
+          id?: string
+          last_access_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rides: {
         Row: {
           accepted_at: string | null
@@ -841,7 +868,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ride_summaries: {
+        Row: {
+          created_at: string | null
+          duration_tier: string | null
+          id: string | null
+          price_tier: string | null
+          ride_type: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_tier?: never
+          id?: string | null
+          price_tier?: never
+          ride_type?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_tier?: never
+          id?: string | null
+          price_tier?: never
+          ride_type?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_friend_request: {
@@ -908,6 +961,10 @@ export type Database = {
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
+      }
+      get_anonymized_ride_data: {
+        Args: { ride_id: string }
+        Returns: Json
       }
       get_available_drivers: {
         Args: Record<PropertyKey, never>
@@ -1001,6 +1058,10 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      get_secure_ride_details: {
+        Args: { ride_id: string }
+        Returns: Json
       }
       get_secure_verification_status: {
         Args: { target_user_id?: string }
@@ -1147,6 +1208,10 @@ export type Database = {
       }
       validate_payment_amount: {
         Args: { amount_cents: number; tier: string }
+        Returns: boolean
+      }
+      validate_ride_access: {
+        Args: { access_type: string; ride_id: string }
         Returns: boolean
       }
       validate_sensitive_field: {
