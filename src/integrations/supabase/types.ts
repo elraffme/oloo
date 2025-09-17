@@ -868,33 +868,7 @@ export type Database = {
       }
     }
     Views: {
-      ride_summaries: {
-        Row: {
-          created_at: string | null
-          duration_tier: string | null
-          id: string | null
-          price_tier: string | null
-          ride_type: string | null
-          status: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          duration_tier?: never
-          id?: string | null
-          price_tier?: never
-          ride_type?: string | null
-          status?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          duration_tier?: never
-          id?: string | null
-          price_tier?: never
-          ride_type?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_friend_request: {
@@ -1042,6 +1016,17 @@ export type Database = {
           started_at: string
           status: string
           title: string
+        }[]
+      }
+      get_ride_summaries: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          duration_tier: string
+          id: string
+          price_tier: string
+          ride_type: string
+          status: string
         }[]
       }
       get_safe_streaming_data: {
