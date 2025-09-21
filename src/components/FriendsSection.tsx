@@ -186,8 +186,12 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
   };
 
   const handleAcceptRequest = async (requesterId: string) => {
+    console.log('Accept button clicked for requesterId:', requesterId);
     try {
+      console.log('Calling acceptFriendRequest...');
       const result = await acceptFriendRequest(requesterId);
+      console.log('acceptFriendRequest result:', result);
+      
       if (result.success) {
         toast({
           title: "Friend request accepted! ✅",
@@ -202,6 +206,7 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
         });
       }
     } catch (error) {
+      console.error('Error in handleAcceptRequest:', error);
       toast({
         title: "Error", 
         description: "Something went wrong",
