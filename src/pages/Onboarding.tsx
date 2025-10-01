@@ -214,6 +214,32 @@ const Onboarding = () => {
     case 5:
       return (
         <OnboardingStep
+          title="Who are you interested in?"
+          onNext={nextStep}
+          onBack={prevStep}
+          canProceed={formData.interestedIn.length > 0}
+          currentStep={step}
+          totalSteps={totalSteps}
+        >
+          <div className="space-y-4">
+            <Label>Show me</Label>
+            <Select value={formData.interestedIn} onValueChange={(value) => updateData('interestedIn', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Who you're interested in" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="men">Men</SelectItem>
+                <SelectItem value="women">Women</SelectItem>
+                <SelectItem value="everyone">Everyone</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </OnboardingStep>
+      );
+
+    case 6:
+      return (
+        <OnboardingStep
           title="Sexual Orientation"
           onNext={nextStep}
           onBack={prevStep}
@@ -234,32 +260,6 @@ const Onboarding = () => {
                 <SelectItem value="bisexual">Bisexual</SelectItem>
                 <SelectItem value="pansexual">Pansexual</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>
-      );
-
-    case 6:
-      return (
-        <OnboardingStep
-          title="Who are you interested in?"
-          onNext={nextStep}
-          onBack={prevStep}
-          canProceed={formData.interestedIn.length > 0}
-          currentStep={step}
-          totalSteps={totalSteps}
-        >
-          <div className="space-y-4">
-            <Label>Show me</Label>
-            <Select value={formData.interestedIn} onValueChange={(value) => updateData('interestedIn', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Who you're interested in" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="men">Men</SelectItem>
-                <SelectItem value="women">Women</SelectItem>
-                <SelectItem value="everyone">Everyone</SelectItem>
               </SelectContent>
             </Select>
           </div>
