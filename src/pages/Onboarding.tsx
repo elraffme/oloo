@@ -74,7 +74,7 @@ const Onboarding = () => {
     blockContacts: false,
     nearbyStudents: false
   });
-  const totalSteps = 11;
+  const totalSteps = 9;
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -111,7 +111,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 2:
-      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0 && formData.hobbies.length > 10 && formData.personality.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
               <Label htmlFor="name" className="text-base">Username</Label>
@@ -148,6 +148,36 @@ const Onboarding = () => {
                   <SelectItem value="bisexual">Bisexual</SelectItem>
                   <SelectItem value="pansexual">Pansexual</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="hobbies">Hobbies & Lifestyle</Label>
+              <Textarea id="hobbies" value={formData.hobbies} onChange={e => updateData('hobbies', e.target.value)} placeholder="Tell us about your hobbies, interests, and lifestyle..." className="min-h-24" />
+            </div>
+            <div>
+              <Label>Personality Type</Label>
+              <Select value={formData.personality} onValueChange={value => updateData('personality', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INTJ">INTJ - The Architect</SelectItem>
+                  <SelectItem value="INTP">INTP - The Thinker</SelectItem>
+                  <SelectItem value="ENTJ">ENTJ - The Commander</SelectItem>
+                  <SelectItem value="ENTP">ENTP - The Debater</SelectItem>
+                  <SelectItem value="INFJ">INFJ - The Advocate</SelectItem>
+                  <SelectItem value="INFP">INFP - The Mediator</SelectItem>
+                  <SelectItem value="ENFJ">ENFJ - The Protagonist</SelectItem>
+                  <SelectItem value="ENFP">ENFP - The Campaigner</SelectItem>
+                  <SelectItem value="ISTJ">ISTJ - The Logistician</SelectItem>
+                  <SelectItem value="ISFJ">ISFJ - The Protector</SelectItem>
+                  <SelectItem value="ESTJ">ESTJ - The Executive</SelectItem>
+                  <SelectItem value="ESFJ">ESFJ - The Consul</SelectItem>
+                  <SelectItem value="ISTP">ISTP - The Virtuoso</SelectItem>
+                  <SelectItem value="ISFP">ISFP - The Adventurer</SelectItem>
+                  <SelectItem value="ESTP">ESTP - The Entrepreneur</SelectItem>
+                  <SelectItem value="ESFP">ESFP - The Entertainer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -198,42 +228,6 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 5:
-      return <OnboardingStep title="Hobbies & Lifestyle" description="Tell us about your interests" onNext={nextStep} onBack={prevStep} canProceed={formData.hobbies.length > 10} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <Label htmlFor="hobbies">What do you enjoy doing?</Label>
-            <Textarea id="hobbies" value={formData.hobbies} onChange={e => updateData('hobbies', e.target.value)} placeholder="Tell us about your hobbies, interests, and lifestyle..." className="min-h-24" />
-          </div>
-        </OnboardingStep>;
-    case 6:
-      return <OnboardingStep title="Personality Type" description="Help others understand your vibe" onNext={nextStep} onBack={prevStep} canProceed={formData.personality.length > 0} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <Label>Personality Type</Label>
-            <Select value={formData.personality} onValueChange={value => updateData('personality', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INTJ">INTJ - The Architect (Introverted, Intuitive, Thinking, Judging)</SelectItem>
-                <SelectItem value="INTP">INTP - The Thinker (Introverted, Intuitive, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ENTJ">ENTJ - The Commander (Extraverted, Intuitive, Thinking, Judging)</SelectItem>
-                <SelectItem value="ENTP">ENTP - The Debater (Extraverted, Intuitive, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="INFJ">INFJ - The Advocate (Introverted, Intuitive, Feeling, Judging)</SelectItem>
-                <SelectItem value="INFP">INFP - The Mediator (Introverted, Intuitive, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ENFJ">ENFJ - The Protagonist (Extraverted, Intuitive, Feeling, Judging)</SelectItem>
-                <SelectItem value="ENFP">ENFP - The Campaigner (Extraverted, Intuitive, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ISTJ">ISTJ - The Logistician (Introverted, Sensing, Thinking, Judging)</SelectItem>
-                <SelectItem value="ISFJ">ISFJ - The Protector (Introverted, Sensing, Feeling, Judging)</SelectItem>
-                <SelectItem value="ESTJ">ESTJ - The Executive (Extraverted, Sensing, Thinking, Judging)</SelectItem>
-                <SelectItem value="ESFJ">ESFJ - The Consul (Extraverted, Sensing, Feeling, Judging)</SelectItem>
-                <SelectItem value="ISTP">ISTP - The Virtuoso (Introverted, Sensing, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ISFP">ISFP - The Adventurer (Introverted, Sensing, Feeling, Perceiving)</SelectItem>
-                <SelectItem value="ESTP">ESTP - The Entrepreneur (Extraverted, Sensing, Thinking, Perceiving)</SelectItem>
-                <SelectItem value="ESFP">ESFP - The Entertainer (Extraverted, Sensing, Feeling, Perceiving)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>;
-    case 7:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('photo-upload')?.click()}>
@@ -271,7 +265,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 8:
+    case 6:
       return <OnboardingStep title="Location Settings" description="Help us show you people nearby" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -286,7 +280,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 9:
+    case 7:
       return <OnboardingStep title="Block Contacts" description="Prevent people from your contacts from finding you" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -298,7 +292,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 10:
+    case 8:
       return <OnboardingStep title="Oloo Insight" description="Let's show you how Òloo works" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-6">
             <div className="text-center">
@@ -315,7 +309,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 11:
+    case 9:
       return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
