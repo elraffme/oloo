@@ -150,12 +150,12 @@ const Onboarding = () => {
           totalSteps={totalSteps}
         >
           <div className="space-y-4">
-            <Label htmlFor="name">First Name</Label>
+            <Label htmlFor="name">username</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => updateData('name', e.target.value)}
-              placeholder="Enter your first name"
+              placeholder="Enter your username"
               className="text-lg"
             />
           </div>
