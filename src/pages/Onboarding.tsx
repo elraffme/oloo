@@ -74,7 +74,7 @@ const Onboarding = () => {
     blockContacts: false,
     nearbyStudents: false
   });
-  const totalSteps = 15;
+  const totalSteps = 13;
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -111,36 +111,33 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 2:
-      return <OnboardingStep title="What's your name?" description="This will be displayed on your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
-            <Label htmlFor="name" className="text-base">Username</Label>
-            <Input id="name" value={formData.name} onChange={e => updateData('name', e.target.value)} placeholder="Enter your username" className="text-lg" />
+            <div>
+              <Label htmlFor="name" className="text-base">Username</Label>
+              <Input id="name" value={formData.name} onChange={e => updateData('name', e.target.value)} placeholder="Enter your username" className="text-lg" />
+            </div>
+            <div>
+              <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
+              <Input id="birthDate" type="date" value={formData.birthDate} onChange={e => updateData('birthDate', e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
+            </div>
+            <div>
+              <Label>Gender</Label>
+              <Select value={formData.gender} onValueChange={value => updateData('gender', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="man">Man</SelectItem>
+                  <SelectItem value="woman">Woman</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </OnboardingStep>;
     case 3:
-      return <OnboardingStep title="When's your birthday?" description="Your age will be public, but not your birthday" onNext={nextStep} onBack={prevStep} canProceed={formData.birthDate.length > 0} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
-            <Input id="birthDate" type="date" value={formData.birthDate} onChange={e => updateData('birthDate', e.target.value)} />
-          </div>
-        </OnboardingStep>;
-    case 4:
-      return <OnboardingStep title="What's your gender?" onNext={nextStep} onBack={prevStep} canProceed={formData.gender.length > 0} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <Label>Gender</Label>
-            <Select value={formData.gender} onValueChange={value => updateData('gender', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="man">Man</SelectItem>
-                <SelectItem value="woman">Woman</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </OnboardingStep>;
-    case 5:
       return <OnboardingStep title="Who are you interested in?" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Show me</Label>
@@ -156,7 +153,7 @@ const Onboarding = () => {
             </Select>
           </div>
         </OnboardingStep>;
-    case 6:
+    case 4:
       return <OnboardingStep title="Sexual Orientation" onNext={nextStep} onBack={prevStep} canProceed={formData.orientation.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Sexual Orientation</Label>
@@ -175,7 +172,7 @@ const Onboarding = () => {
             </Select>
           </div>
         </OnboardingStep>;
-    case 7:
+    case 5:
       return <OnboardingStep title="What are you looking for?" onNext={nextStep} onBack={prevStep} canProceed={formData.lookingFor.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Relationship Goals</Label>
@@ -193,7 +190,7 @@ const Onboarding = () => {
             </Select>
           </div>
         </OnboardingStep>;
-    case 8:
+    case 6:
       return <OnboardingStep title="Distance Range" description="How far are you willing to travel for love?" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Maximum Distance: {formData.distance[0]} miles</Label>
@@ -204,14 +201,14 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 9:
+    case 7:
       return <OnboardingStep title="Hobbies & Lifestyle" description="Tell us about your interests" onNext={nextStep} onBack={prevStep} canProceed={formData.hobbies.length > 10} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label htmlFor="hobbies">What do you enjoy doing?</Label>
             <Textarea id="hobbies" value={formData.hobbies} onChange={e => updateData('hobbies', e.target.value)} placeholder="Tell us about your hobbies, interests, and lifestyle..." className="min-h-24" />
           </div>
         </OnboardingStep>;
-    case 10:
+    case 8:
       return <OnboardingStep title="Personality Type" description="Help others understand your vibe" onNext={nextStep} onBack={prevStep} canProceed={formData.personality.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Personality Type</Label>
@@ -240,7 +237,7 @@ const Onboarding = () => {
             </Select>
           </div>
         </OnboardingStep>;
-    case 11:
+    case 9:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('photo-upload')?.click()}>
@@ -278,7 +275,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 12:
+    case 10:
       return <OnboardingStep title="Location Settings" description="Help us show you people nearby" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -293,7 +290,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 13:
+    case 11:
       return <OnboardingStep title="Block Contacts" description="Prevent people from your contacts from finding you" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -305,7 +302,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 14:
+    case 12:
       return <OnboardingStep title="Oloo Insight" description="Let's show you how Òloo works" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-6">
             <div className="text-center">
@@ -322,7 +319,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 15:
+    case 13:
       return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
