@@ -284,8 +284,8 @@ const Onboarding = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="long-term">Long-term relationship</SelectItem>
-                <SelectItem value="open-to-short">Open to short-term</SelectItem>
                 <SelectItem value="short-term">Short-term dating</SelectItem>
+                <SelectItem value="open-to-short">Open to short-term</SelectItem>
                 <SelectItem value="open-to-long">Open to long-term</SelectItem>
                 <SelectItem value="not-sure">Not really sure</SelectItem>
               </SelectContent>
