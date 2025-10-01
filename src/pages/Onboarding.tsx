@@ -246,7 +246,7 @@ const Onboarding = () => {
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('photo-upload')?.click()}>
               <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-2">
-                {formData.photos.length > 0 ? `${formData.photos.length} photo(s) selected` : "Add at least 2 photos (max 6)"}
+                {formData.photos.length > 0 ? `${formData.photos.length} photo(s) selected` : "Maximum of six photos"}
               </p>
               <Input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" id="photo-upload" />
               <Button type="button" variant="outline" className="w-full pointer-events-none">
