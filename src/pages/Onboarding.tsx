@@ -111,7 +111,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 2:
-      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
               <Label htmlFor="name" className="text-base">Username</Label>
@@ -135,24 +135,6 @@ const Onboarding = () => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </OnboardingStep>;
-    case 3:
-      return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.orientation.length > 0 && formData.lookingFor.length > 0} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <div>
-              <Label>Show me</Label>
-              <Select value={formData.interestedIn} onValueChange={value => updateData('interestedIn', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Who you're interested in" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="men">Men</SelectItem>
-                  <SelectItem value="women">Women</SelectItem>
-                  <SelectItem value="everyone">Everyone</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div>
               <Label>Sexual Orientation</Label>
               <Select value={formData.orientation} onValueChange={value => updateData('orientation', value)}>
@@ -166,6 +148,24 @@ const Onboarding = () => {
                   <SelectItem value="bisexual">Bisexual</SelectItem>
                   <SelectItem value="pansexual">Pansexual</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </OnboardingStep>;
+    case 3:
+      return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0} currentStep={step} totalSteps={totalSteps}>
+          <div className="space-y-4">
+            <div>
+              <Label>Show me</Label>
+              <Select value={formData.interestedIn} onValueChange={value => updateData('interestedIn', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Who you're interested in" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="men">Men</SelectItem>
+                  <SelectItem value="women">Women</SelectItem>
+                  <SelectItem value="everyone">Everyone</SelectItem>
                 </SelectContent>
               </Select>
             </div>
