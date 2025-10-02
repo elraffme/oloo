@@ -116,6 +116,7 @@ const Onboarding = () => {
             <div>
               <Label htmlFor="name" className="text-base">Username</Label>
               <Input id="name" value={formData.name} onChange={e => updateData('name', e.target.value)} placeholder="Enter your username" className="text-lg" />
+              <p className="text-xs text-muted-foreground mt-1">Username will appear on profile</p>
             </div>
             <div>
               <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
