@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
-import ProfileCreation from '@/components/ProfileCreation';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 
@@ -18,7 +17,6 @@ const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showProfileCreation, setShowProfileCreation] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -101,11 +99,11 @@ const Auth = () => {
       const result = await signUp(formData.email, formData.password, metadata);
       
       if (!result.error) {
-        // Show profile creation after successful signup
+        // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
         } else {
-          setShowProfileCreation(true);
+          navigate('/app');
         }
       }
     } finally {
@@ -115,19 +113,8 @@ const Auth = () => {
 
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    setShowProfileCreation(true);
-  };
-
-  const handleProfileCreationComplete = () => {
-    setShowProfileCreation(false);
-    // Navigate to discovery page to start swiping
     navigate('/app');
   };
-
-  // Show profile creation flow
-  if (showProfileCreation) {
-    return <ProfileCreation onComplete={handleProfileCreationComplete} />;
-  }
 
   // Show verification flow
   if (showVerification) {
