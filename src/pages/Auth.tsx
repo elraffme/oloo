@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import ProfileCreation from '@/components/ProfileCreation';
 import { FaceVerification } from '@/components/FaceVerification';
+import { z } from 'zod';
+
+const emailSchema = z.string().email('Please enter a valid email address');
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -27,6 +30,7 @@ const Auth = () => {
     biometricConsent: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   // Redirect if already authenticated
   if (user && !loading) {
@@ -36,6 +40,24 @@ const Auth = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear email error when user types
+    if (name === 'email') {
+      setEmailError('');
+    }
+  };
+
+  const validateEmail = (email: string): boolean => {
+    try {
+      emailSchema.parse(email);
+      setEmailError('');
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setEmailError(error.errors[0].message);
+      }
+      return false;
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -53,6 +75,10 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    if (!validateEmail(formData.email)) {
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
@@ -177,9 +203,14 @@ const Auth = () => {
                       type="email"
                       value={formData.email}
                       onChange={handleInputChange}
+                      onBlur={() => formData.email && validateEmail(formData.email)}
                       placeholder="your@email.com"
+                      className={emailError ? 'border-red-500' : ''}
                       required
                     />
+                    {emailError && (
+                      <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                    )}
                   </div>
 
                   <div>
