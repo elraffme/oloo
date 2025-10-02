@@ -64,6 +64,10 @@ const Onboarding = () => {
     birthDate: "",
     gender: "",
     orientation: "",
+    height: "",
+    bodyType: "",
+    education: "",
+    occupation: "",
     interestedIn: "",
     lookingFor: "",
     distance: [25],
@@ -74,7 +78,7 @@ const Onboarding = () => {
     blockContacts: false,
     nearbyStudents: false
   });
-  const totalSteps = 9;
+  const totalSteps = 10;
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -155,6 +159,80 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 3:
+      return <OnboardingStep title="Basic Information" description="A few more details about you" onNext={nextStep} onBack={prevStep} canProceed={formData.height.length > 0 && formData.bodyType.length > 0 && formData.education.length > 0 && formData.occupation.length > 0} currentStep={step} totalSteps={totalSteps}>
+          <div className="space-y-4">
+            <div>
+              <Label>Height</Label>
+              <Select value={formData.height} onValueChange={value => updateData('height', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your height" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4'10">4'10" (147 cm)</SelectItem>
+                  <SelectItem value="4'11">4'11" (150 cm)</SelectItem>
+                  <SelectItem value="5'0">5'0" (152 cm)</SelectItem>
+                  <SelectItem value="5'1">5'1" (155 cm)</SelectItem>
+                  <SelectItem value="5'2">5'2" (157 cm)</SelectItem>
+                  <SelectItem value="5'3">5'3" (160 cm)</SelectItem>
+                  <SelectItem value="5'4">5'4" (163 cm)</SelectItem>
+                  <SelectItem value="5'5">5'5" (165 cm)</SelectItem>
+                  <SelectItem value="5'6">5'6" (168 cm)</SelectItem>
+                  <SelectItem value="5'7">5'7" (170 cm)</SelectItem>
+                  <SelectItem value="5'8">5'8" (173 cm)</SelectItem>
+                  <SelectItem value="5'9">5'9" (175 cm)</SelectItem>
+                  <SelectItem value="5'10">5'10" (178 cm)</SelectItem>
+                  <SelectItem value="5'11">5'11" (180 cm)</SelectItem>
+                  <SelectItem value="6'0">6'0" (183 cm)</SelectItem>
+                  <SelectItem value="6'1">6'1" (185 cm)</SelectItem>
+                  <SelectItem value="6'2">6'2" (188 cm)</SelectItem>
+                  <SelectItem value="6'3">6'3" (191 cm)</SelectItem>
+                  <SelectItem value="6'4">6'4" (193 cm)</SelectItem>
+                  <SelectItem value="6'5">6'5" (196 cm)</SelectItem>
+                  <SelectItem value="6'6+">6'6"+ (198+ cm)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Body Type</Label>
+              <Select value={formData.bodyType} onValueChange={value => updateData('bodyType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your body type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="slim">Slim</SelectItem>
+                  <SelectItem value="athletic">Athletic</SelectItem>
+                  <SelectItem value="average">Average</SelectItem>
+                  <SelectItem value="curvy">Curvy</SelectItem>
+                  <SelectItem value="muscular">Muscular</SelectItem>
+                  <SelectItem value="heavyset">Heavyset</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Education</Label>
+              <Select value={formData.education} onValueChange={value => updateData('education', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your education level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high-school">High School</SelectItem>
+                  <SelectItem value="some-college">Some College</SelectItem>
+                  <SelectItem value="associates">Associate's Degree</SelectItem>
+                  <SelectItem value="bachelors">Bachelor's Degree</SelectItem>
+                  <SelectItem value="masters">Master's Degree</SelectItem>
+                  <SelectItem value="phd">PhD/Doctorate</SelectItem>
+                  <SelectItem value="trade">Trade School</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="occupation">Occupation</Label>
+              <Input id="occupation" value={formData.occupation} onChange={e => updateData('occupation', e.target.value)} placeholder="What do you do?" />
+            </div>
+          </div>
+        </OnboardingStep>;
+    case 4:
       return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0 && formData.hobbies.length > 10 && formData.personality.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
@@ -217,7 +295,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 4:
+    case 5:
       return <OnboardingStep title="Distance Range" description="How far are you willing to travel for love?" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <Label>Maximum Distance: {formData.distance[0]} miles</Label>
@@ -228,7 +306,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 5:
+    case 6:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('photo-upload')?.click()}>
@@ -266,7 +344,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 6:
+    case 7:
       return <OnboardingStep title="Location Settings" description="Help us show you people nearby" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -281,7 +359,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 7:
+    case 8:
       return <OnboardingStep title="Block Contacts" description="Prevent people from your contacts from finding you" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -293,7 +371,7 @@ const Onboarding = () => {
             </p>
           </div>
         </OnboardingStep>;
-    case 8:
+    case 9:
       return <OnboardingStep title="Oloo Insight" description="Let's show you how Òloo works" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-6">
             <div className="text-center">
@@ -310,7 +388,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 9:
+    case 10:
       return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">

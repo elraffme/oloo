@@ -114,6 +114,6 @@ const ProfileCreation: React.FC<ProfileCreationProps> = ({
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
-  return;
+  return <div>Profile Creation Component</div>;
 };
 export default ProfileCreation;
