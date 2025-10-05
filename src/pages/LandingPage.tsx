@@ -32,7 +32,7 @@ const LandingPage = () => {
       <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
         backgroundImage: `url(${landingImage})`,
         backgroundSize: 'cover',
-        backgroundPosition: '60% center',
+        backgroundPosition: '80% center',
         backgroundRepeat: 'no-repeat',
         objectFit: 'cover'
       }} />
@@ -65,7 +65,9 @@ const LandingPage = () => {
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
           <div className="mb-12">
-            
+            <p className="text-lg text-white/80 leading-relaxed">
+              Experience meaningful connections rooted in culture and heritage
+            </p>
           </div>
         </div>
 
