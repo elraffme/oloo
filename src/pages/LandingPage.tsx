@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
-import landingImage from "@/assets/landing-african-couple.jpg";
+import landingImage from "@/assets/landing-african-casual.jpg";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Auto-start the "video"
   const videoRef = useRef<HTMLDivElement>(null);
