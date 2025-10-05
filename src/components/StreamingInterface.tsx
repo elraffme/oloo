@@ -46,6 +46,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
   const [totalGifts, setTotalGifts] = useState(0);
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasMediaPermissions, setHasMediaPermissions] = useState(false);
+  const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
 
   // Fetch live streams from database
   useEffect(() => {
@@ -147,6 +149,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
   }, [user]);
 
   const initializeCamera = async () => {
+    setIsRequestingPermissions(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
@@ -162,13 +165,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (error) {
-      console.error('Error accessing camera/microphone:', error);
+      
+      setHasMediaPermissions(true);
+      setIsCameraOn(true);
+      setIsMicOn(true);
+      
       toast({
-        title: "Camera access denied",
-        description: "Please enable camera and microphone permissions to stream.",
+        title: "Access granted",
+        description: "Camera and microphone are ready.",
+      });
+    } catch (error: any) {
+      console.error('Error accessing camera/microphone:', error);
+      setHasMediaPermissions(false);
+      
+      let errorMessage = "Please enable camera and microphone permissions to stream.";
+      if (error.name === 'NotAllowedError') {
+        errorMessage = "Permission denied. Please allow camera and microphone access in your browser settings.";
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = "No camera or microphone found. Please connect a device.";
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = "Camera or microphone is already in use by another application.";
+      }
+      
+      toast({
+        title: "Camera access failed",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsRequestingPermissions(false);
     }
   };
 
@@ -470,25 +495,39 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
 
                   {/* Controls */}
                   <div className="flex items-center justify-center space-x-4 mt-4">
-                    <Button
-                      variant={isCameraOn ? "default" : "secondary"}
-                      size="sm"
-                      onClick={toggleCamera}
-                    >
-                      {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                    </Button>
-                    
-                    <Button
-                      variant={isMicOn ? "default" : "secondary"}
-                      size="sm"
-                      onClick={toggleMicrophone}
-                    >
-                      {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                    </Button>
-                    
-                    <Button variant="ghost" size="sm">
-                      <Settings className="w-4 h-4" />
-                    </Button>
+                    {!hasMediaPermissions ? (
+                      <Button
+                        onClick={initializeCamera}
+                        disabled={isRequestingPermissions}
+                        className="w-full"
+                      >
+                        {isRequestingPermissions ? 'Requesting Access...' : 'Enable Camera & Microphone'}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant={isCameraOn ? "default" : "secondary"}
+                          size="sm"
+                          onClick={toggleCamera}
+                          disabled={!hasMediaPermissions}
+                        >
+                          {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                        </Button>
+                        
+                        <Button
+                          variant={isMicOn ? "default" : "secondary"}
+                          size="sm"
+                          onClick={toggleMicrophone}
+                          disabled={!hasMediaPermissions}
+                        >
+                          {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                        </Button>
+                        
+                        <Button variant="ghost" size="sm">
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
 
                   {/* Go Live Button */}
@@ -496,7 +535,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
                     {!isStreaming ? (
                       <Button
                         onClick={startStream}
-                        disabled={!streamTitle.trim() || isLoading}
+                        disabled={!streamTitle.trim() || isLoading || !hasMediaPermissions}
                         className="w-full bg-red-500 hover:bg-red-600 text-white"
                         size="lg"
                       >
@@ -512,6 +551,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
                       >
                         {isLoading ? 'Ending...' : 'End Stream'}
                       </Button>
+                    )}
+                    {!hasMediaPermissions && (
+                      <p className="text-sm text-muted-foreground text-center mt-2">
+                        Enable camera & microphone to go live
+                      </p>
                     )}
                   </div>
                 </CardContent>
