@@ -55,9 +55,6 @@ const LandingPage = () => {
             <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading">
               Òloo
             </h1>
-            <p className="text-lg md:text-xl text-white/90 font-light tracking-wide mt-1">
-              Cultured in connection
-            </p>
           </div>
         </header>
 
