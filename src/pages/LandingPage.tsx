@@ -42,9 +42,7 @@ const LandingPage = () => {
 
       {/* Video Control */}
       <div className="absolute top-6 right-6 z-20">
-        <Button variant="outline" size="sm" onClick={toggleVideo} className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
-          {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-        </Button>
+        
       </div>
 
       {/* Content Overlay */}
