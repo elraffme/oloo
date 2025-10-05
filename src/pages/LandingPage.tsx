@@ -52,7 +52,7 @@ const LandingPage = () => {
         {/* Header */}
         <header className="flex justify-center py-6">
           <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading -mt-12">
+            <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading -mt-8">
               Òloo
             </h1>
           </div>
