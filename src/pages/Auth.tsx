@@ -99,11 +99,11 @@ const Auth = () => {
       const result = await signUp(formData.email, formData.password, metadata);
       
       if (!result.error) {
-        // Navigate to app after successful signup
+        // Navigate to onboarding after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
         } else {
-          navigate('/app');
+          navigate('/onboarding');
         }
       }
     } finally {
@@ -113,7 +113,7 @@ const Auth = () => {
 
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    navigate('/app');
+    navigate('/onboarding');
   };
 
   // Show verification flow

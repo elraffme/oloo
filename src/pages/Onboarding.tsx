@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 const OnboardingStep = ({
   title,
   description,
@@ -48,7 +51,7 @@ const OnboardingStep = ({
               Back
             </Button>}
           <Button onClick={onNext} disabled={!canProceed} className="flex-1 nsibidi-gradient text-primary-foreground">
-            {isLastStep ? "Let's Start!" : "Continue"}
+            {isLastStep ? "Complete Profile" : "Continue"}
             {!isLastStep && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
         </div>
@@ -57,7 +60,10 @@ const OnboardingStep = ({
   </div>;
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { user, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     agreed: false,
     name: "",
@@ -85,11 +91,118 @@ const Onboarding = () => {
       [field]: value
     }));
   };
-  const nextStep = () => {
+  const uploadPhotos = async (): Promise<string[]> => {
+    if (!user || formData.photos.length === 0) return [];
+    
+    const uploadedUrls: string[] = [];
+    
+    for (let i = 0; i < formData.photos.length; i++) {
+      const photo = formData.photos[i];
+      const fileExt = photo.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
+      
+      const { error: uploadError, data } = await supabase.storage
+        .from('profile-photos')
+        .upload(fileName, photo);
+      
+      if (uploadError) {
+        console.error('Photo upload error:', uploadError);
+        continue;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(fileName);
+      
+      uploadedUrls.push(publicUrl);
+    }
+    
+    return uploadedUrls;
+  };
+
+  const calculateAge = (birthDate: string): number => {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const saveProfile = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to complete onboarding",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      // Upload photos first
+      const photoUrls = await uploadPhotos();
+      
+      // Calculate age from birth date
+      const age = calculateAge(formData.birthDate);
+      
+      // Prepare profile data
+      const profileData = {
+        display_name: formData.name,
+        age: age,
+        gender: formData.gender,
+        height_cm: parseInt(formData.height.split("'")[0]) * 30.48 + parseInt(formData.height.split("'")[1]) * 2.54,
+        education: formData.education,
+        occupation: formData.occupation,
+        relationship_goals: formData.lookingFor,
+        interests: formData.hobbies.split(',').map(h => h.trim()).filter(h => h),
+        profile_photos: photoUrls,
+        bio: `${formData.hobbies}\n\nPersonality: ${formData.personality}`
+      };
+      
+      const { error } = await updateProfile(profileData);
+      
+      if (error) {
+        toast({
+          title: "Error saving profile",
+          description: error.message,
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      toast({
+        title: "Profile created!",
+        description: "Welcome to Òloo"
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Profile save error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const nextStep = async () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      navigate('/app');
+      // Save profile on last step
+      const success = await saveProfile();
+      if (success) {
+        navigate('/app');
+      }
     }
   };
   const prevStep = () => {
