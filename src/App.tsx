@@ -12,6 +12,9 @@ import Streaming from "./pages/Streaming";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Premium from "./pages/Premium";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiesPolicy from "./pages/CookiesPolicy";
 
 const App = () => (
   <AuthProvider>
@@ -21,6 +24,9 @@ const App = () => (
         <Route path="/auth" element={<Auth />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/cookies" element={<CookiesPolicy />} />
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Discover />} />
           <Route path="streaming" element={<Streaming />} />
