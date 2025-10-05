@@ -48,8 +48,7 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-9xl">
-
+        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-9xl [text-shadow:_-1px_-1px_0_#D4AF37,_1px_-1px_0_#D4AF37,_-1px_1px_0_#D4AF37,_1px_1px_0_#D4AF37]">
 Òloo</h1>
         <p className="text-center text-white text-base">         Cultured in Connection</p>
 
