@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
-import landingImage from "@/assets/landing-african-casual.jpg";
+import landingImage from "@/assets/landing-social-environment.jpg";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Auto-start the "video"
   const videoRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,7 @@ const LandingPage = () => {
       <div className="absolute inset-x-0 top-[88px] bottom-0">
         <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
         backgroundImage: `url(${landingImage})`,
-        backgroundSize: '80%',
+        backgroundSize: '40%',
         backgroundPosition: 'center 30%',
         backgroundRepeat: 'no-repeat'
       }} />
