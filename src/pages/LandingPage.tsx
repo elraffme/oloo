@@ -60,7 +60,7 @@ const LandingPage = () => {
           </div>
         </div>
 
-        <div className="pl-4 pr-6 py-8 flex-1 flex flex-col">
+        <div className="pl-6 pr-4 py-8 flex-1 flex flex-col">
 
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
