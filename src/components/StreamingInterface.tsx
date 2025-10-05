@@ -47,48 +47,90 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Mock live streams data
+  // Fetch live streams from database
   useEffect(() => {
-    const mockStreams: StreamData[] = [
-      {
-        id: '1',
-        title: 'Cultural Music Session 🎵',
-        description: 'Live performance of traditional African songs',
-        host_user_id: 'host1',
-        host_name: 'Kemi Adebayo',
-        current_viewers: 234,
-        status: 'live',
-        created_at: new Date().toISOString(),
-        category: 'Music',
-        thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-      },
-      {
-        id: '2',
-        title: 'Dating Tips & Cultural Values 💝',
-        description: 'Discussion on modern dating with traditional values',
-        host_user_id: 'host2',
-        host_name: 'Amara Johnson',
-        current_viewers: 156,
-        status: 'live',
-        created_at: new Date().toISOString(),
-        category: 'Lifestyle',
-        thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop'
-      },
-      {
-        id: '3',
-        title: 'Traditional Cooking Class 👩‍🍳',
-        description: 'Learn to make authentic West African dishes',
-        host_user_id: 'host3',
-        host_name: 'Fatima Al-Hassan',
-        current_viewers: 89,
-        status: 'live',
-        created_at: new Date().toISOString(),
-        category: 'Food',
-        thumbnail: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop'
+    const fetchLiveStreams = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('streaming_sessions')
+          .select(`
+            *,
+            profiles:host_user_id (display_name)
+          `)
+          .eq('status', 'live')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedStreams: StreamData[] = data?.map((stream: any) => ({
+          id: stream.id,
+          title: stream.title,
+          description: stream.description || '',
+          host_user_id: stream.host_user_id,
+          host_name: stream.profiles?.display_name || 'Anonymous',
+          current_viewers: stream.current_viewers || 0,
+          status: stream.status,
+          created_at: stream.created_at,
+          category: stream.ar_space_data?.category || 'General',
+          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+        })) || [];
+
+        setLiveStreams(formattedStreams);
+      } catch (error) {
+        console.error('Error fetching live streams:', error);
+        // Show mock data if fetch fails
+        const mockStreams: StreamData[] = [
+          {
+            id: '1',
+            title: 'Cultural Music Session 🎵',
+            description: 'Live performance of traditional African songs',
+            host_user_id: 'host1',
+            host_name: 'Kemi Adebayo',
+            current_viewers: 234,
+            status: 'live',
+            created_at: new Date().toISOString(),
+            category: 'Music',
+            thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+          },
+          {
+            id: '2',
+            title: 'Dating Tips & Cultural Values 💝',
+            description: 'Discussion on modern dating with traditional values',
+            host_user_id: 'host2',
+            host_name: 'Amara Johnson',
+            current_viewers: 156,
+            status: 'live',
+            created_at: new Date().toISOString(),
+            category: 'Lifestyle',
+            thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop'
+          }
+        ];
+        setLiveStreams(mockStreams);
       }
-    ];
-    
-    setLiveStreams(mockStreams);
+    };
+
+    fetchLiveStreams();
+
+    // Set up real-time subscription for new streams
+    const channel = supabase
+      .channel('streaming_sessions_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'streaming_sessions',
+          filter: 'status=eq.live'
+        },
+        () => {
+          fetchLiveStreams();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Initialize camera
