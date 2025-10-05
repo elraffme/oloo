@@ -28,11 +28,11 @@ const LandingPage = () => {
   };
   return <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background Video/Image Layer */}
-      <div className="absolute inset-x-0 top-[88px] bottom-0">
+      <div className="absolute inset-0">
         <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
         backgroundImage: `url(${landingImage})`,
-        backgroundSize: '80%',
-        backgroundPosition: 'center 30%',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
       }} />
         {/* Dark Juniper Green overlay for text readability */}
