@@ -51,13 +51,11 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <div className="w-full py-4 px-6">
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="text-4xl md:text-5xl font-bold text-primary font-afro-heading">
-              Òloo
-            </h1>
-            <p className="text-center text-white/90 text-base">Cultured in connection</p>
-          </div>
+        <div className="flex flex-col items-center gap-1 py-4 px-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-primary font-afro-heading">
+            Òloo
+          </h1>
+          <p className="text-center text-white/90 text-base">Cultured in connection</p>
         </div>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
