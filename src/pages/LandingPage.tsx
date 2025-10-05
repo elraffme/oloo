@@ -2,11 +2,9 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 import landingImage from "@/assets/landing-sunset-couple.jpg";
-
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const videoRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (isVideoPlaying && videoRef.current) {
       let frame = 0;
@@ -22,11 +20,9 @@ const LandingPage = () => {
       return () => clearInterval(interval);
     }
   }, [isVideoPlaying]);
-
   const toggleVideo = () => {
     setIsVideoPlaying(!isVideoPlaying);
   };
-
   return <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background Video/Image Layer */}
       <div className="absolute inset-0">
@@ -52,7 +48,7 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-7xl">Òloo</h1>
+        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-8xl">Òloo</h1>
         <p className="text-center text-white text-base">Cultured in Connection</p>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
@@ -110,6 +106,4 @@ const LandingPage = () => {
       </div>
     </div>;
 };
-
 export default LandingPage;
-
