@@ -59,7 +59,7 @@ const LandingPage = () => {
         </header>
 
         {/* Top Banner */}
-        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-8 mb-4">
+        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 mt-4 mb-4">
           <p className="text-center text-white/90 text-lg">Cultured in connection</p>
         </div>
 
