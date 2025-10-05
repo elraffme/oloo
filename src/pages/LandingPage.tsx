@@ -101,7 +101,7 @@ const LandingPage = () => {
             className="w-full h-12 text-lg font-medium text-white hover:bg-white/10 rounded-full"
             onClick={() => window.location.href = '/auth'}
           >
-            Sign in
+            Already a member? Log in
           </Button>
 
           {/* Legal Text */}
