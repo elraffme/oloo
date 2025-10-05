@@ -63,7 +63,7 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen px-6 py-8">
         
         {/* Top Banner */}
-        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 mb-4">
+        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-8 mb-4">
           <p className="text-center text-sm text-white/90">
             🎉 Welcome to Òloo - Your journey to meaningful connections starts here
           </p>
