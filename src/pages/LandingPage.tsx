@@ -42,7 +42,9 @@ const LandingPage = () => {
 
       {/* Video Control */}
       <div className="absolute top-6 right-6 z-20">
-        
+        <Button variant="outline" size="sm" onClick={toggleVideo} className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
+          {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </Button>
       </div>
 
       {/* Content Overlay */}
@@ -63,7 +65,9 @@ const LandingPage = () => {
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
           <div className="mb-12">
-            
+            <p className="text-lg text-white/80 leading-relaxed">
+              Experience meaningful connections rooted in culture and heritage
+            </p>
           </div>
         </div>
 

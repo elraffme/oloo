@@ -10,10 +10,10 @@ const TermsOfService = () => {
           Back
         </Button>
 
-        <h1 className="text-4xl font-bold mb-2 text-green-400">Terms of Service</h1>
-        <p className="text-green-300 mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
+        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
 
-        <div className="space-y-8 text-green-400">
+        <div className="space-y-8 text-foreground">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p className="leading-relaxed">
