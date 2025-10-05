@@ -135,35 +135,42 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
     };
   }, []);
 
-  // Initialize camera
+  // Cleanup camera on unmount
   useEffect(() => {
-    if (user) {
-      initializeCamera();
-    }
-    
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [user]);
+  }, []);
 
   const initializeCamera = async () => {
     setIsRequestingPermissions(true);
     try {
+      // Request camera and microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           width: { ideal: 1280 },
           height: { ideal: 720 },
           facingMode: 'user'
         },
-        audio: true
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       
       streamRef.current = stream;
       
+      // Set video source and play
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          console.error('Error playing video:', playError);
+        }
       }
       
       setHasMediaPermissions(true);
@@ -171,8 +178,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
       setIsMicOn(true);
       
       toast({
-        title: "Access granted",
-        description: "Camera and microphone are ready.",
+        title: "Access granted ✓",
+        description: "Camera and microphone are ready to stream.",
       });
     } catch (error: any) {
       console.error('Error accessing camera/microphone:', error);
@@ -180,11 +187,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({ onBack }) => {
       
       let errorMessage = "Please enable camera and microphone permissions to stream.";
       if (error.name === 'NotAllowedError') {
-        errorMessage = "Permission denied. Please allow camera and microphone access in your browser settings.";
+        errorMessage = "Permission denied. Please click 'Allow' when your browser asks for camera and microphone access.";
       } else if (error.name === 'NotFoundError') {
-        errorMessage = "No camera or microphone found. Please connect a device.";
+        errorMessage = "No camera or microphone found. Please connect a device and try again.";
       } else if (error.name === 'NotReadableError') {
-        errorMessage = "Camera or microphone is already in use by another application.";
+        errorMessage = "Camera or microphone is already in use. Please close other apps and try again.";
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage = "Your browser doesn't support camera access. Please use a modern browser.";
       }
       
       toast({
