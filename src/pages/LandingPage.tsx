@@ -52,7 +52,7 @@ const LandingPage = () => {
         
         {/* Top Banner with Logo */}
         <p className="text-center text-white/90 text-base">Cultured in connection</p>
-        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-8xl">                                      Òloo</h1>
+        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-7xl">   Òloo</h1>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
 
