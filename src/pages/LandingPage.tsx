@@ -51,7 +51,7 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <div className="w-full bg-black border-b border-white/10 py-4 px-6">
+        <div className="w-full bg-black border-b border-white/10 py-3 px-6">
           <div className="flex flex-col items-center gap-2">
             <h1 className="text-4xl md:text-5xl font-bold text-primary font-afro-heading">
               Òloo
