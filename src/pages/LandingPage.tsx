@@ -47,21 +47,19 @@ const LandingPage = () => {
       </div>
 
       {/* Content Overlay */}
-      <div className="relative z-10 flex flex-col min-h-screen px-6 py-8">
+      <div className="relative z-10 flex flex-col min-h-screen">
         
-        {/* Header */}
-        <header className="flex justify-center py-6">
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading -mt-8">
+        {/* Top Banner with Logo */}
+        <div className="w-full bg-black border-b border-white/10 py-4 px-6">
+          <div className="flex flex-col items-center gap-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-primary font-afro-heading">
               Òloo
             </h1>
+            <p className="text-center text-white/90 text-base">Cultured in connection</p>
           </div>
-        </header>
-
-        {/* Top Banner */}
-        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-2 mb-4">
-          <p className="text-center text-white/90 text-lg">Cultured in connection</p>
         </div>
+
+        <div className="px-6 py-8 flex-1 flex flex-col">
 
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
@@ -96,6 +94,7 @@ const LandingPage = () => {
             </p>
           </div>
 
+        </div>
         </div>
       </div>
 
