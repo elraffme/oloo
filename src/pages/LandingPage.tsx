@@ -50,7 +50,7 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen px-6 py-8">
         
         {/* Header */}
-        <header className="flex justify-center pt-0 pb-6">
+        <header className="flex justify-center pt-0 pb-2">
           <div className="text-center">
             <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading">
               Òloo
@@ -59,7 +59,7 @@ const LandingPage = () => {
         </header>
 
         {/* Top Banner */}
-        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-10 mb-4">
+        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-8 mb-4">
           <p className="text-center text-white/90 text-lg">Cultured in connection</p>
         </div>
 
