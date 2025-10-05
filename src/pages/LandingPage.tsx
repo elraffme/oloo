@@ -52,7 +52,7 @@ const LandingPage = () => {
         
         {/* Top Banner with Logo */}
         <div className="w-full bg-black border-b border-white/10 py-3 px-6">
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-1">
             <h1 className="text-4xl md:text-5xl font-bold text-primary font-afro-heading">
               Òloo
             </h1>
