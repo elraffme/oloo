@@ -31,7 +31,7 @@ const LandingPage = () => {
       <div className="absolute inset-x-0 top-[88px] bottom-0">
       <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
         backgroundImage: `url(${landingImage})`,
-        backgroundSize: 'contain',
+        backgroundSize: 'cover',
         backgroundPosition: '40% center',
         backgroundRepeat: 'no-repeat',
         objectFit: 'cover'
@@ -60,7 +60,7 @@ const LandingPage = () => {
           </div>
         </div>
 
-        <div className="pl-8 pr-8 py-8 flex-1 flex flex-col scale-[0.99]">
+        <div className="pl-8 pr-8 py-8 flex-1 flex flex-col">
 
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
