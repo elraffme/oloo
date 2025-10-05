@@ -60,28 +60,27 @@ const LandingPage = () => {
       </div>
 
       {/* Content Overlay */}
-      <div className="relative z-10 flex flex-col justify-between min-h-screen px-6 py-8">
+      <div className="relative z-10 flex flex-col min-h-screen px-6 py-8">
         
-        {/* Top Section */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
-          
-          {/* Logo/Brand */}
-          <div className="mb-8">
-            <h1 className="text-6xl md:text-7xl font-bold text-primary mb-2 font-afro-heading">
+        {/* Header */}
+        <header className="flex justify-center py-6">
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-primary font-afro-heading">
               Òloo
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 font-light tracking-wide">
+            <p className="text-lg md:text-xl text-white/90 font-light tracking-wide mt-1">
               Cultured in connection
             </p>
           </div>
+        </header>
 
-          {/* Tagline */}
+        {/* Main Content - Centered Tagline */}
+        <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
           <div className="mb-12">
             <p className="text-lg text-white/80 leading-relaxed">
               Experience meaningful connections rooted in culture and heritage
             </p>
           </div>
-
         </div>
 
         {/* Bottom CTA Section */}
