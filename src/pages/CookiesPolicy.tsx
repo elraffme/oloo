@@ -1,18 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 const CookiesPolicy = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto px-6 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
@@ -178,14 +171,10 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
-            <p className="leading-relaxed">
-              For questions about our use of cookies, contact us at privacy@oloo.app
-            </p>
+            <p className="leading-relaxed">For questions about our use of cookies, contact us at privacy@oloo.media</p>
           </section>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default CookiesPolicy;
