@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 import landingImage from "@/assets/landing-video-frame.jpg";
-
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true); // Auto-start the "video"
   const videoRef = useRef<HTMLDivElement>(null);
@@ -24,37 +23,25 @@ const LandingPage = () => {
       return () => clearInterval(interval);
     }
   }, [isVideoPlaying]);
-
   const toggleVideo = () => {
     setIsVideoPlaying(!isVideoPlaying);
   };
-
-  return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden">
+  return <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background Video/Image Layer */}
       <div className="absolute inset-0">
-        <div 
-          ref={videoRef}
-          className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`}
-          style={{
-            backgroundImage: `url(${landingImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        />
+        <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
+        backgroundImage: `url(${landingImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }} />
         {/* Dark Juniper Green overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-primary/70" />
       </div>
 
       {/* Video Control */}
       <div className="absolute top-6 right-6 z-20">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleVideo}
-          className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
-        >
+        <Button variant="outline" size="sm" onClick={toggleVideo} className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
           {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </Button>
       </div>
@@ -63,10 +50,8 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen px-6 py-8">
         
         {/* Top Banner */}
-        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 mb-4">
-          <p className="text-center text-sm text-white/90">
-            🎉 Welcome to Òloo - Your journey to meaningful connections starts here
-          </p>
+        <div className="w-screen bg-black border-b border-white/10 py-3 px-4 -ml-6 -mt-8 mb-4">
+          <p className="text-center text-white/90 text-lg">Cultured in connection</p>
         </div>
 
         {/* Header */}
@@ -94,19 +79,12 @@ const LandingPage = () => {
         <div className="space-y-4">
           
           {/* Primary CTA */}
-          <Button 
-            className="w-full h-14 text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform"
-            onClick={() => window.location.href = '/onboarding'}
-          >
+          <Button className="w-full h-14 text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
             Create account
           </Button>
 
           {/* Secondary CTA */}
-          <Button 
-            variant="ghost" 
-            className="w-full h-12 text-lg font-medium text-white hover:bg-white/10 rounded-full"
-            onClick={() => window.location.href = '/auth'}
-          >
+          <Button variant="ghost" className="w-full h-12 text-lg font-medium text-white hover:bg-white/10 rounded-full" onClick={() => window.location.href = '/auth'}>
             Already a member? Log in
           </Button>
 
@@ -127,15 +105,19 @@ const LandingPage = () => {
       {/* Subtle Animation Elements */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Floating particles for subtle movement */}
-        <div className="animate-pulse absolute top-1/4 left-8 w-2 h-2 bg-white/20 rounded-full" 
-             style={{ animationDelay: '0s', animationDuration: '3s' }} />
-        <div className="animate-pulse absolute top-1/3 right-12 w-1 h-1 bg-white/30 rounded-full" 
-             style={{ animationDelay: '1s', animationDuration: '4s' }} />
-        <div className="animate-pulse absolute bottom-1/3 left-16 w-1.5 h-1.5 bg-white/25 rounded-full" 
-             style={{ animationDelay: '2s', animationDuration: '5s' }} />
+        <div className="animate-pulse absolute top-1/4 left-8 w-2 h-2 bg-white/20 rounded-full" style={{
+        animationDelay: '0s',
+        animationDuration: '3s'
+      }} />
+        <div className="animate-pulse absolute top-1/3 right-12 w-1 h-1 bg-white/30 rounded-full" style={{
+        animationDelay: '1s',
+        animationDuration: '4s'
+      }} />
+        <div className="animate-pulse absolute bottom-1/3 left-16 w-1.5 h-1.5 bg-white/25 rounded-full" style={{
+        animationDelay: '2s',
+        animationDuration: '5s'
+      }} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default LandingPage;
