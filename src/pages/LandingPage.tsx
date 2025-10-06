@@ -46,12 +46,12 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <div className="bg-black/90 py-2">
+        <div className="bg-black/90 py-2 pb-4">
           <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-7xl">Òloo</h1>
+          <p className="text-center text-white text-lg font-medium mt-1">Cultured in Connection</p>
         </div>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
-          <p className="text-center text-white text-lg font-medium mb-0">Cultured in Connection</p>
 
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
