@@ -6,6 +6,7 @@ import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import SignIn from "./pages/SignIn";
 import Onboarding from "./pages/Onboarding";
+import About from "./pages/About";
 import AppLayout from "./components/AppLayout";
 import Discover from "./pages/Discover";
 import Streaming from "./pages/Streaming";
@@ -24,6 +25,7 @@ const App = () => (
         <Route path="/auth" element={<Auth />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/about" element={<About />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/cookies" element={<CookiesPolicy />} />

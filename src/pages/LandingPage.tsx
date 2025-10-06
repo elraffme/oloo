@@ -73,16 +73,6 @@ const LandingPage = () => {
             Already a member? Log in
           </Button>
 
-          {/* Legal Text */}
-          <div className="pt-4 pb-2">
-            <p className="text-xs text-white/60 text-center leading-relaxed">
-              By tapping 'Sign in' / 'Create account', you agree to our{' '}
-              <a href="/terms" className="underline hover:text-white/80 transition-colors">Terms of Service</a>. 
-              Learn how we process your data in our{' '}
-              <a href="/privacy" className="underline hover:text-white/80 transition-colors">Privacy Policy</a> and{' '}
-              <a href="/cookies" className="underline hover:text-white/80 transition-colors">Cookies Policy</a>.
-            </p>
-          </div>
 
         </div>
         </div>
