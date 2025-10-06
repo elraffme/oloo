@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Clock, Check, X, Users, Circle } from 'lucide-react';
+import { MessageCircle, Clock, Check, X, Users } from 'lucide-react';
 import { getUserFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, Friend, FriendRequest } from '@/utils/friendsUtils';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext } from '@/contexts/PresenceContext';
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 
 interface FriendsSectionProps {
   onStartChat: (friendId: string) => void;
@@ -32,7 +33,7 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { isUserOnline } = usePresence();
+  const { isUserOnline } = usePresenceContext();
 
   useEffect(() => {
     loadData();
@@ -325,14 +326,27 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
               <Card key={friend.friend_user_id} className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={getAvatarUrl(friend)} />
-                      <AvatarFallback>
-                        {friend.display_name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={getAvatarUrl(friend)} />
+                        <AvatarFallback>
+                          {friend.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-1 -right-1">
+                        <OnlineStatusBadge userId={friend.friend_user_id} />
+                      </div>
+                    </div>
                     <div className="flex-1">
-                      <h4 className="font-medium">{friend.display_name}</h4>
+                      <h4 className="font-medium flex items-center gap-2">
+                        {friend.display_name}
+                        <OnlineStatusBadge 
+                          userId={friend.friend_user_id} 
+                          showDot={false} 
+                          showText={true}
+                          className="text-xs"
+                        />
+                      </h4>
                       <p className="text-sm text-muted-foreground">
                         Friends since {new Date(friend.friend_since).toLocaleDateString()}
                       </p>
@@ -377,21 +391,18 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
                           {user.display_name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {/* Online status indicator */}
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center ${
-                        isUserOnline(user.user_id) 
-                          ? 'bg-green-500' 
-                          : 'bg-gray-400'
-                      }`}>
-                        <Circle className="w-2 h-2 fill-current" />
+                      <div className="absolute -bottom-1 -right-1">
+                        <OnlineStatusBadge userId={user.user_id} />
                       </div>
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium">{user.display_name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className={isUserOnline(user.user_id) ? 'text-green-500' : 'text-gray-400'}>
-                          {isUserOnline(user.user_id) ? 'Online' : 'Offline'}
-                        </span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <OnlineStatusBadge 
+                          userId={user.user_id} 
+                          showDot={false} 
+                          showText={true}
+                        />
                         {user.is_friend && (
                           <Badge variant="outline" className="text-xs">Friend</Badge>
                         )}

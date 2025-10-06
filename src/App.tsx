@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { PresenceProvider } from '@/contexts/PresenceContext';
 import SecurityHeader from "@/components/SecurityHeader";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
@@ -19,7 +20,8 @@ import CookiesPolicy from "./pages/CookiesPolicy";
 
 const App = () => (
   <AuthProvider>
-    <Router>
+    <PresenceProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
@@ -39,6 +41,7 @@ const App = () => (
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </PresenceProvider>
   </AuthProvider>
 );
 
