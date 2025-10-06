@@ -51,17 +51,10 @@ const LandingPage = () => {
           <p className="text-center text-white font-medium mt-0 text-base">Cultured in Connection</p>
         </div>
 
-        <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
-
-        {/* Main Content - Centered Tagline */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
-          <div className="mb-12">
-            
-          </div>
-        </div>
+        <div className="px-6 py-6 flex-1 flex flex-col justify-end">
 
         {/* Bottom CTA Section */}
-        <div className="space-y-4">
+        <div className="space-y-3 pb-4">
           
           {/* Primary CTA */}
           <Button className="w-full h-10 text-sm font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
