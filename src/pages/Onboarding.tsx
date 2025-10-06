@@ -444,7 +444,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 6:
-      return <OnboardingStep title="Add Photos" description="Add photos to make your profile stand out (optional)" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div 
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
