@@ -21,6 +21,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -97,6 +98,75 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     onPhotosUpdate(newPhotos);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (profilePhotos.length < maxPhotos) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (profilePhotos.length >= maxPhotos) return;
+
+    const files = Array.from(e.dataTransfer.files).filter(file => 
+      file.type.startsWith('image/')
+    );
+
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    
+    try {
+      const newPhotos = [...profilePhotos];
+      
+      for (const file of files.slice(0, maxPhotos - profilePhotos.length)) {
+        const fileName = `${user?.id}/${Date.now()}_${file.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        if (urlData?.publicUrl) {
+          newPhotos.push(urlData.publicUrl);
+        }
+      }
+
+      onPhotosUpdate(newPhotos);
+
+      toast({
+        title: "Photos uploaded",
+        description: `${newPhotos.length - profilePhotos.length} photos uploaded successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Unable to upload photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -106,7 +176,12 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div 
+          className="grid grid-cols-2 md:grid-cols-3 gap-4"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           {profilePhotos.map((photo, index) => (
             <div key={index} className="relative aspect-square group">
               <img
@@ -127,7 +202,11 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
           
           {profilePhotos.length < maxPhotos && (
             <div
-              className="aspect-square bg-muted rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors border-2 border-dashed border-border"
+              className={`aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-colors border-2 border-dashed ${
+                isDragging 
+                  ? 'border-primary bg-primary/10' 
+                  : 'border-border bg-muted hover:bg-muted/80'
+              }`}
               onClick={() => fileInputRef.current?.click()}
             >
               {isUploading ? (
@@ -135,7 +214,9 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
               ) : (
                 <div className="text-center">
                   <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Add Photo</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isDragging ? 'Drop here' : 'Add Photo'}
+                  </p>
                 </div>
               )}
             </div>

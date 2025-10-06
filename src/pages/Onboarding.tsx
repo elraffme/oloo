@@ -64,6 +64,7 @@ const Onboarding = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [formData, setFormData] = useState({
     agreed: false,
     name: "",
@@ -211,7 +212,30 @@ const Onboarding = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      updateData('photos', [...formData.photos, ...files]);
+      updateData('photos', [...formData.photos, ...files].slice(0, 6));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    if (files.length > 0) {
+      updateData('photos', [...formData.photos, ...files].slice(0, 6));
     }
   };
   switch (step) {
@@ -422,10 +446,24 @@ const Onboarding = () => {
     case 6:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors" onClick={() => document.getElementById('photo-upload')?.click()}>
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragging 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:border-primary'
+              }`}
+              onClick={() => document.getElementById('photo-upload')?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-2">
-                {formData.photos.length > 0 ? `${formData.photos.length} photo(s) selected` : "Maximum of six photos"}
+                {isDragging 
+                  ? "Drop your photos here" 
+                  : formData.photos.length > 0 
+                    ? `${formData.photos.length} photo(s) selected` 
+                    : "Drag & drop or click to upload (max 6 photos)"}
               </p>
               <Input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" id="photo-upload" />
               <Button type="button" variant="outline" className="w-full pointer-events-none">
