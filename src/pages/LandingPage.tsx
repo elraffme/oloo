@@ -51,7 +51,7 @@ const LandingPage = () => {
         </div>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
-          <p className="text-center text-white text-lg font-medium mb-2">Cultured in Connection</p>
+          <p className="text-center text-white text-lg font-medium mb-0">Cultured in Connection</p>
 
         {/* Main Content - Centered Tagline */}
         <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm mx-auto">
