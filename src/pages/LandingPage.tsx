@@ -69,7 +69,7 @@ const LandingPage = () => {
           </Button>
 
           {/* Secondary CTA */}
-          <Button variant="ghost" className="w-full h-10 text-base font-medium text-white hover:bg-white/10 rounded-full" onClick={() => window.location.href = '/auth'}>
+          <Button variant="ghost" onClick={() => window.location.href = '/auth'} className="w-full h-10 font-medium text-white hover:bg-white/10 rounded-full text-sm">
             Already a member? Log in
           </Button>
 
