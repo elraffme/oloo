@@ -20,6 +20,7 @@ const OnboardingStep = ({
   onBack,
   canProceed = true,
   isLastStep = false,
+  isSaving = false,
   currentStep,
   totalSteps
 }: {
@@ -30,6 +31,7 @@ const OnboardingStep = ({
   onBack?: () => void;
   canProceed?: boolean;
   isLastStep?: boolean;
+  isSaving?: boolean;
   currentStep: number;
   totalSteps: number;
 }) => <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex items-center justify-center p-4">
@@ -50,8 +52,8 @@ const OnboardingStep = ({
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>}
-          <Button onClick={onNext} disabled={!canProceed} className="flex-1 nsibidi-gradient text-primary-foreground">
-            {isLastStep ? "Complete Profile" : "Continue"}
+          <Button onClick={onNext} disabled={!canProceed || (isLastStep && isSaving)} className="flex-1 nsibidi-gradient text-primary-foreground">
+            {isLastStep && isSaving ? "Saving..." : isLastStep ? "Complete Profile" : "Continue"}
             {!isLastStep && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
         </div>
@@ -540,7 +542,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 10:
-      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
               <span className="logo-text">Ò</span>
