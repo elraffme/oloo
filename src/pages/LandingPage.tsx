@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 import landingImage from "@/assets/landing-sunset-couple.jpg";
+
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const videoRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isVideoPlaying && videoRef.current) {
       let frame = 0;
@@ -20,9 +22,11 @@ const LandingPage = () => {
       return () => clearInterval(interval);
     }
   }, [isVideoPlaying]);
+
   const toggleVideo = () => {
     setIsVideoPlaying(!isVideoPlaying);
   };
+
   return <div className="relative min-h-screen flex flex-col overflow-hidden">
       {/* Background Video/Image Layer */}
       <div className="absolute inset-0">
@@ -39,16 +43,17 @@ const LandingPage = () => {
 
       {/* Video Control */}
       <div className="absolute top-6 right-6 z-20">
-        
+        <Button variant="outline" size="sm" onClick={toggleVideo} className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
+          {isVideoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+        </Button>
       </div>
 
       {/* Content Overlay */}
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-9xl [text-shadow:_-1px_-1px_0_#D4AF37,_1px_-1px_0_#D4AF37,_-1px_1px_0_#D4AF37,_1px_1px_0_#D4AF37]">
-Òloo</h1>
-        <p className="text-center text-white text-base">         Cultured in Connection</p>
+        <h1 className="text-4xl text-primary font-afro-heading text-center font-bold md:text-7xl">Òloo</h1>
+        <p className="text-center text-white text-base">Cultured in Connection</p>
 
         <div className="pl-6 pr-8 py-8 flex-1 flex flex-col">
 
@@ -105,4 +110,6 @@ const LandingPage = () => {
       </div>
     </div>;
 };
+
 export default LandingPage;
+
