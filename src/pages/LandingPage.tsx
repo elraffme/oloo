@@ -64,7 +64,7 @@ const LandingPage = () => {
         <div className="space-y-4">
           
           {/* Primary CTA */}
-          <Button className="w-full h-14 text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
+          <Button className="w-full h-10 text-sm font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
             Create account
           </Button>
 
