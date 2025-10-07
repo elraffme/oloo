@@ -34,7 +34,7 @@ const LandingPage = () => {
         objectFit: 'cover'
       }} />
         {/* Dark Juniper Green overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-primary/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/30 to-primary/50" />
       </div>
 
       {/* Video Control */}
