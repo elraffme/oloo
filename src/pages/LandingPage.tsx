@@ -43,7 +43,7 @@ const LandingPage = () => {
             className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} 
             style={{
               backgroundImage: `url(${landingImage})`,
-              backgroundSize: 'contain',
+              backgroundSize: 'cover',
               backgroundPosition: 'center center',
               backgroundRepeat: 'no-repeat',
             }} 
