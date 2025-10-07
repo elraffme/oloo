@@ -45,29 +45,10 @@ const LandingPage = () => {
       {/* Content Overlay */}
       <div className="relative z-10 flex flex-col min-h-screen">
         
-        {/* Top Banner with Logo and Navigation */}
-        <div className="bg-black/90 pt-4 pb-4">
+        {/* Top Banner with Logo */}
+        <div className="bg-black/90 pt-4 pb-2">
           <h1 className="text-primary font-afro-heading text-center font-bold md:text-7xl text-3xl">Òloo</h1>
           <p className="text-center text-white mt-0 font-light text-sm">Cultured in Connection</p>
-          
-          {/* Navigation Bar */}
-          <nav className="mt-4 px-4">
-            <ul className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-white/90 text-sm md:text-base">
-              <li><a href="#home" className="hover:text-primary transition-colors">Home</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="#how-it-works" className="hover:text-primary transition-colors">How It Works</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="#cultural-journeys" className="hover:text-primary transition-colors">Cultural Journeys</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="#events" className="hover:text-primary transition-colors">Events</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="#community" className="hover:text-primary transition-colors">Community</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="/onboarding" className="hover:text-primary transition-colors font-medium">Sign Up</a></li>
-              <li className="text-white/40">|</li>
-              <li><a href="/auth" className="hover:text-primary transition-colors font-medium">Log In</a></li>
-            </ul>
-          </nav>
         </div>
 
         <div className="px-6 py-6 flex-1 flex flex-col justify-end">
