@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Menu } from "lucide-react";
+import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe } from "lucide-react";
 import landingImage from "@/assets/landing-sunset-couple.jpg";
+import Footer from "@/components/Footer";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const videoRef = useRef<HTMLDivElement>(null);
@@ -90,6 +91,134 @@ const LandingPage = () => {
           }} />
         </div>
       </div>
+
+      {/* How It Works Section */}
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
+            Discover Meaningful Connections
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mt-12">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">1</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Cultural Compatibility Quiz</h3>
+              <p className="text-muted-foreground">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">2</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Personalized Matchmaking</h3>
+              <p className="text-muted-foreground">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">3</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Share and Connect</h3>
+              <p className="text-muted-foreground">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
+            Why "Culturally Yours" Is Different
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mt-12">
+            <div className="bg-card p-6 rounded-lg border border-border space-y-3">
+              <Globe className="w-12 h-12 text-primary" />
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Global Networks</h3>
+              <p className="text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-3">
+              <Video className="w-12 h-12 text-primary" />
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Virtual Dates</h3>
+              <p className="text-muted-foreground">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-3">
+              <Calendar className="w-12 h-12 text-primary" />
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Shared Events</h3>
+              <p className="text-muted-foreground">Attend exclusive online and offline cultural events: film festivals, music festivals, poetry slams, or even regional festivals. Meet your match while immersing yourself in art, culture, and history.</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-3">
+              <Music className="w-12 h-12 text-primary" />
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Curated Playlists</h3>
+              <p className="text-muted-foreground">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-3">
+              <MessageCircle className="w-12 h-12 text-primary" />
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Intellectual & Artistic Dialogue</h3>
+              <p className="text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Community Testimonials Section */}
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
+            Our Members' Stories
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+            <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+              <p className="text-muted-foreground italic">"I met someone who shares my passion for classical Indian dance. We're collaborating on a project now, and it's the most inspiring relationship I've ever had."</p>
+              <p className="text-foreground font-semibold">– Priye</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+              <p className="text-muted-foreground italic">"We connected over shared knowledge of zulu art, and now we travel to galleries together. I've never felt so understood!"</p>
+              <p className="text-foreground font-semibold">– Vusi</p>
+            </div>
+            <div className="bg-card p-6 rounded-lg border border-border space-y-4">
+              <p className="text-muted-foreground italic">"I was looking for a partner who could appreciate my heritage and traditions, and I found that with someone who shares my love for North African poetry."</p>
+              <p className="text-foreground font-semibold">– Ahmed</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Cultural Exploration Section */}
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
+            Get Inspired, Explore Together
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <div className="bg-card p-8 rounded-lg border border-border text-center space-y-3 hover:border-primary transition-colors">
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Discover Cultural Curiosity Quizzes</h3>
+              <p className="text-muted-foreground">Which traditional music genre is your spirit song?</p>
+            </div>
+            <div className="bg-card p-8 rounded-lg border border-border text-center space-y-3 hover:border-primary transition-colors">
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">Embark on a Digital Cultural Journey</h3>
+              <p className="text-muted-foreground">Participate in virtual cultural tours, from ancient ruins to contemporary street art scenes.</p>
+            </div>
+            <div className="bg-card p-8 rounded-lg border border-border text-center space-y-3 hover:border-primary transition-colors">
+              <h3 className="text-xl font-afro-heading font-semibold text-foreground">What's Your Cultural Sign</h3>
+              <p className="text-muted-foreground">Explore connections based on your cultural heritage or spiritual background.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Join the Movement Section */}
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-foreground">
+            Ready to Experience a Connection Like No Other?
+          </h2>
+          <p className="text-lg sm:text-xl text-muted-foreground">
+            Embrace culture, art, and soul—find someone who truly gets you.
+          </p>
+          <Button 
+            className="h-12 sm:h-14 px-8 sm:px-12 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform"
+            onClick={() => window.location.href = '/onboarding'}
+          >
+            Create Your Profile Now
+          </Button>
+        </div>
+      </section>
+
+      <Footer />
     </div>;
 };
 export default LandingPage;
