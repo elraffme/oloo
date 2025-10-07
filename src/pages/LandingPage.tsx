@@ -54,7 +54,7 @@ const LandingPage = () => {
         <div className="px-6 py-6 flex-1 flex flex-col justify-end">
 
         {/* Bottom CTA Section */}
-        <div className="space-y-3 pb-4">
+        <div className="space-y-3 pb-12">
           
           {/* Primary CTA */}
           <Button className="w-full h-10 text-sm font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
