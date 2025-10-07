@@ -35,7 +35,7 @@ const LandingPage = () => {
       </header>
 
       {/* Hero Section with Background Image */}
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative min-h-screen flex flex-col">
         {/* Background Image Layer */}
         <div className="absolute inset-0">
           <div 
