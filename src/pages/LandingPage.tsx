@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Menu } from "lucide-react";
 import landingImage from "@/assets/landing-sunset-couple.jpg";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
@@ -46,7 +46,10 @@ const LandingPage = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         
         {/* Top Banner with Logo */}
-        <div className="bg-black/90 pt-4 pb-2">
+        <div className="bg-black/90 pt-4 pb-2 relative">
+          <button className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors">
+            <Menu size={24} />
+          </button>
           <h1 className="text-primary font-afro-heading text-center font-bold md:text-7xl text-3xl">Òloo</h1>
           <p className="text-center text-white mt-0 font-light text-sm">Cultured in Connection</p>
         </div>
