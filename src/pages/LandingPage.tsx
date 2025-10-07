@@ -146,9 +146,8 @@ const LandingPage = () => {
       {/* Community Testimonials Section */}
       <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
-            Our Members' Stories
-          </h2>
+          <h2 className="text-3xl lg:text-5xl font-afro-heading text-center mb-12 text-foreground sm:text-base font-light">– Vusi
+Joberg</h2>
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <div className="bg-card p-6 rounded-lg border border-border space-y-4">
               <p className="text-muted-foreground italic">"I met someone who shares my passion for classical Indian dance. We're collaborating on a project now, and it's the most inspiring relationship I've ever had."</p>
