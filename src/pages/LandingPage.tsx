@@ -150,7 +150,7 @@ const LandingPage = () => {
 Joberg</h2>
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
             <div className="bg-card p-6 rounded-lg border border-border space-y-4">
-              <p className="text-muted-foreground italic">"I met someone who shares my passion for classical Owigiri dance. We're collaborating on a project now, and it's the most inspiring relationship I've ever had."</p>
+              <p className="text-muted-foreground italic">"I met someone who shares my passion for classical Indian dance. We're collaborating on a project now, and it's the most inspiring relationship I've ever had."</p>
               <p className="text-foreground text-base font-semibold">~ Priye</p>
             </div>
             <div className="bg-card p-6 rounded-lg border border-border space-y-4">
