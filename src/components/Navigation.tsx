@@ -1,13 +1,16 @@
 import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useState } from "react";
 
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -106,9 +109,116 @@ const Navigation = () => {
         </div>
 
         {/* Mobile Menu */}
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="w-5 h-5" />
-        </Button>
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <nav className="flex flex-col gap-4 mt-8">
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => {
+                  navigate('/app');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Discover
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => {
+                  navigate('/app/messages');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Messages
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => {
+                  navigate('/app/streaming');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <Video className="w-5 h-5 mr-2" />
+                <span className="nsibidi-symbol mr-2">⬟</span>
+                Live Stream
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => {
+                  navigate('/verification');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <Shield className="w-5 h-5 mr-2" />
+                <span className="nsibidi-symbol mr-2">◈</span>
+                Get Verified
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => {
+                  navigate('/app/premium');
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                <Crown className="w-5 h-5 mr-2" />
+                <span className="nsibidi-symbol mr-2">◈</span>
+                Premium
+              </Button>
+              
+              <div className="border-t border-border my-4" />
+              
+              {user ? (
+                <Button
+                  variant="ghost"
+                  className="justify-start text-lg font-afro-body"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="justify-start text-lg font-afro-body"
+                    onClick={() => {
+                      navigate('/auth');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="nsibidi-gradient text-primary-foreground border-0 font-afro-body"
+                    onClick={() => {
+                      navigate('/auth');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <span className="nsibidi-symbol mr-1">♦</span>
+                    Join Now
+                  </Button>
+                </>
+              )}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );
