@@ -82,34 +82,8 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* How It Works Section */}
-      <section id="discover" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
-            Discover Meaningful Connections
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mt-12">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">1</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Cultural Compatibility Quiz</h3>
-              <p className="text-muted-foreground">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">2</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Personalized Matchmaking</h3>
-              <p className="text-muted-foreground">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">3</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Share and Connect</h3>
-              <p className="text-muted-foreground">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features Section */}
-      <section id="culture" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+      <section id="culture" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
             Why "Culturally Yours" Is Different
@@ -139,6 +113,32 @@ const LandingPage = () => {
               <MessageCircle className="w-12 h-12 text-primary" />
               <h3 className="text-xl font-afro-heading font-semibold text-foreground">Intellectual & Artistic Dialogue</h3>
               <p className="text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="discover" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
+            Discover Meaningful Connections
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mt-12">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">1</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Cultural Compatibility Quiz</h3>
+              <p className="text-muted-foreground">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">2</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Personalized Matchmaking</h3>
+              <p className="text-muted-foreground">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">3</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Share and Connect</h3>
+              <p className="text-muted-foreground">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
             </div>
           </div>
         </div>
