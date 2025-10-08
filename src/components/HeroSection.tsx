@@ -4,34 +4,31 @@ import heroImage from "@/assets/hero-dating.jpg";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
-      {/* Background Image with White Overlay */}
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden african-pattern-bg">
+      {/* Background Image with Overlay */}
       <div className="absolute inset-0">
         <img 
           src={heroImage} 
           alt="Romantic couple silhouette" 
-          className="w-full h-full object-cover opacity-20"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-white/80"></div>
+        <div className="absolute inset-0 hero-gradient opacity-70"></div>
+        <div className="absolute inset-0 bg-background/10"></div>
       </div>
 
-      {/* Floating Logo Animation */}
+      {/* Floating Hearts Animation */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(6)].map((_, i) => (
-          <div 
+          <Heart 
             key={i}
-            className="absolute animate-float-hearts"
+            className={`absolute text-primary/30 animate-float-hearts`}
             style={{
               left: `${20 + (i * 15)}%`,
               top: `${30 + (i * 10)}%`,
               animationDelay: `${i * 0.5}s`,
               fontSize: `${1.5 + (i * 0.3)}rem`
             }}
-          >
-            <div className="romantic-gradient rounded-full p-2 opacity-30">
-              <span className="text-primary-foreground font-bold">Ò</span>
-            </div>
-          </div>
+          />
         ))}
       </div>
 
@@ -64,9 +61,7 @@ const HeroSection = () => {
             size="lg" 
             className="nsibidi-gradient text-primary-foreground border-0 hover:scale-105 transition-all duration-300 px-8 py-6 text-lg font-afro-body shadow-lg hover:shadow-xl"
           >
-            <div className="w-5 h-5 mr-2 romantic-gradient rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs">Ò</span>
-            </div>
+            <Heart className="w-5 h-5 mr-2" />
             <span className="nsibidi-symbol mr-2">♦</span>
             Start Matching
           </Button>

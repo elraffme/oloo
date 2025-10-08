@@ -4,73 +4,55 @@ import { Check, Crown, Gem, Sparkles, Video, Heart, Star } from "lucide-react";
 
 const membershipTiers = [
   {
-    name: "Free",
-    price: "Free",
-    period: "",
-    description: "Start your cultural journey",
-    features: [
-      "Limited swipes per day",
-      "Standard chat after matching",
-      "View low-resolution streams",
-      "Basic profile features"
-    ],
-    icon: Heart,
-    gradient: "membership-card bg-muted",
-    popular: false,
-    tier: "free"
-  },
-  {
     name: "Silver",
-    price: "$4.99",
+    price: "$1.99",
     period: "/month",
-    description: "Enhanced connections and streaming",
+    description: "Essential features for meaningful connections",
     features: [
-      "Unlimited swipes",
+      "Unlimited likes",
       "See who liked you",
-      "Access to public HD streams",
+      "Priority matching",
       "Advanced filters",
-      "Priority matching"
+      "Monthly boost"
     ],
     icon: Sparkles,
     gradient: "membership-card silver",
-    popular: false,
-    tier: "silver"
+    popular: false
   },
   {
     name: "Gold",
-    price: "$9.99",
+    price: "$4.99",
     period: "/month",
-    description: "Premium streaming and exclusive access",
+    description: "Premium experience with exclusive streaming",
     features: [
-      "All Silver perks",
-      "Unlimited HD streaming",
-      "Priority profile placement",
-      "Exclusive members-only events/streams",
+      "All Silver features",
+      "Live streaming access",
+      "Video calls",
+      "Premium badges",
       "Weekly boosts",
-      "Premium badges"
+      "VIP customer support"
     ],
     icon: Crown,
     gradient: "membership-card gold",
-    popular: true,
-    tier: "gold"
+    popular: true
   },
   {
     name: "Platinum",
-    price: "$19.99",
+    price: "$9.99",
     period: "/month",
     description: "Ultimate luxury dating experience",
     features: [
-      "All Gold perks",
-      "Verified badge",
-      "Profile boosting every week",
-      "1:1 private video chats without matching",
-      "Personal matchmaker access",
+      "All Gold features",
+      "Exclusive events access",
+      "Personal matchmaker",
+      "Premium-only browsing",
+      "Daily boosts",
+      "Profile verification priority",
       "Luxury concierge service"
     ],
     icon: Gem,
     gradient: "membership-card platinum",
-    popular: false,
-    tier: "platinum"
+    popular: false
   }
 ];
 

@@ -1,9 +1,8 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
@@ -34,45 +33,28 @@ const Navigation = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8 font-afro-body">
-          <button 
-            onClick={() => navigate('/app')}
-            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
-          >
+          <a href="#discover" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <span className="nsibidi-symbol">◊</span>
             Discover
-          </button>
-          <button 
-            onClick={() => navigate('/app/messages')}
-            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="nsibidi-symbol">◊</span>
-            Messages
-          </button>
-          <button 
-            onClick={() => navigate('/app/streaming')}
-            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
-          >
+          </a>
+          <a href="#streaming" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <Video className="w-4 h-4" />
             <span className="nsibidi-symbol">⬟</span>
             Live Stream
-          </button>
+          </a>
           <button
             onClick={() => navigate('/verification')}
-            className="text-foreground hover:text-orange-verified transition-colors flex items-center gap-1"
+            className="text-foreground hover:text-orange-500 transition-colors flex items-center gap-1"
           >
             <Shield className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
             Get Verified
           </button>
-          <button 
-            onClick={() => navigate('/app/premium')}
-            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
-          >
+          <a href="#premium" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
             <Crown className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
             Premium
-          </button>
+          </a>
         </div>
 
         {/* CTA Buttons */}

@@ -35,7 +35,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen dark bg-background">
+    <div className="min-h-screen">
       <Navigation />
       <HeroSection />
       <SwipeInterface />

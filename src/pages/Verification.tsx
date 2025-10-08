@@ -15,36 +15,24 @@ const Verification: React.FC = () => {
   const { toast } = useToast();
   
   const [profile, setProfile] = useState<any>(null);
-  const [verificationStatus, setVerificationStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
-    const fetchProfileAndVerification = async () => {
+    const fetchProfile = async () => {
       if (!user) return;
       
       try {
-        // Fetch profile data
-        const { data: profileData, error: profileError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('user_id', user.id)
-          .maybeSingle();
+          .single();
           
-        if (profileError) throw profileError;
-        setProfile(profileData);
-
-        // Use the existing function to get verification status
-        const { data: verificationData, error: verificationError } = await supabase
-          .rpc('get_user_verification_status', { target_user_id: user.id });
-        
-        if (verificationError) {
-          console.error('Error fetching verification status:', verificationError);
-        } else {
-          setVerificationStatus(verificationData);
-        }
+        if (error) throw error;
+        setProfile(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching profile:', error);
         toast({
           title: "Error loading profile",
           description: "Please try again",
@@ -55,21 +43,12 @@ const Verification: React.FC = () => {
       }
     };
 
-    fetchProfileAndVerification();
+    fetchProfile();
   }, [user, toast]);
 
-  const handleVerificationComplete = async (verified: boolean) => {
+  const handleVerificationComplete = (verified: boolean) => {
     if (verified) {
-      // Refresh verification status after successful verification
-      try {
-        const { data: updatedVerificationData } = await supabase
-          .rpc('get_user_verification_status', { target_user_id: user?.id });
-        setVerificationStatus(updatedVerificationData);
-        setProfile({ ...profile, verified: true });
-      } catch (error) {
-        console.error('Error refreshing verification status:', error);
-      }
-      
+      setProfile({ ...profile, verified: true });
       setTimeout(() => {
         navigate('/', { 
           state: { message: 'Verification successful! You now have a verified badge.' }
@@ -128,7 +107,7 @@ const Verification: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {(profile?.verified || verificationStatus?.verified) ? (
+        {profile.verified ? (
           /* Already Verified */
           <Card className="max-w-2xl mx-auto cultural-card">
             <CardHeader className="text-center">
@@ -242,19 +221,17 @@ const Verification: React.FC = () => {
                   <Button
                     onClick={() => setShowVerification(true)}
                     className="luxury-gradient text-white px-8 py-3 flex-1"
-                    disabled={loading}
+                    disabled={!profile.profile_photos || profile.profile_photos.length === 0}
                   >
                     <Camera className="w-5 h-5 mr-2" />
                     Start Verification
                   </Button>
                 </div>
 
-                {(!profile?.profile_photos || profile.profile_photos.length === 0) && (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
-                      💡 <strong>Tip:</strong> Add at least one profile photo for better verification results, but you can still proceed without one.
-                    </p>
-                  </div>
+                {(!profile.profile_photos || profile.profile_photos.length === 0) && (
+                  <p className="text-sm text-destructive text-center">
+                    Please add at least one profile photo before verification
+                  </p>
                 )}
               </CardContent>
             </Card>
