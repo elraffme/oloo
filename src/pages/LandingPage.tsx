@@ -143,7 +143,7 @@ const LandingPage = () => {
       </section>
 
       {/* Community Testimonials Section */}
-      <section id="collective" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
             Our Members' Stories
@@ -166,7 +166,7 @@ const LandingPage = () => {
       </section>
 
       {/* Cultural Exploration Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+      <section id="collective" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
             Get Inspired, Explore Together
