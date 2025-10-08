@@ -52,9 +52,27 @@ const OnboardingStep = ({
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>}
-          <Button onClick={onNext} disabled={!canProceed || (isLastStep && isSaving)} className="flex-1 nsibidi-gradient text-primary-foreground">
-            {isLastStep && isSaving ? "Saving..." : isLastStep ? "Complete Profile" : "Continue"}
-            {!isLastStep && <ArrowRight className="w-4 h-4 ml-2" />}
+          <Button 
+            onClick={onNext} 
+            disabled={!canProceed || (isLastStep && isSaving)} 
+            className="flex-1 nsibidi-gradient text-primary-foreground hover:opacity-90 transition-all duration-300 shadow-lg"
+          >
+            {isLastStep && isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                Saving Profile...
+              </>
+            ) : isLastStep ? (
+              <>
+                <Heart className="w-4 h-4 mr-2" />
+                Complete Profile & Start Matching
+              </>
+            ) : (
+              <>
+                Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </>
+            )}
           </Button>
         </div>
       </CardContent>

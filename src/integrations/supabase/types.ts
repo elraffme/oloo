@@ -612,13 +612,10 @@ export type Database = {
         Row: {
           access_count: number | null
           created_at: string
-          emergency_contact_name: string | null
           emergency_contact_name_encrypted: string | null
-          emergency_contact_phone: string | null
           emergency_contact_phone_encrypted: string | null
           id: string
           last_accessed_at: string | null
-          phone: string | null
           phone_encrypted: string | null
           security_flags: Json | null
           updated_at: string
@@ -627,13 +624,10 @@ export type Database = {
         Insert: {
           access_count?: number | null
           created_at?: string
-          emergency_contact_name?: string | null
           emergency_contact_name_encrypted?: string | null
-          emergency_contact_phone?: string | null
           emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
-          phone?: string | null
           phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
@@ -642,13 +636,10 @@ export type Database = {
         Update: {
           access_count?: number | null
           created_at?: string
-          emergency_contact_name?: string | null
           emergency_contact_name_encrypted?: string | null
-          emergency_contact_phone?: string | null
           emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
-          phone?: string | null
           phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
@@ -731,6 +722,10 @@ export type Database = {
       admin_get_verification_data: {
         Args: { admin_reason: string; verification_id: string }
         Returns: Json
+      }
+      are_users_connected: {
+        Args: { user_a: string; user_b: string }
+        Returns: boolean
       }
       check_deployment_readiness: {
         Args: Record<PropertyKey, never>
@@ -830,6 +825,10 @@ export type Database = {
           relationship_goals: string | null
         }[]
       }
+      get_discovery_profile: {
+        Args: { profile_user_id: string }
+        Returns: Json
+      }
       get_encryption_key: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -843,6 +842,10 @@ export type Database = {
           request_date: string
           requester_user_id: string
         }[]
+      }
+      get_full_profile: {
+        Args: { profile_user_id: string; requesting_user_id?: string }
+        Returns: Json
       }
       get_public_profile_data: {
         Args: { profile_user_id: string }
@@ -873,6 +876,10 @@ export type Database = {
           ride_type: string
           status: string
         }[]
+      }
+      get_safe_profile_fields: {
+        Args: { profile_row: Database["public"]["Tables"]["profiles"]["Row"] }
+        Returns: Json
       }
       get_safe_streaming_data: {
         Args: Record<PropertyKey, never>
@@ -1032,9 +1039,9 @@ export type Database = {
       }
       update_user_sensitive_info: {
         Args: {
-          new_emergency_contact_name: string
-          new_emergency_contact_phone: string
-          new_phone: string
+          new_emergency_contact_name?: string
+          new_emergency_contact_phone?: string
+          new_phone?: string
         }
         Returns: Json
       }
