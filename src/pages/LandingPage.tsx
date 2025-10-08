@@ -31,23 +31,19 @@ const LandingPage = () => {
           <Menu size={20} className="sm:w-6 sm:h-6" />
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl px-12">Òloo</h1>
-        <p className="text-center text-white mt-1 font-light text-[10px] sm:text-xs lg:text-sm">Cultured in Connection</p>
+        <p className="text-center text-white mt-1 text-[10px] sm:text-xs font-normal lg:text-base">Cultured in Connection</p>
       </header>
 
       {/* Hero Section with Background Image */}
       <div className="relative min-h-screen flex flex-col">
         {/* Background Image Layer */}
         <div className="absolute inset-0">
-          <div 
-            ref={videoRef} 
-            className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} 
-            style={{
-              backgroundImage: `url(${landingImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center center',
-              backgroundRepeat: 'no-repeat',
-            }} 
-          />
+          <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
+          backgroundImage: `url(${landingImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat'
+        }} />
           {/* Dark overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-primary/40 to-transparent" />
         </div>
@@ -57,19 +53,12 @@ const LandingPage = () => {
           {/* Bottom CTA Section */}
           <div className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 lg:pb-8 max-w-md mx-auto w-full">
             {/* Primary CTA */}
-            <Button 
-              className="w-full h-12 sm:h-13 lg:h-14 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" 
-              onClick={() => window.location.href = '/onboarding'}
-            >
+            <Button className="w-full h-12 sm:h-13 lg:h-14 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
               Create account
             </Button>
 
             {/* Secondary CTA */}
-            <Button 
-              variant="ghost" 
-              onClick={() => window.location.href = '/auth'} 
-              className="w-full h-12 sm:h-13 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-base sm:text-lg"
-            >
+            <Button variant="ghost" onClick={() => window.location.href = '/auth'} className="w-full h-12 sm:h-13 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-base sm:text-lg">
               Already a member? Log in
             </Button>
           </div>
@@ -78,17 +67,17 @@ const LandingPage = () => {
         {/* Subtle Animation Elements */}
         <div className="absolute inset-0 pointer-events-none hidden lg:block">
           <div className="animate-pulse absolute top-1/4 left-16 w-2 h-2 bg-white/20 rounded-full" style={{
-            animationDelay: '0s',
-            animationDuration: '3s'
-          }} />
+          animationDelay: '0s',
+          animationDuration: '3s'
+        }} />
           <div className="animate-pulse absolute top-1/3 right-20 w-1 h-1 bg-white/30 rounded-full" style={{
-            animationDelay: '1s',
-            animationDuration: '4s'
-          }} />
+          animationDelay: '1s',
+          animationDuration: '4s'
+        }} />
           <div className="animate-pulse absolute bottom-1/3 left-24 w-1.5 h-1.5 bg-white/25 rounded-full" style={{
-            animationDelay: '2s',
-            animationDuration: '5s'
-          }} />
+          animationDelay: '2s',
+          animationDuration: '5s'
+        }} />
         </div>
       </div>
 
@@ -209,10 +198,7 @@ const LandingPage = () => {
           <p className="text-lg sm:text-xl text-muted-foreground">
             Embrace culture, art, and soul—find someone who truly gets you.
           </p>
-          <Button 
-            className="h-12 sm:h-14 px-8 sm:px-12 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform"
-            onClick={() => window.location.href = '/onboarding'}
-          >
+          <Button className="h-12 sm:h-14 px-8 sm:px-12 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
             Create Your Profile Now
           </Button>
         </div>
