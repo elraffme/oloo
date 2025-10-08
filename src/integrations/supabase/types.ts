@@ -886,6 +886,10 @@ export type Database = {
           status: string
         }[]
       }
+      get_safe_profile_fields: {
+        Args: { profile_row: Database["public"]["Tables"]["profiles"]["Row"] }
+        Returns: Json
+      }
       get_safe_streaming_data: {
         Args: Record<PropertyKey, never>
         Returns: {
