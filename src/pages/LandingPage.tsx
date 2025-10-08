@@ -159,7 +159,7 @@ Joberg</h2>
 Joberg</p>
             </div>
             <div className="bg-card p-6 rounded-lg border border-border space-y-4">
-              <p className="text-muted-foreground italic">"I was looking for a partner who could appreciate my heritage and traditions, and I found someone whom we share a great for Malhun poetry."</p>
+              <p className="text-muted-foreground italic">"I was looking for a partner who could appreciate my heritage and traditions, and I found that with someone who shares my love for North African poetry."</p>
               <p className="text-foreground font-semibold">– Ahmed</p>
             </div>
           </div>
