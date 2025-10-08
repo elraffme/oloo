@@ -24,17 +24,16 @@ export const useSensitiveInfo = () => {
     setError(null);
     
     try {
+      // Use secure RPC function that logs all access attempts
       const { data, error } = await supabase.rpc('get_user_sensitive_info');
       
       if (error) {
-        console.error('Error loading sensitive info:', error);
         setError('Failed to load sensitive information');
         return;
       }
       
-      setSensitiveInfo(data as SensitiveInfo || {});
+      setSensitiveInfo((data as SensitiveInfo) || {});
     } catch (err) {
-      console.error('Error loading sensitive info:', err);
       setError('Failed to load sensitive information');
     } finally {
       setLoading(false);
@@ -52,25 +51,27 @@ export const useSensitiveInfo = () => {
     setError(null);
     
     try {
+      // Use secure RPC function that validates input and logs all modification attempts
       const { data, error } = await supabase.rpc('update_user_sensitive_info', {
-        new_phone: updates.phone,
-        new_emergency_contact_name: updates.emergency_contact_name,
-        new_emergency_contact_phone: updates.emergency_contact_phone
+        new_phone: updates.phone || null,
+        new_emergency_contact_name: updates.emergency_contact_name || null,
+        new_emergency_contact_phone: updates.emergency_contact_phone || null
       });
       
       if (error) {
-        console.error('Error updating sensitive info:', error);
         setError('Failed to update sensitive information');
         toast({
           title: "Error",
-          description: "Failed to update sensitive information. Please try again.",
+          description: error.message || "Failed to update sensitive information. Please try again.",
           variant: "destructive"
         });
         return false;
       }
       
-      // Reload the sensitive info after update
-      await loadSensitiveInfo();
+      // Update local state with response data
+      if (data) {
+        setSensitiveInfo(data as SensitiveInfo);
+      }
       
       toast({
         title: "Success",
@@ -79,7 +80,6 @@ export const useSensitiveInfo = () => {
       
       return true;
     } catch (err) {
-      console.error('Error updating sensitive info:', err);
       setError('Failed to update sensitive information');
       toast({
         title: "Error",

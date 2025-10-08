@@ -1044,9 +1044,9 @@ export type Database = {
       }
       update_user_sensitive_info: {
         Args: {
-          new_emergency_contact_name: string
-          new_emergency_contact_phone: string
-          new_phone: string
+          new_emergency_contact_name?: string
+          new_emergency_contact_phone?: string
+          new_phone?: string
         }
         Returns: Json
       }
