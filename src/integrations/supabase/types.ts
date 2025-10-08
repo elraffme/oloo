@@ -612,13 +612,10 @@ export type Database = {
         Row: {
           access_count: number | null
           created_at: string
-          emergency_contact_name: string | null
           emergency_contact_name_encrypted: string | null
-          emergency_contact_phone: string | null
           emergency_contact_phone_encrypted: string | null
           id: string
           last_accessed_at: string | null
-          phone: string | null
           phone_encrypted: string | null
           security_flags: Json | null
           updated_at: string
@@ -627,13 +624,10 @@ export type Database = {
         Insert: {
           access_count?: number | null
           created_at?: string
-          emergency_contact_name?: string | null
           emergency_contact_name_encrypted?: string | null
-          emergency_contact_phone?: string | null
           emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
-          phone?: string | null
           phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
@@ -642,13 +636,10 @@ export type Database = {
         Update: {
           access_count?: number | null
           created_at?: string
-          emergency_contact_name?: string | null
           emergency_contact_name_encrypted?: string | null
-          emergency_contact_phone?: string | null
           emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
-          phone?: string | null
           phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
