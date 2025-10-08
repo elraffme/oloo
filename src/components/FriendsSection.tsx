@@ -188,29 +188,58 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
 
   const handleAcceptRequest = async (requesterId: string) => {
     console.log('Accept button clicked for requesterId:', requesterId);
+    
+    // Find the request to get user details
+    const request = friendRequests.find(req => req.requester_user_id === requesterId);
+    if (!request) return;
+    
+    // Optimistically update UI - remove from requests and add to friends immediately
+    setFriendRequests(prev => prev.filter(req => req.requester_user_id !== requesterId));
+    
+    const newFriend: Friend = {
+      friend_user_id: request.requester_user_id,
+      display_name: request.display_name,
+      avatar_url: request.avatar_url,
+      profile_photos: request.profile_photos,
+      friend_since: new Date().toISOString()
+    };
+    
+    setFriends(prev => [newFriend, ...prev]);
+    
+    // Show immediate success feedback
+    toast({
+      title: "Friend request accepted! ✅",
+      description: `You and ${request.display_name} are now friends and can start chatting.`,
+    });
+    
     try {
       console.log('Calling acceptFriendRequest...');
       const result = await acceptFriendRequest(requesterId);
       console.log('acceptFriendRequest result:', result);
       
-      if (result.success) {
-        toast({
-          title: "Friend request accepted! ✅",
-          description: "You are now friends and can start chatting.",
-        });
-        loadData(); // Refresh the data
-      } else {
+      if (!result.success) {
+        // If API call fails, revert the optimistic update
+        setFriendRequests(prev => [request, ...prev]);
+        setFriends(prev => prev.filter(f => f.friend_user_id !== requesterId));
+        
         toast({
           title: "Error",
           description: result.message || "Failed to accept friend request",
           variant: "destructive",
         });
+      } else {
+        // Refresh to ensure data consistency
+        loadData();
       }
     } catch (error) {
+      // If error occurs, revert the optimistic update
+      setFriendRequests(prev => [request, ...prev]);
+      setFriends(prev => prev.filter(f => f.friend_user_id !== requesterId));
+      
       console.error('Error in handleAcceptRequest:', error);
       toast({
         title: "Error", 
-        description: "Something went wrong",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
