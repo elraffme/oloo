@@ -83,7 +83,7 @@ const LandingPage = () => {
       </div>
 
       {/* How It Works Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+      <section id="discover" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
             Discover Meaningful Connections
@@ -109,7 +109,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+      <section id="culture" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
             Why "Culturally Yours" Is Different
@@ -145,7 +145,7 @@ const LandingPage = () => {
       </section>
 
       {/* Community Testimonials Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+      <section id="collective" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
             Our Members' Stories
@@ -191,7 +191,7 @@ const LandingPage = () => {
       </section>
 
       {/* Join the Movement Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+      <section id="get-started" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-foreground">
             Ready to Experience a Connection Like No Other?

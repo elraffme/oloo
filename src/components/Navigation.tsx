@@ -2,7 +2,7 @@ import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -10,6 +10,7 @@ import { useState } from "react";
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -20,6 +21,24 @@ const Navigation = () => {
       toast.success('Signed out successfully');
       navigate('/auth');
     }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -120,10 +139,15 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 className="justify-start text-lg font-afro-body"
-                onClick={() => {
-                  navigate('/app');
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={() => scrollToSection('culture')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Culture
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => scrollToSection('discover')}
               >
                 <span className="nsibidi-symbol mr-2">◊</span>
                 Discover
@@ -131,50 +155,18 @@ const Navigation = () => {
               <Button
                 variant="ghost"
                 className="justify-start text-lg font-afro-body"
-                onClick={() => {
-                  navigate('/app/messages');
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={() => scrollToSection('collective')}
               >
-                <MessageCircle className="w-5 h-5 mr-2" />
                 <span className="nsibidi-symbol mr-2">◊</span>
-                Messages
+                Collective
               </Button>
               <Button
                 variant="ghost"
                 className="justify-start text-lg font-afro-body"
-                onClick={() => {
-                  navigate('/app/streaming');
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={() => scrollToSection('get-started')}
               >
-                <Video className="w-5 h-5 mr-2" />
-                <span className="nsibidi-symbol mr-2">⬟</span>
-                Live Stream
-              </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-lg font-afro-body"
-                onClick={() => {
-                  navigate('/verification');
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <Shield className="w-5 h-5 mr-2" />
                 <span className="nsibidi-symbol mr-2">◈</span>
-                Get Verified
-              </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-lg font-afro-body"
-                onClick={() => {
-                  navigate('/app/premium');
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <Crown className="w-5 h-5 mr-2" />
-                <span className="nsibidi-symbol mr-2">◈</span>
-                Premium
+                Get Started
               </Button>
               
               <div className="border-t border-border my-4" />
