@@ -246,25 +246,39 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
   };
 
   const handleRejectRequest = async (requesterId: string) => {
+    // Find the request to get user details
+    const request = friendRequests.find(req => req.requester_user_id === requesterId);
+    if (!request) return;
+    
+    // Optimistically update UI - remove from requests immediately
+    setFriendRequests(prev => prev.filter(req => req.requester_user_id !== requesterId));
+    
+    // Show immediate feedback
+    toast({
+      title: "Friend request declined",
+      description: `You declined ${request.display_name}'s friend request.`,
+    });
+    
     try {
       const result = await rejectFriendRequest(requesterId);
-      if (result.success) {
-        toast({
-          title: "Friend request rejected",
-          description: "The friend request has been declined.",
-        });
-        loadData(); // Refresh the data
-      } else {
+      
+      if (!result.success) {
+        // If API call fails, revert the optimistic update
+        setFriendRequests(prev => [request, ...prev]);
+        
         toast({
           title: "Error",
-          description: result.message || "Failed to reject friend request",
+          description: result.message || "Failed to decline friend request",
           variant: "destructive",
         });
       }
     } catch (error) {
+      // If error occurs, revert the optimistic update
+      setFriendRequests(prev => [request, ...prev]);
+      
       toast({
         title: "Error",
-        description: "Something went wrong",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
@@ -290,43 +304,53 @@ const FriendsSection = ({ onStartChat }: FriendsSectionProps) => {
       {/* Friend Requests */}
       {friendRequests.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
             Friend Requests
-            <Badge variant="secondary">{friendRequests.length}</Badge>
+            <Badge variant="default" className="bg-primary">{friendRequests.length}</Badge>
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {friendRequests.map((request) => (
-              <Card key={request.requester_user_id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={getAvatarUrl(request)} />
-                      <AvatarFallback>
-                        {request.display_name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{request.display_name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(request.request_date).toLocaleDateString()}
-                      </p>
+              <Card key={request.requester_user_id} className="hover:shadow-lg transition-all duration-300 border-primary/20">
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-4">
+                    {/* Profile Section */}
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-16 h-16 ring-2 ring-primary/20">
+                        <AvatarImage src={getAvatarUrl(request)} />
+                        <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
+                          {request.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-base">{request.display_name}</h4>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(request.request_date).toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: new Date(request.request_date).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                          })}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Button
-                        size="sm"
                         onClick={() => handleAcceptRequest(request.requester_user_id)}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-300"
                       >
-                        <Check className="w-4 h-4" />
+                        <Check className="w-4 h-4 mr-2" />
+                        Accept
                       </Button>
                       <Button 
-                        size="sm" 
                         variant="outline"
                         onClick={() => handleRejectRequest(request.requester_user_id)}
-                        className="hover:bg-red-50 hover:border-red-300"
+                        className="flex-1 hover:bg-destructive/10 hover:border-destructive hover:text-destructive transition-all duration-300"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4 mr-2" />
+                        Decline
                       </Button>
                     </div>
                   </div>
