@@ -31,7 +31,7 @@ const LandingPage = () => {
           <Menu size={20} className="sm:w-6 sm:h-6" />
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-2xl sm:text-3xl md:text-4xl px-12 lg:text-6xl">Òloo</h1>
-        <p className="text-center text-white mt-1 sm:text-xs font-normal lg:text-base text-sm">Cultured in Connection</p>
+        <p className="text-center text-white -mt-1 sm:text-xs font-normal lg:text-base text-sm">Cultured in Connection</p>
       </header>
 
       {/* Hero Section with Background Image */}
