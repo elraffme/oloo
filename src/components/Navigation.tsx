@@ -1,4 +1,4 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +40,14 @@ const Navigation = () => {
           >
             <span className="nsibidi-symbol">◊</span>
             Discover
+          </button>
+          <button 
+            onClick={() => navigate('/app/messages')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="nsibidi-symbol">◊</span>
+            Messages
           </button>
           <button 
             onClick={() => navigate('/app/streaming')}

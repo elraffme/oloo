@@ -111,6 +111,25 @@ export const acceptFriendRequest = async (requesterUserId: string): Promise<Frie
   }
 };
 
+export const rejectFriendRequest = async (requesterUserId: string): Promise<FriendRequestResult> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('reject_friend_request', { requester_user_id: requesterUserId });
+    
+    if (error) throw error;
+    
+    // Type guard to ensure we have the expected structure
+    if (data && typeof data === 'object' && 'success' in data) {
+      return data as unknown as FriendRequestResult;
+    }
+    
+    return { success: false, message: 'Invalid response format' };
+  } catch (error) {
+    console.error('Error rejecting friend request:', error);
+    return { success: false, message: 'Failed to reject friend request' };
+  }
+};
+
 export const getUserFriends = async (): Promise<Friend[]> => {
   try {
     const { data, error } = await supabase.rpc('get_user_friends');

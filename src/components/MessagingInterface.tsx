@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Heart, Gift, Phone, Video, MoreVertical, ArrowLeft, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { usePresence } from '@/hooks/usePresence';
 
@@ -246,7 +246,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
     if (!user) return;
 
     const channel = supabase
-      .channel('messages')
+      .channel('messages-realtime')
       .on(
         'postgres_changes',
         {
@@ -255,24 +255,90 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
           table: 'messages',
           filter: `receiver_id=eq.${user.id}`
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as Message;
+          console.log('New message received:', newMessage);
           
-          // Update conversations list
-          setConversations(prev => prev.map(conv => 
-            conv.user_id === newMessage.sender_id 
-              ? { 
-                  ...conv, 
+          // Fetch sender profile if we don't have this conversation
+          const existingConv = conversations.find(conv => conv.user_id === newMessage.sender_id);
+          if (!existingConv) {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('user_id, display_name, avatar_url, profile_photos')
+                .eq('user_id', newMessage.sender_id)
+                .single();
+
+              if (profile) {
+                const newConversation: Conversation = {
+                  user_id: profile.user_id,
+                  display_name: profile.display_name,
+                  avatar_url: profile.profile_photos?.[0] || profile.avatar_url || '/placeholder.svg',
                   last_message: newMessage.content,
                   last_message_time: newMessage.created_at,
-                  unread_count: conv.unread_count + 1
-                }
-              : conv
-          ));
+                  unread_count: 1,
+                  online: isUserOnline(profile.user_id)
+                };
+
+                setConversations(prev => [newConversation, ...prev]);
+              }
+            } catch (error) {
+              console.error('Error fetching sender profile:', error);
+            }
+          } else {
+            // Update existing conversation
+            setConversations(prev => prev.map(conv => 
+              conv.user_id === newMessage.sender_id 
+                ? { 
+                    ...conv, 
+                    last_message: newMessage.content,
+                    last_message_time: newMessage.created_at,
+                    unread_count: selectedChat === newMessage.sender_id ? 0 : conv.unread_count + 1
+                  }
+                : conv
+            ));
+          }
 
           // Update messages if this conversation is selected
           if (selectedChat === newMessage.sender_id) {
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prev => {
+              // Avoid duplicates by checking if message already exists
+              const exists = prev.find(msg => msg.id === newMessage.id);
+              if (exists) return prev;
+              return [...prev, newMessage];
+            });
+            
+            // Auto-mark as read if conversation is open
+            setTimeout(() => {
+              markMessagesAsRead(newMessage.sender_id);
+            }, 1000);
+          } else {
+            // Show notification for new message
+            toast({
+              title: `New message from ${existingConv?.display_name || 'Someone'}`,
+              description: newMessage.content.length > 50 
+                ? newMessage.content.substring(0, 50) + '...' 
+                : newMessage.content,
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${user.id}`
+        },
+        (payload) => {
+          const updatedMessage = payload.new as Message;
+          
+          // Update message read status in current conversation
+          if (selectedChat === updatedMessage.receiver_id) {
+            setMessages(prev => prev.map(msg => 
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            ));
           }
         }
       )
@@ -281,7 +347,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, selectedChat]);
+  }, [user, selectedChat, conversations, isUserOnline, toast]);
 
   const loadMessages = async (userId: string) => {
     if (!user) return;

@@ -98,57 +98,6 @@ export type Database = {
         }
         Relationships: []
       }
-      drivers: {
-        Row: {
-          created_at: string
-          current_location: Json | null
-          id: string
-          is_available: boolean
-          license_number: string
-          license_plate: string
-          rating: number | null
-          total_rides: number | null
-          updated_at: string
-          user_id: string
-          vehicle_color: string
-          vehicle_make: string
-          vehicle_model: string
-          vehicle_year: number
-        }
-        Insert: {
-          created_at?: string
-          current_location?: Json | null
-          id?: string
-          is_available?: boolean
-          license_number: string
-          license_plate: string
-          rating?: number | null
-          total_rides?: number | null
-          updated_at?: string
-          user_id: string
-          vehicle_color: string
-          vehicle_make: string
-          vehicle_model: string
-          vehicle_year: number
-        }
-        Update: {
-          created_at?: string
-          current_location?: Json | null
-          id?: string
-          is_available?: boolean
-          license_number?: string
-          license_plate?: string
-          rating?: number | null
-          total_rides?: number | null
-          updated_at?: string
-          user_id?: string
-          vehicle_color?: string
-          vehicle_make?: string
-          vehicle_model?: string
-          vehicle_year?: number
-        }
-        Relationships: []
-      }
       face_verifications: {
         Row: {
           created_at: string
@@ -491,78 +440,6 @@ export type Database = {
         }
         Relationships: []
       }
-      rides: {
-        Row: {
-          accepted_at: string | null
-          actual_duration_minutes: number | null
-          actual_price: number | null
-          completed_at: string | null
-          created_at: string
-          destination: string
-          destination_coordinates: Json | null
-          driver_id: string | null
-          driver_notes: string | null
-          driver_rating: number | null
-          estimated_duration_minutes: number | null
-          estimated_price: number
-          id: string
-          pickup_coordinates: Json | null
-          pickup_location: string
-          ride_type: string
-          started_at: string | null
-          status: string
-          updated_at: string
-          user_id: string
-          user_rating: number | null
-        }
-        Insert: {
-          accepted_at?: string | null
-          actual_duration_minutes?: number | null
-          actual_price?: number | null
-          completed_at?: string | null
-          created_at?: string
-          destination: string
-          destination_coordinates?: Json | null
-          driver_id?: string | null
-          driver_notes?: string | null
-          driver_rating?: number | null
-          estimated_duration_minutes?: number | null
-          estimated_price: number
-          id?: string
-          pickup_coordinates?: Json | null
-          pickup_location: string
-          ride_type: string
-          started_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-          user_rating?: number | null
-        }
-        Update: {
-          accepted_at?: string | null
-          actual_duration_minutes?: number | null
-          actual_price?: number | null
-          completed_at?: string | null
-          created_at?: string
-          destination?: string
-          destination_coordinates?: Json | null
-          driver_id?: string | null
-          driver_notes?: string | null
-          driver_rating?: number | null
-          estimated_duration_minutes?: number | null
-          estimated_price?: number
-          id?: string
-          pickup_coordinates?: Json | null
-          pickup_location?: string
-          ride_type?: string
-          started_at?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-          user_rating?: number | null
-        }
-        Relationships: []
-      }
       security_audit_log: {
         Row: {
           action: string
@@ -736,12 +613,13 @@ export type Database = {
           access_count: number | null
           created_at: string
           emergency_contact_name: string | null
+          emergency_contact_name_encrypted: string | null
           emergency_contact_phone: string | null
-          encrypted_emergency_contact_phone_hash: string | null
-          encrypted_phone_hash: string | null
+          emergency_contact_phone_encrypted: string | null
           id: string
           last_accessed_at: string | null
           phone: string | null
+          phone_encrypted: string | null
           security_flags: Json | null
           updated_at: string
           user_id: string
@@ -750,12 +628,13 @@ export type Database = {
           access_count?: number | null
           created_at?: string
           emergency_contact_name?: string | null
+          emergency_contact_name_encrypted?: string | null
           emergency_contact_phone?: string | null
-          encrypted_emergency_contact_phone_hash?: string | null
-          encrypted_phone_hash?: string | null
+          emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
           phone?: string | null
+          phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
           user_id: string
@@ -764,12 +643,13 @@ export type Database = {
           access_count?: number | null
           created_at?: string
           emergency_contact_name?: string | null
+          emergency_contact_name_encrypted?: string | null
           emergency_contact_phone?: string | null
-          encrypted_emergency_contact_phone_hash?: string | null
-          encrypted_phone_hash?: string | null
+          emergency_contact_phone_encrypted?: string | null
           id?: string
           last_accessed_at?: string | null
           phone?: string | null
+          phone_encrypted?: string | null
           security_flags?: Json | null
           updated_at?: string
           user_id?: string
@@ -865,7 +745,7 @@ export type Database = {
         Returns: boolean
       }
       check_sensitive_info_rate_limit: {
-        Args: { user_uuid?: string }
+        Args: { user_uuid: string }
         Returns: boolean
       }
       check_user_can_message: {
@@ -885,14 +765,6 @@ export type Database = {
         }
         Returns: string
       }
-      decrypt_payment_field: {
-        Args: {
-          encrypted_data: string
-          field_type: string
-          plaintext_reference: string
-        }
-        Returns: boolean
-      }
       emergency_freeze_user_tokens: {
         Args: { freeze_reason: string; target_user_id: string }
         Returns: boolean
@@ -901,13 +773,13 @@ export type Database = {
         Args: { field_type: string; plaintext: string }
         Returns: string
       }
-      encrypt_sensitive_field: {
-        Args: { field_type: string; plaintext_data: string; user_uuid?: string }
-        Returns: string
-      }
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
+      }
+      get_anonymized_ride_data: {
+        Args: { ride_id: string }
+        Returns: Json
       }
       get_available_drivers: {
         Args: Record<PropertyKey, never>
@@ -958,6 +830,10 @@ export type Database = {
           relationship_goals: string | null
         }[]
       }
+      get_encryption_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_friend_requests: {
         Args: { target_user_id?: string }
         Returns: {
@@ -987,6 +863,17 @@ export type Database = {
           title: string
         }[]
       }
+      get_ride_summaries: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          duration_tier: string
+          id: string
+          price_tier: string
+          ride_type: string
+          status: string
+        }[]
+      }
       get_safe_streaming_data: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1001,6 +888,10 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      get_secure_ride_details: {
+        Args: { ride_id: string }
+        Returns: Json
       }
       get_secure_verification_status: {
         Args: { target_user_id?: string }
@@ -1095,12 +986,14 @@ export type Database = {
         Returns: undefined
       }
       log_sensitive_info_access: {
-        Args: {
-          access_type: string
-          additional_metadata?: Json
-          field_accessed: string
-          user_uuid?: string
-        }
+        Args:
+          | {
+              access_type: string
+              additional_metadata?: Json
+              field_accessed: string
+              user_uuid?: string
+            }
+          | { action_type: string; field_name: string; target_user_id: string }
         Returns: undefined
       }
       log_system_security_event: {
@@ -1112,6 +1005,14 @@ export type Database = {
           p_user_id?: string
         }
         Returns: undefined
+      }
+      make_user_admin: {
+        Args: { target_email: string }
+        Returns: boolean
+      }
+      reject_friend_request: {
+        Args: { requester_user_id: string }
+        Returns: Json
       }
       secure_payment_operation: {
         Args: {
@@ -1131,11 +1032,11 @@ export type Database = {
       }
       update_user_sensitive_info: {
         Args: {
-          new_emergency_contact_name?: string
-          new_emergency_contact_phone?: string
-          new_phone?: string
+          new_emergency_contact_name: string
+          new_emergency_contact_phone: string
+          new_phone: string
         }
-        Returns: boolean
+        Returns: Json
       }
       validate_membership_operation: {
         Args: { target_user_id: string }
@@ -1147,6 +1048,10 @@ export type Database = {
       }
       validate_payment_amount: {
         Args: { amount_cents: number; tier: string }
+        Returns: boolean
+      }
+      validate_ride_access: {
+        Args: { access_type: string; ride_id: string }
         Returns: boolean
       }
       validate_sensitive_field: {
