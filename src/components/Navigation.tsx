@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -33,28 +34,37 @@ const Navigation = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8 font-afro-body">
-          <a href="#discover" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+          <button 
+            onClick={() => navigate('/app')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
             <span className="nsibidi-symbol">◊</span>
             Discover
-          </a>
-          <a href="#streaming" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+          </button>
+          <button 
+            onClick={() => navigate('/app/streaming')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
             <Video className="w-4 h-4" />
             <span className="nsibidi-symbol">⬟</span>
             Live Stream
-          </a>
+          </button>
           <button
             onClick={() => navigate('/verification')}
-            className="text-foreground hover:text-orange-500 transition-colors flex items-center gap-1"
+            className="text-foreground hover:text-orange-verified transition-colors flex items-center gap-1"
           >
             <Shield className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
             Get Verified
           </button>
-          <a href="#premium" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
+          <button 
+            onClick={() => navigate('/app/premium')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
             <Crown className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
             Premium
-          </a>
+          </button>
         </div>
 
         {/* CTA Buttons */}
