@@ -732,6 +732,10 @@ export type Database = {
         Args: { admin_reason: string; verification_id: string }
         Returns: Json
       }
+      are_users_connected: {
+        Args: { user_a: string; user_b: string }
+        Returns: boolean
+      }
       check_deployment_readiness: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -830,6 +834,10 @@ export type Database = {
           relationship_goals: string | null
         }[]
       }
+      get_discovery_profile: {
+        Args: { profile_user_id: string }
+        Returns: Json
+      }
       get_encryption_key: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -843,6 +851,10 @@ export type Database = {
           request_date: string
           requester_user_id: string
         }[]
+      }
+      get_full_profile: {
+        Args: { profile_user_id: string; requesting_user_id?: string }
+        Returns: Json
       }
       get_public_profile_data: {
         Args: { profile_user_id: string }
