@@ -98,7 +98,7 @@ const LandingPage = () => {
               <Button
                 className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading"
                 onClick={() => {
-                  window.location.href = '/onboarding';
+                  window.location.href = '/auth';
                   setIsMenuOpen(false);
                 }}
               >
@@ -130,7 +130,7 @@ const LandingPage = () => {
           {/* Bottom CTA Section */}
           <div className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 lg:pb-8 max-w-md mx-auto w-full">
             {/* Primary CTA */}
-            <Button className="w-full h-12 sm:h-13 lg:h-14 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
+            <Button className="w-full h-12 sm:h-13 lg:h-14 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/auth'}>
               Create account
             </Button>
 
@@ -273,7 +273,7 @@ const LandingPage = () => {
           <p className="text-lg sm:text-xl text-muted-foreground">
             Embrace culture, art, and soul—find someone who truly gets you.
           </p>
-          <Button className="h-12 sm:h-14 px-8 sm:px-12 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/onboarding'}>
+          <Button className="h-12 sm:h-14 px-8 sm:px-12 text-base sm:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => window.location.href = '/auth'}>
             Create Your Profile Now
           </Button>
         </div>
