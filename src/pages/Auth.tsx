@@ -12,6 +12,7 @@ import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email address');
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -29,6 +30,7 @@ const Auth = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Redirect if already authenticated
   if (user && !loading) {
@@ -39,9 +41,12 @@ const Auth = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear email error when user types
+    // Clear errors when user types
     if (name === 'email') {
       setEmailError('');
+    }
+    if (name === 'password') {
+      setPasswordError('');
     }
   };
 
@@ -53,6 +58,19 @@ const Auth = () => {
     } catch (error) {
       if (error instanceof z.ZodError) {
         setEmailError(error.errors[0].message);
+      }
+      return false;
+    }
+  };
+
+  const validatePassword = (password: string): boolean => {
+    try {
+      passwordSchema.parse(password);
+      setPasswordError('');
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setPasswordError(error.errors[0].message);
       }
       return false;
     }
@@ -74,29 +92,48 @@ const Auth = () => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    // Validate email
     if (!validateEmail(formData.email)) {
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+    // Validate password
+    if (!validatePassword(formData.password)) {
       return;
     }
 
+    // Check password match
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+
+    // Check terms
     if (!formData.acceptTerms) {
-      alert('Please accept the Terms of Service');
+      alert('Please accept the Terms of Service to continue');
+      return;
+    }
+
+    // Check required fields
+    if (!formData.location.trim()) {
+      alert('Please enter your location');
       return;
     }
 
     setIsSubmitting(true);
+    console.log('Starting sign up process...');
+    
     try {
       const metadata = {
-        location: formData.location,
-        bio: formData.bio || 'Hello, I\'m new to Òloo!',
+        location: formData.location.trim(),
+        bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
       };
 
+      console.log('Calling signUp with:', { email: formData.email, hasPassword: !!formData.password, metadata });
       const result = await signUp(formData.email, formData.password, metadata);
+      
+      console.log('SignUp result:', result);
       
       if (!result.error) {
         // Navigate to onboarding after successful signup
@@ -106,6 +143,9 @@ const Auth = () => {
           navigate('/onboarding');
         }
       }
+    } catch (error) {
+      console.error('Sign up error:', error);
+      alert('An error occurred during sign up. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -213,15 +253,18 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">Password (minimum 6 characters)</Label>
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={handleInputChange}
+                      onBlur={() => formData.password && validatePassword(formData.password)}
                       placeholder="Create a strong password"
+                      className={passwordError ? 'border-red-500' : ''}
                       required
+                      minLength={6}
                     />
                     <button
                       type="button"
@@ -230,6 +273,9 @@ const Auth = () => {
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
+                    {passwordError && (
+                      <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+                    )}
                   </div>
 
                   <div className="relative">
@@ -241,7 +287,9 @@ const Auth = () => {
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="Confirm your password"
+                      className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
+                      minLength={6}
                     />
                   </div>
 
