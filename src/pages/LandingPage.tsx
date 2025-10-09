@@ -111,7 +111,7 @@ const LandingPage = () => {
       </header>
 
       {/* Hero Section with Background Image */}
-      <div className="relative min-h-screen flex flex-col">
+      <div className="relative min-h-[75vh] sm:min-h-[85vh] lg:min-h-screen flex flex-col">
         {/* Background Image Layer */}
         <div className="absolute inset-0">
           <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
