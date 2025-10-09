@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
-import landingImage from "@/assets/hero-background.png";
+import landingImage from "@/assets/hero-main.png";
 import Footer from "@/components/Footer";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
