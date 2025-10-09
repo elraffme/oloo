@@ -128,7 +128,7 @@ export const ProfileCard = ({
                   variant="secondary" 
                   size="sm" 
                   className="bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                  onClick={() => onViewProfile(profile.id)}
+                  onClick={() => onViewProfile((profile as any).user_id || profile.id)}
                 >
                   <User className="w-4 h-4" />
                 </Button>

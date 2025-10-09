@@ -592,6 +592,7 @@ const Discover = () => {
           onUndo={searchMode ? undefined : (currentIndex > 0 ? handleUndo : undefined)}
           onBoost={searchMode ? undefined : handleBoost}
           onMessage={() => handleMessage(getTargetUserId(getCurrentProfile()) || '')}
+          onViewProfile={handleViewProfile}
           onAddFriend={searchMode ? handleSearchAddFriend : handleAddFriend}
           friendRequestState={friendRequestStates[getTargetUserId(getCurrentProfile()) || ''] || 'idle'}
           swipeDirection={searchMode ? null : swipeDirection}
