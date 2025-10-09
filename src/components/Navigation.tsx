@@ -1,13 +1,17 @@
 import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+import { useState } from "react";
 
 
 const Navigation = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -17,6 +21,24 @@ const Navigation = () => {
       toast.success('Signed out successfully');
       navigate('/auth');
     }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -106,9 +128,89 @@ const Navigation = () => {
         </div>
 
         {/* Mobile Menu */}
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="w-5 h-5" />
-        </Button>
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <nav className="flex flex-col gap-4 mt-8">
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => scrollToSection('culture')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Culture
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => scrollToSection('discover')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Discover
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => scrollToSection('collective')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Collective
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-lg font-afro-body"
+                onClick={() => scrollToSection('get-started')}
+              >
+                <span className="nsibidi-symbol mr-2">◈</span>
+                Get Started
+              </Button>
+              
+              <div className="border-t border-border my-4" />
+              
+              {user ? (
+                <Button
+                  variant="ghost"
+                  className="justify-start text-lg font-afro-body"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMobileMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="justify-start text-lg font-afro-body"
+                    onClick={() => {
+                      navigate('/auth');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="nsibidi-gradient text-primary-foreground border-0 font-afro-body"
+                    onClick={() => {
+                      navigate('/auth');
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <span className="nsibidi-symbol mr-1">♦</span>
+                    Join Now
+                  </Button>
+                </>
+              )}
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );

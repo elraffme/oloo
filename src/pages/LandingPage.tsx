@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe } from "lucide-react";
-import landingImage from "@/assets/hero-main.jpg";
+import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
+import landingImage from "@/assets/hero-background.png";
 import Footer from "@/components/Footer";
 const LandingPage = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (isVideoPlaying && videoRef.current) {
@@ -24,14 +25,89 @@ const LandingPage = () => {
   const toggleVideo = () => {
     setIsVideoPlaying(!isVideoPlaying);
   };
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMenuOpen(false);
+  };
+
   return <div className="min-h-screen flex flex-col overflow-hidden bg-black">
       {/* Top Header - Fixed */}
-      <header className="bg-black/95 py-3 sm:py-4 lg:py-5 relative z-20 border-b border-primary/20">
-        <button className="absolute left-3 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors">
-          <Menu size={20} className="sm:w-6 sm:h-6" />
+      <header className="bg-black/95 py-3 sm:py-4 lg:py-5 relative z-50 border-b border-primary/20">
+        <button 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="absolute left-3 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors"
+        >
+          {isMenuOpen ? <X size={20} className="sm:w-6 sm:h-6" /> : <Menu size={20} className="sm:w-6 sm:h-6" />}
         </button>
-        <h1 className="text-primary font-afro-heading text-center font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl px-12">Òloo</h1>
-        <p className="text-center text-white mt-1 sm:text-xs font-normal lg:text-base text-sm">Cultured in Connection</p>
+        <h1 className="text-primary font-afro-heading text-center font-bold sm:text-3xl md:text-4xl px-12 lg:text-6xl text-5xl">Òloo</h1>
+        <p className="text-center text-white -mt-1 sm:text-xs font-normal lg:text-base text-sm">Cultured in Connection</p>
+        
+        {/* Dropdown Menu */}
+        {isMenuOpen && (
+          <div className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg animate-fade-in z-50">
+            <nav className="container mx-auto px-4 py-6 flex flex-col gap-2">
+              <Button
+                variant="ghost"
+                className="justify-start text-base font-afro-heading hover:bg-primary/10"
+                onClick={() => scrollToSection('culture')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Culture
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-base font-afro-heading hover:bg-primary/10"
+                onClick={() => scrollToSection('discover')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Discover
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-base font-afro-heading hover:bg-primary/10"
+                onClick={() => scrollToSection('collective')}
+              >
+                <span className="nsibidi-symbol mr-2">◊</span>
+                Collective
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start text-base font-afro-heading hover:bg-primary/10"
+                onClick={() => scrollToSection('get-started')}
+              >
+                <span className="nsibidi-symbol mr-2">◈</span>
+                Get Started
+              </Button>
+              
+              <div className="border-t border-border my-2" />
+              
+              <Button
+                variant="ghost"
+                className="justify-start text-base font-afro-heading hover:bg-primary/10"
+                onClick={() => {
+                  window.location.href = '/auth';
+                  setIsMenuOpen(false);
+                }}
+              >
+                Sign In
+              </Button>
+              <Button
+                className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading"
+                onClick={() => {
+                  window.location.href = '/onboarding';
+                  setIsMenuOpen(false);
+                }}
+              >
+                <span className="nsibidi-symbol mr-1">♦</span>
+                Join Now
+              </Button>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* Hero Section with Background Image */}
@@ -41,7 +117,7 @@ const LandingPage = () => {
           <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
           backgroundImage: `url(${landingImage})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center center',
+          backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
           backgroundAttachment: 'scroll'
         }} />
@@ -82,38 +158,10 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* How It Works Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
-            Discover Meaningful Connections
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mt-12">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">1</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Cultural Compatibility Quiz</h3>
-              <p className="text-muted-foreground">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">2</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Personalized Matchmaking</h3>
-              <p className="text-muted-foreground">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">3</div>
-              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Share and Connect</h3>
-              <p className="text-muted-foreground">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+      <section id="culture" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
-            Why "Culturally Yours" Is Different
-          </h2>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">Why "The Culture" Is Different</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mt-12">
             <div className="bg-card p-6 rounded-lg border border-border space-y-3">
               <Globe className="w-12 h-12 text-primary" />
@@ -144,6 +192,32 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section id="discover" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-4 text-foreground">
+            Discover Meaningful Connections
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12 mt-12">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">1</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Cultural Compatibility Quiz</h3>
+              <p className="text-muted-foreground">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">2</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Personalized Matchmaking</h3>
+              <p className="text-muted-foreground">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
+            </div>
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-2xl font-bold">3</div>
+              <h3 className="text-xl sm:text-2xl font-afro-heading font-semibold text-foreground">Share and Connect</h3>
+              <p className="text-muted-foreground">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Community Testimonials Section */}
       <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
@@ -168,7 +242,7 @@ const LandingPage = () => {
       </section>
 
       {/* Cultural Exploration Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
+      <section id="collective" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-center mb-12 text-foreground">
             Get Inspired, Explore Together
@@ -191,7 +265,7 @@ const LandingPage = () => {
       </section>
 
       {/* Join the Movement Section */}
-      <section className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
+      <section id="get-started" className="py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-afro-heading font-bold text-foreground">
             Ready to Experience a Connection Like No Other?
