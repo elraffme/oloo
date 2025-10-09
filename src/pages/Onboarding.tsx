@@ -162,6 +162,16 @@ const Onboarding = () => {
       return false;
     }
 
+    // Validate required fields
+    if (!formData.name || !formData.birthDate || !formData.gender) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all required fields",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     setIsSaving(true);
     
     try {
@@ -171,23 +181,47 @@ const Onboarding = () => {
       // Calculate age from birth date
       const age = calculateAge(formData.birthDate);
       
+      // Validate age
+      if (age < 18 || age > 100) {
+        toast({
+          title: "Invalid Age",
+          description: "You must be at least 18 years old",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Parse height safely
+      let heightInCm = 170; // default height
+      if (formData.height && formData.height.includes("'")) {
+        const parts = formData.height.split("'");
+        const feet = parseInt(parts[0]) || 0;
+        const inches = parseInt(parts[1]) || 0;
+        heightInCm = Math.round(feet * 30.48 + inches * 2.54);
+      }
+      
       // Prepare profile data
       const profileData = {
         display_name: formData.name,
         age: age,
         gender: formData.gender,
-        height_cm: parseInt(formData.height.split("'")[0]) * 30.48 + parseInt(formData.height.split("'")[1]) * 2.54,
-        education: formData.education,
-        occupation: formData.occupation,
-        relationship_goals: formData.lookingFor,
-        interests: formData.hobbies.split(',').map(h => h.trim()).filter(h => h),
+        height_cm: heightInCm,
+        education: formData.education || 'Not specified',
+        occupation: formData.occupation || 'Not specified',
+        relationship_goals: formData.lookingFor || 'Getting to know people',
+        interests: formData.hobbies ? formData.hobbies.split(',').map(h => h.trim()).filter(h => h) : [],
         profile_photos: photoUrls,
-        bio: `${formData.hobbies}\n\nPersonality: ${formData.personality}`
+        avatar_url: photoUrls[0] || null,
+        bio: formData.hobbies ? `${formData.hobbies}\n\nPersonality: ${formData.personality}` : 'New to Òloo!',
+        location: formData.location ? 'Location enabled' : 'Location disabled'
       };
+      
+      console.log('Saving profile...', profileData);
       
       const { error } = await updateProfile(profileData);
       
       if (error) {
+        console.error('Update profile error:', error);
         toast({
           title: "Error saving profile",
           description: error.message,
@@ -206,7 +240,7 @@ const Onboarding = () => {
       console.error('Profile save error:', error);
       toast({
         title: "Error",
-        description: "Failed to save profile. Please try again.",
+        description: error?.message || "Failed to save profile. Please try again.",
         variant: "destructive"
       });
       return false;
