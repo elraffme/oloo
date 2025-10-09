@@ -73,18 +73,26 @@ export const PublicProfileViewer = ({
   const fetchProfile = async () => {
     setLoading(true);
     try {
+      // Use the secure get_full_profile function which enforces access control
+      // This returns full profile only if connected, otherwise returns limited discovery data
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', profileId)
-        .single();
+        .rpc('get_full_profile', {
+          profile_user_id: profileId
+        });
 
       if (error) throw error;
       
-      setProfile(data);
-      setCurrentPhotoIndex(data.main_profile_photo_index || 0);
+      if (data && typeof data === 'object') {
+        setProfile(data as unknown as PublicProfile);
+        setCurrentPhotoIndex((data as any).main_profile_photo_index || 0);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

@@ -51,10 +51,11 @@ const Discover = () => {
       
       // Load both real user profiles and demo profiles for discovery
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
-        // Load ALL real profiles (not just verified ones) for better discovery
+        // Load ONLY safe discovery fields (not all personal data)
+        // This implements defense-in-depth security by limiting exposure
         supabase
           .from('profiles')
-          .select('*')
+          .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, is_demo_profile')
           .eq('is_demo_profile', false)
           .neq('user_id', currentUser?.user?.id || '') // Exclude current user
           .range(currentOffset, currentOffset + 15)
