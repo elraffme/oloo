@@ -126,7 +126,7 @@ const LandingPage = () => {
         </div>
 
         {/* Content Overlay - CTAs at Bottom */}
-        <div className="relative z-10 flex-1 flex flex-col justify-end px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        <div className="relative z-10 flex-1 flex flex-col justify-end px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Bottom CTA Section */}
           <div className="space-y-3 sm:space-y-4 pb-4 sm:pb-6 lg:pb-8 max-w-md mx-auto w-full">
             {/* Primary CTA */}
