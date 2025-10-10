@@ -319,7 +319,7 @@ const Onboarding = () => {
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full h-12 justify-start text-left font-normal bg-background border-input hover:bg-accent hover:text-accent-foreground",
                       !formData.birthDate && "text-muted-foreground"
                     )}
                   >
@@ -327,7 +327,7 @@ const Onboarding = () => {
                     {formData.birthDate ? format(new Date(formData.birthDate), "MM/dd/yyyy") : "mm/dd/yyyy"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 bg-popover z-50" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.birthDate ? new Date(formData.birthDate) : undefined}
@@ -340,7 +340,7 @@ const Onboarding = () => {
                       date > new Date() || date < new Date("1900-01-01")
                     }
                     initialFocus
-                    className="pointer-events-auto"
+                    className="pointer-events-auto rounded-md border"
                     captionLayout="dropdown-buttons"
                     fromYear={1900}
                     toYear={new Date().getFullYear()}
