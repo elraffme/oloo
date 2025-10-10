@@ -27,90 +27,62 @@ const LandingPage = () => {
   const toggleVideo = () => {
     setIsVideoPlaying(!isVideoPlaying);
   };
-
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
     setIsMenuOpen(false);
   };
-
   return <div className="min-h-screen flex flex-col overflow-hidden bg-black">
       {/* Top Header - Fixed */}
       <header className="bg-black/95 py-2 sm:py-3 lg:py-5 relative z-50 border-b border-primary/20">
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2"
-          aria-label="Toggle menu"
-        >
+        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2" aria-label="Toggle menu">
           {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Menu size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl px-10 sm:px-12">Òloo</h1>
-        <p className="text-center text-white -mt-0.5 text-[10px] sm:text-xs lg:text-base font-normal">Cultured in Connection</p>
+        <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">Cultured in Connection</p>
         
         {/* Dropdown Menu */}
-        {isMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg animate-fade-in z-50">
+        {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg animate-fade-in z-50">
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-2">
-              <Button
-                variant="ghost"
-                className="justify-start text-base font-afro-heading hover:bg-primary/10"
-                onClick={() => scrollToSection('culture')}
-              >
+              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('culture')}>
                 <span className="nsibidi-symbol mr-2">◊</span>
                 Culture
               </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-base font-afro-heading hover:bg-primary/10"
-                onClick={() => scrollToSection('discover')}
-              >
+              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('discover')}>
                 <span className="nsibidi-symbol mr-2">◊</span>
                 Discover
               </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-base font-afro-heading hover:bg-primary/10"
-                onClick={() => scrollToSection('collective')}
-              >
+              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('collective')}>
                 <span className="nsibidi-symbol mr-2">◊</span>
                 Collective
               </Button>
-              <Button
-                variant="ghost"
-                className="justify-start text-base font-afro-heading hover:bg-primary/10"
-                onClick={() => scrollToSection('get-started')}
-              >
+              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('get-started')}>
                 <span className="nsibidi-symbol mr-2">◈</span>
                 Get Started
               </Button>
               
               <div className="border-t border-border my-2" />
               
-              <Button
-                variant="ghost"
-                className="justify-start text-base font-afro-heading hover:bg-primary/10"
-                onClick={() => {
-                  navigate('/auth');
-                  setIsMenuOpen(false);
-                }}
-              >
+              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => {
+            navigate('/auth');
+            setIsMenuOpen(false);
+          }}>
                 Sign In
               </Button>
-              <Button
-                className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading"
-                onClick={() => {
-                  navigate('/auth');
-                  setIsMenuOpen(false);
-                }}
-              >
+              <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading" onClick={() => {
+            navigate('/auth');
+            setIsMenuOpen(false);
+          }}>
                 <span className="nsibidi-symbol mr-1">♦</span>
                 Join Now
               </Button>
             </nav>
-          </div>
-        )}
+          </div>}
       </header>
 
       {/* Hero Section with Background Image */}
