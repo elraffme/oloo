@@ -69,7 +69,13 @@ const OnboardingStep = ({
           </Button>
         </div>
         <div className="text-center mt-4">
-          
+          <Button 
+            variant="ghost" 
+            onClick={() => window.location.href = '/auth'} 
+            className="text-sm"
+          >
+            Need to create an account?
+          </Button>
         </div>
       </CardContent>
     </Card>
