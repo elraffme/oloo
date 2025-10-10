@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -186,11 +186,44 @@ const Auth = () => {
       console.log('SignUp result:', result);
       
       if (!result.error) {
-        // Navigate to onboarding after successful signup
+        // Get pending profile data from localStorage
+        const pendingData = localStorage.getItem('pendingProfileData');
+        const pendingPhotos = localStorage.getItem('pendingPhotos');
+        
+        if (pendingData) {
+          const profileData = JSON.parse(pendingData);
+          const { data: session } = await supabase.auth.getSession();
+          
+          if (session?.session?.user) {
+            // Save profile with onboarding data
+            const birthDate = new Date(profileData.birthDate);
+            const age = new Date().getFullYear() - birthDate.getFullYear();
+            
+            await supabase.from('profiles').upsert({
+              user_id: session.session.user.id,
+              display_name: profileData.name,
+              age: age,
+              location: formData.location.trim(),
+              bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
+              gender: profileData.gender,
+              height_cm: profileData.height,
+              education: profileData.education,
+              occupation: profileData.occupation,
+              interests: profileData.hobbies,
+              relationship_goals: profileData.lookingFor
+            });
+            
+            // Clear localStorage
+            localStorage.removeItem('pendingProfileData');
+            localStorage.removeItem('pendingPhotos');
+          }
+        }
+        
+        // Navigate to app
         if (formData.biometricConsent) {
           setShowVerification(true);
         } else {
-          navigate('/onboarding');
+          navigate('/app');
         }
       }
     } catch (error) {
@@ -203,7 +236,7 @@ const Auth = () => {
 
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    navigate('/onboarding');
+    navigate('/app');
   };
 
   // Show verification flow
@@ -303,7 +336,7 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 6 characters)</Label>
+                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
                     <Input
                       id="password"
                       name="password"
@@ -314,7 +347,7 @@ const Auth = () => {
                       placeholder="Create a strong password"
                       className={passwordError ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                     <button
                       type="button"
@@ -339,7 +372,7 @@ const Auth = () => {
                       placeholder="Confirm your password"
                       className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                   </div>
 
