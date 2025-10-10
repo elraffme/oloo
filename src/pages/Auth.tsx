@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -31,10 +32,41 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
-  // Redirect if already authenticated
-  if (user && !loading) {
-    return <Navigate to="/app" replace />;
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (user && !loading) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', user.id)
+            .single();
+
+          if (error || !data || !data.display_name || !data.age || !data.location) {
+            setHasProfile(false);
+          } else {
+            setHasProfile(true);
+          }
+        } catch (error) {
+          console.error('Error checking profile:', error);
+          setHasProfile(false);
+        }
+      }
+    };
+
+    checkProfile();
+  }, [user, loading]);
+
+  // Redirect authenticated users based on profile completion
+  if (user && !loading && hasProfile !== null) {
+    if (hasProfile) {
+      return <Navigate to="/app" replace />;
+    } else {
+      return <Navigate to="/onboarding" replace />;
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -82,7 +114,25 @@ const Auth = () => {
     
     setIsSubmitting(true);
     try {
-      await signIn(formData.email, formData.password);
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (!error) {
+        // Check if user has completed profile
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!profile || !profile.display_name || !profile.age || !profile.location) {
+            navigate('/onboarding');
+          } else {
+            navigate('/app');
+          }
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
