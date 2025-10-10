@@ -78,6 +78,14 @@ const OnboardingStep = ({
             )}
           </Button>
         </div>
+        <div className="text-center mt-4">
+          <button 
+            onClick={() => window.location.href = '/auth'} 
+            className="text-sm text-muted-foreground hover:text-primary transition-colors underline"
+          >
+            Need to create an account?
+          </button>
+        </div>
       </CardContent>
     </Card>
   </div>;
