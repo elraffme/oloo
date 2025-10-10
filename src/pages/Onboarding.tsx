@@ -252,11 +252,8 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save profile on last step
-      const success = await saveProfile();
-      if (success) {
-        navigate('/app');
-      }
+      // Navigate to create account page
+      navigate('/auth');
     }
   };
   const prevStep = () => {
