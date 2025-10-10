@@ -252,11 +252,39 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save profile on last step
-      const success = await saveProfile();
-      if (success) {
-        navigate('/auth?mode=signup');
-      }
+      // Store profile data in localStorage to complete after account creation
+      localStorage.setItem('pendingProfileData', JSON.stringify({
+        name: formData.name,
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        orientation: formData.orientation,
+        height: formData.height,
+        bodyType: formData.bodyType,
+        education: formData.education,
+        occupation: formData.occupation,
+        interestedIn: formData.interestedIn,
+        lookingFor: formData.lookingFor,
+        hobbies: formData.hobbies,
+        personality: formData.personality,
+        photoCount: formData.photos.length
+      }));
+      
+      // Store photos in localStorage as base64
+      const photoPromises = formData.photos.map((photo, index) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({ index, data: reader.result });
+          };
+          reader.readAsDataURL(photo);
+        });
+      });
+      
+      const photoData = await Promise.all(photoPromises);
+      localStorage.setItem('pendingPhotos', JSON.stringify(photoData));
+      
+      // Navigate to Create Account page
+      navigate('/auth?mode=signup');
     }
   };
   const prevStep = () => {
@@ -546,7 +574,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 6:
-      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={false} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
               <span className="logo-text">Ò</span>
