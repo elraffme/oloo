@@ -56,43 +56,33 @@ const OnboardingStep = ({
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>}
-          <Button 
-            onClick={onNext} 
-            disabled={!canProceed || (isLastStep && isSaving)} 
-            className="flex-1 nsibidi-gradient text-primary-foreground hover:opacity-90 transition-all duration-300 shadow-lg"
-          >
-            {isLastStep && isSaving ? (
-              <>
+          <Button onClick={onNext} disabled={!canProceed || isLastStep && isSaving} className="flex-1 nsibidi-gradient text-primary-foreground hover:opacity-90 transition-all duration-300 shadow-lg">
+            {isLastStep && isSaving ? <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                 Saving Profile...
-              </>
-            ) : isLastStep ? (
-              <>
+              </> : isLastStep ? <>
               Let's Start!
-              </>
-            ) : (
-              <>
+              </> : <>
                 Continue
                 <ArrowRight className="w-4 h-4 ml-2" />
-              </>
-            )}
+              </>}
           </Button>
         </div>
         <div className="text-center mt-4">
-          <button 
-            onClick={() => window.location.href = '/auth'} 
-            className="text-sm text-muted-foreground hover:text-primary transition-colors underline"
-          >
-            Need to create an account?
-          </button>
+          
         </div>
       </CardContent>
     </Card>
   </div>;
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { user, updateProfile } = useAuth();
-  const { toast } = useToast();
+  const {
+    user,
+    updateProfile
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -121,44 +111,38 @@ const Onboarding = () => {
   };
   const uploadPhotos = async (): Promise<string[]> => {
     if (!user || formData.photos.length === 0) return [];
-    
     const uploadedUrls: string[] = [];
-    
     for (let i = 0; i < formData.photos.length; i++) {
       const photo = formData.photos[i];
       const fileExt = photo.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
-      
-      const { error: uploadError, data } = await supabase.storage
-        .from('profile-photos')
-        .upload(fileName, photo);
-      
+      const {
+        error: uploadError,
+        data
+      } = await supabase.storage.from('profile-photos').upload(fileName, photo);
       if (uploadError) {
         console.error('Photo upload error:', uploadError);
         continue;
       }
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(fileName);
-      
+      const {
+        data: {
+          publicUrl
+        }
+      } = supabase.storage.from('profile-photos').getPublicUrl(fileName);
       uploadedUrls.push(publicUrl);
     }
-    
     return uploadedUrls;
   };
-
   const calculateAge = (birthDate: string): number => {
     const birth = new Date(birthDate);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    if (monthDiff < 0 || monthDiff === 0 && today.getDate() < birth.getDate()) {
       age--;
     }
     return age;
   };
-
   const saveProfile = async () => {
     if (!user) {
       toast({
@@ -178,16 +162,14 @@ const Onboarding = () => {
       });
       return false;
     }
-
     setIsSaving(true);
-    
     try {
       // Upload photos first
       const photoUrls = await uploadPhotos();
-      
+
       // Calculate age from birth date
       const age = calculateAge(formData.birthDate);
-      
+
       // Validate age
       if (age < 18 || age > 100) {
         toast({
@@ -206,7 +188,7 @@ const Onboarding = () => {
         const inches = parseInt(parts[1]) || 0;
         heightInCm = Math.round(feet * 30.48 + inches * 2.54);
       }
-      
+
       // Prepare profile data
       const profileData = {
         display_name: formData.name,
@@ -222,11 +204,10 @@ const Onboarding = () => {
         bio: formData.hobbies ? `${formData.hobbies}\n\nPersonality: ${formData.personality}` : 'New to Òloo!',
         location: 'Not specified'
       };
-      
       console.log('Saving profile...', profileData);
-      
-      const { error } = await updateProfile(profileData);
-      
+      const {
+        error
+      } = await updateProfile(profileData);
       if (error) {
         console.error('Update profile error:', error);
         toast({
@@ -236,12 +217,10 @@ const Onboarding = () => {
         });
         return false;
       }
-      
       toast({
         title: "Profile created!",
         description: "Welcome to Òloo"
       });
-      
       return true;
     } catch (error: any) {
       console.error('Profile save error:', error);
@@ -255,7 +234,6 @@ const Onboarding = () => {
       setIsSaving(false);
     }
   };
-
   const nextStep = async () => {
     if (step < totalSteps) {
       setStep(step + 1);
@@ -276,24 +254,20 @@ const Onboarding = () => {
       updateData('photos', [...formData.photos, ...files].slice(0, 6));
     }
   };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
-
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-
     const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
     if (files.length > 0) {
       updateData('photos', [...formData.photos, ...files].slice(0, 6));
@@ -322,15 +296,7 @@ const Onboarding = () => {
             </div>
             <div>
               <Label htmlFor="birthDate">Date of Birth</Label>
-              <Input 
-                id="birthDate" 
-                type="date"
-                value={formData.birthDate} 
-                onChange={e => updateData('birthDate', e.target.value)} 
-                max={new Date().toISOString().split('T')[0]}
-                min="1900-01-01"
-                className="h-12"
-              />
+              <Input id="birthDate" type="date" value={formData.birthDate} onChange={e => updateData('birthDate', e.target.value)} max={new Date().toISOString().split('T')[0]} min="1900-01-01" className="h-12" />
               <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
             </div>
             <div>
@@ -504,24 +470,10 @@ const Onboarding = () => {
     case 5:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
-            <div 
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                isDragging 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-primary'
-              }`}
-              onClick={() => document.getElementById('photo-upload')?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
+            <div className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary'}`} onClick={() => document.getElementById('photo-upload')?.click()} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
               <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-2">
-                {isDragging 
-                  ? "Drop your photos here" 
-                  : formData.photos.length > 0 
-                    ? `${formData.photos.length} photo(s) selected` 
-                    : "Drag & drop or click to upload (max 6 photos)"}
+                {isDragging ? "Drop your photos here" : formData.photos.length > 0 ? `${formData.photos.length} photo(s) selected` : "Drag & drop or click to upload (max 6 photos)"}
               </p>
               <Input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" id="photo-upload" />
               <Button type="button" variant="outline" className="w-full pointer-events-none">
