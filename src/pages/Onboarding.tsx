@@ -313,40 +313,16 @@ const Onboarding = () => {
               <p className="text-xs text-muted-foreground mt-1">Username will appear on profile</p>
             </div>
             <div>
-              <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-12 justify-start text-left font-normal bg-background border-input hover:bg-accent hover:text-accent-foreground",
-                      !formData.birthDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.birthDate ? format(new Date(formData.birthDate), "MM/dd/yyyy") : "mm/dd/yyyy"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-popover z-50" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.birthDate ? new Date(formData.birthDate) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        updateData('birthDate', format(date, "yyyy-MM-dd"));
-                      }
-                    }}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                    className="pointer-events-auto rounded-md border"
-                    captionLayout="dropdown-buttons"
-                    fromYear={1900}
-                    toYear={new Date().getFullYear()}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Label htmlFor="birthDate">Date of Birth</Label>
+              <Input 
+                id="birthDate" 
+                type="date"
+                value={formData.birthDate} 
+                onChange={e => updateData('birthDate', e.target.value)} 
+                max={new Date().toISOString().split('T')[0]}
+                min="1900-01-01"
+                className="h-12"
+              />
               <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
             </div>
             <div>
