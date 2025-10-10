@@ -1,24 +1,57 @@
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const SignIn = () => {
   const { user, loading, signIn } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
-  // Redirect if already authenticated
-  if (user && !loading) {
-    return <Navigate to="/app" replace />;
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (user && !loading) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', user.id)
+            .single();
+
+          if (error || !data || !data.display_name || !data.age || !data.location) {
+            setHasProfile(false);
+          } else {
+            setHasProfile(true);
+          }
+        } catch (error) {
+          console.error('Error checking profile:', error);
+          setHasProfile(false);
+        }
+      }
+    };
+
+    checkProfile();
+  }, [user, loading]);
+
+  // Redirect authenticated users based on profile completion
+  if (user && !loading && hasProfile !== null) {
+    if (hasProfile) {
+      return <Navigate to="/app" replace />;
+    } else {
+      return <Navigate to="/onboarding" replace />;
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,7 +65,25 @@ const SignIn = () => {
     
     setIsSubmitting(true);
     try {
-      await signIn(formData.email, formData.password);
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (!error) {
+        // Check if user has completed profile
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', session.session.user.id)
+            .single();
+
+          if (!profile || !profile.display_name || !profile.age || !profile.location) {
+            navigate('/onboarding');
+          } else {
+            navigate('/app');
+          }
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
