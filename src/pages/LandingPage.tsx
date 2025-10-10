@@ -105,7 +105,7 @@ const LandingPage = () => {
           {/* Bottom CTA Section */}
           <div className="space-y-2.5 sm:space-y-4 pb-6 sm:pb-8 lg:pb-10 max-w-sm sm:max-w-md mx-auto w-full">
             {/* Primary CTA */}
-            <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/auth')}>
+            <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/onboarding')}>
               Create account
             </Button>
 
