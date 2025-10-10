@@ -440,36 +440,6 @@ export type Database = {
         }
         Relationships: []
       }
-      rate_limit_actions: {
-        Row: {
-          action_type: string
-          created_at: string
-          id: string
-          ip_address: unknown | null
-          metadata: Json | null
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          action_type: string
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          metadata?: Json | null
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          action_type?: string
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          metadata?: Json | null
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       security_audit_log: {
         Row: {
           action: string
@@ -749,10 +719,6 @@ export type Database = {
         Args: { requester_user_id: string }
         Returns: Json
       }
-      admin_access_biometric_data: {
-        Args: { access_reason: string; verification_id: string }
-        Returns: Json
-      }
       admin_get_verification_data: {
         Args: { admin_reason: string; verification_id: string }
         Returns: Json
@@ -772,15 +738,6 @@ export type Database = {
       check_otp_threshold: {
         Args: { user_uuid: string }
         Returns: boolean
-      }
-      check_rate_limit: {
-        Args: {
-          p_action_type: string
-          p_max_attempts: number
-          p_user_id: string
-          p_window_minutes: number
-        }
-        Returns: Json
       }
       check_sensitive_info_rate_limit: {
         Args: { user_uuid: string }
@@ -869,10 +826,6 @@ export type Database = {
         }[]
       }
       get_discovery_profile: {
-        Args: { profile_user_id: string }
-        Returns: Json
-      }
-      get_discovery_profile_preview: {
         Args: { profile_user_id: string }
         Returns: Json
       }
@@ -1063,10 +1016,6 @@ export type Database = {
       make_user_admin: {
         Args: { target_email: string }
         Returns: boolean
-      }
-      record_rate_limit_action: {
-        Args: { p_action_type: string; p_user_id: string }
-        Returns: undefined
       }
       reject_friend_request: {
         Args: { requester_user_id: string }

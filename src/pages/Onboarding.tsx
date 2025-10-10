@@ -31,7 +31,7 @@ const OnboardingStep = ({
   title: string;
   description?: string;
   children: React.ReactNode;
-  onNext: () => void | Promise<void>;
+  onNext: () => void;
   onBack?: () => void;
   canProceed?: boolean;
   isLastStep?: boolean;
@@ -252,11 +252,8 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save profile on last step
-      const success = await saveProfile();
-      if (success) {
-        navigate('/auth?mode=signup');
-      }
+      // Navigate to create account page
+      navigate('/auth');
     }
   };
   const prevStep = () => {
