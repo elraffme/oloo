@@ -31,7 +31,7 @@ const OnboardingStep = ({
   title: string;
   description?: string;
   children: React.ReactNode;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   onBack?: () => void;
   canProceed?: boolean;
   isLastStep?: boolean;
