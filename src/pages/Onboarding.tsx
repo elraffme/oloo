@@ -255,7 +255,7 @@ const Onboarding = () => {
       // Save profile on last step
       const success = await saveProfile();
       if (success) {
-        navigate('/auth?mode=signup');
+        navigate('/auth');
       }
     }
   };
