@@ -7,8 +7,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X, CalendarIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -310,7 +314,39 @@ const Onboarding = () => {
             </div>
             <div>
               <Label htmlFor="birthDate">Date of Birth (MM/DD/YYYY)</Label>
-              <Input id="birthDate" type="date" value={formData.birthDate} onChange={e => updateData('birthDate', e.target.value)} />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.birthDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.birthDate ? format(new Date(formData.birthDate), "MM/dd/yyyy") : "mm/dd/yyyy"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.birthDate ? new Date(formData.birthDate) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        updateData('birthDate', format(date, "yyyy-MM-dd"));
+                      }
+                    }}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    initialFocus
+                    className="pointer-events-auto"
+                    captionLayout="dropdown-buttons"
+                    fromYear={1900}
+                    toYear={new Date().getFullYear()}
+                  />
+                </PopoverContent>
+              </Popover>
               <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
             </div>
             <div>
