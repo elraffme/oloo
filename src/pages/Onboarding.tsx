@@ -64,8 +64,7 @@ const OnboardingStep = ({
               </>
             ) : isLastStep ? (
               <>
-                <Heart className="w-4 h-4 mr-2" />
-                Complete Profile & Start Matching
+              Let's Start!
               </>
             ) : (
               <>
@@ -97,15 +96,11 @@ const Onboarding = () => {
     occupation: "",
     interestedIn: "",
     lookingFor: "",
-    distance: [25],
     hobbies: "",
     personality: "",
-    photos: [] as File[],
-    location: false,
-    blockContacts: false,
-    nearbyStudents: false
+    photos: [] as File[]
   });
-  const totalSteps = 10;
+  const totalSteps = 6;
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -213,7 +208,7 @@ const Onboarding = () => {
         profile_photos: photoUrls,
         avatar_url: photoUrls[0] || null,
         bio: formData.hobbies ? `${formData.hobbies}\n\nPersonality: ${formData.personality}` : 'New to Òloo!',
-        location: formData.location ? 'Location enabled' : 'Location disabled'
+        location: 'Not specified'
       };
       
       console.log('Saving profile...', profileData);
@@ -424,7 +419,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 4:
-      return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0 && formData.hobbies.length > 10 && formData.personality.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
               <Label>Show me</Label>
@@ -487,17 +482,6 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 5:
-      return <OnboardingStep title="Distance Range" description="How far are you willing to travel for love?" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <Label>Maximum Distance: {formData.distance[0]} miles</Label>
-            <Slider value={formData.distance} onValueChange={value => updateData('distance', value)} max={100} min={1} step={1} className="w-full" />
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>1 mi</span>
-              <span>100+ mi</span>
-            </div>
-          </div>
-        </OnboardingStep>;
-    case 6:
       return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div 
@@ -549,51 +533,7 @@ const Onboarding = () => {
             </div>
           </div>
         </OnboardingStep>;
-    case 7:
-      return <OnboardingStep title="Location Settings" description="Help us show you people nearby" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="location" checked={formData.location} onCheckedChange={checked => updateData('location', checked)} />
-              <Label htmlFor="location" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Enable location services
-              </Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              We'll use your location to show you potential matches nearby and help you discover local events.
-            </p>
-          </div>
-        </OnboardingStep>;
-    case 8:
-      return <OnboardingStep title="Block Contacts" description="Prevent people from your contacts from finding you" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox id="blockContacts" checked={formData.blockContacts} onCheckedChange={checked => updateData('blockContacts', checked)} />
-              <Label htmlFor="blockContacts">Block people from my contacts</Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              This prevents people in your phone contacts from seeing your profile.
-            </p>
-          </div>
-        </OnboardingStep>;
-    case 9:
-      return <OnboardingStep title="Oloo Insight" description="Let's show you how Òloo works" onNext={nextStep} onBack={prevStep} currentStep={step} totalSteps={totalSteps}>
-          <div className="space-y-6">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 romantic-gradient rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-3xl">Ò</span>
-              </div>
-              <h3 className="font-semibold mb-2">Swipe to Connect</h3>
-              <p className="text-sm text-muted-foreground">
-                Swipe right to like someone, left to pass. If you both like each other, it's a match!
-              </p>
-            </div>
-            <div className="bg-primary/10 p-4 rounded-lg">
-              <p className="text-sm"><strong>Pro tip:</strong> Take your time to read profiles and find meaningful connections.</p>
-            </div>
-          </div>
-        </OnboardingStep>;
-    case 10:
+    case 6:
       return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
