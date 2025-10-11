@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -303,7 +303,7 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 6 characters)</Label>
+                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
                     <Input
                       id="password"
                       name="password"
@@ -314,7 +314,7 @@ const Auth = () => {
                       placeholder="Create a strong password"
                       className={passwordError ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                     <button
                       type="button"
@@ -339,7 +339,7 @@ const Auth = () => {
                       placeholder="Confirm your password"
                       className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                   </div>
 
