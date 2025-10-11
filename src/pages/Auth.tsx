@@ -11,15 +11,12 @@ import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+
 const Auth = () => {
-  const {
-    user,
-    loading,
-    signIn,
-    signUp
-  } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
@@ -27,6 +24,8 @@ const Auth = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    location: '',
+    bio: '',
     acceptTerms: false,
     biometricConsent: false
   });
@@ -40,10 +39,12 @@ const Auth = () => {
     const checkProfile = async () => {
       if (user && !loading) {
         try {
-          const {
-            data,
-            error
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', user.id).single();
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', user.id)
+            .single();
+
           if (error || !data || !data.display_name || !data.age || !data.location) {
             setHasProfile(false);
           } else {
@@ -55,6 +56,7 @@ const Auth = () => {
         }
       }
     };
+
     checkProfile();
   }, [user, loading]);
 
@@ -66,16 +68,11 @@ const Auth = () => {
       return <Navigate to="/onboarding" replace />;
     }
   }
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
     // Clear errors when user types
     if (name === 'email') {
       setEmailError('');
@@ -84,6 +81,7 @@ const Auth = () => {
       setPasswordError('');
     }
   };
+
   const validateEmail = (email: string): boolean => {
     try {
       emailSchema.parse(email);
@@ -96,6 +94,7 @@ const Auth = () => {
       return false;
     }
   };
+
   const validatePassword = (password: string): boolean => {
     try {
       passwordSchema.parse(password);
@@ -108,23 +107,25 @@ const Auth = () => {
       return false;
     }
   };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
-      const {
-        error
-      } = await signIn(formData.email, formData.password);
+      const { error } = await signIn(formData.email, formData.password);
+      
       if (!error) {
         // Check if user has completed profile
-        const {
-          data: session
-        } = await supabase.auth.getSession();
+        const { data: session } = await supabase.auth.getSession();
         if (session?.session?.user) {
-          const {
-            data: profile
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', session.session.user.id).single();
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, age, location')
+            .eq('user_id', session.session.user.id)
+            .single();
+
           if (!profile || !profile.display_name || !profile.age || !profile.location) {
             navigate('/onboarding');
           } else {
@@ -136,6 +137,7 @@ const Auth = () => {
       setIsSubmitting(false);
     }
   };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -162,35 +164,28 @@ const Auth = () => {
       return;
     }
 
-    // Get onboarding data from localStorage
-    const onboardingDataStr = localStorage.getItem('onboardingData');
-    if (!onboardingDataStr) {
-      alert('Please complete onboarding first');
-      navigate('/');
+    // Check required fields
+    if (!formData.location.trim()) {
+      alert('Please enter your location');
       return;
     }
-    
-    const onboardingData = JSON.parse(onboardingDataStr);
 
     setIsSubmitting(true);
     console.log('Starting sign up process...');
+    
     try {
       const metadata = {
-        location: onboardingData.location || 'Not specified',
-        bio: 'Hello, I\'m new to Òloo!',
+        location: formData.location.trim(),
+        bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
       };
-      console.log('Calling signUp with:', {
-        email: formData.email,
-        hasPassword: !!formData.password,
-        metadata
-      });
+
+      console.log('Calling signUp with:', { email: formData.email, hasPassword: !!formData.password, metadata });
       const result = await signUp(formData.email, formData.password, metadata);
+      
       console.log('SignUp result:', result);
+      
       if (!result.error) {
-        // Clear onboarding data after successful signup
-        localStorage.removeItem('onboardingData');
-        
         // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
@@ -205,6 +200,7 @@ const Auth = () => {
       setIsSubmitting(false);
     }
   };
+
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
     navigate('/app');
@@ -212,23 +208,31 @@ const Auth = () => {
 
   // Show verification flow
   if (showVerification) {
-    return <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
-        <FaceVerification onVerificationComplete={handleVerificationComplete} profilePhotos={[]} />
-      </div>;
+    return (
+      <div className="min-h-screen dark bg-background flex items-center justify-center p-4">
+        <FaceVerification 
+          onVerificationComplete={handleVerificationComplete}
+          profilePhotos={[]}
+        />
+      </div>
+    );
   }
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
           <p className="text-muted-foreground text-center">Loading Òloo...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen" style={{
-    backgroundColor: '#f7f4e8'
-  }}>
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#f7f4e8' }}>
       
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
@@ -270,30 +274,84 @@ const Auth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={() => formData.email && validateEmail(formData.email)} placeholder="your@email.com" className={emailError ? 'border-red-500' : ''} required />
-                    {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      onBlur={() => formData.email && validateEmail(formData.email)}
+                      placeholder="your@email.com"
+                      className={emailError ? 'border-red-500' : ''}
+                      required
+                    />
+                    {emailError && (
+                      <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      placeholder="Lagos, Nigeria"
+                      required
+                    />
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
-                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} onBlur={() => formData.password && validatePassword(formData.password)} placeholder="Create a strong password" className={passwordError ? 'border-red-500' : ''} required minLength={10} />
-                    <button type="button" className="absolute right-3 top-8 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
+                    <Label htmlFor="password">Password (minimum 6 characters)</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      onBlur={() => formData.password && validatePassword(formData.password)}
+                      placeholder="Create a strong password"
+                      className={passwordError ? 'border-red-500' : ''}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
-                    {passwordError && <p className="text-sm text-red-500 mt-1">{passwordError}</p>}
+                    {passwordError && (
+                      <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+                    )}
                   </div>
 
                   <div className="relative">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm your password" className={passwordError && formData.confirmPassword ? 'border-red-500' : ''} required minLength={10} />
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      placeholder="Confirm your password"
+                      className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
+                      required
+                      minLength={6}
+                    />
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex items-start space-x-2">
-                      <Checkbox id="acceptTerms" checked={formData.acceptTerms} onCheckedChange={checked => setFormData(prev => ({
-                      ...prev,
-                      acceptTerms: checked as boolean
-                    }))} />
+                      <Checkbox
+                        id="acceptTerms"
+                        checked={formData.acceptTerms}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, acceptTerms: checked as boolean }))
+                        }
+                      />
                       <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
                         I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
                         <span className="text-primary underline">Privacy Policy</span>
@@ -301,17 +359,24 @@ const Auth = () => {
                     </div>
 
                     <div className="flex items-start space-x-2">
-                      <Checkbox id="biometricConsent" checked={formData.biometricConsent} onCheckedChange={checked => setFormData(prev => ({
-                      ...prev,
-                      biometricConsent: checked as boolean
-                    }))} />
+                      <Checkbox
+                        id="biometricConsent"
+                        checked={formData.biometricConsent}
+                        onCheckedChange={(checked) => 
+                          setFormData(prev => ({ ...prev, biometricConsent: checked as boolean }))
+                        }
+                      />
                       <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
                         <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security and profile authenticity
                       </Label>
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" disabled={isSubmitting}>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </form>
@@ -321,7 +386,11 @@ const Auth = () => {
                   <p className="text-sm text-muted-foreground mb-3">
                     Already have an account?
                   </p>
-                  <Button variant="outline" className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300" onClick={() => window.location.href = '/signin'}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300"
+                    onClick={() => window.location.href = '/signin'}
+                  >
                     Sign In
                   </Button>
                 </div>
@@ -338,6 +407,8 @@ const Auth = () => {
           </Card>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Auth;
