@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
@@ -24,7 +24,6 @@ const Auth = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    location: '',
     bio: '',
     acceptTerms: false,
     biometricConsent: false
@@ -164,18 +163,22 @@ const Auth = () => {
       return;
     }
 
-    // Check required fields
-    if (!formData.location.trim()) {
-      alert('Please enter your location');
+    // Get onboarding data from localStorage
+    const onboardingDataStr = localStorage.getItem('onboardingData');
+    if (!onboardingDataStr) {
+      alert('Please complete onboarding first');
+      navigate('/');
       return;
     }
+    
+    const onboardingData = JSON.parse(onboardingDataStr);
 
     setIsSubmitting(true);
     console.log('Starting sign up process...');
     
     try {
       const metadata = {
-        location: formData.location.trim(),
+        location: onboardingData.location || 'Not specified',
         bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
       };
@@ -186,6 +189,9 @@ const Auth = () => {
       console.log('SignUp result:', result);
       
       if (!result.error) {
+        // Clear onboarding data after successful signup
+        localStorage.removeItem('onboardingData');
+        
         // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
@@ -290,20 +296,8 @@ const Auth = () => {
                     )}
                   </div>
 
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      name="location"
-                      value={formData.location}
-                      onChange={handleInputChange}
-                      placeholder="Lagos, Nigeria"
-                      required
-                    />
-                  </div>
-
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 6 characters)</Label>
+                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
                     <Input
                       id="password"
                       name="password"
@@ -314,7 +308,7 @@ const Auth = () => {
                       placeholder="Create a strong password"
                       className={passwordError ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                     <button
                       type="button"
@@ -339,7 +333,7 @@ const Auth = () => {
                       placeholder="Confirm your password"
                       className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
-                      minLength={6}
+                      minLength={10}
                     />
                   </div>
 

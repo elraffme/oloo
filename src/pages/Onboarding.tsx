@@ -94,6 +94,7 @@ const Onboarding = () => {
     birthDate: "",
     gender: "",
     orientation: "",
+    location: "",
     height: "",
     bodyType: "",
     education: "",
@@ -252,6 +253,8 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
+      // Save onboarding data to localStorage for use in Auth
+      localStorage.setItem('onboardingData', JSON.stringify(formData));
       // Navigate to auth page to create account
       navigate('/auth');
     }
@@ -302,7 +305,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 2:
-      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0 && formData.location.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
               <Label htmlFor="name" className="text-base">Username</Label>
@@ -321,6 +324,16 @@ const Onboarding = () => {
                 className="h-12"
               />
               <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
+            </div>
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input 
+                id="location" 
+                value={formData.location} 
+                onChange={e => updateData('location', e.target.value)} 
+                placeholder="Lagos, Nigeria" 
+              />
+              <p className="text-xs text-muted-foreground mt-1">City and country</p>
             </div>
             <div>
               <Label>Gender</Label>
