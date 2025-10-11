@@ -136,31 +136,31 @@ const LandingPage = () => {
       {/* Features Section */}
       <section id="culture" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-3 sm:mb-4 text-foreground px-2">Why "The Culture" Is Different</h2>
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 text-xl font-medium">Why "The Culture" Is Different</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Global Networks</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-base">Global Networks</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Virtual Dates</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Virtual Dates</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Shared Events</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Shared Events</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Attend exclusive online and offline cultural events: film festivals, music festivals, poetry slams, or even regional festivals. Meet your match while immersing yourself in art, culture, and history.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Music className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Curated Playlists</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Curated Playlists</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Intellectual & Creative Dialogue</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Intellectual & Creative Dialogue</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
             </div>
           </div>
@@ -170,23 +170,23 @@ const LandingPage = () => {
       {/* How It Works Section */}
       <section id="discover" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-3 sm:mb-4 text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 text-xl font-medium">
             Discover Meaningful Connections
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mt-8 sm:mt-12">
             <div className="text-center space-y-3 sm:space-y-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-xl sm:text-2xl font-bold">1</div>
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-afro-heading font-semibold text-foreground px-2">Cultural Compatibility Quiz</h3>
+              <h3 className="sm:text-xl lg:text-2xl font-afro-heading text-foreground px-2 text-base font-normal">Cultural Compatibility Quiz</h3>
               <p className="text-sm sm:text-base text-muted-foreground px-2">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
             </div>
             <div className="text-center space-y-3 sm:space-y-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-xl sm:text-2xl font-bold">2</div>
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-afro-heading font-semibold text-foreground px-2">Personalized Matchmaking</h3>
+              <h3 className="sm:text-xl lg:text-2xl font-afro-heading text-foreground px-2 text-base font-normal">Personalized Matchmaking</h3>
               <p className="text-sm sm:text-base text-muted-foreground px-2">Using your cultural preferences, passions, and personality traits, we match you with others who share similar lifestyles, traditions, and ideology.</p>
             </div>
             <div className="text-center space-y-3 sm:space-y-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-xl sm:text-2xl font-bold">3</div>
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-afro-heading font-semibold text-foreground px-2">Share and Connect</h3>
+              <h3 className="sm:text-xl lg:text-2xl font-afro-heading text-foreground px-2 text-base font-normal">Share and Connect</h3>
               <p className="text-sm sm:text-base text-muted-foreground px-2">Participate in engaging conversations, exchange creative works, explore unique cultural events, or enjoy a virtual dinner date with someone who speaks your cultural language.</p>
             </div>
           </div>
@@ -196,7 +196,7 @@ const LandingPage = () => {
       {/* Community Testimonials Section */}
       <section className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-8 sm:mb-12 text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-8 sm:mb-12 text-foreground px-2 text-xl font-medium">
             Our Members' Stories
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
@@ -219,20 +219,20 @@ const LandingPage = () => {
       {/* Cultural Exploration Section */}
       <section id="collective" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-8 sm:mb-12 text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-8 sm:mb-12 text-foreground px-2 text-xl font-medium">
             Get Inspired, Explore Together
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Discover Cultural Curiosity Quizzes</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Discover Cultural Curiosity Quizzes</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Which traditional music genre is your spirit song?</p>
             </div>
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Embark on a Digital Cultural Journey</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Embark on a Digital Cultural Journey</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Participate in virtual cultural tours, from ancient ruins to contemporary street art scenes.</p>
             </div>
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">What's Your Cultural Sign</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">What's Your Cultural Sign</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Explore connections based on your cultural heritage or spiritual background.</p>
             </div>
           </div>
@@ -242,7 +242,7 @@ const LandingPage = () => {
       {/* Join the Movement Section */}
       <section id="get-started" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-foreground px-2 text-xl font-medium">
             Ready to Experience a Connection Like No Other?
           </h2>
           <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
