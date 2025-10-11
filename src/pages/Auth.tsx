@@ -186,11 +186,11 @@ const Auth = () => {
       console.log('SignUp result:', result);
       
       if (!result.error) {
-        // Navigate to onboarding after successful signup
+        // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
         } else {
-          navigate('/onboarding');
+          navigate('/app');
         }
       }
     } catch (error) {
@@ -203,7 +203,7 @@ const Auth = () => {
 
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    navigate('/onboarding');
+    navigate('/app');
   };
 
   // Show verification flow
