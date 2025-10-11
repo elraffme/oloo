@@ -23,7 +23,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -192,8 +191,12 @@ const Auth = () => {
         // Clear onboarding data after successful signup
         localStorage.removeItem('onboardingData');
         
-        // Show email verification message
-        setEmailSent(true);
+        // Navigate to app after successful signup
+        if (formData.biometricConsent) {
+          setShowVerification(true);
+        } else {
+          navigate('/app');
+        }
       }
     } catch (error) {
       console.error('Sign up error:', error);
@@ -204,43 +207,8 @@ const Auth = () => {
   };
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    setEmailSent(true);
+    navigate('/app');
   };
-
-  // Show email verification message
-  if (emailSent) {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: '#f7f4e8' }}>
-        <div className="container mx-auto px-6 py-8 flex items-center justify-center min-h-screen">
-          <Card className="w-full max-w-md backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl">
-            <CardHeader className="text-center">
-              <div className="heart-logo mx-auto mb-4">
-                <span className="logo-text">Ò</span>
-              </div>
-              <CardTitle className="text-2xl font-afro-heading">Check Your Email</CardTitle>
-              <CardDescription className="text-base mt-2">
-                We've sent a verification link to <strong>{formData.email}</strong>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-center">
-              <p className="text-muted-foreground">
-                Please check your email and click the verification link to activate your account.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                After verifying, you can sign in to access your account.
-              </p>
-              <Button 
-                onClick={() => navigate('/signin')} 
-                className="w-full romantic-gradient text-white"
-              >
-                Go to Sign In
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   // Show verification flow
   if (showVerification) {
