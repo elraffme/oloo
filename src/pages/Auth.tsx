@@ -12,7 +12,7 @@ import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
 const Auth = () => {
   const {
     user,
@@ -27,8 +27,6 @@ const Auth = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    location: '',
-    bio: '',
     acceptTerms: false,
     biometricConsent: false
   });
@@ -164,17 +162,22 @@ const Auth = () => {
       return;
     }
 
-    // Check required fields
-    if (!formData.location.trim()) {
-      alert('Please enter your location');
+    // Get onboarding data from localStorage
+    const onboardingDataStr = localStorage.getItem('onboardingData');
+    if (!onboardingDataStr) {
+      alert('Please complete onboarding first');
+      navigate('/');
       return;
     }
+    
+    const onboardingData = JSON.parse(onboardingDataStr);
+
     setIsSubmitting(true);
     console.log('Starting sign up process...');
     try {
       const metadata = {
-        location: formData.location.trim(),
-        bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
+        location: onboardingData.location || 'Not specified',
+        bio: 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
       };
       console.log('Calling signUp with:', {
@@ -185,11 +188,14 @@ const Auth = () => {
       const result = await signUp(formData.email, formData.password, metadata);
       console.log('SignUp result:', result);
       if (!result.error) {
-        // Navigate to onboarding after successful signup
+        // Clear onboarding data after successful signup
+        localStorage.removeItem('onboardingData');
+        
+        // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
         } else {
-          navigate('/onboarding');
+          navigate('/app');
         }
       }
     } catch (error) {
@@ -201,7 +207,7 @@ const Auth = () => {
   };
   const handleVerificationComplete = (success: boolean) => {
     setShowVerification(false);
-    navigate('/onboarding');
+    navigate('/app');
   };
 
   // Show verification flow
@@ -268,14 +274,9 @@ const Auth = () => {
                     {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
                   </div>
 
-                  <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" name="location" value={formData.location} onChange={handleInputChange} placeholder="Lagos, Nigeria" required />
-                  </div>
-
                   <div className="relative">
                     <Label htmlFor="password">Password (minimum 10 characters)</Label>
-                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} onBlur={() => formData.password && validatePassword(formData.password)} placeholder="Create a strong password" className={passwordError ? 'border-red-500' : ''} required minLength={6} />
+                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} onBlur={() => formData.password && validatePassword(formData.password)} placeholder="Create a strong password" className={passwordError ? 'border-red-500' : ''} required minLength={10} />
                     <button type="button" className="absolute right-3 top-8 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -284,7 +285,7 @@ const Auth = () => {
 
                   <div className="relative">
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm your password" className={passwordError && formData.confirmPassword ? 'border-red-500' : ''} required minLength={6} />
+                    <Input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm your password" className={passwordError && formData.confirmPassword ? 'border-red-500' : ''} required minLength={10} />
                   </div>
 
                   <div className="space-y-3">
