@@ -252,7 +252,8 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Navigate to auth page to create account
+      // Save onboarding data to localStorage before navigating to auth
+      localStorage.setItem('onboardingData', JSON.stringify(formData));
       navigate('/auth');
     }
   };
