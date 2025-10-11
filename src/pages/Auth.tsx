@@ -32,11 +32,28 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [onboardingData, setOnboardingData] = useState<any>(null);
 
-  // Check if user has completed onboarding
+  // Load onboarding data from localStorage if it exists
   useEffect(() => {
-    const checkProfile = async () => {
+    const storedData = localStorage.getItem('onboardingData');
+    if (storedData) {
+      try {
+        const data = JSON.parse(storedData);
+        setOnboardingData(data);
+        // Pre-fill location from onboarding
+        if (data.location) {
+          setFormData(prev => ({ ...prev, location: data.location }));
+        }
+      } catch (error) {
+        console.error('Error loading onboarding data:', error);
+      }
+    }
+  }, []);
+
+  // Redirect only if user is authenticated AND has a complete profile
+  useEffect(() => {
+    const checkAndRedirect = async () => {
       if (user && !loading) {
         try {
           const { data, error } = await supabase
@@ -45,29 +62,18 @@ const Auth = () => {
             .eq('user_id', user.id)
             .single();
 
-          if (error || !data || !data.display_name || !data.age || !data.location) {
-            setHasProfile(false);
-          } else {
-            setHasProfile(true);
+          // Only redirect to /app if profile is complete
+          if (data && data.display_name && data.age && data.location) {
+            navigate('/app');
           }
         } catch (error) {
           console.error('Error checking profile:', error);
-          setHasProfile(false);
         }
       }
     };
 
-    checkProfile();
-  }, [user, loading]);
-
-  // Redirect authenticated users based on profile completion
-  if (user && !loading && hasProfile !== null) {
-    if (hasProfile) {
-      return <Navigate to="/app" replace />;
-    } else {
-      return <Navigate to="/onboarding" replace />;
-    }
-  }
+    checkAndRedirect();
+  }, [user, loading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -186,6 +192,34 @@ const Auth = () => {
       console.log('SignUp result:', result);
       
       if (!result.error) {
+        // If we have onboarding data, create the profile
+        if (onboardingData) {
+          try {
+            const { data: session } = await supabase.auth.getSession();
+            if (session?.session?.user) {
+              await supabase
+                .from('profiles')
+                .update({
+                  display_name: onboardingData.displayName || '',
+                  age: onboardingData.age || 0,
+                  bio: onboardingData.bio || formData.bio || 'Hello, I\'m new to Òloo!',
+                  height_cm: onboardingData.height || null,
+                  gender: onboardingData.gender || null,
+                  interests: onboardingData.interests || [],
+                  relationship_goals: onboardingData.relationshipGoal || null,
+                  profile_photos: onboardingData.photos || [],
+                  prompt_responses: onboardingData.promptResponses || {}
+                })
+                .eq('user_id', session.session.user.id);
+              
+              // Clear onboarding data from localStorage
+              localStorage.removeItem('onboardingData');
+            }
+          } catch (error) {
+            console.error('Error saving profile:', error);
+          }
+        }
+        
         // Navigate to app after successful signup
         if (formData.biometricConsent) {
           setShowVerification(true);
