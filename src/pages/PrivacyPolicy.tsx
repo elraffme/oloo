@@ -15,7 +15,7 @@ const PrivacyPolicy = () => {
 
         <div className="space-y-8 text-foreground">
           <section>
-            <h2 className="text-2xl font-semibold mb-4">1. Information We Collect</h2>
+            <h2 className="font-semibold mb-4 text-xl">1. Information We Collect</h2>
             <p className="leading-relaxed mb-4">
               We collect information you provide directly to us when you create an account, complete your profile, 
               and use Òloo. This includes:
@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">2. How We Use Your Information</h2>
+            <h2 className="font-semibold mb-4 text-xl">2. How We Use Your Information</h2>
             <p className="leading-relaxed mb-2">We use your information to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Provide and improve our dating services</li>
@@ -48,7 +48,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">3. Information Sharing</h2>
+            <h2 className="font-semibold mb-4 text-xl">3. Information Sharing</h2>
             <p className="leading-relaxed mb-4">
               We do not sell your personal information. We may share your information in these situations:
             </p>
@@ -62,7 +62,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">4. Data Security</h2>
+            <h2 className="font-semibold mb-4 text-xl">4. Data Security</h2>
             <p className="leading-relaxed">
               We implement industry-standard security measures to protect your information, including encryption, 
               secure servers, and regular security audits. However, no method of transmission over the internet is 
@@ -71,7 +71,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Your Privacy Rights</h2>
+            <h2 className="font-semibold mb-4 text-xl">5. Your Privacy Rights</h2>
             <p className="leading-relaxed mb-2">You have the right to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Access:</strong> Request a copy of your personal data</li>
@@ -87,7 +87,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Data Retention</h2>
+            <h2 className="font-semibold mb-4 text-xl">6. Data Retention</h2>
             <p className="leading-relaxed">
               We retain your information as long as your account is active or as needed to provide services. 
               After account deletion, we may retain certain data for legal compliance, fraud prevention, and 
@@ -96,7 +96,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">7. Children's Privacy</h2>
+            <h2 className="font-semibold mb-4 text-xl">7. Children's Privacy</h2>
             <p className="leading-relaxed">
               Òloo is not intended for users under 18 years of age. We do not knowingly collect information from 
               minors. If we discover that a user is underage, we will immediately delete their account and data.
@@ -104,7 +104,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">8. International Users</h2>
+            <h2 className="font-semibold mb-4 text-xl">8. International Users</h2>
             <p className="leading-relaxed">
               Your information may be transferred to and processed in countries other than your own. We comply with 
               applicable data protection laws and implement appropriate safeguards for international transfers.
@@ -112,7 +112,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">9. Changes to This Policy</h2>
+            <h2 className="font-semibold mb-4 text-xl">9. Changes to This Policy</h2>
             <p className="leading-relaxed">
               We may update this Privacy Policy periodically. We will notify you of significant changes via email 
               or in-app notification. Your continued use after changes constitutes acceptance of the updated policy.
@@ -120,7 +120,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">10. Contact Us</h2>
+            <h2 className="font-semibold mb-4 text-xl">10. Contact Us</h2>
             <p className="leading-relaxed">For questions or concerns about privacy, contact our Data Protection Officer at privacy@oloo.media</p>
           </section>
         </div>
