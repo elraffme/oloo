@@ -15,7 +15,7 @@ const TermsOfService = () => {
 
         <div className="space-y-8 text-foreground">
           <section>
-            <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
+            <h2 className="font-semibold mb-4 text-xl">1. Acceptance of Terms</h2>
             <p className="leading-relaxed">
               By creating an account and using Òloo ("the Service"), you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our service. We reserve the right to modify these 
@@ -24,7 +24,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">2. Eligibility</h2>
+            <h2 className="font-semibold mb-4 text-xl">2. Eligibility</h2>
             <p className="leading-relaxed mb-2">
               You must be at least 18 years old to use Òloo. By creating an account, you represent and warrant that:
             </p>
@@ -37,7 +37,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">3. Account Security</h2>
+            <h2 className="font-semibold mb-4 text-xl">3. Account Security</h2>
             <p className="leading-relaxed">
               You are responsible for maintaining the confidentiality of your account credentials. You agree to notify 
               us immediately of any unauthorized access or security breach. Òloo cannot be held liable for losses 
@@ -46,7 +46,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">4. User Conduct</h2>
+            <h2 className="font-semibold mb-4 text-xl">4. User Conduct</h2>
             <p className="leading-relaxed mb-2">You agree not to:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>Use the Service for any illegal or unauthorized purpose</li>
@@ -61,7 +61,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Content Guidelines</h2>
+            <h2 className="font-semibold mb-4 text-xl">5. Content Guidelines</h2>
             <p className="leading-relaxed">
               You retain ownership of content you post on Òloo, but grant us a worldwide, non-exclusive license to use, 
               display, and distribute your content within the Service. You represent that you have all necessary rights 
@@ -71,7 +71,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Premium Services</h2>
+            <h2 className="font-semibold mb-4 text-xl">6. Premium Services</h2>
             <p className="leading-relaxed">
               Premium subscriptions are billed in advance on a recurring basis. You may cancel at any time, but no 
               refunds will be provided for partial periods. Premium features are subject to change, and we reserve 
@@ -80,7 +80,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">7. Termination</h2>
+            <h2 className="font-semibold mb-4 text-xl">7. Termination</h2>
             <p className="leading-relaxed">
               We reserve the right to suspend or terminate your account at any time for violation of these terms, 
               illegal activity, or behavior that harms other users or the Service. You may delete your account at 
@@ -89,7 +89,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">8. Disclaimers</h2>
+            <h2 className="font-semibold mb-4 text-xl">8. Disclaimers</h2>
             <p className="leading-relaxed">
               Òloo is provided "as is" without warranties of any kind. We do not guarantee that the Service will be 
               uninterrupted, secure, or error-free. We are not responsible for the conduct of users or the accuracy 
@@ -98,7 +98,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">9. Limitation of Liability</h2>
+            <h2 className="font-semibold mb-4 text-xl">9. Limitation of Liability</h2>
             <p className="leading-relaxed">
               To the maximum extent permitted by law, Òloo shall not be liable for any indirect, incidental, special, 
               or consequential damages arising from your use of the Service. Our total liability shall not exceed the 
@@ -107,7 +107,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">10. Governing Law</h2>
+            <h2 className="font-semibold mb-4 text-xl">10. Governing Law</h2>
             <p className="leading-relaxed">
               These Terms shall be governed by and construed in accordance with applicable laws. Any disputes shall be 
               resolved through binding arbitration, except where prohibited by law.
@@ -115,7 +115,7 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">11. Contact</h2>
+            <h2 className="font-semibold mb-4 text-xl">11. Contact</h2>
             <p className="leading-relaxed">For questions about these Terms of Service, please contact us at legal@oloo.media</p>
           </section>
         </div>
