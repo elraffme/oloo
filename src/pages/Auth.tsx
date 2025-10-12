@@ -197,23 +197,57 @@ const Auth = () => {
           try {
             const { data: session } = await supabase.auth.getSession();
             if (session?.session?.user) {
+              // Calculate age from birthDate
+              let age = 25; // default
+              if (onboardingData.birthDate) {
+                const birth = new Date(onboardingData.birthDate);
+                const today = new Date();
+                age = today.getFullYear() - birth.getFullYear();
+                const monthDiff = today.getMonth() - birth.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                  age--;
+                }
+              }
+
+              // Parse height
+              let heightInCm = null;
+              if (onboardingData.height && onboardingData.height.includes("'")) {
+                const parts = onboardingData.height.split("'");
+                const feet = parseInt(parts[0]) || 0;
+                const inches = parseInt(parts[1]) || 0;
+                heightInCm = Math.round(feet * 30.48 + inches * 2.54);
+              }
+
+              // Parse interests from hobbies
+              const interests = onboardingData.hobbies 
+                ? onboardingData.hobbies.split(',').map((h: string) => h.trim()).filter((h: string) => h)
+                : [];
+
+              // Build bio from hobbies and personality
+              const bio = onboardingData.hobbies || onboardingData.personality
+                ? `${onboardingData.hobbies || ''}\n\nPersonality: ${onboardingData.personality || ''}`.trim()
+                : formData.bio || 'Hello, I\'m new to Òloo!';
+
               await supabase
                 .from('profiles')
                 .update({
-                  display_name: onboardingData.displayName || '',
-                  age: onboardingData.age || 0,
-                  bio: onboardingData.bio || formData.bio || 'Hello, I\'m new to Òloo!',
-                  height_cm: onboardingData.height || null,
+                  display_name: onboardingData.name || '',
+                  age: age,
+                  bio: bio,
+                  location: formData.location || 'Not specified',
+                  height_cm: heightInCm,
                   gender: onboardingData.gender || null,
-                  interests: onboardingData.interests || [],
-                  relationship_goals: onboardingData.relationshipGoal || null,
-                  profile_photos: onboardingData.photos || [],
-                  prompt_responses: onboardingData.promptResponses || {}
+                  education: onboardingData.education || 'Not specified',
+                  occupation: onboardingData.occupation || 'Not specified',
+                  interests: interests,
+                  relationship_goals: onboardingData.lookingFor || 'Getting to know people',
+                  profile_photos: [], // Photos will be uploaded separately if needed
                 })
                 .eq('user_id', session.session.user.id);
               
               // Clear onboarding data from localStorage
               localStorage.removeItem('onboardingData');
+              console.log('Onboarding data saved to profile');
             }
           } catch (error) {
             console.error('Error saving profile:', error);

@@ -77,7 +77,75 @@ const SignIn = () => {
             .eq('user_id', session.session.user.id)
             .single();
 
-          if (!profile || !profile.display_name || !profile.age || !profile.location) {
+          // Check if there's onboarding data to save
+          const storedData = localStorage.getItem('onboardingData');
+          if (storedData && (!profile || !profile.display_name || !profile.age)) {
+            try {
+              const onboardingData = JSON.parse(storedData);
+              
+              // Calculate age from birthDate
+              let age = 25;
+              if (onboardingData.birthDate) {
+                const birth = new Date(onboardingData.birthDate);
+                const today = new Date();
+                age = today.getFullYear() - birth.getFullYear();
+                const monthDiff = today.getMonth() - birth.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                  age--;
+                }
+              }
+
+              // Parse height
+              let heightInCm = null;
+              if (onboardingData.height && onboardingData.height.includes("'")) {
+                const parts = onboardingData.height.split("'");
+                const feet = parseInt(parts[0]) || 0;
+                const inches = parseInt(parts[1]) || 0;
+                heightInCm = Math.round(feet * 30.48 + inches * 2.54);
+              }
+
+              // Parse interests
+              const interests = onboardingData.hobbies 
+                ? onboardingData.hobbies.split(',').map((h: string) => h.trim()).filter((h: string) => h)
+                : [];
+
+              // Build bio
+              const bio = onboardingData.hobbies || onboardingData.personality
+                ? `${onboardingData.hobbies || ''}\n\nPersonality: ${onboardingData.personality || ''}`.trim()
+                : 'Hello, I\'m new to Òloo!';
+
+              await supabase
+                .from('profiles')
+                .update({
+                  display_name: onboardingData.name || '',
+                  age: age,
+                  bio: bio,
+                  location: onboardingData.location || 'Not specified',
+                  height_cm: heightInCm,
+                  gender: onboardingData.gender || null,
+                  education: onboardingData.education || 'Not specified',
+                  occupation: onboardingData.occupation || 'Not specified',
+                  interests: interests,
+                  relationship_goals: onboardingData.lookingFor || 'Getting to know people',
+                })
+                .eq('user_id', session.session.user.id);
+              
+              localStorage.removeItem('onboardingData');
+              console.log('Onboarding data saved to profile after sign in');
+              
+              // Reload profile after saving
+              const { data: updatedProfile } = await supabase
+                .from('profiles')
+                .select('display_name, age, location')
+                .eq('user_id', session.session.user.id)
+                .single();
+              
+              navigate('/app');
+            } catch (error) {
+              console.error('Error saving onboarding data:', error);
+              navigate('/onboarding');
+            }
+          } else if (!profile || !profile.display_name || !profile.age || !profile.location) {
             navigate('/onboarding');
           } else {
             navigate('/app');
