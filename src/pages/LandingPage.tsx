@@ -69,7 +69,7 @@ const LandingPage = () => {
               <div className="border-t border-border my-2" />
               
               <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => {
-            navigate('/auth');
+            navigate('/signin');
             setIsMenuOpen(false);
           }}>
                 Sign In
