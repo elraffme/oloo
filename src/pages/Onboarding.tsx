@@ -252,14 +252,9 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save profile to database on final step
-      const success = await saveProfile();
-      if (success) {
-        // Clear any stored onboarding data
-        localStorage.removeItem('onboardingData');
-        // Navigate to discover page
-        navigate('/discover');
-      }
+      // Save onboarding data to localStorage before navigating to auth
+      localStorage.setItem('onboardingData', JSON.stringify(formData));
+      navigate('/signin');
     }
   };
   const prevStep = () => {
