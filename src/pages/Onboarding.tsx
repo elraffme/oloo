@@ -254,7 +254,7 @@ const Onboarding = () => {
     } else {
       // Save onboarding data to localStorage before navigating to auth
       localStorage.setItem('onboardingData', JSON.stringify(formData));
-      navigate('/signin');
+      navigate('/auth');
     }
   };
   const prevStep = () => {
