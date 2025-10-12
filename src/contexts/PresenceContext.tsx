@@ -9,7 +9,7 @@ interface PresenceContextType {
 
 const PresenceContext = createContext<PresenceContextType | undefined>(undefined);
 
-export const PresenceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export function PresenceProvider({ children }: { children: ReactNode }) {
   const presence = usePresence();
   
   return (
@@ -17,7 +17,7 @@ export const PresenceProvider: React.FC<{ children: ReactNode }> = ({ children }
       {children}
     </PresenceContext.Provider>
   );
-};
+}
 
 export const usePresenceContext = () => {
   const context = useContext(PresenceContext);
