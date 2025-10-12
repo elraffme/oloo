@@ -8,6 +8,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (isVideoPlaying && videoRef.current) {
@@ -61,10 +62,37 @@ const LandingPage = () => {
                 <span className="nsibidi-symbol mr-2">◊</span>
                 Collective
               </Button>
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('get-started')}>
-                <span className="nsibidi-symbol mr-2">◈</span>
-                Get Started
-              </Button>
+              <div className="relative">
+                <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10 w-full" onClick={() => setIsLanguageOpen(!isLanguageOpen)}>
+                  <span className="nsibidi-symbol mr-2">◈</span>
+                  Languages
+                </Button>
+                
+                {isLanguageOpen && (
+                  <div className="ml-4 mt-2 space-y-1 bg-background/50 rounded-md p-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Swahili</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Yoruba</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Zulu</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Amharic</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Hausa</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Igbo</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Somali</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Oromo</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Shona</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Wolof</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Xhosa</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Tigrinya</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Afrikaans</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Akan</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Kinyarwanda</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Lingala</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Fula</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Bemba</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Tswana</Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Twi</Button>
+                  </div>
+                )}
+              </div>
               
               <div className="border-t border-border my-2" />
               
