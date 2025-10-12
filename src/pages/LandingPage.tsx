@@ -68,8 +68,7 @@ const LandingPage = () => {
                   Languages
                 </Button>
                 
-                {isLanguageOpen && (
-                  <div className="ml-4 mt-2 space-y-1 bg-background/50 rounded-md p-2">
+                {isLanguageOpen && <div className="ml-4 mt-2 space-y-1 bg-background/50 rounded-md p-2">
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Swahili</Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Yoruba</Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Zulu</Button>
@@ -90,8 +89,7 @@ const LandingPage = () => {
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Bemba</Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Tswana</Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start text-sm hover:bg-primary/10">Twi</Button>
-                  </div>
-                )}
+                  </div>}
               </div>
               
               <div className="border-t border-border my-2" />
@@ -261,7 +259,7 @@ const LandingPage = () => {
             </div>
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
               <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">What's Your Cultural Sign</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Explore connections based on your cultural heritage or spiritual background.</p>
+              <p className="text-sm sm:text-base text-muted-foreground">Explore connections based on your cultural heritage or ancestral background.</p>
             </div>
           </div>
         </div>
