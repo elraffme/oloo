@@ -98,12 +98,13 @@ const Profile = () => {
   };
 
   const getMainProfilePhoto = () => {
-    if (!profile?.profile_photos || profile.profile_photos.length === 0) {
-      return profile?.avatar_url;
+    if (profile?.profile_photos && profile.profile_photos.length > 0) {
+      const mainIndex = profile.main_profile_photo_index || 0;
+      return profile.profile_photos[mainIndex] || profile.profile_photos[0];
     }
     
-    const mainIndex = profile.main_profile_photo_index || 0;
-    return profile.profile_photos[mainIndex] || profile.profile_photos[0];
+    // Always return avatar_url or a default placeholder
+    return profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.user_id || 'default');
   };
 
   const handleMainPhotoUpdate = (newIndex: number) => {
@@ -233,8 +234,12 @@ const Profile = () => {
             {/* Profile Image */}
             <div className="relative">
               <Avatar className="w-32 h-32">
-                <AvatarImage src={getMainProfilePhoto()} alt={profile?.display_name} />
-                <AvatarFallback className="text-2xl">
+                <AvatarImage 
+                  src={getMainProfilePhoto()} 
+                  alt={profile?.display_name}
+                  className="object-cover"
+                />
+                <AvatarFallback className="text-2xl bg-primary/10">
                   {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
