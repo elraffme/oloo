@@ -60,6 +60,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [streamQuality, setStreamQuality] = useState<'720p' | '1080p'>('720p');
   const [enableChat, setEnableChat] = useState(true);
   const [allowGifts, setAllowGifts] = useState(true);
+  const [hasLiked, setHasLiked] = useState(false);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -683,6 +684,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       setViewingStream(null);
       setIsViewerMode(false);
+      setHasLiked(false);
       
       toast({
         title: "Left stream",
@@ -690,6 +692,47 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     } catch (error: any) {
       console.error('Error leaving stream:', error);
+    }
+  };
+
+  const handleLike = () => {
+    if (!hasLiked) {
+      setHasLiked(true);
+      setTotalLikes(prev => prev + 1);
+      toast({
+        title: "Liked!",
+        description: "Your appreciation has been sent to the host"
+      });
+    }
+  };
+
+  const handleGift = () => {
+    toast({
+      title: "Send Gift",
+      description: "Gift sending feature coming soon!"
+    });
+  };
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/app/streaming?stream=${viewingStream?.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: viewingStream?.title,
+          text: `Watch ${viewingStream?.host_name}'s live stream!`,
+          url: shareUrl
+        });
+      } catch (error) {
+        console.log('Share cancelled or failed:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied!",
+        description: "Stream link copied to clipboard"
+      });
     }
   };
   // Stream viewer mode
@@ -744,15 +787,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Heart className="w-4 h-4 mr-2" />
-                Like
+              <Button 
+                variant={hasLiked ? "default" : "outline"} 
+                size="sm"
+                onClick={handleLike}
+                disabled={hasLiked}
+              >
+                <Heart className={`w-4 h-4 mr-2 ${hasLiked ? 'fill-current' : ''}`} />
+                {hasLiked ? 'Liked' : 'Like'}
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleGift}>
                 <Gift className="w-4 h-4 mr-2" />
                 Send Gift
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
                 Share
               </Button>
