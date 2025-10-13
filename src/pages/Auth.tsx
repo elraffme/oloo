@@ -11,6 +11,7 @@ import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
@@ -18,6 +19,7 @@ const passwordSchema = z.string().min(10, 'Password must be at least 10 characte
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
@@ -231,6 +233,11 @@ const Auth = () => {
               // Upload photos if they exist
               const profilePhotoUrls: string[] = [];
               if (onboardingData.photoDataUrls && onboardingData.photoDataUrls.length > 0) {
+                toast({
+                  title: "Uploading photos...",
+                  description: `Uploading ${onboardingData.photoDataUrls.length} photo(s)`,
+                });
+
                 for (let i = 0; i < onboardingData.photoDataUrls.length; i++) {
                   try {
                     const dataUrl = onboardingData.photoDataUrls[i];
@@ -250,17 +257,29 @@ const Auth = () => {
                     
                     const { error: uploadError } = await supabase.storage
                       .from('profile-photos')
-                      .upload(fileName, blob);
+                      .upload(fileName, blob, {
+                        contentType: mimeType,
+                        upsert: false
+                      });
                     
                     if (!uploadError) {
                       const { data: { publicUrl } } = supabase.storage
                         .from('profile-photos')
                         .getPublicUrl(fileName);
                       profilePhotoUrls.push(publicUrl);
+                    } else {
+                      console.error('Photo upload error:', uploadError);
                     }
                   } catch (error) {
-                    console.error('Photo upload error:', error);
+                    console.error('Photo processing error:', error);
                   }
+                }
+
+                if (profilePhotoUrls.length > 0) {
+                  toast({
+                    title: "Photos uploaded!",
+                    description: `Successfully uploaded ${profilePhotoUrls.length} photo(s)`,
+                  });
                 }
               }
 

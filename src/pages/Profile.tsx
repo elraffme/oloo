@@ -247,17 +247,18 @@ const Profile = () => {
       {/* Profile Header */}
       <Card className="cultural-card">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            {/* Profile Image */}
-            <div className="relative">
-              <Avatar className="w-32 h-32">
-                <AvatarImage 
-                  src={getMainProfilePhoto()} 
-                  alt={profile?.display_name}
-                  className="object-cover"
-                />
-                <AvatarFallback className="text-2xl bg-primary/10">
-                  {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
+          <div className="grid grid-cols-1 gap-6">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              {/* Profile Image */}
+              <div className="relative">
+                <Avatar className="w-32 h-32">
+                  <AvatarImage 
+                    src={getMainProfilePhoto()} 
+                    alt={profile?.display_name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-2xl bg-primary/10">
+                    {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <Button
@@ -269,12 +270,14 @@ const Profile = () => {
             </div>
 
             {/* Photo Gallery */}
-            {profile?.profile_photos && profile.profile_photos.length > 1 && (
-              <div className="col-span-full">
-                <h3 className="text-sm font-semibold mb-2">Photos</h3>
+            {profile?.profile_photos && profile.profile_photos.length > 0 && (
+              <div className="col-span-full w-full">
+                <h3 className="text-sm font-semibold mb-2">
+                  Photos ({profile.profile_photos.length})
+                </h3>
                 <div className="grid grid-cols-3 gap-2">
                   {profile.profile_photos.map((photo, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10">
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10 border border-border">
                       <img 
                         src={photo} 
                         alt={`${profile.display_name} photo ${index + 1}`}
@@ -508,6 +511,28 @@ const Profile = () => {
                 )
               )}
             </div>
+            </div>
+
+            {/* Photo Gallery */}
+            {profile?.profile_photos && profile.profile_photos.length > 0 && (
+              <div className="w-full">
+                <h3 className="text-sm font-semibold mb-2">
+                  Photos ({profile.profile_photos.length})
+                </h3>
+                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                  {profile.profile_photos.map((photo, index) => (
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10 border border-border">
+                      <img 
+                        src={photo} 
+                        alt={`${profile.display_name} photo ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(photo, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

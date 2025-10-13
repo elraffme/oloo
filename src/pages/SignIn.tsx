@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const SignIn = () => {
   const { user, loading, signIn } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -117,6 +119,11 @@ const SignIn = () => {
               // Upload photos if they exist
               const profilePhotoUrls: string[] = [];
               if (onboardingData.photoDataUrls && onboardingData.photoDataUrls.length > 0) {
+                toast({
+                  title: "Uploading photos...",
+                  description: `Uploading ${onboardingData.photoDataUrls.length} photo(s)`,
+                });
+
                 for (let i = 0; i < onboardingData.photoDataUrls.length; i++) {
                   try {
                     const dataUrl = onboardingData.photoDataUrls[i];
@@ -136,17 +143,29 @@ const SignIn = () => {
                     
                     const { error: uploadError } = await supabase.storage
                       .from('profile-photos')
-                      .upload(fileName, blob);
+                      .upload(fileName, blob, {
+                        contentType: mimeType,
+                        upsert: false
+                      });
                     
                     if (!uploadError) {
                       const { data: { publicUrl } } = supabase.storage
                         .from('profile-photos')
                         .getPublicUrl(fileName);
                       profilePhotoUrls.push(publicUrl);
+                    } else {
+                      console.error('Photo upload error:', uploadError);
                     }
                   } catch (error) {
-                    console.error('Photo upload error:', error);
+                    console.error('Photo processing error:', error);
                   }
+                }
+
+                if (profilePhotoUrls.length > 0) {
+                  toast({
+                    title: "Photos uploaded!",
+                    description: `Successfully uploaded ${profilePhotoUrls.length} photo(s)`,
+                  });
                 }
               }
 
