@@ -312,19 +312,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const startStream = async () => {
-    if (!user || !streamTitle.trim()) {
+    // Validate all requirements
+    if (!user) {
       toast({
-        title: "Missing information",
-        description: "Please enter a stream title before going live.",
+        title: "Authentication required",
+        description: "Please log in to start streaming.",
         variant: "destructive"
       });
       return;
     }
 
-    if (!streamRef.current) {
+    if (!streamTitle.trim()) {
+      toast({
+        title: "Missing stream title",
+        description: "Please enter a title for your stream.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!hasCameraPermission || !streamRef.current) {
       toast({
         title: "Camera not ready",
-        description: "Please enable your camera first.",
+        description: "Please enable your camera before going live.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!hasMicPermission) {
+      toast({
+        title: "Microphone not ready",
+        description: "Please enable your microphone before going live.",
         variant: "destructive"
       });
       return;
@@ -332,35 +351,78 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     setIsLoading(true);
     try {
-      console.log('🎥 Starting broadcast stream...');
+      console.log('🎥 Starting broadcast stream with full functionality...');
+      
+      // Verify stream tracks are active
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      
+      if (!videoTrack || !videoTrack.enabled) {
+        throw new Error('Video track not available or disabled');
+      }
+      
+      if (!audioTrack || !audioTrack.enabled) {
+        throw new Error('Audio track not available or disabled');
+      }
+
+      console.log('✓ Video and audio tracks validated');
       
       // Setup MediaRecorder for broadcasting
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
+        ? 'video/webm;codecs=vp8,opus'
+        : 'video/webm';
+
       const recorder = new MediaRecorder(streamRef.current, {
-        mimeType: 'video/webm;codecs=vp8,opus',
+        mimeType,
         videoBitsPerSecond: streamQuality === '1080p' ? 2500000 : 1500000
       });
 
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
+      let streamChannel: any;
+
+      recorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          chunks.push(event.data);
-          // In production, send chunks to streaming server
-          console.log('📦 Stream chunk recorded:', event.data.size);
+          console.log('📦 Stream chunk:', event.data.size, 'bytes');
+          
+          // Broadcast chunk to all viewers via Realtime
+          if (streamChannel) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64data = reader.result as string;
+              streamChannel.send({
+                type: 'broadcast',
+                event: 'stream_data',
+                payload: { 
+                  chunk: base64data,
+                  timestamp: Date.now(),
+                  quality: streamQuality
+                }
+              });
+            };
+            reader.readAsDataURL(event.data);
+          }
         }
       };
 
-      recorder.start(1000); // Capture in 1-second chunks
-      mediaRecorderRef.current = recorder;
+      recorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        toast({
+          title: "Recording error",
+          description: "There was an issue with the stream recording.",
+          variant: "destructive"
+        });
+      };
+
+      console.log('✓ MediaRecorder configured');
       
-      // Create stream record in database with proper metadata
+      // Create stream record in database
       const streamData = {
-        title: streamTitle,
-        description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
+        title: streamTitle.trim(),
+        description: `Live stream by ${user.user_metadata?.display_name || user.email || 'Anonymous'}`,
         host_user_id: user.id,
         status: 'live' as const,
         is_private: false,
         started_at: new Date().toISOString(),
-        current_viewers: 1,
+        current_viewers: 0,
         max_viewers: 100,
         ar_space_data: {
           category: streamCategory || 'General',
@@ -368,7 +430,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           discovery_enabled: true,
           stream_quality: streamQuality,
           chat_enabled: enableChat,
-          gifts_enabled: allowGifts
+          gifts_enabled: allowGifts,
+          host_name: user.user_metadata?.display_name || user.email || 'Anonymous'
         }
       };
       
@@ -380,31 +443,55 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       if (error) throw error;
       
-      console.log('✅ Stream created successfully:', data);
+      console.log('✅ Stream session created:', data.id);
+      
+      // Setup broadcast channel
+      streamChannel = supabase.channel(`stream:${data.id}`, {
+        config: {
+          broadcast: { self: true }
+        }
+      });
+
+      await streamChannel
+        .on('broadcast', { event: 'viewer_joined' }, (payload: any) => {
+          console.log('👤 Viewer joined:', payload);
+          setCurrentViewers(prev => prev + 1);
+        })
+        .on('broadcast', { event: 'viewer_left' }, () => {
+          setCurrentViewers(prev => Math.max(0, prev - 1));
+        })
+        .subscribe();
+
+      console.log('✓ Broadcast channel established');
+      
+      // Start recording
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      
       setActiveStreamId(data.id);
       setIsStreaming(true);
       setCurrentViewers(1);
       
+      console.log('📡 Stream is now LIVE and discoverable');
+      
       toast({
         title: "🔴 You're Live!",
-        description: "Your stream is now broadcasting to all users. Others can now discover and join your stream."
+        description: `Broadcasting "${streamTitle}" to all users`,
+        duration: 5000
       });
-
-      // Broadcast stream metadata via Realtime
-      const channel = supabase.channel(`stream:${data.id}`);
-      channel
-        .on('broadcast', { event: 'viewer_joined' }, () => {
-          setCurrentViewers(prev => prev + 1);
-        })
-        .subscribe();
-
-      console.log('📡 Broadcast enabled - stream is discoverable by all users');
       
     } catch (error: any) {
-      console.error('❌ Error starting stream:', error);
+      console.error('❌ Failed to start stream:', error);
+      
+      // Cleanup on error
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current = null;
+      }
+      
       toast({
         title: "Failed to start stream",
-        description: error.message || "Please try again.",
+        description: error.message || "Please check your camera and microphone permissions.",
         variant: "destructive"
       });
     } finally {
