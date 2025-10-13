@@ -828,6 +828,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectItem value="food">Food & Cooking</SelectItem>
                         <SelectItem value="culture">Culture</SelectItem>
                         <SelectItem value="dating">Dating & Relationships</SelectItem>
+                        <SelectItem value="gaming">Gaming</SelectItem>
+                        <SelectItem value="anime">Anime</SelectItem>
+                        <SelectItem value="luxury-vehicles">Luxury Vehicles</SelectItem>
+                        <SelectItem value="travel">Travel</SelectItem>
+                        <SelectItem value="others">Others</SelectItem>
                         <SelectItem value="general">General</SelectItem>
                       </SelectContent>
                     </Select>
