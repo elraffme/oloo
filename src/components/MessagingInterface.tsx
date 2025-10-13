@@ -531,9 +531,16 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">{conversation.display_name}</h3>
+                        <div className="flex items-center gap-2 truncate">
+                          <h3 className="font-medium truncate">{conversation.display_name}</h3>
+                          {(conversation as any).connection_type === 'match' && (
+                            <Badge variant="secondary" className="text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400 flex-shrink-0">
+                              <Heart className="w-3 h-3 fill-current" />
+                            </Badge>
+                          )}
+                        </div>
                         {conversation.last_message_time && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
                             {formatDistanceToNow(new Date(conversation.last_message_time), { addSuffix: false })}
                           </span>
                         )}
@@ -589,7 +596,15 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium">{conversation.display_name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium">{conversation.display_name}</h3>
+                        {(conversation as any).connection_type === 'match' && (
+                          <Badge variant="secondary" className="text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400">
+                            <Heart className="w-3 h-3 mr-1 fill-current" />
+                            Match
+                          </Badge>
+                        )}
+                      </div>
                       <OnlineStatusBadge 
                         userId={conversation.user_id} 
                         showDot={false} 

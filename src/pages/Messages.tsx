@@ -21,13 +21,23 @@ const Messages = () => {
   }, [location.state]);
 
   const handleStartConversation = (matchId: string) => {
+    console.log('Starting conversation with match:', matchId);
     setSelectedMatch(matchId);
     setActiveTab('messages');
   };
 
   const handleStartChat = (friendId: string) => {
+    console.log('Starting chat with friend:', friendId);
     setSelectedMatch(friendId);
     setActiveTab('messages');
+  };
+
+  const handleBackFromMessages = () => {
+    setSelectedMatch(null);
+    // Return to the previous tab (matches or friends)
+    if (activeTab === 'messages') {
+      setActiveTab('matches');
+    }
   };
 
   return (
@@ -61,7 +71,7 @@ const Messages = () => {
         <TabsContent value="messages" className="flex-1 m-0">
           <MessagingInterface 
             selectedUserId={selectedMatch}
-            onBack={() => setActiveTab('friends')}
+            onBack={handleBackFromMessages}
           />
         </TabsContent>
       </Tabs>
