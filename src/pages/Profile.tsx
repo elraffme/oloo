@@ -379,6 +379,27 @@ const Profile = () => {
                       <span>{profile.education}</span>
                     </div>
                   )}
+
+                  {profile?.relationship_goals && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Heart className="w-4 h-4 text-muted-foreground" />
+                      <span>{profile.relationship_goals}</span>
+                    </div>
+                  )}
+
+                  {profile?.height_cm && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">📏</span>
+                      <span>{profile.height_cm} cm ({Math.round(profile.height_cm / 2.54)} inches)</span>
+                    </div>
+                  )}
+
+                  {profile?.languages && profile.languages.length > 0 && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">🗣️</span>
+                      <span>{profile.languages.join(', ')}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
