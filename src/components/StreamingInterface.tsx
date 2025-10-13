@@ -577,12 +577,62 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       if (error) throw error;
 
+      // Initialize MediaSource for live stream playback
+      const mediaSource = new MediaSource();
+      if (viewerVideoRef.current) {
+        viewerVideoRef.current.src = URL.createObjectURL(mediaSource);
+      }
+
+      let sourceBuffer: SourceBuffer | null = null;
+      const queue: Uint8Array[] = [];
+      let isUpdating = false;
+
+      mediaSource.addEventListener('sourceopen', () => {
+        const mimeType = 'video/webm; codecs="vp8,opus"';
+        if (MediaSource.isTypeSupported(mimeType)) {
+          sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+          
+          sourceBuffer.addEventListener('updateend', () => {
+            isUpdating = false;
+            if (queue.length > 0 && sourceBuffer) {
+              isUpdating = true;
+              const chunk = queue.shift()!;
+              sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
+            }
+          });
+        }
+      });
+
       // Subscribe to stream broadcast channel
       const channel = supabase.channel(`stream:${stream.id}`);
       channel
         .on('broadcast', { event: 'stream_data' }, (payload) => {
-          console.log('📺 Received stream data:', payload);
-          // Handle incoming stream data for playback
+          console.log('📺 Received stream data chunk');
+          
+          // Decode base64 stream data
+          if (payload.payload?.chunk && sourceBuffer) {
+            const base64Data = payload.payload.chunk.split(',')[1] || payload.payload.chunk;
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            // Queue chunk for playback
+            queue.push(bytes);
+            
+            // Process queue if not currently updating
+            if (!isUpdating && queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
+              isUpdating = true;
+              const chunk = queue.shift()!;
+              try {
+                sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
+              } catch (e) {
+                console.error('Error appending buffer:', e);
+                isUpdating = false;
+              }
+            }
+          }
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
@@ -592,6 +642,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               event: 'viewer_joined',
               payload: { viewer_id: user?.id }
             });
+            
+            // Auto-play video
+            if (viewerVideoRef.current) {
+              viewerVideoRef.current.play().catch(e => 
+                console.log('Autoplay prevented, user interaction required:', e)
+              );
+            }
           }
         });
 
@@ -666,14 +723,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               playsInline 
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <div className="text-center text-white">
-                <Play className="w-16 h-16 mx-auto mb-4 animate-pulse" />
-                <p className="text-lg font-semibold">Live Stream Active</p>
-                <p className="text-sm opacity-90 mt-2">Broadcasting in {viewingStream.category}</p>
-                <p className="text-xs opacity-75 mt-1">Real-time streaming enabled for all users</p>
-              </div>
-            </div>
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">
