@@ -670,7 +670,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="p-4 border-t border-border">
+          <div className="p-2 border-t border-border">
             <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
