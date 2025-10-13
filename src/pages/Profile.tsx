@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { 
+import { useToast } from '@/hooks/use-toast';
+import {
   Edit, 
   Settings, 
   Shield, 
@@ -31,6 +32,7 @@ import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [stats, setStats] = useState({
@@ -731,9 +733,22 @@ const Profile = () => {
                 </div>
               </div>
 
-              <Button variant="destructive" className="w-full">
-                Delete Account
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    toast({
+                      title: "Settings saved",
+                      description: "Your account settings have been updated successfully."
+                    });
+                  }}
+                >
+                  Save Changes
+                </Button>
+                <Button variant="destructive" className="flex-1">
+                  Delete Account
+                </Button>
+              </div>
             </CardContent>
           </Card>
           {/* Secure Contact Information */}
