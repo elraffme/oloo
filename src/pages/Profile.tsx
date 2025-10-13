@@ -107,6 +107,23 @@ const Profile = () => {
     return profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.user_id || 'default');
   };
 
+  const getBioWithoutPersonality = () => {
+    if (!profile?.bio) return '';
+    const bioText = profile.bio;
+    const personalityIndex = bioText.indexOf('\n\nPersonality:');
+    if (personalityIndex !== -1) {
+      return bioText.substring(0, personalityIndex).trim();
+    }
+    return bioText;
+  };
+
+  const getPersonality = () => {
+    if (!profile?.bio) return null;
+    const bioText = profile.bio;
+    const personalityMatch = bioText.match(/Personality:\s*(.+)/);
+    return personalityMatch ? personalityMatch[1].trim() : null;
+  };
+
   const handleMainPhotoUpdate = (newIndex: number) => {
     setProfile((prev: any) => ({
       ...prev,
@@ -439,9 +456,17 @@ const Profile = () => {
                   />
                 </div>
               ) : (
-                profile?.bio && (
-                  <p className="text-sm leading-relaxed">{profile.bio}</p>
+                getBioWithoutPersonality() && (
+                  <p className="text-sm leading-relaxed">{getBioWithoutPersonality()}</p>
                 )
+              )}
+
+              {/* Personality */}
+              {!isEditing && getPersonality() && (
+                <div className="flex items-start gap-2">
+                  <span className="text-muted-foreground text-sm font-semibold">Personality:</span>
+                  <p className="text-sm leading-relaxed">{getPersonality()}</p>
+                </div>
               )}
 
               {/* Interests */}
