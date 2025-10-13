@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +54,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [viewingStream, setViewingStream] = useState<StreamData | null>(null);
   const [isViewerMode, setIsViewerMode] = useState(false);
+  const [streamQuality, setStreamQuality] = useState<'720p' | '1080p'>('720p');
+  const [enableChat, setEnableChat] = useState(true);
+  const [allowGifts, setAllowGifts] = useState(true);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -691,9 +697,42 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                         </Button>
                         
-                        <Button variant="ghost" size="sm">
-                          <Settings className="w-4 h-4" />
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Stream Settings</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="quality">Stream Quality</Label>
+                                <Select value={streamQuality} onValueChange={(value: '720p' | '1080p') => setStreamQuality(value)}>
+                                  <SelectTrigger id="quality">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="720p">720p (Recommended)</SelectItem>
+                                    <SelectItem value="1080p">1080p (High Quality)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="chat">Enable Chat</Label>
+                                <Switch id="chat" checked={enableChat} onCheckedChange={setEnableChat} />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor="gifts">Allow Gifts</Label>
+                                <Switch id="gifts" checked={allowGifts} onCheckedChange={setAllowGifts} />
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>}
                   </div>
 
