@@ -72,38 +72,61 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       try {
         console.log('Fetching live streams for discovery...');
         
-        // Fetch ALL live streams (including own streams for debugging, filtered later)
-        const { data, error } = await supabase
+        // Fetch live streams without join
+        const { data: streams, error: streamsError } = await supabase
           .from('streaming_sessions')
-          .select(`
-            *,
-            profiles:host_user_id (display_name, avatar_url)
-          `)
+          .select('*')
           .eq('status', 'live')
           .eq('is_private', false)
           .order('started_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching streams:', error);
+        if (streamsError) {
+          console.error('Error fetching streams:', streamsError);
           setLiveStreams([]);
           return;
         }
 
-        // Filter out user's own streams in the UI
-        const formattedStreams: StreamData[] = (data || [])
+        if (!streams || streams.length === 0) {
+          setLiveStreams([]);
+          return;
+        }
+
+        // Get unique host user IDs
+        const hostUserIds = [...new Set(streams.map(s => s.host_user_id))];
+        
+        // Fetch profiles for all hosts
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', hostUserIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        }
+
+        // Create a map of user_id to profile
+        const profileMap = new Map(
+          (profiles || []).map(p => [p.user_id, p])
+        );
+
+        // Filter out user's own streams and format data
+        const formattedStreams: StreamData[] = streams
           .filter((stream: any) => stream.host_user_id !== user.id)
-          .map((stream: any) => ({
-            id: stream.id,
-            title: stream.title,
-            description: stream.description || '',
-            host_user_id: stream.host_user_id,
-            host_name: stream.profiles?.display_name || 'Anonymous',
-            current_viewers: stream.current_viewers || 0,
-            status: stream.status,
-            created_at: stream.created_at,
-            category: stream.ar_space_data?.category || 'General',
-            thumbnail: stream.profiles?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-          }));
+          .map((stream: any) => {
+            const profile = profileMap.get(stream.host_user_id);
+            return {
+              id: stream.id,
+              title: stream.title,
+              description: stream.description || '',
+              host_user_id: stream.host_user_id,
+              host_name: profile?.display_name || 'Anonymous',
+              current_viewers: stream.current_viewers || 0,
+              status: stream.status,
+              created_at: stream.created_at,
+              category: stream.ar_space_data?.category || 'General',
+              thumbnail: profile?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+            };
+          });
 
         console.log(`Discovered ${formattedStreams.length} live streams`);
         setLiveStreams(formattedStreams);
