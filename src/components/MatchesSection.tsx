@@ -7,6 +7,7 @@ import { MessageCircle, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 
 interface Match {
   match_user_id: string;
@@ -88,7 +89,10 @@ const MatchesSection: React.FC<MatchesSectionProps> = ({ onStartConversation }) 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 
                 <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                  <h3 className="font-semibold text-sm mb-1">{match.display_name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-sm">{match.display_name}</h3>
+                    <OnlineStatusBadge userId={match.match_user_id} showDot={true} showText={false} />
+                  </div>
                   <p className="text-xs opacity-90">
                     Matched {formatDistanceToNow(new Date(match.match_created_at), { addSuffix: true })}
                   </p>

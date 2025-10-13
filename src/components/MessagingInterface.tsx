@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { usePresence } from '@/hooks/usePresence';
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 
 interface Message {
   id: string;
@@ -523,13 +524,8 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                           {conversation.display_name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      {/* Online status indicator */}
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center ${
-                        isUserOnline(conversation.user_id) 
-                          ? 'bg-green-500' 
-                          : 'bg-gray-400'
-                      }`}>
-                        <Circle className="w-2 h-2 fill-current" />
+                      <div className="absolute -bottom-1 -right-1">
+                        <OnlineStatusBadge userId={conversation.user_id} />
                       </div>
                     </div>
                     
@@ -581,17 +577,24 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                 const conversation = conversations.find(c => c.user_id === selectedChat);
                 return conversation ? (
                   <>
-                    <Avatar>
-                      <AvatarImage src={conversation.avatar_url} />
-                      <AvatarFallback>
-                        {conversation.display_name.split(' ').map(n => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar>
+                        <AvatarImage src={conversation.avatar_url} />
+                        <AvatarFallback>
+                          {conversation.display_name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-1 -right-1">
+                        <OnlineStatusBadge userId={conversation.user_id} />
+                      </div>
+                    </div>
                     <div>
                       <h3 className="font-medium">{conversation.display_name}</h3>
-                      <p className={`text-sm ${isUserOnline(conversation.user_id) ? 'text-green-500' : 'text-muted-foreground'}`}>
-                        {isUserOnline(conversation.user_id) ? 'Online' : 'Offline'}
-                      </p>
+                      <OnlineStatusBadge 
+                        userId={conversation.user_id} 
+                        showDot={false} 
+                        showText={true} 
+                      />
                     </div>
                   </>
                 ) : null;
