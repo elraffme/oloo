@@ -93,7 +93,11 @@ export const usePresence = () => {
 
   // Update presence activity (heartbeat)
   const updateActivity = async () => {
-    if (channelRef.current && user) {
+    if (!channelRef.current || !user) {
+      return;
+    }
+
+    try {
       const { data: profile } = await supabase
         .from('profiles')
         .select('display_name, avatar_url, profile_photos')
@@ -106,6 +110,8 @@ export const usePresence = () => {
         online_at: new Date().toISOString(),
         avatar_url: profile?.profile_photos?.[0] || profile?.avatar_url || '/placeholder.svg',
       });
+    } catch (error) {
+      console.error('Error updating presence:', error);
     }
   };
 

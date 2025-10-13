@@ -117,7 +117,7 @@ const AppLayout = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+      <main className="container mx-auto px-4 py-2 pb-16 md:pb-2 max-h-[calc(100vh-4rem)] overflow-auto">
         <Outlet />
       </main>
 
