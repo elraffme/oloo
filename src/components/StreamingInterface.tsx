@@ -53,17 +53,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Fetch live streams from database
   useEffect(() => {
     const fetchLiveStreams = async () => {
+      if (!user) {
+        setLiveStreams([]);
+        return;
+      }
+
       try {
-        const {
-          data,
-          error
-        } = await supabase.from('streaming_sessions').select(`
+        // Fetch live streams excluding user's own streams
+        const { data, error } = await supabase
+          .from('streaming_sessions')
+          .select(`
             *,
-            profiles:host_user_id (display_name)
-          `).eq('status', 'live').order('created_at', {
-          ascending: false
-        });
-        if (error) throw error;
+            profiles:host_user_id (display_name, avatar_url)
+          `)
+          .eq('status', 'live')
+          .eq('is_private', false)
+          .neq('host_user_id', user.id)
+          .order('current_viewers', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching streams:', error);
+          setLiveStreams([]);
+          return;
+        }
+
         const formattedStreams: StreamData[] = data?.map((stream: any) => ({
           id: stream.id,
           title: stream.title,
@@ -74,53 +87,34 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           status: stream.status,
           created_at: stream.created_at,
           category: stream.ar_space_data?.category || 'General',
-          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+          thumbnail: stream.profiles?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
         })) || [];
+
         setLiveStreams(formattedStreams);
       } catch (error) {
         console.error('Error fetching live streams:', error);
-        // Show mock data if fetch fails
-        const mockStreams: StreamData[] = [{
-          id: '1',
-          title: 'Cultural Music Session 🎵',
-          description: 'Live performance of traditional African songs',
-          host_user_id: 'host1',
-          host_name: 'Kemi Adebayo',
-          current_viewers: 234,
-          status: 'live',
-          created_at: new Date().toISOString(),
-          category: 'Music',
-          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-        }, {
-          id: '2',
-          title: 'Dating Tips & Cultural Values 💝',
-          description: 'Discussion on modern dating with traditional values',
-          host_user_id: 'host2',
-          host_name: 'Amara Johnson',
-          current_viewers: 156,
-          status: 'live',
-          created_at: new Date().toISOString(),
-          category: 'Lifestyle',
-          thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop'
-        }];
-        setLiveStreams(mockStreams);
+        setLiveStreams([]);
       }
     };
     fetchLiveStreams();
 
     // Set up real-time subscription for new streams
-    const channel = supabase.channel('streaming_sessions_changes').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'streaming_sessions',
-      filter: 'status=eq.live'
-    }, () => {
-      fetchLiveStreams();
-    }).subscribe();
+    const channel = supabase
+      .channel('streaming_sessions_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'streaming_sessions',
+        filter: 'status=eq.live'
+      }, () => {
+        fetchLiveStreams();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Cleanup camera on unmount
   useEffect(() => {
@@ -363,8 +357,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden">
+            {!user ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Please log in to discover live streams</p>
+              </div>
+            ) : liveStreams.length === 0 ? (
+              <div className="text-center py-12 col-span-full">
+                <p className="text-muted-foreground">No live streams at the moment. Check back soon!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden">
                   <div className="relative">
                     <img src={stream.thumbnail} alt={stream.title} className="w-full h-48 object-cover" />
                     <Badge className="absolute top-2 left-2 bg-red-500 text-white">
@@ -397,7 +400,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                   </CardContent>
                 </Card>)}
-            </div>
+              </div>
+            )}
 
             {/* Premium Live Events */}
             <Card className="premium-gradient p-6 text-center">
