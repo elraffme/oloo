@@ -61,7 +61,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [enableChat, setEnableChat] = useState(true);
   const [allowGifts, setAllowGifts] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
-  const [reactions, setReactions] = useState<Array<{ id: string; type: string; x: number }>>([]);
+  const [reactions, setReactions] = useState<Array<{
+    id: string;
+    type: string;
+    x: number;
+  }>>([]);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -70,24 +74,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         setLiveStreams([]);
         return;
       }
-
       try {
         console.log('Fetching live streams for discovery...');
-        
-        // Fetch live streams without join
-        const { data: streams, error: streamsError } = await supabase
-          .from('streaming_sessions')
-          .select('*')
-          .eq('status', 'live')
-          .eq('is_private', false)
-          .order('started_at', { ascending: false });
 
+        // Fetch live streams without join
+        const {
+          data: streams,
+          error: streamsError
+        } = await supabase.from('streaming_sessions').select('*').eq('status', 'live').eq('is_private', false).order('started_at', {
+          ascending: false
+        });
         if (streamsError) {
           console.error('Error fetching streams:', streamsError);
           setLiveStreams([]);
           return;
         }
-
         if (!streams || streams.length === 0) {
           setLiveStreams([]);
           return;
@@ -95,41 +96,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
         // Get unique host user IDs
         const hostUserIds = [...new Set(streams.map(s => s.host_user_id))];
-        
-        // Fetch profiles for all hosts
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', hostUserIds);
 
+        // Fetch profiles for all hosts
+        const {
+          data: profiles,
+          error: profilesError
+        } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', hostUserIds);
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
         }
 
         // Create a map of user_id to profile
-        const profileMap = new Map(
-          (profiles || []).map(p => [p.user_id, p])
-        );
+        const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
 
         // Filter out user's own streams and format data
-        const formattedStreams: StreamData[] = streams
-          .filter((stream: any) => stream.host_user_id !== user.id)
-          .map((stream: any) => {
-            const profile = profileMap.get(stream.host_user_id);
-            return {
-              id: stream.id,
-              title: stream.title,
-              description: stream.description || '',
-              host_user_id: stream.host_user_id,
-              host_name: profile?.display_name || 'Anonymous',
-              current_viewers: stream.current_viewers || 0,
-              status: stream.status,
-              created_at: stream.created_at,
-              category: stream.ar_space_data?.category || 'General',
-              thumbnail: profile?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-            };
-          });
-
+        const formattedStreams: StreamData[] = streams.filter((stream: any) => stream.host_user_id !== user.id).map((stream: any) => {
+          const profile = profileMap.get(stream.host_user_id);
+          return {
+            id: stream.id,
+            title: stream.title,
+            description: stream.description || '',
+            host_user_id: stream.host_user_id,
+            host_name: profile?.display_name || 'Anonymous',
+            current_viewers: stream.current_viewers || 0,
+            status: stream.status,
+            created_at: stream.created_at,
+            category: stream.ar_space_data?.category || 'General',
+            thumbnail: profile?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+          };
+        });
         console.log(`Discovered ${formattedStreams.length} live streams`);
         setLiveStreams(formattedStreams);
       } catch (error) {
@@ -137,67 +132,58 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         setLiveStreams([]);
       }
     };
-    
     fetchLiveStreams();
 
     // Enhanced real-time subscription for broadcasting new streams
-    const channel = supabase
-      .channel('live_stream_broadcast')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'streaming_sessions',
-        filter: 'status=eq.live'
-      }, (payload) => {
-        console.log('🔴 NEW LIVE STREAM DETECTED:', payload.new);
-        
-        // Immediately show notification for new live stream
+    const channel = supabase.channel('live_stream_broadcast').on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'streaming_sessions',
+      filter: 'status=eq.live'
+    }, payload => {
+      console.log('🔴 NEW LIVE STREAM DETECTED:', payload.new);
+
+      // Immediately show notification for new live stream
+      if (payload.new.host_user_id !== user.id) {
+        toast({
+          title: "🔴 New Live Stream!",
+          description: `${payload.new.title} just went live`
+        });
+      }
+      fetchLiveStreams();
+    }).on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'streaming_sessions'
+    }, payload => {
+      console.log('📡 STREAM UPDATED:', payload.new);
+
+      // If stream just went live
+      if (payload.new.status === 'live' && payload.old.status !== 'live') {
         if (payload.new.host_user_id !== user.id) {
           toast({
-            title: "🔴 New Live Stream!",
-            description: `${payload.new.title} just went live`,
+            title: "🔴 Stream Now Live!",
+            description: `${payload.new.title} is now broadcasting`
           });
         }
-        
-        fetchLiveStreams();
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'streaming_sessions'
-      }, (payload) => {
-        console.log('📡 STREAM UPDATED:', payload.new);
-        
-        // If stream just went live
-        if (payload.new.status === 'live' && payload.old.status !== 'live') {
-          if (payload.new.host_user_id !== user.id) {
-            toast({
-              title: "🔴 Stream Now Live!",
-              description: `${payload.new.title} is now broadcasting`,
-            });
-          }
-        }
-        
-        fetchLiveStreams();
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'streaming_sessions'
-      }, () => {
-        console.log('Stream ended, refreshing list...');
-        fetchLiveStreams();
-      })
-      .subscribe((status) => {
-        console.log('Broadcast subscription status:', status);
-      });
+      }
+      fetchLiveStreams();
+    }).on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'streaming_sessions'
+    }, () => {
+      console.log('Stream ended, refreshing list...');
+      fetchLiveStreams();
+    }).subscribe(status => {
+      console.log('Broadcast subscription status:', status);
+    });
 
     // Periodic refresh every 30 seconds as backup
     const refreshInterval = setInterval(() => {
       console.log('Periodic refresh of live streams...');
       fetchLiveStreams();
     }, 30000);
-
     return () => {
       console.log('Cleaning up broadcast subscription...');
       supabase.removeChannel(channel);
@@ -346,7 +332,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     if (!streamTitle.trim()) {
       toast({
         title: "Missing stream title",
@@ -355,7 +340,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     if (!hasCameraPermission || !streamRef.current) {
       toast({
         title: "Camera not ready",
@@ -364,7 +348,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     if (!hasMicPermission) {
       toast({
         title: "Microphone not ready",
@@ -373,41 +356,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     setIsLoading(true);
     try {
       console.log('🎥 Starting broadcast stream with full functionality...');
-      
+
       // Verify stream tracks are active
       const videoTrack = streamRef.current.getVideoTracks()[0];
       const audioTrack = streamRef.current.getAudioTracks()[0];
-      
       if (!videoTrack || !videoTrack.enabled) {
         throw new Error('Video track not available or disabled');
       }
-      
       if (!audioTrack || !audioTrack.enabled) {
         throw new Error('Audio track not available or disabled');
       }
-
       console.log('✓ Video and audio tracks validated');
-      
-      // Setup MediaRecorder for broadcasting
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')
-        ? 'video/webm;codecs=vp8,opus'
-        : 'video/webm';
 
+      // Setup MediaRecorder for broadcasting
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
       const recorder = new MediaRecorder(streamRef.current, {
         mimeType,
         videoBitsPerSecond: streamQuality === '1080p' ? 2500000 : 1500000
       });
-
       let streamChannel: any;
-
-      recorder.ondataavailable = async (event) => {
+      recorder.ondataavailable = async event => {
         if (event.data.size > 0) {
           console.log('📦 Stream chunk:', event.data.size, 'bytes');
-          
+
           // Broadcast chunk to all viewers via Realtime
           if (streamChannel) {
             const reader = new FileReader();
@@ -416,7 +390,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               streamChannel.send({
                 type: 'broadcast',
                 event: 'stream_data',
-                payload: { 
+                payload: {
                   chunk: base64data,
                   timestamp: Date.now(),
                   quality: streamQuality
@@ -427,8 +401,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           }
         }
       };
-
-      recorder.onerror = (event) => {
+      recorder.onerror = event => {
         console.error('MediaRecorder error:', event);
         toast({
           title: "Recording error",
@@ -436,9 +409,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           variant: "destructive"
         });
       };
-
       console.log('✓ MediaRecorder configured');
-      
+
       // Create stream record in database
       const streamData = {
         title: streamTitle.trim(),
@@ -459,61 +431,53 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           host_name: user.user_metadata?.display_name || user.email || 'Anonymous'
         }
       };
-      
-      const { data, error } = await supabase
-        .from('streaming_sessions')
-        .insert(streamData)
-        .select()
-        .single();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('streaming_sessions').insert(streamData).select().single();
       if (error) throw error;
-      
       console.log('✅ Stream session created:', data.id);
-      
+
       // Setup broadcast channel
       streamChannel = supabase.channel(`stream:${data.id}`, {
         config: {
-          broadcast: { self: true }
+          broadcast: {
+            self: true
+          }
         }
       });
-
-      await streamChannel
-        .on('broadcast', { event: 'viewer_joined' }, (payload: any) => {
-          console.log('👤 Viewer joined:', payload);
-          setCurrentViewers(prev => prev + 1);
-        })
-        .on('broadcast', { event: 'viewer_left' }, () => {
-          setCurrentViewers(prev => Math.max(0, prev - 1));
-        })
-        .subscribe();
-
+      await streamChannel.on('broadcast', {
+        event: 'viewer_joined'
+      }, (payload: any) => {
+        console.log('👤 Viewer joined:', payload);
+        setCurrentViewers(prev => prev + 1);
+      }).on('broadcast', {
+        event: 'viewer_left'
+      }, () => {
+        setCurrentViewers(prev => Math.max(0, prev - 1));
+      }).subscribe();
       console.log('✓ Broadcast channel established');
-      
+
       // Start recording
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
-      
       setActiveStreamId(data.id);
       setIsStreaming(true);
       setCurrentViewers(1);
-      
       console.log('📡 Stream is now LIVE and discoverable');
-      
       toast({
         title: "🔴 You're Live!",
         description: `Broadcasting "${streamTitle}" to all users`,
         duration: 5000
       });
-      
     } catch (error: any) {
       console.error('❌ Failed to start stream:', error);
-      
+
       // Cleanup on error
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();
         mediaRecorderRef.current = null;
       }
-      
       toast({
         title: "Failed to start stream",
         description: error.message || "Please check your camera and microphone permissions.",
@@ -533,27 +497,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
 
       // Update stream status in database
-      const { error } = await supabase
-        .from('streaming_sessions')
-        .update({
-          status: 'ended',
-          ended_at: new Date().toISOString()
-        })
-        .eq('host_user_id', user?.id)
-        .eq('status', 'live');
-
+      const {
+        error
+      } = await supabase.from('streaming_sessions').update({
+        status: 'ended',
+        ended_at: new Date().toISOString()
+      }).eq('host_user_id', user?.id).eq('status', 'live');
       if (error) throw error;
 
       // Cleanup broadcast channel
       if (activeStreamId) {
         await supabase.removeChannel(supabase.channel(`stream:${activeStreamId}`));
       }
-
       setIsStreaming(false);
       setActiveStreamId(null);
       setCurrentViewers(0);
       setStreamTitle('');
-      
       toast({
         title: "Stream ended",
         description: `Your stream had ${currentViewers} viewers. Great job!`
@@ -571,35 +530,41 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const sendReaction = (reactionType: string) => {
     if (!viewingStream) return;
-    
     const reactionId = `${Date.now()}-${Math.random()}`;
     const x = Math.random() * 80 + 10; // Random position between 10% and 90%
-    
+
     // Add reaction locally
-    setReactions(prev => [...prev, { id: reactionId, type: reactionType, x }]);
-    
+    setReactions(prev => [...prev, {
+      id: reactionId,
+      type: reactionType,
+      x
+    }]);
+
     // Broadcast reaction to all viewers
     const channel = supabase.channel(`stream:${viewingStream.id}`);
     channel.send({
       type: 'broadcast',
       event: 'reaction',
-      payload: { type: reactionType, x, id: reactionId }
+      payload: {
+        type: reactionType,
+        x,
+        id: reactionId
+      }
     });
-    
+
     // Remove reaction after animation
     setTimeout(() => {
       setReactions(prev => prev.filter(r => r.id !== reactionId));
     }, 3000);
   };
-
   const joinStream = async (stream: StreamData) => {
     try {
       // Increment viewer count
-      const { error } = await supabase
-        .from('streaming_sessions')
-        .update({ current_viewers: stream.current_viewers + 1 })
-        .eq('id', stream.id);
-
+      const {
+        error
+      } = await supabase.from('streaming_sessions').update({
+        current_viewers: stream.current_viewers + 1
+      }).eq('id', stream.id);
       if (error) throw error;
 
       // Initialize MediaSource for live stream playback
@@ -607,16 +572,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (viewerVideoRef.current) {
         viewerVideoRef.current.src = URL.createObjectURL(mediaSource);
       }
-
       let sourceBuffer: SourceBuffer | null = null;
       const queue: Uint8Array[] = [];
       let isUpdating = false;
-
       mediaSource.addEventListener('sourceopen', () => {
         const mimeType = 'video/webm; codecs="vp8,opus"';
         if (MediaSource.isTypeSupported(mimeType)) {
           sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-          
           sourceBuffer.addEventListener('updateend', () => {
             isUpdating = false;
             if (queue.length > 0 && sourceBuffer) {
@@ -630,65 +592,71 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // Subscribe to stream broadcast channel
       const channel = supabase.channel(`stream:${stream.id}`);
-      channel
-        .on('broadcast', { event: 'stream_data' }, (payload) => {
-          console.log('📺 Received stream data chunk');
-          
-          // Decode base64 stream data
-          if (payload.payload?.chunk && sourceBuffer) {
-            const base64Data = payload.payload.chunk.split(',')[1] || payload.payload.chunk;
-            const binaryString = atob(base64Data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            
-            // Queue chunk for playback
-            queue.push(bytes);
-            
-            // Process queue if not currently updating
-            if (!isUpdating && queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
-              isUpdating = true;
-              const chunk = queue.shift()!;
-              try {
-                sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
-              } catch (e) {
-                console.error('Error appending buffer:', e);
-                isUpdating = false;
-              }
-            }
-          }
-        })
-        .on('broadcast', { event: 'reaction' }, (payload) => {
-          // Receive reactions from other viewers
-          const { type, x, id } = payload.payload;
-          setReactions(prev => [...prev, { id, type, x }]);
-          
-          setTimeout(() => {
-            setReactions(prev => prev.filter(r => r.id !== id));
-          }, 3000);
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            // Notify host that viewer joined
-            channel.send({
-              type: 'broadcast',
-              event: 'viewer_joined',
-              payload: { viewer_id: user?.id }
-            });
-            
-            // Auto-play video
-            if (viewerVideoRef.current) {
-              viewerVideoRef.current.play().catch(e => 
-                console.log('Autoplay prevented, user interaction required:', e)
-              );
-            }
-          }
-        });
+      channel.on('broadcast', {
+        event: 'stream_data'
+      }, payload => {
+        console.log('📺 Received stream data chunk');
 
+        // Decode base64 stream data
+        if (payload.payload?.chunk && sourceBuffer) {
+          const base64Data = payload.payload.chunk.split(',')[1] || payload.payload.chunk;
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+
+          // Queue chunk for playback
+          queue.push(bytes);
+
+          // Process queue if not currently updating
+          if (!isUpdating && queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
+            isUpdating = true;
+            const chunk = queue.shift()!;
+            try {
+              sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
+            } catch (e) {
+              console.error('Error appending buffer:', e);
+              isUpdating = false;
+            }
+          }
+        }
+      }).on('broadcast', {
+        event: 'reaction'
+      }, payload => {
+        // Receive reactions from other viewers
+        const {
+          type,
+          x,
+          id
+        } = payload.payload;
+        setReactions(prev => [...prev, {
+          id,
+          type,
+          x
+        }]);
+        setTimeout(() => {
+          setReactions(prev => prev.filter(r => r.id !== id));
+        }, 3000);
+      }).subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          // Notify host that viewer joined
+          channel.send({
+            type: 'broadcast',
+            event: 'viewer_joined',
+            payload: {
+              viewer_id: user?.id
+            }
+          });
+
+          // Auto-play video
+          if (viewerVideoRef.current) {
+            viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented, user interaction required:', e));
+          }
+        }
+      });
       setViewingStream(stream);
       setIsViewerMode(true);
-      
       toast({
         title: "Joined stream",
         description: `Now watching ${stream.host_name}'s stream`
@@ -702,23 +670,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-
   const leaveStream = async () => {
     if (!viewingStream) return;
-
     try {
       // Decrement viewer count
-      const { error } = await supabase
-        .from('streaming_sessions')
-        .update({ current_viewers: Math.max(0, viewingStream.current_viewers - 1) })
-        .eq('id', viewingStream.id);
-
+      const {
+        error
+      } = await supabase.from('streaming_sessions').update({
+        current_viewers: Math.max(0, viewingStream.current_viewers - 1)
+      }).eq('id', viewingStream.id);
       if (error) console.error('Error leaving stream:', error);
-
       setViewingStream(null);
       setIsViewerMode(false);
       setHasLiked(false);
-      
       toast({
         title: "Left stream",
         description: "You've left the stream"
@@ -727,7 +691,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.error('Error leaving stream:', error);
     }
   };
-
   const handleLike = () => {
     if (!hasLiked) {
       setHasLiked(true);
@@ -738,17 +701,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-
   const handleGift = () => {
     toast({
       title: "Send Gift",
       description: "Gift sending feature coming soon!"
     });
   };
-
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/app/streaming?stream=${viewingStream?.id}`;
-    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -770,8 +730,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   // Stream viewer mode
   if (isViewerMode && viewingStream) {
-    return (
-      <div className="min-h-screen dark bg-background">
+    return <div className="min-h-screen dark bg-background">
         <div className="max-w-6xl mx-auto">
           {/* Viewer Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -793,12 +752,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Video Stream */}
           <div className="relative bg-black aspect-video">
-            <video 
-              ref={viewerVideoRef}
-              autoPlay 
-              playsInline 
-              className="w-full h-full object-cover"
-            />
+            <video ref={viewerVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">
@@ -813,51 +767,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
             {/* Floating Reactions */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {reactions.map(reaction => (
-                <div
-                  key={reaction.id}
-                  className="absolute bottom-0 animate-[slide-up_3s_ease-out_forwards] opacity-0"
-                  style={{
-                    left: `${reaction.x}%`,
-                    animation: 'slide-up 3s ease-out forwards',
-                  }}
-                >
+              {reactions.map(reaction => <div key={reaction.id} className="absolute bottom-0 animate-[slide-up_3s_ease-out_forwards] opacity-0" style={{
+              left: `${reaction.x}%`,
+              animation: 'slide-up 3s ease-out forwards'
+            }}>
                   {reaction.type === 'heart' && <Heart className="w-8 h-8 text-red-500 fill-red-500" />}
                   {reaction.type === 'thumbsup' && <ThumbsUp className="w-8 h-8 text-blue-500 fill-blue-500" />}
                   {reaction.type === 'laugh' && <Laugh className="w-8 h-8 text-yellow-500 fill-yellow-500" />}
                   {reaction.type === 'rose' && <Flower2 className="w-8 h-8 text-pink-500 fill-pink-500" />}
-                </div>
-              ))}
+                </div>)}
             </div>
 
             {/* Reaction Buttons */}
             <div className="absolute bottom-20 right-4 flex flex-col gap-2">
-              <Button
-                size="icon"
-                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
-                onClick={() => sendReaction('heart')}
-              >
+              <Button size="icon" className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0" onClick={() => sendReaction('heart')}>
                 <Heart className="w-5 h-5 text-red-500" />
               </Button>
-              <Button
-                size="icon"
-                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
-                onClick={() => sendReaction('thumbsup')}
-              >
+              <Button size="icon" className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0" onClick={() => sendReaction('thumbsup')}>
                 <ThumbsUp className="w-5 h-5 text-blue-500" />
               </Button>
-              <Button
-                size="icon"
-                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
-                onClick={() => sendReaction('laugh')}
-              >
+              <Button size="icon" className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0" onClick={() => sendReaction('laugh')}>
                 <Laugh className="w-5 h-5 text-yellow-500" />
               </Button>
-              <Button
-                size="icon"
-                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
-                onClick={() => sendReaction('rose')}
-              >
+              <Button size="icon" className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0" onClick={() => sendReaction('rose')}>
                 <Flower2 className="w-5 h-5 text-pink-500" />
               </Button>
             </div>
@@ -871,12 +803,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <Button 
-                variant={hasLiked ? "default" : "outline"} 
-                size="sm"
-                onClick={handleLike}
-                disabled={hasLiked}
-              >
+              <Button variant={hasLiked ? "default" : "outline"} size="sm" onClick={handleLike} disabled={hasLiked}>
                 <Heart className={`w-4 h-4 mr-2 ${hasLiked ? 'fill-current' : ''}`} />
                 {hasLiked ? 'Liked' : 'Like'}
               </Button>
@@ -891,10 +818,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   return <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -922,19 +847,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </p>
             </div>
 
-            {!user ? (
-              <div className="text-center py-12">
+            {!user ? <div className="text-center py-12">
                 <p className="text-muted-foreground">Please log in to discover live streams</p>
-              </div>
-            ) : liveStreams.length === 0 ? (
-              <div className="text-center py-12 col-span-full">
+              </div> : liveStreams.length === 0 ? <div className="text-center py-12 col-span-full">
                 <p className="text-muted-foreground">No live streams at the moment. Check back soon!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden">
                   <div className="relative">
-                    <img src={stream.thumbnail} alt={stream.title} className="w-full h-48 object-cover" />
+                    
                     <Badge className="absolute top-2 left-2 bg-red-500 text-white">
                       <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                       LIVE
@@ -947,26 +867,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                   </div>
                   
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg leading-tight">{stream.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{stream.host_name}</p>
-                  </CardHeader>
                   
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {stream.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{stream.category}</Badge>
-                      <Button size="sm" onClick={() => joinStream(stream)} className="bg-primary hover:bg-primary/90">
-                        <Play className="w-3 h-3 mr-1" />
-                        Watch
-                      </Button>
-                    </div>
-                  </CardContent>
+                  
+                  
                 </Card>)}
-              </div>
-            )}
+              </div>}
 
             {/* Premium Live Events */}
             <Card className="premium-gradient p-6 text-center">
