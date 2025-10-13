@@ -251,6 +251,25 @@ const Profile = () => {
               </Button>
             </div>
 
+            {/* Photo Gallery */}
+            {profile?.profile_photos && profile.profile_photos.length > 1 && (
+              <div className="col-span-full">
+                <h3 className="text-sm font-semibold mb-2">Photos</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {profile.profile_photos.map((photo, index) => (
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10">
+                      <img 
+                        src={photo} 
+                        alt={`${profile.display_name} photo ${index + 1}`}
+                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => window.open(photo, '_blank')}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">

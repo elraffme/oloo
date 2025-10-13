@@ -114,6 +114,42 @@ const SignIn = () => {
                 ? `${onboardingData.hobbies || ''}\n\nPersonality: ${onboardingData.personality || ''}`.trim()
                 : 'Hello, I\'m new to Òloo!';
 
+              // Upload photos if they exist
+              const profilePhotoUrls: string[] = [];
+              if (onboardingData.photoDataUrls && onboardingData.photoDataUrls.length > 0) {
+                for (let i = 0; i < onboardingData.photoDataUrls.length; i++) {
+                  try {
+                    const dataUrl = onboardingData.photoDataUrls[i];
+                    const base64Data = dataUrl.split(',')[1];
+                    const mimeType = dataUrl.split(';')[0].split(':')[1];
+                    const fileExt = mimeType.split('/')[1];
+                    const fileName = `${session.session.user.id}/${Date.now()}_${i}.${fileExt}`;
+                    
+                    // Convert base64 to blob
+                    const byteCharacters = atob(base64Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let j = 0; j < byteCharacters.length; j++) {
+                      byteNumbers[j] = byteCharacters.charCodeAt(j);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: mimeType });
+                    
+                    const { error: uploadError } = await supabase.storage
+                      .from('profile-photos')
+                      .upload(fileName, blob);
+                    
+                    if (!uploadError) {
+                      const { data: { publicUrl } } = supabase.storage
+                        .from('profile-photos')
+                        .getPublicUrl(fileName);
+                      profilePhotoUrls.push(publicUrl);
+                    }
+                  } catch (error) {
+                    console.error('Photo upload error:', error);
+                  }
+                }
+              }
+
               await supabase
                 .from('profiles')
                 .update({
@@ -127,6 +163,8 @@ const SignIn = () => {
                   occupation: onboardingData.occupation || 'Not specified',
                   interests: interests,
                   relationship_goals: onboardingData.lookingFor || 'Getting to know people',
+                  profile_photos: profilePhotoUrls,
+                  avatar_url: profilePhotoUrls[0] || null,
                 })
                 .eq('user_id', session.session.user.id);
               

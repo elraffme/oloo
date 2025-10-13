@@ -252,8 +252,24 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save onboarding data to localStorage before navigating to auth
-      localStorage.setItem('onboardingData', JSON.stringify(formData));
+      // Convert photos to base64 for localStorage
+      const photoDataUrls = await Promise.all(
+        formData.photos.map(photo => {
+          return new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(photo);
+          });
+        })
+      );
+      
+      // Save to localStorage with base64 photos
+      const dataToSave = {
+        ...formData,
+        photos: undefined, // Remove File objects
+        photoDataUrls // Add base64 strings
+      };
+      localStorage.setItem('onboardingData', JSON.stringify(dataToSave));
       navigate('/auth');
     }
   };
