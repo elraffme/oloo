@@ -373,4 +373,16 @@ body {
       gap: 1rem;
     }
   }
+
+  /* Realtime reaction animations */
+  @keyframes slide-up {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-400px) scale(1.5);
+      opacity: 0;
+    }
+  }
 }

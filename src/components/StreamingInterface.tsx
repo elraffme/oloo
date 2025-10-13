@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +61,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [enableChat, setEnableChat] = useState(true);
   const [allowGifts, setAllowGifts] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
+  const [reactions, setReactions] = useState<Array<{ id: string; type: string; x: number }>>([]);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -568,6 +569,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsLoading(false);
     }
   };
+  const sendReaction = (reactionType: string) => {
+    if (!viewingStream) return;
+    
+    const reactionId = `${Date.now()}-${Math.random()}`;
+    const x = Math.random() * 80 + 10; // Random position between 10% and 90%
+    
+    // Add reaction locally
+    setReactions(prev => [...prev, { id: reactionId, type: reactionType, x }]);
+    
+    // Broadcast reaction to all viewers
+    const channel = supabase.channel(`stream:${viewingStream.id}`);
+    channel.send({
+      type: 'broadcast',
+      event: 'reaction',
+      payload: { type: reactionType, x, id: reactionId }
+    });
+    
+    // Remove reaction after animation
+    setTimeout(() => {
+      setReactions(prev => prev.filter(r => r.id !== reactionId));
+    }, 3000);
+  };
+
   const joinStream = async (stream: StreamData) => {
     try {
       // Increment viewer count
@@ -634,6 +658,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               }
             }
           }
+        })
+        .on('broadcast', { event: 'reaction' }, (payload) => {
+          // Receive reactions from other viewers
+          const { type, x, id } = payload.payload;
+          setReactions(prev => [...prev, { id, type, x }]);
+          
+          setTimeout(() => {
+            setReactions(prev => prev.filter(r => r.id !== id));
+          }, 3000);
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
@@ -776,6 +809,57 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               <Badge variant="secondary" className="bg-black/50 text-white backdrop-blur-sm">
                 {viewingStream.category}
               </Badge>
+            </div>
+
+            {/* Floating Reactions */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {reactions.map(reaction => (
+                <div
+                  key={reaction.id}
+                  className="absolute bottom-0 animate-[slide-up_3s_ease-out_forwards] opacity-0"
+                  style={{
+                    left: `${reaction.x}%`,
+                    animation: 'slide-up 3s ease-out forwards',
+                  }}
+                >
+                  {reaction.type === 'heart' && <Heart className="w-8 h-8 text-red-500 fill-red-500" />}
+                  {reaction.type === 'thumbsup' && <ThumbsUp className="w-8 h-8 text-blue-500 fill-blue-500" />}
+                  {reaction.type === 'laugh' && <Laugh className="w-8 h-8 text-yellow-500 fill-yellow-500" />}
+                  {reaction.type === 'rose' && <Flower2 className="w-8 h-8 text-pink-500 fill-pink-500" />}
+                </div>
+              ))}
+            </div>
+
+            {/* Reaction Buttons */}
+            <div className="absolute bottom-20 right-4 flex flex-col gap-2">
+              <Button
+                size="icon"
+                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
+                onClick={() => sendReaction('heart')}
+              >
+                <Heart className="w-5 h-5 text-red-500" />
+              </Button>
+              <Button
+                size="icon"
+                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
+                onClick={() => sendReaction('thumbsup')}
+              >
+                <ThumbsUp className="w-5 h-5 text-blue-500" />
+              </Button>
+              <Button
+                size="icon"
+                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
+                onClick={() => sendReaction('laugh')}
+              >
+                <Laugh className="w-5 h-5 text-yellow-500" />
+              </Button>
+              <Button
+                size="icon"
+                className="rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-sm border-0"
+                onClick={() => sendReaction('rose')}
+              >
+                <Flower2 className="w-5 h-5 text-pink-500" />
+              </Button>
             </div>
           </div>
 
