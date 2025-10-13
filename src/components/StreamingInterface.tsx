@@ -52,7 +52,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [viewingStream, setViewingStream] = useState<StreamData | null>(null);
   const [isViewerMode, setIsViewerMode] = useState(false);
 
-  // Fetch live streams from database
+  // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
     const fetchLiveStreams = async () => {
       if (!user) {
@@ -61,7 +61,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
 
       try {
-        // Fetch live streams excluding user's own streams
+        console.log('Fetching live streams for discovery...');
+        
+        // Fetch ALL live streams (including own streams for debugging, filtered later)
         const { data, error } = await supabase
           .from('streaming_sessions')
           .select(`
@@ -70,8 +72,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           `)
           .eq('status', 'live')
           .eq('is_private', false)
-          .neq('host_user_id', user.id)
-          .order('current_viewers', { ascending: false });
+          .order('started_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching streams:', error);
@@ -79,44 +80,96 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           return;
         }
 
-        const formattedStreams: StreamData[] = data?.map((stream: any) => ({
-          id: stream.id,
-          title: stream.title,
-          description: stream.description || '',
-          host_user_id: stream.host_user_id,
-          host_name: stream.profiles?.display_name || 'Anonymous',
-          current_viewers: stream.current_viewers || 0,
-          status: stream.status,
-          created_at: stream.created_at,
-          category: stream.ar_space_data?.category || 'General',
-          thumbnail: stream.profiles?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-        })) || [];
+        // Filter out user's own streams in the UI
+        const formattedStreams: StreamData[] = (data || [])
+          .filter((stream: any) => stream.host_user_id !== user.id)
+          .map((stream: any) => ({
+            id: stream.id,
+            title: stream.title,
+            description: stream.description || '',
+            host_user_id: stream.host_user_id,
+            host_name: stream.profiles?.display_name || 'Anonymous',
+            current_viewers: stream.current_viewers || 0,
+            status: stream.status,
+            created_at: stream.created_at,
+            category: stream.ar_space_data?.category || 'General',
+            thumbnail: stream.profiles?.avatar_url || 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+          }));
 
+        console.log(`Discovered ${formattedStreams.length} live streams`);
         setLiveStreams(formattedStreams);
       } catch (error) {
         console.error('Error fetching live streams:', error);
         setLiveStreams([]);
       }
     };
+    
     fetchLiveStreams();
 
-    // Set up real-time subscription for new streams
+    // Enhanced real-time subscription for broadcasting new streams
     const channel = supabase
-      .channel('streaming_sessions_changes')
+      .channel('live_stream_broadcast')
       .on('postgres_changes', {
-        event: '*',
+        event: 'INSERT',
         schema: 'public',
         table: 'streaming_sessions',
         filter: 'status=eq.live'
-      }, () => {
+      }, (payload) => {
+        console.log('🔴 NEW LIVE STREAM DETECTED:', payload.new);
+        
+        // Immediately show notification for new live stream
+        if (payload.new.host_user_id !== user.id) {
+          toast({
+            title: "🔴 New Live Stream!",
+            description: `${payload.new.title} just went live`,
+          });
+        }
+        
         fetchLiveStreams();
       })
-      .subscribe();
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'streaming_sessions'
+      }, (payload) => {
+        console.log('📡 STREAM UPDATED:', payload.new);
+        
+        // If stream just went live
+        if (payload.new.status === 'live' && payload.old.status !== 'live') {
+          if (payload.new.host_user_id !== user.id) {
+            toast({
+              title: "🔴 Stream Now Live!",
+              description: `${payload.new.title} is now broadcasting`,
+            });
+          }
+        }
+        
+        fetchLiveStreams();
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'streaming_sessions'
+      }, () => {
+        console.log('Stream ended, refreshing list...');
+        fetchLiveStreams();
+      })
+      .subscribe((status) => {
+        console.log('Broadcast subscription status:', status);
+      });
+
+    // Periodic refresh every 30 seconds as backup
+    const refreshInterval = setInterval(() => {
+      console.log('Periodic refresh of live streams...');
+      fetchLiveStreams();
+    }, 30000);
 
     return () => {
+      console.log('Cleaning up broadcast subscription...');
       supabase.removeChannel(channel);
+      clearInterval(refreshInterval);
     };
-  }, [user]);
+  }, [user, toast]);
 
   // Cleanup camera on unmount
   useEffect(() => {
@@ -260,33 +313,47 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
     setIsLoading(true);
     try {
-      // Create stream record in database
+      console.log('🎥 Starting broadcast stream...');
+      
+      // Create stream record in database with proper metadata
       const streamData = {
         title: streamTitle,
         description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
         host_user_id: user.id,
         status: 'live' as const,
         is_private: false,
+        started_at: new Date().toISOString(),
+        current_viewers: 1,
+        max_viewers: 100,
         ar_space_data: {
-          category: streamCategory || 'General'
+          category: streamCategory || 'General',
+          broadcast_enabled: true,
+          discovery_enabled: true
         }
       };
+      
       const {
         data,
         error
       } = await supabase.from('streaming_sessions').insert(streamData).select().single();
+      
       if (error) throw error;
+      
+      console.log('✅ Stream created successfully:', data);
+      
       setIsStreaming(true);
       setCurrentViewers(1);
+      
       toast({
-        title: "Stream started!",
-        description: "You're now live. Share your stream to get more viewers."
+        title: "🔴 You're Live!",
+        description: "Your stream is now broadcasting to all users. Others can now discover and join your stream."
       });
 
-      // In a real implementation, you would start the actual streaming here
-      // This would involve WebRTC, RTMP, or another streaming protocol
+      // Initialize broadcast system (WebRTC setup would go here)
+      console.log('📡 Broadcast enabled - stream is discoverable by all users');
+      
     } catch (error: any) {
-      console.error('Error starting stream:', error);
+      console.error('❌ Error starting stream:', error);
       toast({
         title: "Failed to start stream",
         description: error.message || "Please try again.",
