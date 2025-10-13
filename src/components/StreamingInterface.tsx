@@ -49,6 +49,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [hasMicPermission, setHasMicPermission] = useState(false);
   const [isRequestingCamera, setIsRequestingCamera] = useState(false);
   const [isRequestingMic, setIsRequestingMic] = useState(false);
+  const [viewingStream, setViewingStream] = useState<StreamData | null>(null);
+  const [isViewerMode, setIsViewerMode] = useState(false);
 
   // Fetch live streams from database
   useEffect(() => {
@@ -323,13 +325,128 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsLoading(false);
     }
   };
-  const joinStream = (streamId: string) => {
-    // In a real implementation, this would connect to the stream
-    toast({
-      title: "Joining stream...",
-      description: "This feature will be available soon!"
-    });
+  const joinStream = async (stream: StreamData) => {
+    try {
+      // Increment viewer count
+      const { error } = await supabase
+        .from('streaming_sessions')
+        .update({ current_viewers: stream.current_viewers + 1 })
+        .eq('id', stream.id);
+
+      if (error) throw error;
+
+      setViewingStream(stream);
+      setIsViewerMode(true);
+      
+      toast({
+        title: "Joined stream",
+        description: `Now watching ${stream.host_name}'s stream`
+      });
+    } catch (error: any) {
+      console.error('Error joining stream:', error);
+      toast({
+        title: "Failed to join stream",
+        description: error.message || "Please try again.",
+        variant: "destructive"
+      });
+    }
   };
+
+  const leaveStream = async () => {
+    if (!viewingStream) return;
+
+    try {
+      // Decrement viewer count
+      const { error } = await supabase
+        .from('streaming_sessions')
+        .update({ current_viewers: Math.max(0, viewingStream.current_viewers - 1) })
+        .eq('id', viewingStream.id);
+
+      if (error) console.error('Error leaving stream:', error);
+
+      setViewingStream(null);
+      setIsViewerMode(false);
+      
+      toast({
+        title: "Left stream",
+        description: "You've left the stream"
+      });
+    } catch (error: any) {
+      console.error('Error leaving stream:', error);
+    }
+  };
+  // Stream viewer mode
+  if (isViewerMode && viewingStream) {
+    return (
+      <div className="min-h-screen dark bg-background">
+        <div className="max-w-6xl mx-auto">
+          {/* Viewer Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={leaveStream}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Discover
+              </Button>
+              <div>
+                <h2 className="text-lg font-semibold">{viewingStream.title}</h2>
+                <p className="text-sm text-muted-foreground">{viewingStream.host_name}</p>
+              </div>
+            </div>
+            <Badge className="bg-red-500 text-white">
+              <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+              LIVE
+            </Badge>
+          </div>
+
+          {/* Video Stream */}
+          <div className="relative bg-black aspect-video">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-white">
+                <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">Stream is live</p>
+                <p className="text-sm opacity-75 mt-2">WebRTC streaming will be implemented here</p>
+              </div>
+            </div>
+            
+            {/* Stream Overlay Info */}
+            <div className="absolute top-4 left-4 flex items-center space-x-2">
+              <Badge variant="secondary" className="bg-black/50 text-white backdrop-blur-sm">
+                <Eye className="w-3 h-3 mr-1" />
+                {viewingStream.current_viewers} viewers
+              </Badge>
+              <Badge variant="secondary" className="bg-black/50 text-white backdrop-blur-sm">
+                {viewingStream.category}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Stream Info and Actions */}
+          <div className="p-4 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">About this stream</h3>
+              <p className="text-muted-foreground">{viewingStream.description}</p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <Heart className="w-4 h-4 mr-2" />
+                Like
+              </Button>
+              <Button variant="outline" size="sm">
+                <Gift className="w-4 h-4 mr-2" />
+                Send Gift
+              </Button>
+              <Button variant="outline" size="sm">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -393,7 +510,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline">{stream.category}</Badge>
-                      <Button size="sm" onClick={() => joinStream(stream.id)} className="bg-primary hover:bg-primary/90">
+                      <Button size="sm" onClick={() => joinStream(stream)} className="bg-primary hover:bg-primary/90">
                         <Play className="w-3 h-3 mr-1" />
                         Watch
                       </Button>
