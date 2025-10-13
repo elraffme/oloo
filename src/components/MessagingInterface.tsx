@@ -694,6 +694,18 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
                   onKeyPress={(e) => e.key === 'Enter' && handleSendText()}
+                  onFocus={() => {
+                    // Hide bottom nav on mobile when typing
+                    const bottomNav = document.querySelector('nav.md\\:hidden');
+                    if (bottomNav) bottomNav.classList.add('hidden');
+                  }}
+                  onBlur={() => {
+                    // Show bottom nav again when done typing
+                    setTimeout(() => {
+                      const bottomNav = document.querySelector('nav.md\\:hidden');
+                      if (bottomNav) bottomNav.classList.remove('hidden');
+                    }, 100);
+                  }}
                   disabled={isSending}
                   className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base"
                 />
