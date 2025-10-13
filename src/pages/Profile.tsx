@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +34,7 @@ import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 const Profile = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [stats, setStats] = useState({
@@ -551,7 +553,10 @@ const Profile = () => {
         <TabsContent value="overview" className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate('/app')}
+            >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Heart className="w-5 h-5 text-red-500" />
@@ -561,7 +566,10 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate('/app/messages')}
+            >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Users className="w-5 h-5 text-primary" />
@@ -571,7 +579,10 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate('/app/streaming')}
+            >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Video className="w-5 h-5 text-blue-500" />
@@ -581,7 +592,10 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate('/app/premium')}
+            >
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Gift className="w-5 h-5 text-gold" />
