@@ -670,11 +670,12 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="px-2 py-1 border-t border-border">
-            <div className="flex items-center gap-1">
+          <div className="px-1 py-0.5 border-t border-border bg-background/95 backdrop-blur-sm sticky bottom-0">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
                 onClick={handleSendHeart}
                 disabled={isSending}
               >
@@ -682,13 +683,14 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
                 onClick={handleSendGift}
                 disabled={isSending}
               >
                 <Gift className="w-4 h-4" />
               </Button>
-              <div className="flex-1 flex space-x-2">
+              <div className="flex-1 flex gap-1">
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -707,12 +709,13 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                     }, 100);
                   }}
                   disabled={isSending}
-                  className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base"
+                  className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base h-9"
                 />
                 <Button 
                   onClick={handleSendText} 
                   disabled={!newMessage.trim() || isSending}
-                  size="sm"
+                  size="icon"
+                  className="h-9 w-9 flex-shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
