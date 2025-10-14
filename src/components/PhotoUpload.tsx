@@ -6,6 +6,49 @@ import { Camera, Plus, X, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_DIMENSION = 4096; // 4K resolution
+const MIN_DIMENSION = 200; // Minimum 200x200
+
+const validateImageFile = async (file: File): Promise<void> => {
+  // Check file type
+  if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
+    throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+  }
+
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error('File too large. Maximum size is 5MB.');
+  }
+
+  // Validate actual image content and dimensions
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+        reject(new Error('Image dimensions too large. Maximum is 4096x4096 pixels.'));
+        return;
+      }
+      if (img.width < MIN_DIMENSION || img.height < MIN_DIMENSION) {
+        reject(new Error('Image too small. Minimum size is 200x200 pixels.'));
+        return;
+      }
+      resolve();
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Invalid image file. Please upload a valid image.'));
+    };
+    
+    img.src = url;
+  });
+};
+
 interface PhotoUploadProps {
   profilePhotos: string[];
   onPhotosUpdate: (photos: string[]) => void;
@@ -31,9 +74,20 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
     
     try {
       const newPhotos = [...profilePhotos];
+      const filesToProcess = files.slice(0, maxPhotos - profilePhotos.length);
       
-      for (const file of files.slice(0, maxPhotos - profilePhotos.length)) {
-        if (!file.type.startsWith('image/')) continue;
+      for (const file of filesToProcess) {
+        // Validate file before upload
+        try {
+          await validateImageFile(file);
+        } catch (validationError: any) {
+          toast({
+            title: "Invalid file",
+            description: validationError.message,
+            variant: "destructive",
+          });
+          continue;
+        }
 
         // Upload to Supabase Storage
         const fileName = `${user?.id}/${Date.now()}_${file.name}`;
@@ -123,14 +177,33 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       file.type.startsWith('image/')
     );
 
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      toast({
+        title: "No images found",
+        description: "Please drop image files only.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
     
     try {
       const newPhotos = [...profilePhotos];
+      const filesToProcess = files.slice(0, maxPhotos - profilePhotos.length);
       
-      for (const file of files.slice(0, maxPhotos - profilePhotos.length)) {
+      for (const file of filesToProcess) {
+        // Validate file before upload
+        try {
+          await validateImageFile(file);
+        } catch (validationError: any) {
+          toast({
+            title: "Invalid file",
+            description: validationError.message,
+            variant: "destructive",
+          });
+          continue;
+        }
         const fileName = `${user?.id}/${Date.now()}_${file.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('profile-photos')

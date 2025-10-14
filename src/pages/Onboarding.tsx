@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { onboardingStep1Schema, onboardingStep2Schema, onboardingStep3Schema, onboardingStep4Schema, onboardingStep5Schema } from "@/lib/validation";
+import { z } from "zod";
 const OnboardingStep = ({
   title,
   description,
@@ -248,7 +250,76 @@ const Onboarding = () => {
     }
   };
 
+  const validateStep = (currentStep: number): boolean => {
+    try {
+      const birthDate = formData.birthDate ? new Date(formData.birthDate) : null;
+      const age = birthDate ? calculateAge(formData.birthDate) : 0;
+
+      switch (currentStep) {
+        case 1:
+          onboardingStep1Schema.parse({ agreedToTerms: formData.agreed });
+          break;
+        case 2:
+          onboardingStep2Schema.parse({
+            displayName: formData.name,
+            dateOfBirth: formData.birthDate,
+            age: age,
+            gender: formData.gender,
+            location: 'Not specified',
+          });
+          
+          if (age < 18) {
+            toast({
+              title: "Age requirement",
+              description: "You must be at least 18 years old to use this app.",
+              variant: "destructive",
+            });
+            return false;
+          }
+          break;
+        case 3:
+          onboardingStep3Schema.parse({
+            height: formData.height,
+            bodyType: formData.bodyType,
+          });
+          break;
+        case 4:
+          onboardingStep4Schema.parse({
+            relationshipGoals: formData.lookingFor,
+            interests: formData.hobbies ? formData.hobbies.split(',').map(h => h.trim()).filter(h => h) : [],
+          });
+          break;
+        case 5:
+          // Photos validated separately during upload
+          if (formData.photos.length === 0) {
+            toast({
+              title: "Photos required",
+              description: "Please upload at least one photo",
+              variant: "destructive",
+            });
+            return false;
+          }
+          break;
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        toast({
+          title: "Validation Error",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      }
+      return false;
+    }
+  };
+
   const nextStep = async () => {
+    if (!validateStep(step)) {
+      return;
+    }
+    
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
