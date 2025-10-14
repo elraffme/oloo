@@ -184,10 +184,10 @@ const LandingPage = () => {
               <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Curated Playlists</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
             </div>
-            <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
+            <div className="bg-card p-4 sm:p-6 rounded-full border border-border space-y-2 sm:space-y-3 flex flex-col items-center justify-center text-center aspect-square">
               <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Intellectual & Creative Dialogue</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
+...
+              <p className="text-xs sm:text-sm text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
             </div>
           </div>
         </div>
