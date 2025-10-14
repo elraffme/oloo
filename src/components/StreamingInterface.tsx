@@ -874,7 +874,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </div>}
 
             {/* Premium Live Events */}
-            <Card className="premium-gradient p-6 text-center">
+            <Card className="premium-gradient p-6 text-center mt-12">
               <h3 className="text-xl font-afro-heading mb-2 text-white">
                 Premium Live Events
               </h3>
