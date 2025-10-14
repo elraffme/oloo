@@ -169,10 +169,10 @@ const LandingPage = () => {
               <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-lg">Global Networks</h3>
               <p className="sm:text-sm text-muted-foreground text-base">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
             </div>
-            <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
+            <div className="bg-card p-4 sm:p-6 rounded-full border border-border space-y-2 sm:space-y-3 flex flex-col items-center justify-center text-center aspect-square">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="sm:text-xl font-afro-heading text-foreground font-normal text-lg">Virtual Dates</h3>
-              <p className="sm:text-base text-muted-foreground text-base">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
