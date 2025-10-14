@@ -164,30 +164,30 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 text-xl font-medium">Why "The Culture" Is Different</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
-            <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
+            <div className="bg-card p-4 sm:p-6 rounded-full border border-border space-y-2 sm:space-y-3 flex flex-col items-center justify-center text-center aspect-square">
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-base">Global Networks</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-lg">Global Networks</h3>
+              <p className="sm:text-sm text-muted-foreground text-base">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Virtual Dates</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-normal text-lg">Virtual Dates</h3>
+              <p className="sm:text-base text-muted-foreground text-base">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Shared Events</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Attend exclusive online and offline cultural events: film festivals, music festivals, poetry slams, or even regional festivals. Meet your match while immersing yourself in art, culture, and history.</p>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-normal text-lg">Shared Events</h3>
+              <p className="sm:text-base text-muted-foreground text-base">Attend exclusive online and offline cultural events: film festivals, music festivals, poetry slams, or even regional festivals. Meet your match while immersing yourself in art, culture, and history.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Music className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Curated Playlists</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-normal text-lg">Curated Playlists</h3>
+              <p className="sm:text-base text-muted-foreground text-base">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Intellectual & Creative Dialogue</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
+              <p className="sm:text-base text-muted-foreground text-base">Engage in meaningful conversations, whether it's about philosophy, literature, or film. Our platform's focus is on building deeper emotional and intellectual connections.</p>
             </div>
           </div>
         </div>
