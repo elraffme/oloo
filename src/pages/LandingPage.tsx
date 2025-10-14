@@ -164,10 +164,10 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 text-xl font-medium">Why "The Culture" Is Different</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
-            <div className="bg-card p-4 sm:p-6 rounded-full border border-border space-y-2 sm:space-y-3">
+            <div className="bg-card p-4 sm:p-6 rounded-full border border-border space-y-2 sm:space-y-3 flex flex-col items-center justify-center text-center aspect-square">
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-base">Global Networks</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
