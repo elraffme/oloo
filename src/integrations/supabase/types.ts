@@ -803,6 +803,10 @@ export type Database = {
         }
         Returns: string
       }
+      decrement_stream_viewers: {
+        Args: { p_stream_id: string }
+        Returns: undefined
+      }
       emergency_freeze_user_tokens: {
         Args: { freeze_reason: string; target_user_id: string }
         Returns: boolean
@@ -1012,6 +1016,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_stream_viewers: {
+        Args: { p_stream_id: string }
+        Returns: undefined
       }
       is_admin: {
         Args: Record<PropertyKey, never>
