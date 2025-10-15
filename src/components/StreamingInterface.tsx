@@ -8,11 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AudioVUMeter } from '@/components/AudioVUMeter';
+import { DeviceSelector } from '@/components/DeviceSelector';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -67,7 +70,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     type: string;
     x: number;
   }>>([]);
-  const [videoBrightness, setVideoBrightness] = useState(100);
+  const [videoBrightness, setVideoBrightness] = useState(() => {
+    const saved = sessionStorage.getItem('stream_brightness');
+    return saved ? Number(saved) : 100;
+  });
+  const [permissionStatus, setPermissionStatus] = useState<{
+    camera: 'prompt' | 'granted' | 'denied';
+    microphone: 'prompt' | 'granted' | 'denied';
+  }>({ camera: 'prompt', microphone: 'prompt' });
+  const [audioDetected, setAudioDetected] = useState(false);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -193,6 +204,33 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [user, toast]);
 
+  // Check permissions status
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
+        setPermissionStatus({
+          camera: cameraPermission.state,
+          microphone: micPermission.state
+        });
+
+        // Listen for permission changes
+        cameraPermission.onchange = () => {
+          setPermissionStatus(prev => ({ ...prev, camera: cameraPermission.state }));
+        };
+        micPermission.onchange = () => {
+          setPermissionStatus(prev => ({ ...prev, microphone: micPermission.state }));
+        };
+      } catch (error) {
+        console.log('Permissions API not fully supported', error);
+      }
+    };
+
+    checkPermissions();
+  }, []);
+
   // Auto-initialize camera and microphone on mount
   useEffect(() => {
     const autoInitialize = async () => {
@@ -216,17 +254,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     };
   }, [user]);
-  const initializeCamera = async () => {
+
+  // Persist brightness changes
+  useEffect(() => {
+    sessionStorage.setItem('stream_brightness', String(videoBrightness));
+  }, [videoBrightness]);
+  const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {
+      const savedDeviceId = deviceId || localStorage.getItem('preferred_cam_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          },
+        video: savedDeviceId ? {
+          deviceId: { exact: savedDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } : {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           facingMode: 'user'
         }
       });
@@ -274,11 +318,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsRequestingCamera(false);
     }
   };
-  const initializeMicrophone = async () => {
+  const initializeMicrophone = async (deviceId?: string) => {
     setIsRequestingMic(true);
     try {
+      const savedDeviceId = deviceId || localStorage.getItem('preferred_mic_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
+        audio: savedDeviceId ? {
+          deviceId: { exact: savedDeviceId },
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } : {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
@@ -334,8 +384,53 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
         setIsMicOn(audioTrack.enabled);
+        if (!audioTrack.enabled) {
+          setAudioDetected(false);
+        }
       }
     }
+  };
+
+  const handleDeviceChange = async (videoDeviceId: string, audioDeviceId: string) => {
+    console.log('Changing devices:', { videoDeviceId, audioDeviceId });
+    
+    // Stop current stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    // Reset states
+    setHasCameraPermission(false);
+    setHasMicPermission(false);
+    setIsCameraOn(false);
+    setIsMicOn(false);
+    setAudioDetected(false);
+
+    // Re-initialize with new devices
+    await initializeCamera(videoDeviceId);
+    await initializeMicrophone(audioDeviceId);
+  };
+
+  const resetDevices = async () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    setHasCameraPermission(false);
+    setHasMicPermission(false);
+    setIsCameraOn(false);
+    setIsMicOn(false);
+    setAudioDetected(false);
+
+    toast({
+      title: "Devices reset",
+      description: "Re-initializing camera and microphone..."
+    });
+
+    await initializeCamera();
+    await initializeMicrophone();
   };
   const startStream = async () => {
     // Validate all requirements
@@ -378,13 +473,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Verify stream tracks are active
       const videoTrack = streamRef.current.getVideoTracks()[0];
       const audioTrack = streamRef.current.getAudioTracks()[0];
+      
       if (!videoTrack || !videoTrack.enabled) {
         throw new Error('Video track not available or disabled');
       }
+      
       if (!audioTrack || !audioTrack.enabled) {
+        toast({
+          title: "Audio not detected",
+          description: "Please enable your microphone and ensure it's working before going live.",
+          variant: "destructive"
+        });
         throw new Error('Audio track not available or disabled');
       }
+      
       console.log('✓ Video and audio tracks validated');
+      setAudioDetected(true);
 
       // Setup MediaRecorder for broadcasting
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
@@ -1006,12 +1110,34 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </Badge>}
                   </div>
 
-                  {/* Brightness Control */}
+                   {/* Brightness Control */}
                   {isCameraOn && (
-                    <div className="mt-3 space-y-1">
+                    <div className="mt-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="brightness" className="text-xs">Brightness</Label>
-                        <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="brightness" className="text-xs">Preview Brightness</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs max-w-xs">Adjusts your preview only. Viewers see the original brightness.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setVideoBrightness(100)}
+                          >
+                            Reset
+                          </Button>
+                        </div>
                       </div>
                       <input
                         id="brightness"
@@ -1022,34 +1148,95 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         onChange={(e) => setVideoBrightness(Number(e.target.value))}
                         className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                       />
+                      {videoBrightness < 80 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          ⚠️ Preview may look too dark
+                        </p>
+                      )}
                     </div>
                   )}
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
-                    {/* Camera & Mic Status */}
+                    {/* Permissions Status */}
                     <div className="p-3 bg-muted/50 rounded-lg space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Camera Status:</span>
-                        <Badge variant={hasCameraPermission && isCameraOn ? "default" : "secondary"}>
-                          {hasCameraPermission && isCameraOn ? "✓ Ready" : "Not Ready"}
-                        </Badge>
+                        <span className="text-sm font-medium">Camera:</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            permissionStatus.camera === 'granted' ? "default" : 
+                            permissionStatus.camera === 'denied' ? "destructive" : 
+                            "secondary"
+                          }>
+                            {permissionStatus.camera === 'granted' && hasCameraPermission && isCameraOn ? "✓ Ready" : 
+                             permissionStatus.camera === 'denied' ? "Blocked" : 
+                             hasCameraPermission && !isCameraOn ? "Off" :
+                             "Not Ready"}
+                          </Badge>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Microphone Status:</span>
-                        <Badge variant={hasMicPermission && isMicOn ? "default" : "secondary"}>
-                          {hasMicPermission && isMicOn ? "✓ Ready" : "Not Ready"}
-                        </Badge>
+                        <span className="text-sm font-medium">Microphone:</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            permissionStatus.microphone === 'granted' ? "default" : 
+                            permissionStatus.microphone === 'denied' ? "destructive" : 
+                            "secondary"
+                          }>
+                            {permissionStatus.microphone === 'granted' && hasMicPermission && isMicOn ? "✓ Ready" : 
+                             permissionStatus.microphone === 'denied' ? "Blocked" : 
+                             hasMicPermission && !isMicOn ? "Off" :
+                             "Not Ready"}
+                          </Badge>
+                        </div>
                       </div>
+                      {(permissionStatus.camera === 'denied' || permissionStatus.microphone === 'denied') && (
+                        <p className="text-xs text-destructive mt-2">
+                          Open your browser settings and allow camera/microphone access
+                        </p>
+                      )}
+                      {isStreaming && audioDetected && (
+                        <div className="flex items-center gap-2 text-sm text-success">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Audio detected ✓</span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* VU Meter */}
+                    {hasMicPermission && (
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <AudioVUMeter stream={streamRef.current} isEnabled={isMicOn} />
+                      </div>
+                    )}
+
+                    {/* Device Selector */}
+                    {(hasCameraPermission || hasMicPermission) && (
+                      <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Device Selection</Label>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-xs"
+                            onClick={resetDevices}
+                            disabled={isStreaming}
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Reset
+                          </Button>
+                        </div>
+                        <DeviceSelector onDeviceChange={handleDeviceChange} />
+                      </div>
+                    )}
                     
                     {/* Permission Buttons */}
                     {(!hasCameraPermission || !hasMicPermission) && <div className="grid grid-cols-2 gap-2">
-                        {!hasCameraPermission && <Button onClick={initializeCamera} disabled={isRequestingCamera} variant="outline" size="sm">
+                        {!hasCameraPermission && <Button onClick={() => initializeCamera()} disabled={isRequestingCamera} variant="outline" size="sm">
                             <Video className="w-4 h-4 mr-2" />
                             {isRequestingCamera ? 'Enabling...' : 'Enable Camera'}
                           </Button>}
-                        {!hasMicPermission && <Button onClick={initializeMicrophone} disabled={isRequestingMic} variant="outline" size="sm">
+                        {!hasMicPermission && <Button onClick={() => initializeMicrophone()} disabled={isRequestingMic} variant="outline" size="sm">
                             <Mic className="w-4 h-4 mr-2" />
                             {isRequestingMic ? 'Enabling...' : 'Enable Mic'}
                           </Button>}
