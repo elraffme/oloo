@@ -239,16 +239,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         await initializeCamera();
       }
       if (user && !hasMicPermission && !isRequestingMic) {
-        console.log('Auto-initializing microphone...');
+        console.log('Auto-initializing microphone for broadcasting...');
         await initializeMicrophone();
       }
     };
     
-    // Small delay to ensure UI is ready
-    const timer = setTimeout(autoInitialize, 500);
+    // Immediate initialization for broadcasting
+    autoInitialize();
     
     return () => {
-      clearTimeout(timer);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -327,11 +326,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           deviceId: { exact: savedDeviceId },
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 24000
         } : {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 24000
         }
       });
 
@@ -343,12 +344,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
       streamRef.current = stream;
-      setHasMicPermission(true);
-      setIsMicOn(true);
-      toast({
-        title: "✓ Microphone enabled",
-        description: "Microphone is ready for streaming."
-      });
+      
+      // Verify audio track is active
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack && audioTrack.enabled) {
+        console.log('✓ Microphone input detected and ready for broadcasting');
+        setHasMicPermission(true);
+        setIsMicOn(true);
+        toast({
+          title: "✓ Microphone enabled",
+          description: "Audio input detected and ready for broadcasting."
+        });
+      }
     } catch (error: any) {
       console.error('Error accessing microphone:', error);
       setHasMicPermission(false);
