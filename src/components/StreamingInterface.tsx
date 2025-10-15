@@ -192,14 +192,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [user, toast]);
 
-  // Cleanup camera on unmount
+  // Auto-initialize camera and microphone on mount
   useEffect(() => {
+    const autoInitialize = async () => {
+      if (user && !hasCameraPermission && !isRequestingCamera) {
+        console.log('Auto-initializing camera...');
+        await initializeCamera();
+      }
+      if (user && !hasMicPermission && !isRequestingMic) {
+        console.log('Auto-initializing microphone...');
+        await initializeMicrophone();
+      }
+    };
+    
+    // Small delay to ensure UI is ready
+    const timer = setTimeout(autoInitialize, 500);
+    
     return () => {
+      clearTimeout(timer);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [user]);
   const initializeCamera = async () => {
     setIsRequestingCamera(true);
     try {
@@ -225,6 +240,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.muted = true; // Important: mute preview to avoid feedback
         try {
           await videoRef.current.play();
         } catch (playError) {
@@ -234,19 +250,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setHasCameraPermission(true);
       setIsCameraOn(true);
       toast({
-        title: "Camera enabled ✓",
+        title: "✓ Camera enabled",
         description: "Camera is ready to stream."
       });
     } catch (error: any) {
       console.error('Error accessing camera:', error);
       setHasCameraPermission(false);
-      let errorMessage = "Please enable camera permissions.";
+      let errorMessage = "Please enable camera permissions in your browser settings.";
       if (error.name === 'NotAllowedError') {
-        errorMessage = "Permission denied. Please click 'Allow' for camera access.";
+        errorMessage = "Camera access denied. Click 'Allow' when prompted or check browser permissions.";
       } else if (error.name === 'NotFoundError') {
-        errorMessage = "No camera found. Please connect a camera and try again.";
+        errorMessage = "No camera detected. Please connect a camera and try again.";
       } else if (error.name === 'NotReadableError') {
-        errorMessage = "Camera is already in use. Please close other apps.";
+        errorMessage = "Camera is in use by another app. Please close other apps and try again.";
       }
       toast({
         title: "Camera access failed",
@@ -276,25 +292,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setHasMicPermission(true);
       setIsMicOn(true);
       toast({
-        title: "Microphone enabled ✓",
-        description: "Microphone is ready to stream."
+        title: "✓ Microphone enabled",
+        description: "Microphone is ready for streaming."
       });
     } catch (error: any) {
       console.error('Error accessing microphone:', error);
       setHasMicPermission(false);
-      let errorMessage = "Please enable microphone permissions.";
+      let errorMessage = "Please enable microphone permissions in your browser settings.";
       if (error.name === 'NotAllowedError') {
-        errorMessage = "Permission denied. Please click 'Allow' for microphone access.";
+        errorMessage = "Microphone access denied. Click 'Allow' when prompted or check browser permissions.";
       } else if (error.name === 'NotFoundError') {
-        errorMessage = "No microphone found. Please connect a microphone.";
+        errorMessage = "No microphone detected. Please connect a microphone and try again.";
       } else if (error.name === 'NotReadableError') {
-        errorMessage = "Microphone is already in use. Please close other apps.";
+        errorMessage = "Microphone is in use by another app. Please close other apps and try again.";
       }
       toast({
         title: "Microphone access failed",
@@ -983,6 +996,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
+                    {/* Camera & Mic Status */}
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Camera Status:</span>
+                        <Badge variant={hasCameraPermission && isCameraOn ? "default" : "secondary"}>
+                          {hasCameraPermission && isCameraOn ? "✓ Ready" : "Not Ready"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Microphone Status:</span>
+                        <Badge variant={hasMicPermission && isMicOn ? "default" : "secondary"}>
+                          {hasMicPermission && isMicOn ? "✓ Ready" : "Not Ready"}
+                        </Badge>
+                      </div>
+                    </div>
+                    
                     {/* Permission Buttons */}
                     {(!hasCameraPermission || !hasMicPermission) && <div className="grid grid-cols-2 gap-2">
                         {!hasCameraPermission && <Button onClick={initializeCamera} disabled={isRequestingCamera} variant="outline" size="sm">
@@ -1045,14 +1074,44 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Go Live Button */}
-                  <div className="mt-6">
-                    {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
-                        {isLoading ? 'Starting...' : 'Go Live'}
-                      </Button> : <Button onClick={endStream} disabled={isLoading} variant="destructive" className="w-full" size="lg">
+                  <div className="mt-6 space-y-2">
+                    {!isStreaming ? (
+                      <>
+                        <Button 
+                          onClick={startStream} 
+                          disabled={!streamTitle.trim() || isLoading || !hasCameraPermission || !hasMicPermission || !isCameraOn || !isMicOn} 
+                          className="w-full bg-red-500 hover:bg-red-600 text-white" 
+                          size="lg"
+                        >
+                          {isLoading ? 'Starting...' : '🔴 Go Live'}
+                        </Button>
+                        {(!hasCameraPermission || !hasMicPermission) && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                            ⚠️ Please enable camera and microphone to go live
+                          </p>
+                        )}
+                        {hasCameraPermission && hasMicPermission && (!isCameraOn || !isMicOn) && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                            ⚠️ Please turn on camera and microphone
+                          </p>
+                        )}
+                        {!streamTitle.trim() && hasCameraPermission && hasMicPermission && (
+                          <p className="text-sm text-muted-foreground text-center">
+                            Enter a stream title to continue
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Button 
+                        onClick={endStream} 
+                        disabled={isLoading} 
+                        variant="destructive" 
+                        className="w-full" 
+                        size="lg"
+                      >
                         {isLoading ? 'Ending...' : 'End Stream'}
-                      </Button>}
-                    {!hasCameraPermission && <p className="text-sm text-muted-foreground text-center mt-2">
-                  </p>}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
