@@ -67,6 +67,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     type: string;
     x: number;
   }>>([]);
+  const [videoBrightness, setVideoBrightness] = useState(100);
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -984,7 +985,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                    {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white">
+                    {isCameraOn ? <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      muted 
+                      playsInline 
+                      className="w-full h-full object-cover" 
+                      style={{ 
+                        filter: `brightness(${videoBrightness}%)`,
+                        visibility: 'visible',
+                        opacity: 1
+                      }}
+                    /> : <div className="w-full h-full flex items-center justify-center text-white">
                         <VideoOff className="w-12 h-12" />
                       </div>}
                     
@@ -993,6 +1005,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         LIVE
                       </Badge>}
                   </div>
+
+                  {/* Brightness Control */}
+                  {isCameraOn && (
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="brightness" className="text-xs">Brightness</Label>
+                        <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
+                      </div>
+                      <input
+                        id="brightness"
+                        type="range"
+                        min="50"
+                        max="150"
+                        value={videoBrightness}
+                        onChange={(e) => setVideoBrightness(Number(e.target.value))}
+                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  )}
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
