@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -852,9 +853,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </div> : liveStreams.length === 0 ? <div className="text-center py-12 col-span-full">
                 <p className="text-muted-foreground">No live streams at the moment. Check back soon!</p>
               </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden">
-                  <div className="relative">
-                    
+                {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
+                  <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20">
+                    <img 
+                      src={stream.thumbnail} 
+                      alt={stream.title}
+                      className="w-full h-full object-cover"
+                    />
                     <Badge className="absolute top-2 left-2 bg-red-500 text-white">
                       <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                       LIVE
@@ -867,9 +872,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                   </div>
                   
-                  
-                  
-                  
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={stream.thumbnail} />
+                        <AvatarFallback>{stream.host_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm line-clamp-2 mb-1">
+                          {stream.title}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {stream.host_name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {stream.category}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>)}
               </div>}
 
