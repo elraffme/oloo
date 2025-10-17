@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { AudioVUMeter } from '@/components/AudioVUMeter';
 import { DeviceSelector } from '@/components/DeviceSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useLiveKit } from '@/hooks/useLiveKit';
+import { RoomEvent, RemoteTrack, RemoteParticipant } from 'livekit-client';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -79,6 +81,28 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     microphone: 'prompt' | 'granted' | 'denied';
   }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
+
+  // LiveKit integration for WebRTC streaming
+  const liveKit = useLiveKit({
+    onConnected: () => {
+      console.log('✓ LiveKit connected successfully');
+    },
+    onDisconnected: () => {
+      console.log('LiveKit disconnected');
+      setIsStreaming(false);
+    },
+    onParticipantConnected: (count) => {
+      setCurrentViewers(count);
+    },
+    onError: (error) => {
+      console.error('LiveKit error:', error);
+      toast({
+        title: "Streaming error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch live streams from database with real-time broadcasting
   useEffect(() => {
@@ -475,7 +499,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
     setIsLoading(true);
     try {
-      console.log('🎥 Starting broadcast stream with full functionality...');
+      console.log('🎥 Starting LiveKit WebRTC broadcast...');
 
       // Verify stream tracks are active
       const videoTrack = streamRef.current.getVideoTracks()[0];
@@ -497,46 +521,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.log('✓ Video and audio tracks validated');
       setAudioDetected(true);
 
-      // Setup MediaRecorder for broadcasting
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
-      const recorder = new MediaRecorder(streamRef.current, {
-        mimeType,
-        videoBitsPerSecond: streamQuality === '1080p' ? 2500000 : 1500000
-      });
-      let streamChannel: any;
-      recorder.ondataavailable = async event => {
-        if (event.data.size > 0) {
-          console.log('📦 Stream chunk:', event.data.size, 'bytes');
-
-          // Broadcast chunk to all viewers via Realtime
-          if (streamChannel) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const base64data = reader.result as string;
-              streamChannel.send({
-                type: 'broadcast',
-                event: 'stream_data',
-                payload: {
-                  chunk: base64data,
-                  timestamp: Date.now(),
-                  quality: streamQuality
-                }
-              });
-            };
-            reader.readAsDataURL(event.data);
-          }
-        }
-      };
-      recorder.onerror = event => {
-        console.error('MediaRecorder error:', event);
-        toast({
-          title: "Recording error",
-          description: "There was an issue with the stream recording.",
-          variant: "destructive"
-        });
-      };
-      console.log('✓ MediaRecorder configured');
-
       // Create stream record in database
       const streamData = {
         title: streamTitle.trim(),
@@ -548,79 +532,76 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         current_viewers: 0,
         max_viewers: 100,
         ar_space_data: {
-          category: streamCategory || 'General',
-          broadcast_enabled: true,
-          discovery_enabled: true,
-          stream_quality: streamQuality,
-          chat_enabled: enableChat,
-          gifts_enabled: allowGifts,
-          host_name: user.user_metadata?.display_name || user.email || 'Anonymous'
+          quality: streamQuality,
+          enableChat,
+          allowGifts
         }
       };
-      const {
-        data,
-        error
-      } = await supabase.from('streaming_sessions').insert(streamData).select().single();
-      if (error) throw error;
-      console.log('✅ Stream session created:', data.id);
+      
+      console.log('Creating stream record in database...');
+      const { data: newStream, error: streamError } = await supabase
+        .from('streaming_sessions')
+        .insert(streamData)
+        .select()
+        .single();
 
-      // Setup broadcast channel
-      streamChannel = supabase.channel(`stream:${data.id}`, {
-        config: {
-          broadcast: {
-            self: true
-          }
-        }
-      });
-      await streamChannel.on('broadcast', {
-        event: 'viewer_joined'
-      }, (payload: any) => {
-        console.log('👤 Viewer joined:', payload);
-        setCurrentViewers(prev => prev + 1);
-      }).on('broadcast', {
-        event: 'viewer_left'
-      }, () => {
-        setCurrentViewers(prev => Math.max(0, prev - 1));
-      }).subscribe();
-      console.log('✓ Broadcast channel established');
-
-      // Start recording
-      recorder.start(1000);
-      mediaRecorderRef.current = recorder;
-      setActiveStreamId(data.id);
-      setIsStreaming(true);
-      setCurrentViewers(1);
-      console.log('📡 Stream is now LIVE and discoverable');
-      toast({
-        title: "🔴 You're Live!",
-        description: `Broadcasting "${streamTitle}" to all users`,
-        duration: 5000
-      });
-    } catch (error: any) {
-      console.error('❌ Failed to start stream:', error);
-
-      // Cleanup on error
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current = null;
+      if (streamError) {
+        console.error('Database error:', streamError);
+        throw new Error(streamError.message);
       }
+
+      console.log('✓ Stream record created:', newStream.id);
+      setActiveStreamId(newStream.id);
+
+      // Connect to LiveKit room
+      const roomName = `stream-${newStream.id}`;
+      const participantName = user.user_metadata?.display_name || user.email || 'Streamer';
+      
+      console.log('Connecting to LiveKit room:', roomName);
+      await liveKit.connect(roomName, participantName, true); // canPublish = true for streamer
+
+      // Publish local media tracks
+      console.log('Publishing media tracks...');
+      await liveKit.publishTracks(streamRef.current);
+
+      setIsStreaming(true);
+      
+      toast({
+        title: "🎉 You're live!",
+        description: "Your stream is broadcasting to viewers.",
+      });
+
+      console.log('✓ Stream started successfully with LiveKit WebRTC');
+    } catch (error: any) {
+      console.error('Failed to start stream:', error);
+      
+      // Cleanup on error
+      if (activeStreamId) {
+        await supabase
+          .from('streaming_sessions')
+          .update({ status: 'ended' })
+          .eq('id', activeStreamId);
+      }
+      
+      await liveKit.disconnect();
+      
       toast({
         title: "Failed to start stream",
-        description: error.message || "Please check your camera and microphone permissions.",
+        description: error.message || "Please check your connection and try again.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
   const endStream = async () => {
     setIsLoading(true);
     try {
-      // Stop MediaRecorder
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current = null;
-      }
+      console.log('Ending LiveKit stream...');
+      
+      // Disconnect from LiveKit
+      await liveKit.disconnect();
 
       // Update stream status in database
       const {
@@ -631,18 +612,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }).eq('host_user_id', user?.id).eq('status', 'live');
       if (error) throw error;
 
-      // Cleanup broadcast channel
-      if (activeStreamId) {
-        await supabase.removeChannel(supabase.channel(`stream:${activeStreamId}`));
-      }
       setIsStreaming(false);
       setActiveStreamId(null);
       setCurrentViewers(0);
       setStreamTitle('');
+      
       toast({
         title: "Stream ended",
         description: `Your stream had ${currentViewers} viewers. Great job!`
       });
+      
+      console.log('✓ Stream ended successfully');
     } catch (error: any) {
       console.error('Error ending stream:', error);
       toast({
@@ -685,6 +665,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const joinStream = async (stream: StreamData) => {
     try {
+      console.log('Joining LiveKit stream:', stream.id);
+      
       // Increment viewer count
       const {
         error
@@ -693,100 +675,33 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }).eq('id', stream.id);
       if (error) throw error;
 
-      // Initialize MediaSource for live stream playback
-      const mediaSource = new MediaSource();
-      if (viewerVideoRef.current) {
-        viewerVideoRef.current.src = URL.createObjectURL(mediaSource);
+      // Connect to LiveKit room as viewer
+      const roomName = `stream-${stream.id}`;
+      const participantName = user?.user_metadata?.display_name || user?.email || 'Viewer';
+      
+      await liveKit.connect(roomName, participantName, false); // canPublish = false for viewer
+
+      // Subscribe to remote tracks
+      if (liveKit.room) {
+        liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
+          console.log('✓ Subscribed to track:', track.kind, 'from', participant.identity);
+          
+          if (track.kind === 'video' && viewerVideoRef.current) {
+            track.attach(viewerVideoRef.current);
+            console.log('✓ Video track attached to viewer');
+          }
+        });
       }
-      let sourceBuffer: SourceBuffer | null = null;
-      const queue: Uint8Array[] = [];
-      let isUpdating = false;
-      mediaSource.addEventListener('sourceopen', () => {
-        const mimeType = 'video/webm; codecs="vp8,opus"';
-        if (MediaSource.isTypeSupported(mimeType)) {
-          sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-          sourceBuffer.addEventListener('updateend', () => {
-            isUpdating = false;
-            if (queue.length > 0 && sourceBuffer) {
-              isUpdating = true;
-              const chunk = queue.shift()!;
-              sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
-            }
-          });
-        }
-      });
 
-      // Subscribe to stream broadcast channel
-      const channel = supabase.channel(`stream:${stream.id}`);
-      channel.on('broadcast', {
-        event: 'stream_data'
-      }, payload => {
-        console.log('📺 Received stream data chunk');
-
-        // Decode base64 stream data
-        if (payload.payload?.chunk && sourceBuffer) {
-          const base64Data = payload.payload.chunk.split(',')[1] || payload.payload.chunk;
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          // Queue chunk for playback
-          queue.push(bytes);
-
-          // Process queue if not currently updating
-          if (!isUpdating && queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
-            isUpdating = true;
-            const chunk = queue.shift()!;
-            try {
-              sourceBuffer.appendBuffer(chunk.buffer as ArrayBuffer);
-            } catch (e) {
-              console.error('Error appending buffer:', e);
-              isUpdating = false;
-            }
-          }
-        }
-      }).on('broadcast', {
-        event: 'reaction'
-      }, payload => {
-        // Receive reactions from other viewers
-        const {
-          type,
-          x,
-          id
-        } = payload.payload;
-        setReactions(prev => [...prev, {
-          id,
-          type,
-          x
-        }]);
-        setTimeout(() => {
-          setReactions(prev => prev.filter(r => r.id !== id));
-        }, 3000);
-      }).subscribe(status => {
-        if (status === 'SUBSCRIBED') {
-          // Notify host that viewer joined
-          channel.send({
-            type: 'broadcast',
-            event: 'viewer_joined',
-            payload: {
-              viewer_id: user?.id
-            }
-          });
-
-          // Auto-play video
-          if (viewerVideoRef.current) {
-            viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented, user interaction required:', e));
-          }
-        }
-      });
       setViewingStream(stream);
       setIsViewerMode(true);
+      
       toast({
         title: "Joined stream",
-        description: `Now watching ${stream.host_name}'s stream`
+        description: `Watching ${stream.title}`,
       });
+      
+      console.log('✓ Successfully joined stream');
     } catch (error: any) {
       console.error('Error joining stream:', error);
       toast({
@@ -796,9 +711,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
+  
   const leaveStream = async () => {
     if (!viewingStream) return;
     try {
+      console.log('Leaving LiveKit stream...');
+      
+      // Disconnect from LiveKit
+      await liveKit.disconnect();
+      
       // Decrement viewer count
       const {
         error
@@ -806,13 +727,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         current_viewers: Math.max(0, viewingStream.current_viewers - 1)
       }).eq('id', viewingStream.id);
       if (error) console.error('Error leaving stream:', error);
+      
       setViewingStream(null);
       setIsViewerMode(false);
       setHasLiked(false);
+      
       toast({
         title: "Left stream",
         description: "You've left the stream"
       });
+      
+      console.log('✓ Left stream successfully');
     } catch (error: any) {
       console.error('Error leaving stream:', error);
     }
