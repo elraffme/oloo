@@ -524,7 +524,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Create stream record in database
       const streamData = {
         title: streamTitle.trim(),
-        description: `Live stream by ${user.user_metadata?.display_name || user.email || 'Anonymous'}`,
+        description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
         host_user_id: user.id,
         status: 'live' as const,
         is_private: false,
@@ -555,7 +555,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // Connect to LiveKit room
       const roomName = `stream-${newStream.id}`;
-      const participantName = user.user_metadata?.display_name || user.email || 'Streamer';
+      const participantName = user.user_metadata?.display_name || 'Streamer';
       
       console.log('Connecting to LiveKit room:', roomName);
       await liveKit.connect(roomName, participantName, true); // canPublish = true for streamer
