@@ -21,6 +21,14 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
   // Get LiveKit token from edge function
   const getToken = async (roomName: string, participantName: string, canPublish: boolean = false) => {
     try {
+      // Get fresh session to ensure auth header is included
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session. Please sign in to join the stream.');
+      }
+
+      console.log('Requesting LiveKit token with auth...');
       const { data, error } = await supabase.functions.invoke('livekit-token', {
         body: {
           roomName,
@@ -36,6 +44,11 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         throw error;
       }
 
+      if (!data?.token || !data?.url) {
+        throw new Error('Invalid response from token service');
+      }
+
+      console.log('✓ LiveKit token received');
       return data;
     } catch (error) {
       console.error('Failed to get LiveKit token:', error);

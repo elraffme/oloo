@@ -681,17 +681,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       await liveKit.connect(roomName, participantName, false); // canPublish = false for viewer
 
-      // Subscribe to remote tracks
+      // Subscribe to remote tracks and ensure video plays
       if (liveKit.room) {
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
           console.log('✓ Subscribed to track:', track.kind, 'from', participant.identity);
           
-          if (track.kind === 'video' && viewerVideoRef.current) {
+          if (viewerVideoRef.current) {
             track.attach(viewerVideoRef.current);
-            console.log('✓ Video track attached to viewer');
-          } else if (track.kind === 'audio' && viewerVideoRef.current) {
-            track.attach(viewerVideoRef.current);
-            console.log('✓ Audio track attached to viewer');
+            console.log(`✓ ${track.kind} track attached to viewer`);
+            
+            // Ensure video element plays after tracks are attached
+            if (track.kind === 'video') {
+              viewerVideoRef.current.play().catch(e => {
+                console.log('Autoplay prevented, user interaction needed:', e);
+              });
+            }
           }
         });
       }
@@ -806,7 +810,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Video Stream */}
           <div className="relative bg-black aspect-video">
-            <video ref={viewerVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <video 
+              ref={viewerVideoRef} 
+              autoPlay 
+              playsInline 
+              className="w-full h-full object-cover"
+              onLoadedMetadata={() => console.log('✓ Viewer video loaded')}
+              onPlay={() => console.log('✓ Viewer video playing')}
+            />
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">
