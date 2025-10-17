@@ -689,6 +689,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           if (track.kind === 'video' && viewerVideoRef.current) {
             track.attach(viewerVideoRef.current);
             console.log('✓ Video track attached to viewer');
+          } else if (track.kind === 'audio' && viewerVideoRef.current) {
+            track.attach(viewerVideoRef.current);
+            console.log('✓ Audio track attached to viewer');
           }
         });
       }
