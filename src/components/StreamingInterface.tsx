@@ -79,10 +79,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [permissionStatus, setPermissionStatus] = useState<{
     camera: 'prompt' | 'granted' | 'denied';
     microphone: 'prompt' | 'granted' | 'denied';
-  }>({
-    camera: 'prompt',
-    microphone: 'prompt'
-  });
+  }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
 
   // LiveKit integration for WebRTC streaming
@@ -94,17 +91,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.log('LiveKit disconnected');
       setIsStreaming(false);
     },
-    onParticipantConnected: count => {
+    onParticipantConnected: (count) => {
       setCurrentViewers(count);
     },
-    onError: error => {
+    onError: (error) => {
       console.error('LiveKit error:', error);
       toast({
         title: "Streaming error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   // Fetch live streams from database with real-time broadcasting
@@ -235,12 +232,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        const cameraPermission = await navigator.permissions.query({
-          name: 'camera' as PermissionName
-        });
-        const micPermission = await navigator.permissions.query({
-          name: 'microphone' as PermissionName
-        });
+        const cameraPermission = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        const micPermission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
         setPermissionStatus({
           camera: cameraPermission.state,
           microphone: micPermission.state
@@ -248,21 +242,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
         // Listen for permission changes
         cameraPermission.onchange = () => {
-          setPermissionStatus(prev => ({
-            ...prev,
-            camera: cameraPermission.state
-          }));
+          setPermissionStatus(prev => ({ ...prev, camera: cameraPermission.state }));
         };
         micPermission.onchange = () => {
-          setPermissionStatus(prev => ({
-            ...prev,
-            microphone: micPermission.state
-          }));
+          setPermissionStatus(prev => ({ ...prev, microphone: micPermission.state }));
         };
       } catch (error) {
         console.log('Permissions API not fully supported', error);
       }
     };
+
     checkPermissions();
   }, []);
 
@@ -278,9 +267,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         await initializeMicrophone();
       }
     };
-
+    
     // Immediate initialization for broadcasting
     autoInitialize();
+    
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -298,22 +288,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const savedDeviceId = deviceId || localStorage.getItem('preferred_cam_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
         video: savedDeviceId ? {
-          deviceId: {
-            exact: savedDeviceId
-          },
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          }
+          deviceId: { exact: savedDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         } : {
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           facingMode: 'user'
         }
       });
@@ -367,9 +347,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const savedDeviceId = deviceId || localStorage.getItem('preferred_mic_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: savedDeviceId ? {
-          deviceId: {
-            exact: savedDeviceId
-          },
+          deviceId: { exact: savedDeviceId },
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
@@ -390,7 +368,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
       streamRef.current = stream;
-
+      
       // Verify audio track is active
       const audioTrack = stream.getAudioTracks()[0];
       if (audioTrack && audioTrack.enabled) {
@@ -443,12 +421,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     }
   };
-  const handleDeviceChange = async (videoDeviceId: string, audioDeviceId: string) => {
-    console.log('Changing devices:', {
-      videoDeviceId,
-      audioDeviceId
-    });
 
+  const handleDeviceChange = async (videoDeviceId: string, audioDeviceId: string) => {
+    console.log('Changing devices:', { videoDeviceId, audioDeviceId });
+    
     // Stop current stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
@@ -466,20 +442,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     await initializeCamera(videoDeviceId);
     await initializeMicrophone(audioDeviceId);
   };
+
   const resetDevices = async () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+
     setHasCameraPermission(false);
     setHasMicPermission(false);
     setIsCameraOn(false);
     setIsMicOn(false);
     setAudioDetected(false);
+
     toast({
       title: "Devices reset",
       description: "Re-initializing camera and microphone..."
     });
+
     await initializeCamera();
     await initializeMicrophone();
   };
@@ -524,9 +504,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Verify stream tracks are active
       const videoTrack = streamRef.current.getVideoTracks()[0];
       const audioTrack = streamRef.current.getAudioTracks()[0];
+      
       if (!videoTrack || !videoTrack.enabled) {
         throw new Error('Video track not available or disabled');
       }
+      
       if (!audioTrack || !audioTrack.enabled) {
         toast({
           title: "Audio not detected",
@@ -535,6 +517,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         });
         throw new Error('Audio track not available or disabled');
       }
+      
       console.log('✓ Video and audio tracks validated');
       setAudioDetected(true);
 
@@ -554,43 +537,54 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           allowGifts
         }
       };
+      
       console.log('Creating stream record in database...');
-      const {
-        data: newStream,
-        error: streamError
-      } = await supabase.from('streaming_sessions').insert(streamData).select().single();
+      const { data: newStream, error: streamError } = await supabase
+        .from('streaming_sessions')
+        .insert(streamData)
+        .select()
+        .single();
+
       if (streamError) {
         console.error('Database error:', streamError);
         throw new Error(streamError.message);
       }
+
       console.log('✓ Stream record created:', newStream.id);
       setActiveStreamId(newStream.id);
 
       // Connect to LiveKit room
       const roomName = `stream-${newStream.id}`;
       const participantName = user.user_metadata?.display_name || user.email || 'Streamer';
+      
       console.log('Connecting to LiveKit room:', roomName);
       await liveKit.connect(roomName, participantName, true); // canPublish = true for streamer
 
       // Publish local media tracks
       console.log('Publishing media tracks...');
       await liveKit.publishTracks(streamRef.current);
+
       setIsStreaming(true);
+      
       toast({
         title: "🎉 You're live!",
-        description: "Your stream is broadcasting to viewers."
+        description: "Your stream is broadcasting to viewers.",
       });
+
       console.log('✓ Stream started successfully with LiveKit WebRTC');
     } catch (error: any) {
       console.error('Failed to start stream:', error);
-
+      
       // Cleanup on error
       if (activeStreamId) {
-        await supabase.from('streaming_sessions').update({
-          status: 'ended'
-        }).eq('id', activeStreamId);
+        await supabase
+          .from('streaming_sessions')
+          .update({ status: 'ended' })
+          .eq('id', activeStreamId);
       }
+      
       await liveKit.disconnect();
+      
       toast({
         title: "Failed to start stream",
         description: error.message || "Please check your connection and try again.",
@@ -600,11 +594,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsLoading(false);
     }
   };
+  
   const endStream = async () => {
     setIsLoading(true);
     try {
       console.log('Ending LiveKit stream...');
-
+      
       // Disconnect from LiveKit
       await liveKit.disconnect();
 
@@ -616,14 +611,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         ended_at: new Date().toISOString()
       }).eq('host_user_id', user?.id).eq('status', 'live');
       if (error) throw error;
+
       setIsStreaming(false);
       setActiveStreamId(null);
       setCurrentViewers(0);
       setStreamTitle('');
+      
       toast({
         title: "Stream ended",
         description: `Your stream had ${currentViewers} viewers. Great job!`
       });
+      
       console.log('✓ Stream ended successfully');
     } catch (error: any) {
       console.error('Error ending stream:', error);
@@ -668,7 +666,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const joinStream = async (stream: StreamData) => {
     try {
       console.log('Joining LiveKit stream:', stream.id);
-
+      
       // Increment viewer count
       const {
         error
@@ -680,24 +678,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Connect to LiveKit room as viewer
       const roomName = `stream-${stream.id}`;
       const participantName = user?.user_metadata?.display_name || user?.email || 'Viewer';
+      
       await liveKit.connect(roomName, participantName, false); // canPublish = false for viewer
 
       // Subscribe to remote tracks
       if (liveKit.room) {
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
           console.log('✓ Subscribed to track:', track.kind, 'from', participant.identity);
+          
           if (track.kind === 'video' && viewerVideoRef.current) {
             track.attach(viewerVideoRef.current);
             console.log('✓ Video track attached to viewer');
           }
         });
       }
+
       setViewingStream(stream);
       setIsViewerMode(true);
+      
       toast({
         title: "Joined stream",
-        description: `Watching ${stream.title}`
+        description: `Watching ${stream.title}`,
       });
+      
       console.log('✓ Successfully joined stream');
     } catch (error: any) {
       console.error('Error joining stream:', error);
@@ -708,14 +711,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
+  
   const leaveStream = async () => {
     if (!viewingStream) return;
     try {
       console.log('Leaving LiveKit stream...');
-
+      
       // Disconnect from LiveKit
       await liveKit.disconnect();
-
+      
       // Decrement viewer count
       const {
         error
@@ -723,13 +727,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         current_viewers: Math.max(0, viewingStream.current_viewers - 1)
       }).eq('id', viewingStream.id);
       if (error) console.error('Error leaving stream:', error);
+      
       setViewingStream(null);
       setIsViewerMode(false);
       setHasLiked(false);
+      
       toast({
         title: "Left stream",
         description: "You've left the stream"
       });
+      
       console.log('✓ Left stream successfully');
     } catch (error: any) {
       console.error('Error leaving stream:', error);
@@ -898,7 +905,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
                   <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20">
-                    <img src={stream.thumbnail} alt={stream.title} className="w-full h-full object-cover" />
+                    <img 
+                      src={stream.thumbnail} 
+                      alt={stream.title}
+                      className="w-full h-full object-cover"
+                    />
                     <Badge className="absolute top-2 left-2 bg-red-500 text-white">
                       <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                       LIVE
@@ -1010,11 +1021,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                    {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" style={{
-                    filter: `brightness(${videoBrightness}%)`,
-                    visibility: 'visible',
-                    opacity: 1
-                  }} /> : <div className="w-full h-full flex items-center justify-center text-white">
+                    {isCameraOn ? <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      muted 
+                      playsInline 
+                      className="w-full h-full object-cover" 
+                      style={{ 
+                        filter: `brightness(${videoBrightness}%)`,
+                        visibility: 'visible',
+                        opacity: 1
+                      }}
+                    /> : <div className="w-full h-full flex items-center justify-center text-white">
                         <VideoOff className="w-12 h-12" />
                       </div>}
                     
@@ -1025,7 +1043,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                    {/* Brightness Control */}
-                  {isCameraOn && <div className="mt-3 space-y-2">
+                  {isCameraOn && (
+                    <div className="mt-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Label htmlFor="brightness" className="text-xs">Preview Brightness</Label>
@@ -1042,16 +1061,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
-                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setVideoBrightness(100)}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setVideoBrightness(100)}
+                          >
                             Reset
                           </Button>
                         </div>
                       </div>
-                      <input id="brightness" type="range" min="50" max="150" value={videoBrightness} onChange={e => setVideoBrightness(Number(e.target.value))} className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer" />
-                      {videoBrightness < 80 && <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <input
+                        id="brightness"
+                        type="range"
+                        min="50"
+                        max="150"
+                        value={videoBrightness}
+                        onChange={(e) => setVideoBrightness(Number(e.target.value))}
+                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+                      />
+                      {videoBrightness < 80 && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
                           ⚠️ Preview may look too dark
-                        </p>}
-                    </div>}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
@@ -1060,44 +1095,72 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Camera:</span>
                         <div className="flex items-center gap-2">
-                          <Badge variant={permissionStatus.camera === 'granted' ? "default" : permissionStatus.camera === 'denied' ? "destructive" : "secondary"}>
-                            {permissionStatus.camera === 'granted' && hasCameraPermission && isCameraOn ? "✓ Ready" : permissionStatus.camera === 'denied' ? "Blocked" : hasCameraPermission && !isCameraOn ? "Off" : "Not Ready"}
+                          <Badge variant={
+                            permissionStatus.camera === 'granted' ? "default" : 
+                            permissionStatus.camera === 'denied' ? "destructive" : 
+                            "secondary"
+                          }>
+                            {permissionStatus.camera === 'granted' && hasCameraPermission && isCameraOn ? "✓ Ready" : 
+                             permissionStatus.camera === 'denied' ? "Blocked" : 
+                             hasCameraPermission && !isCameraOn ? "Off" :
+                             "Not Ready"}
                           </Badge>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Microphone:</span>
                         <div className="flex items-center gap-2">
-                          <Badge variant={permissionStatus.microphone === 'granted' ? "default" : permissionStatus.microphone === 'denied' ? "destructive" : "secondary"}>
-                            {permissionStatus.microphone === 'granted' && hasMicPermission && isMicOn ? "✓ Ready" : permissionStatus.microphone === 'denied' ? "Blocked" : hasMicPermission && !isMicOn ? "Off" : "Not Ready"}
+                          <Badge variant={
+                            permissionStatus.microphone === 'granted' ? "default" : 
+                            permissionStatus.microphone === 'denied' ? "destructive" : 
+                            "secondary"
+                          }>
+                            {permissionStatus.microphone === 'granted' && hasMicPermission && isMicOn ? "✓ Ready" : 
+                             permissionStatus.microphone === 'denied' ? "Blocked" : 
+                             hasMicPermission && !isMicOn ? "Off" :
+                             "Not Ready"}
                           </Badge>
                         </div>
                       </div>
-                      {(permissionStatus.camera === 'denied' || permissionStatus.microphone === 'denied') && <p className="text-xs text-destructive mt-2">
+                      {(permissionStatus.camera === 'denied' || permissionStatus.microphone === 'denied') && (
+                        <p className="text-xs text-destructive mt-2">
                           Open your browser settings and allow camera/microphone access
-                        </p>}
-                      {isStreaming && audioDetected && <div className="flex items-center gap-2 text-sm text-success">
+                        </p>
+                      )}
+                      {isStreaming && audioDetected && (
+                        <div className="flex items-center gap-2 text-sm text-success">
                           <CheckCircle className="w-4 h-4" />
                           <span>Audio detected ✓</span>
-                        </div>}
+                        </div>
+                      )}
                     </div>
 
                     {/* VU Meter */}
-                    {hasMicPermission && <div className="p-3 bg-muted/50 rounded-lg">
+                    {hasMicPermission && (
+                      <div className="p-3 bg-muted/50 rounded-lg">
                         <AudioVUMeter stream={streamRef.current} isEnabled={isMicOn} />
-                      </div>}
+                      </div>
+                    )}
 
                     {/* Device Selector */}
-                    {(hasCameraPermission || hasMicPermission) && <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+                    {(hasCameraPermission || hasMicPermission) && (
+                      <div className="p-3 bg-muted/50 rounded-lg space-y-3">
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-medium">Device Selection</Label>
-                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={resetDevices} disabled={isStreaming}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-xs"
+                            onClick={resetDevices}
+                            disabled={isStreaming}
+                          >
                             <RefreshCw className="w-3 h-3 mr-1" />
                             Reset
                           </Button>
                         </div>
                         <DeviceSelector onDeviceChange={handleDeviceChange} />
-                      </div>}
+                      </div>
+                    )}
                     
                     {/* Permission Buttons */}
                     {(!hasCameraPermission || !hasMicPermission) && <div className="grid grid-cols-2 gap-2">
@@ -1162,22 +1225,43 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                   {/* Go Live Button */}
                   <div className="mt-6 space-y-2">
-                    {!isStreaming ? <>
-                        <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission || !hasMicPermission || !isCameraOn || !isMicOn} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                    {!isStreaming ? (
+                      <>
+                        <Button 
+                          onClick={startStream} 
+                          disabled={!streamTitle.trim() || isLoading || !hasCameraPermission || !hasMicPermission || !isCameraOn || !isMicOn} 
+                          className="w-full bg-red-500 hover:bg-red-600 text-white" 
+                          size="lg"
+                        >
                           {isLoading ? 'Starting...' : '🔴 Go Live'}
                         </Button>
-                        {(!hasCameraPermission || !hasMicPermission) && <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                        {(!hasCameraPermission || !hasMicPermission) && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
                             ⚠️ Please enable camera and microphone to go live
-                          </p>}
-                        {hasCameraPermission && hasMicPermission && (!isCameraOn || !isMicOn) && <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                          </p>
+                        )}
+                        {hasCameraPermission && hasMicPermission && (!isCameraOn || !isMicOn) && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
                             ⚠️ Please turn on camera and microphone
-                          </p>}
-                        {!streamTitle.trim() && hasCameraPermission && hasMicPermission && <p className="text-sm text-muted-foreground text-center">
+                          </p>
+                        )}
+                        {!streamTitle.trim() && hasCameraPermission && hasMicPermission && (
+                          <p className="text-sm text-muted-foreground text-center">
                             Enter a stream title to continue
-                          </p>}
-                      </> : <Button onClick={endStream} disabled={isLoading} variant="destructive" className="w-full" size="lg">
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Button 
+                        onClick={endStream} 
+                        disabled={isLoading} 
+                        variant="destructive" 
+                        className="w-full" 
+                        size="lg"
+                      >
                         {isLoading ? 'Ending...' : 'End Stream'}
-                      </Button>}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
