@@ -10,11 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRateLimiting } from '@/hooks/useRateLimiting';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Discover = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { checkProfileViewLimit, recordAction } = useRateLimiting();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
