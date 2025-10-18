@@ -12,6 +12,7 @@ import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
@@ -20,6 +21,7 @@ const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
@@ -363,7 +365,7 @@ const Auth = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {t('back')}
           </Button>
           
           <div className="heart-logo mx-auto mb-4">
@@ -383,10 +385,10 @@ const Auth = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Create Account
+                {t('createAccount')}
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                Experience meaningful connections rooted in culture and heritage
+                {t('meaningfulConnections')}
               </CardDescription>
             </CardHeader>
             
@@ -397,7 +399,7 @@ const Auth = () => {
               <div className="relative z-10">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <Input
                       id="email"
                       name="email"
@@ -415,7 +417,7 @@ const Auth = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="location">{t('location')}</Label>
                     <Input
                       id="location"
                       name="location"
@@ -427,7 +429,7 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
+                    <Label htmlFor="password">{t('passwordMinimum')}</Label>
                     <Input
                       id="password"
                       name="password"
@@ -435,7 +437,7 @@ const Auth = () => {
                       value={formData.password}
                       onChange={handleInputChange}
                       onBlur={() => formData.password && validatePassword(formData.password)}
-                      placeholder="Create a strong password"
+                      placeholder={t('createStrongPassword')}
                       className={passwordError ? 'border-red-500' : ''}
                       required
                       minLength={10}
@@ -453,14 +455,14 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      placeholder="Confirm your password"
+                      placeholder={t('confirmYourPassword')}
                       className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
                       minLength={10}

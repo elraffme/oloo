@@ -8,11 +8,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const SignIn = () => {
   const { user, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -234,7 +236,7 @@ const SignIn = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {t('back')}
           </Button>
           
           <div className="heart-logo mx-auto mb-4">
@@ -245,7 +247,7 @@ const SignIn = () => {
             <span className="afro-heading">Òloo</span>
           </h1>
           <p className="text-xl text-muted-foreground font-afro-body">
-            Welcome back
+            {t('welcomeBack')}
           </p>
         </div>
 
@@ -254,10 +256,10 @@ const SignIn = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Sign In
+                {t('signIn')}
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                Continue your journey of meaningful connections
+                {t('continueJourney')}
               </CardDescription>
             </CardHeader>
             
@@ -268,7 +270,7 @@ const SignIn = () => {
               <div className="relative z-10">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <Input
                       id="email"
                       name="email"
@@ -281,14 +283,14 @@ const SignIn = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">{t('password')}</Label>
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder="Your password"
+                      placeholder={t('yourPassword')}
                       required
                     />
                     <button
@@ -305,21 +307,21 @@ const SignIn = () => {
                     className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Signing In...' : 'Sign In'}
+                    {isSubmitting ? t('signingIn') : t('signIn')}
                   </Button>
                 </form>
 
                 {/* Create Account Link */}
                 <div className="mt-6 pt-6 border-t border-border text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Don't have an account?
+                    {t('dontHaveAccount')}
                   </p>
                   <Button 
                     variant="ghost" 
                     className="text-primary hover:text-primary/80 hover:bg-primary/5"
                     onClick={() => navigate('/auth')}
                   >
-                    Create Account
+                    {t('createAccount')}
                   </Button>
                 </div>
 
