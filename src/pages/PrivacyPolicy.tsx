@@ -1,17 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   return <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto px-6 py-8">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+          {t('back')}
         </Button>
 
-        <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
+        <h1 className="text-4xl font-bold mb-2">{t('privacyPolicyTitle')}</h1>
+        <p className="text-muted-foreground mb-8">{t('lastUpdated')}: {new Date().toLocaleDateString()}</p>
 
         <div className="space-y-8 text-foreground">
           <section>
