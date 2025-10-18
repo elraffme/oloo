@@ -166,7 +166,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-base">Global Networks</h3>
+              <h3 className="sm:text-xl font-afro-heading text-foreground font-medium text-base">Global Culture</h3>
               <p className="text-sm sm:text-base text-muted-foreground">This is a culture inspired space. Be it friendship culture, dating culture, relationship culture and even beyond.  Connect with people from all corners of the globe—find your tribe.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
