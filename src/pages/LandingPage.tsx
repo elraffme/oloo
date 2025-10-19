@@ -7,20 +7,37 @@ import Footer from "@/components/Footer";
 import { useLanguage } from "@/contexts/LanguageContext";
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { t, setLanguage } = useLanguage();
+  const {
+    t,
+    setLanguage
+  } = useLanguage();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
-
   const languageMap: Record<string, string> = {
-    'Swahili': 'sw', 'Yoruba': 'yo', 'Zulu': 'zu', 'Amharic': 'am',
-    'Hausa': 'ha', 'Igbo': 'ig', 'Somali': 'so', 'Oromo': 'om',
-    'Shona': 'sn', 'Wolof': 'wo', 'Xhosa': 'xh', 'Tigrinya': 'ti',
-    'Afrikaans': 'af', 'Akan': 'ak', 'Kinyarwanda': 'rw', 'Lingala': 'ln',
-    'Fula': 'ff', 'Bemba': 'bem', 'Tswana': 'tn', 'Twi': 'tw', 'English': 'en'
+    'Swahili': 'sw',
+    'Yoruba': 'yo',
+    'Zulu': 'zu',
+    'Amharic': 'am',
+    'Hausa': 'ha',
+    'Igbo': 'ig',
+    'Somali': 'so',
+    'Oromo': 'om',
+    'Shona': 'sn',
+    'Wolof': 'wo',
+    'Xhosa': 'xh',
+    'Tigrinya': 'ti',
+    'Afrikaans': 'af',
+    'Akan': 'ak',
+    'Kinyarwanda': 'rw',
+    'Lingala': 'ln',
+    'Fula': 'ff',
+    'Bemba': 'bem',
+    'Tswana': 'tn',
+    'Twi': 'tw',
+    'English': 'en'
   };
-
   const handleLanguageSelect = (langName: string) => {
     const langCode = languageMap[langName];
     if (langCode) {
@@ -271,7 +288,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
               <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Discover Cultural Curiosity Quizzes</h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Which traditional music genre is your spirit song?</p>
+              <p className="text-sm sm:text-base text-muted-foreground">Which traditional music genre is your spiritual song?</p>
             </div>
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
               <h3 className="sm:text-xl font-afro-heading text-foreground text-base font-normal">Embark on a Digital Cultural Journey</h3>
