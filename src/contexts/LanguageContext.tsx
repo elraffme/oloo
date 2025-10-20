@@ -4477,18 +4477,323 @@ const translations: Record<Language, Record<string, string>> = {
     createAccount: "Tlhama akhaonto", 
     culture: "Setso", 
     languages: "Maleme",
-    signIn: "Tsena",
+    
+    // Navigation
+    home: 'Gae',
+    discover: 'Batla',
+    matches: 'Dikopano',
+    messages: 'Melaetsa',
+    profile: 'Porofaele',
+    streaming: 'Streaming',
+    
+    // Common actions
+    signIn: 'Tsena',
+    signOut: 'Tswa',
+    save: 'Boloka',
+    cancel: 'Khansela',
+    delete: 'Phimola',
+    edit: 'Baakanya',
+    back: 'Boela morago',
+    next: 'Go ya pele',
+    submit: 'Romela',
+    search: 'Batla',
+    filter: 'Tlhopha',
     joinNow: "Tsena gone jaanong",
-    back: "Boela morago",
     email: "Imeili",
     password: "Lentswe la sephiri",
-    messages: "Melaetsa",
     friends: "Ditsala",
-    profile: "Porofaele",
     loading: "E a lesa...",
     like: "Rata",
-    discover: "Batla",
     welcome: "Kamogelo",
+    
+    // Profile
+    editProfile: 'Baakanya Porofaele',
+    viewProfile: 'Bona Porofaele',
+    photos: 'Ditshwantsho',
+    about: 'Ka ga',
+    interests: 'Dikgatlhego',
+    preferences: 'Dikgetho',
+    settings: 'Dithulaganyo',
+    
+    // Common phrases
+    error: 'Phoso',
+    success: 'Katlego',
+    tryAgain: 'Leka gape',
+    noResults: 'Ga go na dipoelo',
+    
+    // Onboarding
+    letsGetStarted: 'A re simololeng',
+    tellUsAboutYourself: 'Re bolelele ka ga gago',
+    whatIsYourName: 'Leina la gago ke eng?',
+    firstName: 'Leina la ntlha',
+    lastName: 'Lefoko',
+    whenWereYouBorn: 'O tsetswe leng?',
+    dateOfBirth: 'Letlha la matsalo',
+    whatIsYourGender: 'Bong jwa gago ke eng?',
+    male: 'Monna',
+    female: 'Mosadi',
+    nonBinary: 'Ga se bobedi',
+    preferNotToSay: 'Ga ke batle go bolela',
+    whoAreYouInterestedIn: 'O kgatlhegela bomang?',
+    men: 'Banna',
+    women: 'Basadi',
+    everyone: 'Botlhe',
+    whereAreYouLocated: 'O kae?',
+    city: 'Motse',
+    country: 'Naga',
+    addYourPhotos: 'Tsenya ditshwantsho tsa gago',
+    uploadAtLeastPhotos: 'Tsenya ditshwantsho di le tharo kgotsa go feta',
+    uploadPhoto: 'Tsenya setshwantsho',
+    shareYourInterests: 'Abelana ka dikgatlhego tsa gago',
+    selectInterests: 'Tlhopha dikgatlhego tsa gago',
+    writeAboutYourself: 'Kwala ka ga gago',
+    bio: 'Tlhaloso',
+    bioPlaceholder: 'Re bolelele ka ga gago...',
+    completeYourProfile: 'Wetsa porofaele ya gago',
+    profileComplete: 'Porofaele e wetse',
+    startMatching: 'Simolola dikopano',
+    
+    // Verification
+    verifyYourIdentity: 'Netefatsa boitsebiso jwa gago',
+    verificationRequired: 'Go tlhokega netefatso',
+    verificationPending: 'Netefatso e emetse',
+    verified: 'E netefaditswe',
+    notVerified: 'Ga e a netefaditswe',
+    uploadIdDocument: 'Tsenya tokomane ya boitsebiso',
+    takeSelfie: 'Tsaya selfie',
+    verificationInProgress: 'Netefatso e tsweletse',
+    verificationComplete: 'Netefatso e wetse',
+    verificationFailed: 'Netefatso e paletse',
+    verifyNow: 'Netefatsa jaanong',
+    whyVerify: 'Goreng netefatsa?',
+    verificationBenefits: 'Melemo ya netefatso',
+    safetyFirst: 'Pabalesego pele',
+    trustedCommunity: 'Setšhaba se se ikanyang',
+    
+    // Legal pages
+    privacyPolicy: 'Pholisi ya Sephiri',
+    termsOfService: 'Melawana ya Tirelo',
+    termsConditions: 'Melawana le Maemo',
+    cookiesPolicy: 'Pholisi ya di-Cookies',
+    learnDataProcessing: 'Ithute ka fa re dirisang data ya gago',
+    and: 'le',
+    footerLegalText: 'Ka go dirisa tirelo eno, o dumela Melawana ya Tirelo ya rona',
+    
+    // Newsletter
+    newsletterText: 'Ingodise mo kgatisong ya rona ya dikgang go amogela ditshwantsho le dikgang',
+    enterEmail: 'Tsenya email ya gago',
+    subscribe: 'Ingodise',
+    
+    // Social links
+    faqs: 'Dipotso tse di Botswang Gantsi',
+    support: 'Tshegetso',
+    
+    // 404 Page
+    oopsPageNotFound: 'Oops! Tsebe ga e a bonala',
+    returnToHome: 'Boela kwa Gae',
+    
+    // Hero Section
+    heroHeadline: 'Kopana le Lorato ka Tsela ya Setso',
+    heroDescription: 'Kopana le batho ba ba abelanang setso, tlhaloganyo le pono tsa gago mo Nsibidi Dating',
+    watchDemo: 'Lebelela Demo',
+    culturalMembers: 'Maloko a Setso',
+    matchSuccess: 'Katlego ya Dikopano',
+    liveStreamingTitle: 'Live streaming',
+    activeNow: 'E dira jaanong',
+    joinCommunity: 'Tsena mo Setshabeng',
+    findYourMatch: 'Batla kopano ya gago',
+    startYourJourney: 'Simolola loeto lwa gago',
+    discoverLove: 'Batla lorato',
+    
+    // Messages
+    typeMessage: 'Kwala molaetsa...',
+    sendMessage: 'Romela molaetsa',
+    noMessages: 'Ga go na melaetsa',
+    startConversation: 'Simolola puisano',
+    
+    // Matches
+    newMatch: 'Kopano e ntšhwa',
+    viewMatch: 'Bona kopano',
+    likeProfile: 'Rata porofaele',
+    passProfile: 'Tlola porofaele',
+    superLike: 'Super like',
+    
+    // Premium
+    upgradeToPremium: 'Godisa go Premium',
+    premiumFeatures: 'Dikarolo tsa Premium',
+    unlimitedLikes: 'Di-likes tse di sa feleng',
+    seeWhoLikesYou: 'Bona gore ke mang yo o go ratang',
+    advancedFilters: 'Ditlhopha tse di tswetseng pele',
+    adFree: 'Ga go na dikatlholo',
+    
+    // Streaming
+    goLive: 'Tsamaya ka ntlha ya bosupa',
+    joinStream: 'Tsena mo streaming',
+    viewers: 'Babogedi',
+    liveNow: 'Live jaanong',
+    
+    // Settings
+    accountSettings: 'Dithulaganyo tsa Akhaonto',
+    notificationSettings: 'Dithulaganyo tsa Dikitsiso',
+    privacySettings: 'Dithulaganyo tsa Sephiri',
+    reportUser: 'Begela modirisi',
+    deleteAccount: 'Phimola akhaonto',
+    
+    // Notifications
+    newMatchNotification: 'O bone kopano e ntšhwa!',
+    newMessageNotification: 'Molaetsa o mosha',
+    profileViewNotification: 'Mongwe o bonye porofaele ya gago',
+    likeNotification: 'Mongwe o ratile porofaele ya gago',
+    
+    // Search & Filters
+    ageRange: 'Selekanyo sa Dingwaga',
+    distance: 'Kgole',
+    location: 'Lefelo',
+    recentlyActive: 'Ba ba ntseng ba dira bosheng',
+    newMembers: 'Maloko a maša',
+    
+    // Video Call
+    startVideoCall: 'Simolola video call',
+    endCall: 'Fedisa mogala',
+    toggleCamera: 'Fetola khamera',
+    toggleMicrophone: 'Fetola microphone',
+    
+    // Photo Upload
+    dragDropPhotos: 'Gogela ditshwantsho mo',
+    selectFromDevice: 'Tlhopha go tswa mo sesebelisong',
+    photoGuidelines: 'Ditaelo tsa Ditshwantsho',
+    clearPhoto: 'Setshwantsho se se phepa',
+    noSunglasses: 'Ga go na digilase',
+    noGroupPhotos: 'Ga go na ditshwantsho tsa lekoko',
+    appropriateContent: 'Diteng tse di siameng',
+    
+    // Membership Tiers
+    freeMembership: 'Boalo bo bo Mahloma',
+    basicMembership: 'Boalo jo bo Tlwaelegileng',
+    premiumMembership: 'Boalo jwa Premium',
+    eliteMembership: 'Boalo jwa Elite',
+    choosePlan: 'Tlhopha leano',
+    currentPlan: 'Leano la ga jaana',
+    mostPopular: 'Le le itsegeng',
+    
+    // Payment
+    paymentMethod: 'Mokgwa wa Tuelo',
+    cardNumber: 'Nomoro ya Karata',
+    expiryDate: 'Letlha la go fela',
+    cvv: 'CVV',
+    billingAddress: 'Aterese ya Tuelo',
+    confirmPayment: 'Netefatsa tuelo',
+    paymentSuccessful: 'Tuelo e atlehile',
+    paymentFailed: 'Tuelo e paletse',
+    
+    // Safety & Security
+    safetyTips: 'Malebela a Pabalesego',
+    reportConcern: 'Begela kgatlhego',
+    blockAndReport: 'Thibela le go begela',
+    trustAndSafety: 'Tumelo le Pabalesego',
+    staySafe: 'Nna o sireletsegile',
+    
+    // Profile Completion
+    profileStrength: 'Maatla a Porofaele',
+    completeProfile: 'Wetsa porofaele',
+    addMorePhotos: 'Tsenya ditshwantsho tse dingwe',
+    fillOutBio: 'Tlatsa tlhaloso',
+    verifyAccount: 'Netefatsa akhaonto',
+    
+    // Activity Status
+    online: 'O mo inthaneteng',
+    offline: 'Ga o mo inthaneteng',
+    away: 'O kgakala',
+    busy: 'O tswerwe',
+    lastSeen: 'O bonwe la bofelo',
+    
+    // Relationship Goals
+    relationshipGoals: 'Maikaelelo a Dikamano',
+    longTerm: 'Nako e telele',
+    shortTerm: 'Nako e khutshwane',
+    friendship: 'Tsala',
+    casual: 'Casual',
+    marriage: 'Lenyalo',
+    
+    // Cultural Preferences
+    culturalBackground: 'Botlhe jwa Setso',
+    religion: 'Tumelo',
+    traditions: 'Mekgwa',
+    values: 'Boleng',
+    
+    // Validation Messages
+    fieldRequired: 'Lefelo le a tlhokega',
+    invalidEmail: 'Email e sa siamang',
+    passwordTooShort: 'Lentswe la sephiri le khutshwane thata',
+    passwordsDoNotMatch: 'Mafoko a sephiri ga a tshwane',
+    invalidPhoneNumber: 'Nomoro ya mogala e sa siamang',
+    ageMustBe18: 'O tshwanetse go nna le dingwaga di le 18 kgotsa go feta',
+    
+    // Success Messages
+    profileUpdated: 'Porofaele e baakanyeditsweng',
+    photoUploaded: 'Setshwantsho se tsentswe',
+    messageSent: 'Molaetsa o rometswe',
+    matchCreated: 'Kopano e tlhamilwe',
+    settingsSaved: 'Dithulaganyo di bolokilwe',
+    
+    // Error Messages
+    somethingWentWrong: 'Sengwe se gakgakala',
+    pleaseCheckConnection: 'Tsweetswee tlhola kgokagano',
+    unableToLoadProfile: 'Ga e kgone go tsenya porofaele',
+    photoUploadFailed: 'Go tsenya setshwantsho go paletse',
+    messageFailedToSend: 'Molaetsa o paletse go romela',
+    
+    // Accessibility
+    closeDialog: 'Tswala puisano',
+    openMenu: 'Bula menu',
+    previousImage: 'Setshwantsho sa pele',
+    nextImage: 'Setshwantsho se se latelang',
+    playVideo: 'Tshameka video',
+    pauseVideo: 'Emisa video',
+    
+    // Time & Date
+    today: 'Gompieno',
+    yesterday: 'Maabane',
+    thisWeek: 'Beke eno',
+    thisMonth: 'Kgwedi eno',
+    minutesAgo: 'metsotso e e fetileng',
+    hoursAgo: 'diura tse di fetileng',
+    daysAgo: 'malatsi a a fetileng',
+    
+    // Emotions & Reactions
+    love: 'Lorato',
+    laugh: 'Tshego',
+    wow: 'Wow',
+    sad: 'Maswabi',
+    angry: 'Bogale',
+    
+    // Call to Action
+    getStarted: 'Simolola',
+    learnMore: 'Ithute go feta',
+    tryItFree: 'E leke mahala',
+    signUpNow: 'Ingodise jaanong',
+    downloadApp: 'Kopolola app',
+    contactUs: 'Ikgolaganye le rona',
+    
+    // Badges & Achievements
+    newMember: 'Leloko le lesha',
+    topMember: 'Leloko la kwa godimo',
+    photoVerified: 'Setshwantsho se netefaditswe',
+    popularProfile: 'Porofaele e e itsegeng',
+    
+    // Content Moderation
+    reportContent: 'Begela diteng',
+    blockUser: 'Thibela modirisi',
+    inappropriateContent: 'Diteng tse di sa siamang',
+    spam: 'Spam',
+    harassment: 'Kgatelelo',
+    fakePictures: 'Ditshwantsho tsa bontsho',
+    other: 'Tse dingwe',
+    
+    // Additional Features
+    culturalConnections: 'Dikamano tsa Setso',
+    experienceAfrocentricLuxury: 'Ikutlwe boithabiso jwa Afrocentric',
+    premiumDatingExperience: 'Maitemogelo a premium a go kopana',
   },
   tw: { 
     tagline: "Amammerɛ Mu Nkabom", 
