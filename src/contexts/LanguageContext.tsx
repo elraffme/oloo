@@ -4495,17 +4495,318 @@ const translations: Record<Language, Record<string, string>> = {
     createAccount: "Yɛ akontaabu", 
     culture: "Amammerɛ", 
     languages: "Kasa",
-    signIn: "Kɔ mu",
+    
+    // Navigation
+    home: 'Fie',
+    discover: 'Hwehwɛ',
+    matches: 'Nkitahodi',
+    messages: 'Nkrasɛm',
+    profile: 'Profaele',
+    streaming: 'Streaming',
+    
+    // Common actions
+    signIn: 'Hyɛ mu',
+    signOut: 'Fi adi',
+    save: 'Kora',
+    cancel: 'Twa',
+    delete: 'Yi fi',
+    edit: 'Sesa',
+    back: 'San kɔ',
+    next: 'Nea edi hɔ',
+    submit: 'Fa ma',
+    search: 'Hwehwɛ',
+    filter: 'Sisi',
     joinNow: "Kɔ mu seesei",
-    back: "San ba",
     email: "Imeili",
     password: "Ahyɛnsodeɛ",
-    messages: "Nkrasɛm",
     friends: "Nnamfonom",
-    profile: "Krataa",
     loading: "Ɛrekyerɛ...",
     like: "Dɔ",
-    discover: "Hwehwɛ",
     welcome: "Yɛma wo akwaaba",
+    
+    // Profile
+    editProfile: 'Sesa Profaele',
+    viewProfile: 'Hwɛ Profaele',
+    photos: 'Mfoni ahorow',
+    about: 'Ɛfa',
+    interests: 'Nneɛma a ɛhaw me',
+    preferences: 'Nea mepɛ',
+    settings: 'Nhyehyɛe',
+    
+    // Common phrases
+    error: 'Mfomso',
+    success: 'Nkonimdie',
+    tryAgain: 'Bɔ mmɔden bio',
+    noResults: 'Nsunsuanso nni hɔ',
+    
+    // Onboarding
+    letsGetStarted: 'Momma yɛnhyɛ ase',
+    tellUsAboutYourself: 'Ka wo ho asɛm kyerɛ yɛn',
+    whatIsYourName: 'Wo din de sɛn?',
+    firstName: 'Din a edi kan',
+    lastName: 'Abusua din',
+    whenWereYouBorn: 'Wobɛwoo wo da bɛn?',
+    dateOfBirth: 'Awo da',
+    whatIsYourGender: 'Wo bra de sɛn?',
+    male: 'Barima',
+    female: 'Bea',
+    nonBinary: 'Ɛnyɛ mmienu no mu biara',
+    preferNotToSay: 'Mempɛ sɛ meka',
+    whoAreYouInterestedIn: 'Hwan na wo wɔ mu anigye?',
+    men: 'Mmarima',
+    women: 'Mmea',
+    everyone: 'Obiara',
+    whereAreYouLocated: 'Wowɔ he?',
+    city: 'Kurow',
+    country: 'Ɔman',
+    addYourPhotos: 'Fa wo mfoni ka ho',
+    uploadAtLeastPhotos: 'Fa mfoni abiɛsa anaa nea ɛboro saa',
+    uploadPhoto: 'Fa mfoni ka ho',
+    shareYourInterests: 'Kyɛ wo anigye ahorow',
+    selectInterests: 'Yi wo anigye ahorow',
+    writeAboutYourself: 'Kyerɛw wo ho nsɛm',
+    bio: 'Abrabɔ ho nsɛm',
+    bioPlaceholder: 'Ka wo ho asɛm kyerɛ obiara...',
+    completeYourProfile: 'Wie wo profaele',
+    profileComplete: 'Profaele aba awiei',
+    startMatching: 'Hyɛ ase pɛ nkitahodi',
+    
+    // Verification
+    verifyYourIdentity: 'Siesie wo ho nimde',
+    verificationRequired: 'Ɛsɛ sɛ wodi adanse',
+    verificationPending: 'Ɛretwɛn adansedi',
+    verified: 'Wɔadi adanse',
+    notVerified: 'Wɔnnii adanse',
+    uploadIdDocument: 'Fa wo ho nimde krataa ka ho',
+    takeSelfie: 'Yi wo ho mfoni',
+    verificationInProgress: 'Adansedi rekɔ so',
+    verificationComplete: 'Adansedi aba awiei',
+    verificationFailed: 'Adansedi ansi yie',
+    verifyNow: 'Di adanse mprempren',
+    whyVerify: 'Adɛn nti na ɛsɛ sɛ midi adanse?',
+    verificationBenefits: 'Adansedi ho mfaso',
+    safetyFirst: 'Ahotɔ di kan',
+    trustedCommunity: 'Asafo a wogye wɔn anim',
+    
+    // Legal pages
+    privacyPolicy: 'Ahintasɛm ho nhyehyɛe',
+    termsOfService: 'Dwumadie ho mmara',
+    termsConditions: 'Mmara ne nhyehyɛe',
+    cookiesPolicy: 'Cookies ho nhyehyɛe',
+    learnDataProcessing: 'Sua sɛnea yɛde wo data di dwuma wɔ',
+    and: 'ne',
+    footerLegalText: 'Sɛ wode saa dwumadie yi di dwuma a, wopene yɛn Dwumadie ho Mmara so',
+    
+    // Newsletter
+    newsletterText: 'Kyerɛw wo din hyɛ yɛn newsletter mu na anya afotu ne nsɛm foforo',
+    enterEmail: 'Kyerɛw wo email',
+    subscribe: 'Kyerɛw din',
+    
+    // Social links
+    faqs: 'Nsɛmmisa a Wɔbisa Pii',
+    support: 'Mmoa',
+    
+    // 404 Page
+    oopsPageNotFound: 'Oops! Wɔanhu krataafa no',
+    returnToHome: 'San kɔ Fie',
+    
+    // Hero Section
+    heroHeadline: 'Hyia Ɔdɔ Wɔ Atetesɛm Kwan So',
+    heroDescription: 'Di nkitaho ne nnipa a wɔne wo kyɛ atetesɛm, koma ne anisoadehunu wɔ Nsibidi Dating',
+    watchDemo: 'Hwɛ Demo',
+    culturalMembers: 'Atetesɛm Mmusuakuw',
+    matchSuccess: 'Nkitaho Nkonimdie',
+    liveStreamingTitle: 'Live streaming',
+    activeNow: 'Ɛreyɛ adwuma mprempren',
+    joinCommunity: 'Hyɛ Asafo no mu',
+    findYourMatch: 'Hwehwɛ wo nkitaho',
+    startYourJourney: 'Hyɛ wo akwantu no ase',
+    discoverLove: 'Hu ɔdɔ',
+    
+    // Messages
+    typeMessage: 'Kyerɛw nkrasɛm...',
+    sendMessage: 'Soma nkrasɛm',
+    noMessages: 'Nkrasɛm biara nni hɔ',
+    startConversation: 'Hyɛ nkɔmmɔdie ase',
+    
+    // Matches
+    newMatch: 'Nkitaho foforo',
+    viewMatch: 'Hwɛ nkitaho',
+    likeProfile: 'Pɛ profaele',
+    passProfile: 'Twa profaele mu',
+    superLike: 'Super like',
+    
+    // Premium
+    upgradeToPremium: 'Yɛ premium',
+    premiumFeatures: 'Premium nneɛma',
+    unlimitedLikes: 'Like a ɛnni ano',
+    seeWhoLikesYou: 'Hu hwan na ɔpɛ wo',
+    advancedFilters: 'Nsisi a ɛyɛ den',
+    adFree: 'Dawurubɔ nni mu',
+    
+    // Streaming
+    goLive: 'Yɛ live',
+    joinStream: 'Hyɛ streaming mu',
+    viewers: 'Ahwɛfo',
+    liveNow: 'Live mprempren',
+    
+    // Settings
+    accountSettings: 'Account nhyehyɛe',
+    notificationSettings: 'Amanneɛbɔ nhyehyɛe',
+    privacySettings: 'Ahintasɛm nhyehyɛe',
+    blockUser: 'Sianka ɔdefodepɛ',
+    reportUser: 'Bɔ ɔdefodepɛ ho amanneɛ',
+    deleteAccount: 'Yi account fi hɔ',
+    
+    // Notifications
+    newMatchNotification: 'Wonya nkitaho foforo!',
+    newMessageNotification: 'Nkrasɛm foforo',
+    profileViewNotification: 'Obi ahwɛ wo profaele',
+    likeNotification: 'Obi apɛ wo profaele',
+    
+    // Search & Filters
+    ageRange: 'Mfe dodow',
+    distance: 'Akyirikyiri',
+    location: 'Baabi',
+    recentlyActive: 'Wɔn a wɔyɛɛ adwuma nnansa yi',
+    newMembers: 'Mmusuakuw foforo',
+    
+    // Video Call
+    startVideoCall: 'Hyɛ video call ase',
+    endCall: 'Wie call',
+    toggleCamera: 'Sesa camera',
+    toggleMicrophone: 'Sesa microphone',
+    
+    // Photo Upload
+    dragDropPhotos: 'Twe mfoni gu ha',
+    selectFromDevice: 'Yi fi wo mfiri so',
+    photoGuidelines: 'Mfoni ho akwankyerɛ',
+    clearPhoto: 'Mfoni a emu da hɔ',
+    noSunglasses: 'Ɛnhwɛaniwa nni hɔ',
+    noGroupPhotos: 'Akuw mfoni nni hɔ',
+    appropriateContent: 'Nneɛma a ɛfata',
+    
+    // Membership Tiers
+    freeMembership: 'Mmusuakuw a ɛho nni ka',
+    basicMembership: 'Mmusuakuw ntease',
+    premiumMembership: 'Premium mmusuakuw',
+    eliteMembership: 'Elite mmusuakuw',
+    choosePlan: 'Yi nhyehyɛe',
+    currentPlan: 'Nhyehyɛe a ɛwɔ hɔ mprempren',
+    mostPopular: 'Nea nnipa pɛ paa',
+    
+    // Payment
+    paymentMethod: 'Akatua kwan',
+    cardNumber: 'Card nɔma',
+    expiryDate: 'Da a ɛbɛba awiei',
+    cvv: 'CVV',
+    billingAddress: 'Baabi a wobɛtua',
+    confirmPayment: 'Si akatua so dua',
+    paymentSuccessful: 'Akatua kɔɔ yie',
+    paymentFailed: 'Akatua ansi yie',
+    
+    // Safety & Security
+    safetyTips: 'Ahotɔ ho afotu',
+    reportConcern: 'Bɔ adwene ho amanneɛ',
+    blockAndReport: 'Sianka na bɔ amanneɛ',
+    trustAndSafety: 'Ahotɔ ne gyedie',
+    staySafe: 'Tra ase yiye',
+    
+    // Profile Completion
+    profileStrength: 'Profaele ahoɔden',
+    completeProfile: 'Wie profaele',
+    addMorePhotos: 'Fa mfoni foforo ka ho',
+    fillOutBio: 'Hyɛ bio mu',
+    verifyAccount: 'Di wo account ho adanse',
+    
+    // Activity Status
+    online: 'Ɛwɔ intanɛt so',
+    offline: 'Ɛnni intanɛt so',
+    away: 'Wafi hɔ akɔ',
+    busy: 'Ɛreyɛ adwuma',
+    lastSeen: 'Wohui no bere a etwa to',
+    
+    // Relationship Goals
+    relationshipGoals: 'Abusuabɔ botae',
+    longTerm: 'Bere tenten',
+    shortTerm: 'Bere tiaa',
+    friendship: 'Adamfo',
+    casual: 'Nea ɛnyɛ den',
+    marriage: 'Aware',
+    
+    // Cultural Preferences
+    culturalBackground: 'Atetesɛm akyi',
+    religion: 'Nyamesom',
+    traditions: 'Atetesɛm',
+    values: 'Nneɛma a ɛho hia',
+    
+    // Validation Messages
+    fieldRequired: 'Ɛsɛ sɛ wofa saa afã yi',
+    invalidEmail: 'Email a ɛnyɛ nokware',
+    passwordTooShort: 'Password yɛ tiaa dodo',
+    passwordsDoNotMatch: 'Password ahorow no nhyia',
+    invalidPhoneNumber: 'Telefon nɔma a ɛnyɛ nokware',
+    ageMustBe18: 'Ɛsɛ sɛ wodi mfe 18 anaa nea ɛboro saa',
+    
+    // Success Messages
+    profileUpdated: 'Wɔayɛ profaele foforo',
+    photoUploaded: 'Wɔde mfoni ato mu',
+    messageSent: 'Wɔde nkrasɛm asoma',
+    matchCreated: 'Wɔayɛ nkitaho',
+    settingsSaved: 'Wɔakora nhyehyɛe',
+    
+    // Error Messages
+    somethingWentWrong: 'Biribi ankɔ yiye',
+    pleaseCheckConnection: 'Yɛ sɛ hwɛ wo nkitahodi',
+    unableToLoadProfile: 'Wɔntumi nto profaele mu',
+    photoUploadFailed: 'Mfoni a wɔde to mu no ansi yie',
+    messageFailedToSend: 'Nkrasɛm no ansi yie sɛ wɔbɛsoma',
+    
+    // Accessibility
+    closeDialog: 'To nkɔmmɔbea mu',
+    openMenu: 'Bue menu',
+    previousImage: 'Mfoni a etwaa mu',
+    nextImage: 'Mfoni a edi hɔ',
+    playVideo: 'Bue video',
+    pauseVideo: 'Gyae video',
+    
+    // Time & Date
+    today: 'Ɛnne',
+    yesterday: 'Nnera',
+    thisWeek: 'Dapɛn yi',
+    thisMonth: 'Bosome yi',
+    minutesAgo: 'simma a etwaa mu',
+    hoursAgo: 'nnɔnhwere a etwaa mu',
+    daysAgo: 'nna a etwaa mu',
+    
+    // Emotions & Reactions
+    love: 'Ɔdɔ',
+    laugh: 'Serew',
+    wow: 'Wow',
+    sad: 'Awerɛhow',
+    angry: 'Abufuw',
+    
+    // Call to Action
+    getStarted: 'Hyɛ ase',
+    learnMore: 'Sua pii',
+    tryItFree: 'Sɔ ahwɛ a ɛho nni ka',
+    signUpNow: 'Kyerɛw wo din mprempren',
+    downloadApp: 'Download app no',
+    contactUs: 'Di yɛn nkitaho',
+    
+    // Badges & Achievements
+    newMember: 'Ɔmusuakuw foforo',
+    topMember: 'Ɔmusuakuw a ɔwɔ soro',
+    photoVerified: 'Wɔadi mfoni ho adanse',
+    popularProfile: 'Profaele a agye din',
+    
+    // Content Moderation
+    reportContent: 'Bɔ nneɛma ho amanneɛ',
+    blockUser: 'Sianka ɔdefodepɛ',
+    inappropriateContent: 'Nneɛma a ɛmfata',
+    spam: 'Spam',
+    harassment: 'Ɔtan',
+    fakePictures: 'Mfoni a ɛnyɛ nokware',
+    other: 'Nea ɛka ho',
   },
 };
