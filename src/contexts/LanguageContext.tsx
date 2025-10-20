@@ -4802,7 +4802,6 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Content Moderation
     reportContent: 'Bɔ nneɛma ho amanneɛ',
-    blockUser: 'Sianka ɔdefodepɛ',
     inappropriateContent: 'Nneɛma a ɛmfata',
     spam: 'Spam',
     harassment: 'Ɔtan',
