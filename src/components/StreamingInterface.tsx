@@ -1052,7 +1052,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </div> : liveStreams.length === 0 ? <div className="text-center py-12 col-span-full">
                 <p className="text-muted-foreground">No live streams at the moment. Check back soon!</p>
               </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
+                {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20">
                     <img 
                       src={stream.thumbnail} 
@@ -1071,7 +1071,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                   </div>
                   
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 space-y-3">
                     <div className="flex items-start space-x-3">
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={stream.thumbnail} />
@@ -1091,6 +1091,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </div>
                       </div>
                     </div>
+                    
+                    <Button 
+                      onClick={() => joinStream(stream)} 
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Join Stream
+                    </Button>
                   </CardContent>
                 </Card>)}
               </div>}
