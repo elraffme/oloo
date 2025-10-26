@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -82,6 +82,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     microphone: 'prompt' | 'granted' | 'denied';
   }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
+  const [streamLoadingState, setStreamLoadingState] = useState<'connecting' | 'waiting' | 'ready' | 'error'>('connecting');
 
   // LiveKit integration for WebRTC streaming
   const liveKit = useLiveKit({
@@ -725,8 +726,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }, 3000);
   };
   const joinStream = async (stream: StreamData) => {
+    let trackTimeout: ReturnType<typeof setTimeout> | null = null;
+    let recheckInterval: ReturnType<typeof setInterval> | null = null;
+    
     try {
       console.log('🎬 Joining LiveKit stream:', stream.id);
+      setStreamLoadingState('connecting');
       
       // Increment viewer count
       const { error } = await supabase
@@ -749,6 +754,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Set viewing state immediately so video element is mounted
       setViewingStream(stream);
       setIsViewerMode(true);
+      setStreamLoadingState('waiting');
 
       // Wait for video element to be mounted in DOM
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -756,53 +762,145 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Subscribe to remote tracks
       if (liveKit.room && viewerVideoRef.current) {
         console.log('✓ Setting up track subscription...');
+        console.log('Remote participants count:', liveKit.room.remoteParticipants.size);
         
         // Ensure viewer video is muted for autoplay
         viewerVideoRef.current.muted = true;
         viewerVideoRef.current.playsInline = true;
         viewerVideoRef.current.autoplay = true;
         
-        // Check for existing tracks from remote participants
-        liveKit.room.remoteParticipants.forEach((participant) => {
-          console.log('Found remote participant:', participant.identity);
-          participant.trackPublications.forEach((publication) => {
-            if (publication.track && publication.track.kind === 'video' && viewerVideoRef.current) {
-              const videoTrack = publication.track as RemoteTrack;
-              videoTrack.attach(viewerVideoRef.current);
-              console.log('✓ Existing video track attached');
-              viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented:', e));
-            }
+        // Function to check and attach existing tracks
+        const attachExistingTracks = () => {
+          let tracksFound = false;
+          liveKit.room!.remoteParticipants.forEach((participant) => {
+            console.log('📍 Checking participant:', {
+              identity: participant.identity,
+              trackCount: participant.trackPublications.size
+            });
+            
+            participant.trackPublications.forEach((publication) => {
+              console.log('📍 Track publication:', {
+                kind: publication.kind,
+                subscribed: publication.isSubscribed,
+                enabled: publication.isEnabled,
+                trackSid: publication.trackSid
+              });
+              
+              if (publication.track && publication.track.kind === 'video' && viewerVideoRef.current) {
+                const videoTrack = publication.track as RemoteTrack;
+                videoTrack.attach(viewerVideoRef.current);
+                console.log('✅ Existing video track attached from', participant.identity);
+                
+                // Verify track state
+                const mediaTrack = videoTrack.mediaStreamTrack;
+                console.log('📺 Video track state:', {
+                  enabled: mediaTrack?.enabled,
+                  readyState: mediaTrack?.readyState,
+                  muted: mediaTrack?.muted
+                });
+                
+                tracksFound = true;
+                viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented:', e));
+                
+                // Check video dimensions after a delay
+                setTimeout(() => {
+                  if (viewerVideoRef.current) {
+                    const dims = {
+                      videoWidth: viewerVideoRef.current.videoWidth,
+                      videoHeight: viewerVideoRef.current.videoHeight,
+                      readyState: viewerVideoRef.current.readyState
+                    };
+                    console.log('📐 Video element dimensions:', dims);
+                    
+                    if (dims.videoWidth > 0 && dims.videoHeight > 0) {
+                      console.log('✅ Video data is flowing correctly');
+                      setStreamLoadingState('ready');
+                      if (trackTimeout) clearTimeout(trackTimeout);
+                      if (recheckInterval) clearInterval(recheckInterval);
+                    } else {
+                      console.warn('⚠️ Video track attached but no video data');
+                      setStreamLoadingState('waiting');
+                    }
+                  }
+                }, 1000);
+              }
+            });
           });
-        });
+          return tracksFound;
+        };
         
+        // Check for existing tracks immediately
+        const foundTracks = attachExistingTracks();
+        if (!foundTracks) {
+          console.log('⏳ No tracks found yet, will keep checking...');
+        }
+        
+        // Set up track subscription listener for new tracks
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
-          console.log('📺 Subscribed to track:', track.kind, 'from', participant.identity);
+          console.log('📺 NEW Track subscribed:', {
+            kind: track.kind,
+            participant: participant.identity,
+            enabled: track.mediaStreamTrack?.enabled,
+            readyState: track.mediaStreamTrack?.readyState
+          });
           
           if (viewerVideoRef.current && track.kind === 'video') {
             track.attach(viewerVideoRef.current);
-            console.log('✓ Video track attached to viewer element');
+            console.log('✅ Video track attached to viewer element');
             
             // Handle autoplay with muted video
             viewerVideoRef.current.muted = true;
             viewerVideoRef.current.play().catch(error => {
               console.log('⚠️ Autoplay prevented, user interaction needed:', error);
-              toast({
-                title: "Click to Play",
-                description: "Click the video to start playback",
-              });
             });
+            
+            // Verify video dimensions after attachment
+            setTimeout(() => {
+              if (viewerVideoRef.current) {
+                const dims = {
+                  videoWidth: viewerVideoRef.current.videoWidth,
+                  videoHeight: viewerVideoRef.current.videoHeight,
+                  readyState: viewerVideoRef.current.readyState
+                };
+                console.log('📐 Video element state after subscription:', dims);
+                
+                if (dims.videoWidth === 0 || dims.videoHeight === 0) {
+                  console.error('❌ Video track attached but no video data flowing');
+                  setStreamLoadingState('error');
+                } else {
+                  console.log('✅ Video data confirmed');
+                  setStreamLoadingState('ready');
+                  if (trackTimeout) clearTimeout(trackTimeout);
+                  if (recheckInterval) clearInterval(recheckInterval);
+                }
+              }
+            }, 1000);
           }
         });
 
-        // Also attach any existing tracks (in case they're already published)
-        liveKit.room.remoteParticipants.forEach(participant => {
-          participant.trackPublications.forEach(publication => {
-            if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
-              publication.track.attach(viewerVideoRef.current);
-              console.log('✓ Attached existing video track from', participant.identity);
+        // Recheck for tracks every 2 seconds in case of race condition
+        recheckInterval = setInterval(() => {
+          if (streamLoadingState !== 'ready') {
+            console.log('🔄 Rechecking for tracks...');
+            const found = attachExistingTracks();
+            if (found) {
+              console.log('✅ Found tracks on recheck');
             }
-          });
-        });
+          }
+        }, 2000);
+        
+        // Set timeout for error state if no video after 15 seconds
+        trackTimeout = setTimeout(() => {
+          if (streamLoadingState !== 'ready') {
+            console.error('⚠️ No video received after 15 seconds');
+            setStreamLoadingState('error');
+            toast({
+              title: "Stream not available",
+              description: "The host's video is not available. Please try again.",
+              variant: "destructive"
+            });
+          }
+        }, 15000);
       }
       
       toast({
@@ -815,9 +913,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.error('❌ Error joining stream:', error);
       
       // Cleanup on error
+      if (trackTimeout) clearTimeout(trackTimeout);
+      if (recheckInterval) clearInterval(recheckInterval);
       await liveKit.disconnect();
       setViewingStream(null);
       setIsViewerMode(false);
+      setStreamLoadingState('connecting');
       
       toast({
         title: "Failed to join stream",
@@ -847,6 +948,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsViewerMode(false);
       setHasLiked(false);
       setViewerVolumeMuted(true); // Reset for next stream
+      setStreamLoadingState('connecting');
       
       toast({
         title: "Left stream",
@@ -924,12 +1026,64 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               autoPlay 
               playsInline 
               className="w-full h-full object-cover"
-              onLoadedMetadata={() => console.log('✓ Viewer video loaded')}
+              onLoadedMetadata={() => {
+                console.log('✓ Viewer video metadata loaded');
+                if (viewerVideoRef.current) {
+                  console.log('Video dimensions:', {
+                    videoWidth: viewerVideoRef.current.videoWidth,
+                    videoHeight: viewerVideoRef.current.videoHeight
+                  });
+                }
+              }}
               onPlay={() => console.log('✓ Viewer video playing')}
+              onLoadedData={() => {
+                console.log('✓ Viewer video data loaded');
+                setStreamLoadingState('ready');
+              }}
             />
             
+            {/* Loading/Error States */}
+            {streamLoadingState === 'connecting' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
+                <div className="text-center">
+                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-white text-lg">Connecting to stream...</p>
+                </div>
+              </div>
+            )}
+
+            {streamLoadingState === 'waiting' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
+                <div className="text-center">
+                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-white text-lg mb-2">Waiting for video...</p>
+                  <p className="text-gray-400 text-sm">Host is setting up their stream</p>
+                </div>
+              </div>
+            )}
+
+            {streamLoadingState === 'error' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
+                <div className="text-center">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                  <p className="text-white text-lg mb-2">Unable to load stream</p>
+                  <p className="text-gray-400 text-sm mb-4">The host's video is not available</p>
+                  <Button 
+                    onClick={() => {
+                      leaveStream();
+                      window.location.reload();
+                    }}
+                    variant="outline"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh & Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             {/* Unmute Button Overlay */}
-            {viewerVolumeMuted && (
+            {viewerVolumeMuted && streamLoadingState === 'ready' && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <Button 
                   size="lg"
