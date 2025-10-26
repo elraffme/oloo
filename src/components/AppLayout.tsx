@@ -3,23 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { 
-  Heart, 
-  Video, 
-  MessageCircle, 
-  User, 
-  Settings, 
-  LogOut,
-  Search,
-  Zap,
-  Shield,
-  Crown
-} from 'lucide-react';
-
+import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown } from 'lucide-react';
 const AppLayout = () => {
-  const { user, signOut, loading } = useAuth();
+  const {
+    user,
+    signOut,
+    loading
+  } = useAuth();
   const location = useLocation();
-  
+
   // Enable global real-time notifications
   useRealtimeNotifications();
 
@@ -27,33 +19,38 @@ const AppLayout = () => {
   if (!user && !loading) {
     return <Navigate to="/auth" replace />;
   }
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse text-center">
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
           <p className="text-muted-foreground">Loading your Òloo experience...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  const navItems = [
-    { path: '/app', icon: Heart, label: 'Discover', end: true },
-    { path: '/app/streaming', icon: Video, label: 'Stream' },
-    { path: '/app/messages', icon: MessageCircle, label: 'Messages' },
-    { path: '/app/profile', icon: User, label: 'Profile' },
-  ];
-
+  const navItems = [{
+    path: '/app',
+    icon: Heart,
+    label: 'Discover',
+    end: true
+  }, {
+    path: '/app/streaming',
+    icon: Video,
+    label: 'Stream'
+  }, {
+    path: '/app/messages',
+    icon: MessageCircle,
+    label: 'Messages'
+  }, {
+    path: '/app/profile',
+    icon: User,
+    label: 'Profile'
+  }];
   const handleSignOut = async () => {
     await signOut();
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
+  return <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
       {/* Top Navigation */}
       <header className="bg-background/95 backdrop-blur-sm border-b border-border/20 sticky top-0 z-50">
         <div className="container mx-auto px-4">
@@ -65,30 +62,21 @@ const AppLayout = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold font-afro-heading">Òloo</h1>
-                <p className="text-xs text-muted-foreground">Cultured connections</p>
+                
               </div>
             </div>
 
             {/* Center Navigation - All Screens */}
             <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide">
-              {navItems.map((item) => {
-                const isActive = item.end 
-                  ? location.pathname === item.path
-                  : location.pathname.startsWith(item.path);
-                
-                return (
-                  <NavLink key={item.path} to={item.path}>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex items-center space-x-1 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
-                    >
+              {navItems.map(item => {
+              const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
+              return <NavLink key={item.path} to={item.path}>
+                    <Button variant="default" size="sm" className="flex items-center space-x-1 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap">
                       <item.icon className="w-4 h-4" />
                       <span className="hidden sm:inline">{item.label}</span>
                     </Button>
-                  </NavLink>
-                );
-              })}
+                  </NavLink>;
+            })}
             </nav>
 
             {/* Right Actions */}
@@ -100,10 +88,7 @@ const AppLayout = () => {
               
               <Button variant="ghost" size="sm" className="relative">
                 <Zap className="w-4 h-4 text-accent" />
-                <Badge 
-                  variant="secondary" 
-                  className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center"
-                >
+                <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
                   0
                 </Badge>
               </Button>
@@ -122,8 +107,6 @@ const AppLayout = () => {
       </main>
 
 
-    </div>
-  );
+    </div>;
 };
-
 export default AppLayout;
