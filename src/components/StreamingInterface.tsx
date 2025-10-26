@@ -291,7 +291,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         video: savedDeviceId ? {
           deviceId: { exact: savedDeviceId },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
+          facingMode: 'user'
         } : {
           width: { ideal: 1280 },
           height: { ideal: 720 },
