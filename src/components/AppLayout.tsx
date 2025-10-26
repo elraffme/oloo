@@ -56,15 +56,7 @@ const AppLayout = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="heart-logo scale-75">
-                <span className="logo-text">Ò</span>
-              </div>
-              <div>
-                
-                
-              </div>
-            </div>
+            
 
             {/* Center Navigation - All Screens */}
             <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide">
