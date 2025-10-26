@@ -18,6 +18,7 @@ import { DeviceSelector } from '@/components/DeviceSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { RoomEvent, RemoteTrack, RemoteParticipant } from 'livekit-client';
+import { analyzeVideoBrightness, isVideoTrackHealthy, getOptimalVideoConstraints } from '@/utils/videoQuality';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -77,6 +78,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     const saved = sessionStorage.getItem('stream_brightness');
     return saved ? Number(saved) : 100;
   });
+  const [detectedBrightness, setDetectedBrightness] = useState<number | null>(null);
+  const [showBrightnessWarning, setShowBrightnessWarning] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<{
     camera: 'prompt' | 'granted' | 'denied';
     microphone: 'prompt' | 'granted' | 'denied';
@@ -314,18 +317,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {
+      console.log('Initializing camera with optimal constraints...');
       const savedDeviceId = deviceId || localStorage.getItem('preferred_cam_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: savedDeviceId ? {
-          deviceId: { exact: savedDeviceId },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        } : {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        }
+        video: getOptimalVideoConstraints(savedDeviceId || undefined)
       });
 
       // Merge with existing audio track if available
@@ -372,6 +367,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               readyState: videoTrack.readyState
             });
           }
+
+          // Analyze brightness after video starts playing
+          setTimeout(() => {
+            const brightness = analyzeVideoBrightness(videoRef.current);
+            if (brightness !== null) {
+              setDetectedBrightness(brightness);
+              if (brightness < 30) {
+                console.warn(`⚠️ Low camera brightness detected: ${brightness}%`);
+                setShowBrightnessWarning(true);
+              } else {
+                setShowBrightnessWarning(false);
+              }
+            }
+          }, 500);
         } catch (playError) {
           console.error('❌ Error playing video:', playError);
           toast({
@@ -578,6 +587,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       toast({
         title: "Microphone not ready",
         description: "Please enable your microphone before going live.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Pre-publish brightness validation
+    console.log('Running pre-publish brightness check...');
+    const brightness = analyzeVideoBrightness(videoRef.current);
+    if (brightness !== null && brightness < 20) {
+      toast({
+        title: "Camera Too Dark",
+        description: `Your camera brightness is ${brightness}%. Please improve lighting or adjust camera settings before going live.`,
+        variant: "destructive"
+      });
+      setShowBrightnessWarning(true);
+      return;
+    }
+
+    // Check video track health
+    const videoTrack = streamRef.current?.getVideoTracks()[0];
+    if (!isVideoTrackHealthy(videoTrack || null)) {
+      toast({
+        title: "Video Track Unhealthy",
+        description: "Please reset your camera before going live",
         variant: "destructive"
       });
       return;
@@ -1390,15 +1423,26 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           </TooltipProvider>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 px-2 text-xs"
-                            onClick={() => setVideoBrightness(100)}
-                          >
-                            Reset
-                          </Button>
+                          {detectedBrightness !== null && (
+                            <span className={`text-xs font-medium ${
+                              detectedBrightness < 30 ? 'text-destructive' : 
+                              detectedBrightness < 50 ? 'text-yellow-500' : 
+                              'text-green-500'
+                            }`}>
+                              Detected: {detectedBrightness}%
+                            </span>
+                          )}
+                          <span className="text-xs text-muted-foreground">Filter: {videoBrightness}%</span>
+                          {videoBrightness !== 100 && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 px-2 text-xs"
+                              onClick={() => setVideoBrightness(100)}
+                            >
+                              Reset
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <input
@@ -1410,6 +1454,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         onChange={(e) => setVideoBrightness(Number(e.target.value))}
                         className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                       />
+                      {showBrightnessWarning && detectedBrightness !== null && detectedBrightness < 30 && (
+                        <div className="flex items-start gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs">
+                          <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                          <div className="space-y-1">
+                            <p className="text-destructive font-medium">Low brightness detected ({detectedBrightness}%)</p>
+                            <p className="text-muted-foreground">Improve room lighting or adjust camera settings before going live</p>
+                          </div>
+                        </div>
+                      )}
                       {videoBrightness < 90 && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
                           ⚠️ Preview may look too dark
