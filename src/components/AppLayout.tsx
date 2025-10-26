@@ -69,8 +69,8 @@ const AppLayout = () => {
               </div>
             </div>
 
-            {/* Center Navigation - Desktop */}
-            <nav className="hidden md:flex items-center space-x-1">
+            {/* Center Navigation - All Screens */}
+            <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide">
               {navItems.map((item) => {
                 const isActive = item.end 
                   ? location.pathname === item.path
@@ -81,10 +81,10 @@ const AppLayout = () => {
                     <Button
                       variant="default"
                       size="sm"
-                      className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="flex items-center space-x-1 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
                     >
                       <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <span className="hidden sm:inline">{item.label}</span>
                     </Button>
                   </NavLink>
                 );
@@ -92,9 +92,9 @@ const AppLayout = () => {
             </nav>
 
             {/* Right Actions */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               {/* Quick Actions */}
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
+              <Button variant="ghost" size="sm" className="flex">
                 <Search className="w-4 h-4" />
               </Button>
               
@@ -121,33 +121,6 @@ const AppLayout = () => {
         <Outlet />
       </main>
 
-      {/* Top Navigation - Mobile */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border z-50">
-        <div className="grid grid-cols-4 h-14">
-          {navItems.map((item) => {
-            const isActive = item.end 
-              ? location.pathname === item.path
-              : location.pathname.startsWith(item.path);
-            
-            return (
-              <NavLink 
-                key={item.path} 
-                to={item.path}
-                className="flex flex-col items-center justify-center space-y-1"
-              >
-                <item.icon 
-                  className="w-5 h-5 text-primary" 
-                />
-                <span 
-                  className="text-xs text-primary font-medium"
-                >
-                  {item.label}
-                </span>
-              </NavLink>
-            );
-          })}
-        </div>
-      </nav>
 
     </div>
   );
