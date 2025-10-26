@@ -3,15 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown } from 'lucide-react';
-const AppLayout = () => {
-  const {
-    user,
-    signOut,
-    loading
-  } = useAuth();
-  const location = useLocation();
+import { 
+  Heart, 
+  Video, 
+  MessageCircle, 
+  User, 
+  Settings, 
+  LogOut,
+  Search,
+  Zap,
+  Shield,
+  Crown
+} from 'lucide-react';
 
+const AppLayout = () => {
+  const { user, signOut, loading } = useAuth();
+  const location = useLocation();
+  
   // Enable global real-time notifications
   useRealtimeNotifications();
 
@@ -19,78 +27,89 @@ const AppLayout = () => {
   if (!user && !loading) {
     return <Navigate to="/auth" replace />;
   }
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse text-center">
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
           <p className="text-muted-foreground">Loading your Òloo experience...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
-  const navItems = [{
-    path: '/app',
-    icon: Heart,
-    label: 'Discover',
-    end: true
-  }, {
-    path: '/app/streaming',
-    icon: Video,
-    label: 'Stream'
-  }, {
-    path: '/app/messages',
-    icon: MessageCircle,
-    label: 'Messages'
-  }, {
-    path: '/app/profile',
-    icon: User,
-    label: 'Profile'
-  }];
+
+  const navItems = [
+    { path: '/app', icon: Heart, label: 'Discover', end: true },
+    { path: '/app/streaming', icon: Video, label: 'Stream' },
+    { path: '/app/messages', icon: MessageCircle, label: 'Messages' },
+    { path: '/app/profile', icon: User, label: 'Profile' },
+  ];
+
   const handleSignOut = async () => {
     await signOut();
   };
-  return <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
-      {/* Top Navigation */}
-      <header className="bg-background border-b border-border sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
-            
 
-            {/* Center Navigation - All Screens */}
-            <nav className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
-              {navItems.map(item => {
-              const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
-              return <NavLink key={item.path} to={item.path}>
-                    <Button 
-                      variant="default" 
-                      size="default" 
-                      className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap shadow-md hover:shadow-lg transition-shadow"
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
+      {/* Top Navigation */}
+      <header className="bg-background/95 backdrop-blur-sm border-b border-border/20 sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="heart-logo scale-75">
+                <span className="logo-text">Ò</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold font-afro-heading">Òloo</h1>
+                <p className="text-xs text-muted-foreground">Cultured connections</p>
+              </div>
+            </div>
+
+            {/* Center Navigation - Desktop */}
+            <nav className="hidden md:flex items-center space-x-1">
+              {navItems.map((item) => {
+                const isActive = item.end 
+                  ? location.pathname === item.path
+                  : location.pathname.startsWith(item.path);
+                
+                return (
+                  <NavLink key={item.path} to={item.path}>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="hidden sm:inline font-medium">{item.label}</span>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.label}</span>
                     </Button>
-                  </NavLink>;
-            })}
+                  </NavLink>
+                );
+              })}
             </nav>
 
             {/* Right Actions */}
             <div className="flex items-center space-x-2">
               {/* Quick Actions */}
-              <Button variant="outline" size="default" className="flex bg-white shadow-sm hover:shadow-md transition-shadow">
-                <Search className="w-5 h-5" />
+              <Button variant="ghost" size="sm" className="hidden sm:flex">
+                <Search className="w-4 h-4" />
               </Button>
               
-              <Button variant="outline" size="default" className="relative bg-white shadow-sm hover:shadow-md transition-shadow">
-                <Zap className="w-5 h-5 text-accent" />
-                <Badge variant="secondary" className="absolute -top-2 -right-2 h-6 w-6 text-xs p-0 flex items-center justify-center font-bold shadow-md">
+              <Button variant="ghost" size="sm" className="relative">
+                <Zap className="w-4 h-4 text-accent" />
+                <Badge 
+                  variant="secondary" 
+                  className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center"
+                >
                   0
                 </Badge>
               </Button>
 
-              <Button variant="outline" size="default" onClick={handleSignOut} className="bg-white shadow-sm hover:shadow-md transition-shadow">
-                <LogOut className="w-5 h-5" />
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -102,7 +121,36 @@ const AppLayout = () => {
         <Outlet />
       </main>
 
+      {/* Top Navigation - Mobile */}
+      <nav className="md:hidden fixed top-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border z-50">
+        <div className="grid grid-cols-4 h-14">
+          {navItems.map((item) => {
+            const isActive = item.end 
+              ? location.pathname === item.path
+              : location.pathname.startsWith(item.path);
+            
+            return (
+              <NavLink 
+                key={item.path} 
+                to={item.path}
+                className="flex flex-col items-center justify-center space-y-1"
+              >
+                <item.icon 
+                  className="w-5 h-5 text-primary" 
+                />
+                <span 
+                  className="text-xs text-primary font-medium"
+                >
+                  {item.label}
+                </span>
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
 
-    </div>;
+    </div>
+  );
 };
+
 export default AppLayout;

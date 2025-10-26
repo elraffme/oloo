@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,8 +18,6 @@ import { DeviceSelector } from '@/components/DeviceSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { RoomEvent, RemoteTrack, RemoteParticipant } from 'livekit-client';
-import { analyzeVideoBrightness, isVideoTrackHealthy, getOptimalVideoConstraints, getDeviceType } from '@/utils/videoQuality';
-import { useIsMobile } from '@/hooks/use-mobile';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -44,11 +42,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const {
     toast
   } = useToast();
-  const isMobile = useIsMobile();
-  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'laptop' | 'desktop'>(getDeviceType());
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerVideoRef = useRef<HTMLVideoElement>(null);
-  const rawVideoRef = useRef<HTMLVideoElement>(null); // Hidden video for raw brightness analysis
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -77,19 +72,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     type: string;
     x: number;
   }>>([]);
-  const [viewerVolumeMuted, setViewerVolumeMuted] = useState(true);
   const [videoBrightness, setVideoBrightness] = useState(() => {
     const saved = sessionStorage.getItem('stream_brightness');
     return saved ? Number(saved) : 100;
   });
-  const [detectedBrightness, setDetectedBrightness] = useState<number | null>(null);
-  const [showBrightnessWarning, setShowBrightnessWarning] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<{
     camera: 'prompt' | 'granted' | 'denied';
     microphone: 'prompt' | 'granted' | 'denied';
   }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
-  const [streamLoadingState, setStreamLoadingState] = useState<'connecting' | 'waiting' | 'ready' | 'error'>('connecting');
 
   // LiveKit integration for WebRTC streaming
   const liveKit = useLiveKit({
@@ -122,9 +113,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
       try {
         console.log('Fetching live streams for discovery...');
-
-        // Cleanup stale streams before fetching
-        await supabase.rpc('cleanup_stale_streams');
 
         // Fetch live streams without join
         const {
@@ -290,62 +278,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [user]);
 
-  // Detect device type changes on resize
-  useEffect(() => {
-    const handleResize = () => {
-      const newDeviceType = getDeviceType();
-      if (newDeviceType !== deviceType) {
-        setDeviceType(newDeviceType);
-        console.log(`Device type changed to: ${newDeviceType}`);
-        
-        // Show notification about quality adjustment
-        toast({
-          title: "Camera optimized",
-          description: `Video quality adjusted for ${newDeviceType} device`
-        });
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [deviceType, toast]);
-
   // Persist brightness changes
   useEffect(() => {
     sessionStorage.setItem('stream_brightness', String(videoBrightness));
   }, [videoBrightness]);
-
-  // Cleanup: End active stream on component unmount
-  useEffect(() => {
-    return () => {
-      if (isStreaming && activeStreamId && user) {
-        console.log('Component unmounting - ending active stream...');
-        // End stream in database
-        supabase
-          .from('streaming_sessions')
-          .update({
-            status: 'ended',
-            ended_at: new Date().toISOString(),
-            current_viewers: 0
-          })
-          .eq('id', activeStreamId)
-          .eq('host_user_id', user.id)
-          .eq('status', 'live')
-          .then(({ error }) => {
-            if (error) console.error('Error ending stream on unmount:', error);
-            else console.log('✓ Stream ended on unmount');
-          });
-      }
-    };
-  }, [isStreaming, activeStreamId, user]);
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {
-      const currentDeviceType = getDeviceType();
-      console.log(`Initializing camera for ${currentDeviceType} device...`);
       const savedDeviceId = deviceId || localStorage.getItem('preferred_cam_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: getOptimalVideoConstraints(savedDeviceId || undefined, currentDeviceType)
+        video: savedDeviceId ? {
+          deviceId: { exact: savedDeviceId },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } : {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
 
       // Merge with existing audio track if available
@@ -356,81 +306,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
       streamRef.current = stream;
-      
-      // Setup both preview and raw video elements
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.muted = true;
-        
-        // Add event listeners for debugging
-        videoRef.current.onloadedmetadata = () => {
-          console.log('✓ Video metadata loaded', {
-            readyState: videoRef.current?.readyState,
-            videoWidth: videoRef.current?.videoWidth,
-            videoHeight: videoRef.current?.videoHeight
-          });
-        };
-        
-        videoRef.current.onplaying = () => {
-          console.log('✓ Video is playing');
-        };
-        
-        videoRef.current.onerror = (e) => {
-          console.error('❌ Video element error:', e);
-        };
-        
-        // Ensure video plays
+        videoRef.current.muted = true; // Important: mute preview to avoid feedback
         try {
           await videoRef.current.play();
-          console.log('✓ Video playback started');
-          
-          // Verify video track is active
-          const videoTrack = stream.getVideoTracks()[0];
-          if (videoTrack) {
-            console.log('Video track state:', {
-              enabled: videoTrack.enabled,
-              muted: videoTrack.muted,
-              readyState: videoTrack.readyState
-            });
-          }
         } catch (playError) {
-          console.error('❌ Error playing video:', playError);
-          toast({
-            title: "Video playback issue",
-            description: "Camera is on but preview may not display. Try refreshing.",
-            variant: "destructive"
-          });
+          console.error('Error playing video:', playError);
         }
       }
-      
-      // Setup hidden raw video for accurate brightness analysis
-      if (rawVideoRef.current) {
-        rawVideoRef.current.srcObject = stream;
-        rawVideoRef.current.muted = true;
-        await rawVideoRef.current.play();
-        
-        // Wait 2.5 seconds for auto-exposure to stabilize
-        console.log('⏳ Waiting for camera auto-exposure to stabilize...');
-        toast({
-          title: "Camera initializing",
-          description: "Auto-exposure adjusting... (2-3s)",
-        });
-        
-        setTimeout(() => {
-          const brightness = analyzeVideoBrightness(rawVideoRef.current);
-          if (brightness !== null) {
-            setDetectedBrightness(brightness);
-            console.log(`📊 Camera brightness: ${brightness}%`);
-            if (brightness < 30) {
-              console.warn(`⚠️ Low camera brightness detected: ${brightness}%`);
-              setShowBrightnessWarning(true);
-            } else {
-              setShowBrightnessWarning(false);
-            }
-          }
-        }, 2500);
-      }
-      
       setHasCameraPermission(true);
       setIsCameraOn(true);
       toast({
@@ -560,8 +444,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
 
   const resetDevices = async () => {
-    const wasStreaming = isStreaming;
-    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -580,11 +462,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     await initializeCamera();
     await initializeMicrophone();
-
-    // If was streaming, reconnect to LiveKit with new devices
-    if (wasStreaming && streamRef.current) {
-      await liveKit.publishTracks(streamRef.current, videoRef.current || undefined);
-    }
   };
   const startStream = async () => {
     // Validate all requirements
@@ -627,36 +504,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       toast({
         title: "Microphone not ready",
         description: "Please enable your microphone before going live.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Reset preview brightness filter to 100% when going live
-    setVideoBrightness(100);
-    sessionStorage.setItem('stream_brightness', '100');
-    
-    // Pre-publish brightness validation using raw feed
-    console.log('Running pre-publish brightness check on raw feed...');
-    const brightness = analyzeVideoBrightness(rawVideoRef.current);
-    if (brightness !== null && brightness < 20) {
-      toast({
-        title: "Camera Too Dark",
-        description: `Your camera brightness is ${brightness}%. Please improve lighting or adjust camera settings before going live.`,
-        variant: "destructive"
-      });
-      setShowBrightnessWarning(true);
-      return;
-    }
-    
-    console.log(`✅ Brightness check passed: ${brightness}%`);
-
-    // Check video track health
-    const videoTrack = streamRef.current?.getVideoTracks()[0];
-    if (!isVideoTrackHealthy(videoTrack || null)) {
-      toast({
-        title: "Video Track Unhealthy",
-        description: "Please reset your camera before going live",
         variant: "destructive"
       });
       return;
@@ -728,9 +575,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Failed to connect to LiveKit room');
       }
 
-      // Publish local media tracks and attach to preview
+      // Publish local media tracks
       console.log('Publishing media tracks...');
-      await liveKit.publishTracks(streamRef.current, videoRef.current || undefined);
+      await liveKit.publishTracks(streamRef.current);
 
       // Update stream record with LiveKit URL
       await supabase
@@ -839,12 +686,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }, 3000);
   };
   const joinStream = async (stream: StreamData) => {
-    let trackTimeout: ReturnType<typeof setTimeout> | null = null;
-    let recheckInterval: ReturnType<typeof setInterval> | null = null;
-    
     try {
       console.log('🎬 Joining LiveKit stream:', stream.id);
-      setStreamLoadingState('connecting');
       
       // Increment viewer count
       const { error } = await supabase
@@ -867,7 +710,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Set viewing state immediately so video element is mounted
       setViewingStream(stream);
       setIsViewerMode(true);
-      setStreamLoadingState('waiting');
 
       // Wait for video element to be mounted in DOM
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -875,145 +717,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Subscribe to remote tracks
       if (liveKit.room && viewerVideoRef.current) {
         console.log('✓ Setting up track subscription...');
-        console.log('Remote participants count:', liveKit.room.remoteParticipants.size);
         
-        // Ensure viewer video is muted for autoplay
-        viewerVideoRef.current.muted = true;
-        viewerVideoRef.current.playsInline = true;
-        viewerVideoRef.current.autoplay = true;
-        
-        // Function to check and attach existing tracks
-        const attachExistingTracks = () => {
-          let tracksFound = false;
-          liveKit.room!.remoteParticipants.forEach((participant) => {
-            console.log('📍 Checking participant:', {
-              identity: participant.identity,
-              trackCount: participant.trackPublications.size
-            });
-            
-            participant.trackPublications.forEach((publication) => {
-              console.log('📍 Track publication:', {
-                kind: publication.kind,
-                subscribed: publication.isSubscribed,
-                enabled: publication.isEnabled,
-                trackSid: publication.trackSid
-              });
-              
-              if (publication.track && publication.track.kind === 'video' && viewerVideoRef.current) {
-                const videoTrack = publication.track as RemoteTrack;
-                videoTrack.attach(viewerVideoRef.current);
-                console.log('✅ Existing video track attached from', participant.identity);
-                
-                // Verify track state
-                const mediaTrack = videoTrack.mediaStreamTrack;
-                console.log('📺 Video track state:', {
-                  enabled: mediaTrack?.enabled,
-                  readyState: mediaTrack?.readyState,
-                  muted: mediaTrack?.muted
-                });
-                
-                tracksFound = true;
-                viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented:', e));
-                
-                // Check video dimensions after a delay
-                setTimeout(() => {
-                  if (viewerVideoRef.current) {
-                    const dims = {
-                      videoWidth: viewerVideoRef.current.videoWidth,
-                      videoHeight: viewerVideoRef.current.videoHeight,
-                      readyState: viewerVideoRef.current.readyState
-                    };
-                    console.log('📐 Video element dimensions:', dims);
-                    
-                    if (dims.videoWidth > 0 && dims.videoHeight > 0) {
-                      console.log('✅ Video data is flowing correctly');
-                      setStreamLoadingState('ready');
-                      if (trackTimeout) clearTimeout(trackTimeout);
-                      if (recheckInterval) clearInterval(recheckInterval);
-                    } else {
-                      console.warn('⚠️ Video track attached but no video data');
-                      setStreamLoadingState('waiting');
-                    }
-                  }
-                }, 1000);
-              }
-            });
-          });
-          return tracksFound;
-        };
-        
-        // Check for existing tracks immediately
-        const foundTracks = attachExistingTracks();
-        if (!foundTracks) {
-          console.log('⏳ No tracks found yet, will keep checking...');
-        }
-        
-        // Set up track subscription listener for new tracks
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
-          console.log('📺 NEW Track subscribed:', {
-            kind: track.kind,
-            participant: participant.identity,
-            enabled: track.mediaStreamTrack?.enabled,
-            readyState: track.mediaStreamTrack?.readyState
-          });
+          console.log('📺 Subscribed to track:', track.kind, 'from', participant.identity);
           
           if (viewerVideoRef.current && track.kind === 'video') {
             track.attach(viewerVideoRef.current);
-            console.log('✅ Video track attached to viewer element');
+            console.log('✓ Video track attached to viewer element');
             
-            // Handle autoplay with muted video
-            viewerVideoRef.current.muted = true;
+            // Handle autoplay restrictions
+            viewerVideoRef.current.muted = false;
             viewerVideoRef.current.play().catch(error => {
               console.log('⚠️ Autoplay prevented, user interaction needed:', error);
+              toast({
+                title: "Click to Play",
+                description: "Click the video to start playback",
+              });
             });
-            
-            // Verify video dimensions after attachment
-            setTimeout(() => {
-              if (viewerVideoRef.current) {
-                const dims = {
-                  videoWidth: viewerVideoRef.current.videoWidth,
-                  videoHeight: viewerVideoRef.current.videoHeight,
-                  readyState: viewerVideoRef.current.readyState
-                };
-                console.log('📐 Video element state after subscription:', dims);
-                
-                if (dims.videoWidth === 0 || dims.videoHeight === 0) {
-                  console.error('❌ Video track attached but no video data flowing');
-                  setStreamLoadingState('error');
-                } else {
-                  console.log('✅ Video data confirmed');
-                  setStreamLoadingState('ready');
-                  if (trackTimeout) clearTimeout(trackTimeout);
-                  if (recheckInterval) clearInterval(recheckInterval);
-                }
-              }
-            }, 1000);
           }
         });
 
-        // Recheck for tracks every 2 seconds in case of race condition
-        recheckInterval = setInterval(() => {
-          if (streamLoadingState !== 'ready') {
-            console.log('🔄 Rechecking for tracks...');
-            const found = attachExistingTracks();
-            if (found) {
-              console.log('✅ Found tracks on recheck');
+        // Also attach any existing tracks (in case they're already published)
+        liveKit.room.remoteParticipants.forEach(participant => {
+          participant.trackPublications.forEach(publication => {
+            if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
+              publication.track.attach(viewerVideoRef.current);
+              console.log('✓ Attached existing video track from', participant.identity);
             }
-          }
-        }, 2000);
-        
-        // Set timeout for error state if no video after 15 seconds
-        trackTimeout = setTimeout(() => {
-          if (streamLoadingState !== 'ready') {
-            console.error('⚠️ No video received after 15 seconds');
-            setStreamLoadingState('error');
-            toast({
-              title: "Stream not available",
-              description: "The host's video is not available. Please try again.",
-              variant: "destructive"
-            });
-          }
-        }, 15000);
+          });
+        });
       }
       
       toast({
@@ -1026,12 +758,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.error('❌ Error joining stream:', error);
       
       // Cleanup on error
-      if (trackTimeout) clearTimeout(trackTimeout);
-      if (recheckInterval) clearInterval(recheckInterval);
       await liveKit.disconnect();
       setViewingStream(null);
       setIsViewerMode(false);
-      setStreamLoadingState('connecting');
       
       toast({
         title: "Failed to join stream",
@@ -1060,8 +789,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setViewingStream(null);
       setIsViewerMode(false);
       setHasLiked(false);
-      setViewerVolumeMuted(true); // Reset for next stream
-      setStreamLoadingState('connecting');
       
       toast({
         title: "Left stream",
@@ -1139,80 +866,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               autoPlay 
               playsInline 
               className="w-full h-full object-cover"
-              onLoadedMetadata={() => {
-                console.log('✓ Viewer video metadata loaded');
-                if (viewerVideoRef.current) {
-                  console.log('Video dimensions:', {
-                    videoWidth: viewerVideoRef.current.videoWidth,
-                    videoHeight: viewerVideoRef.current.videoHeight
-                  });
-                }
-              }}
+              onLoadedMetadata={() => console.log('✓ Viewer video loaded')}
               onPlay={() => console.log('✓ Viewer video playing')}
-              onLoadedData={() => {
-                console.log('✓ Viewer video data loaded');
-                setStreamLoadingState('ready');
-              }}
             />
-            
-            {/* Loading/Error States */}
-            {streamLoadingState === 'connecting' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
-                <div className="text-center">
-                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-white text-lg">Connecting to stream...</p>
-                </div>
-              </div>
-            )}
-
-            {streamLoadingState === 'waiting' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
-                <div className="text-center">
-                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-                  <p className="text-white text-lg mb-2">Waiting for video...</p>
-                  <p className="text-gray-400 text-sm">Host is setting up their stream</p>
-                </div>
-              </div>
-            )}
-
-            {streamLoadingState === 'error' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-10">
-                <div className="text-center">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
-                  <p className="text-white text-lg mb-2">Unable to load stream</p>
-                  <p className="text-gray-400 text-sm mb-4">The host's video is not available</p>
-                  <Button 
-                    onClick={() => {
-                      leaveStream();
-                      window.location.reload();
-                    }}
-                    variant="outline"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh & Retry
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {/* Unmute Button Overlay */}
-            {viewerVolumeMuted && streamLoadingState === 'ready' && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <Button 
-                  size="lg"
-                  className="pointer-events-auto bg-black/70 hover:bg-black/90 text-white backdrop-blur-sm"
-                  onClick={() => {
-                    if (viewerVideoRef.current) {
-                      viewerVideoRef.current.muted = false;
-                      setViewerVolumeMuted(false);
-                    }
-                  }}
-                >
-                  <Volume2 className="w-5 h-5 mr-2" />
-                  Tap to Unmute
-                </Button>
-              </div>
-            )}
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">
@@ -1430,28 +1086,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                    {isCameraOn ? <>
-                      <video 
-                        ref={videoRef} 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className="w-full h-full object-cover" 
-                        style={{ 
-                          filter: `brightness(${videoBrightness}%)`,
-                          visibility: 'visible',
-                          opacity: 1
-                        }}
-                      />
-                      {/* Hidden raw video for accurate brightness analysis */}
-                      <video 
-                        ref={rawVideoRef} 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className="hidden" 
-                      />
-                    </> : <div className="w-full h-full flex items-center justify-center text-white">
+                    {isCameraOn ? <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      muted 
+                      playsInline 
+                      className="w-full h-full object-cover" 
+                      style={{ 
+                        filter: `brightness(${videoBrightness}%)`,
+                        visibility: 'visible',
+                        opacity: 1
+                      }}
+                    /> : <div className="w-full h-full flex items-center justify-center text-white">
                         <VideoOff className="w-12 h-12" />
                       </div>}
                     
@@ -1479,47 +1125,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           </TooltipProvider>
                         </div>
                         <div className="flex items-center gap-2">
-                          {detectedBrightness !== null && (
-                            <span className={`text-xs font-medium ${
-                              detectedBrightness < 30 ? 'text-destructive' : 
-                              detectedBrightness < 50 ? 'text-yellow-500' : 
-                              'text-green-500'
-                            }`}>
-                              Detected: {detectedBrightness}%
-                            </span>
-                          )}
-                          <span className="text-xs text-muted-foreground">Filter: {videoBrightness}%</span>
-                          {videoBrightness !== 100 && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 px-2 text-xs"
-                              onClick={() => setVideoBrightness(100)}
-                            >
-                              Reset
-                            </Button>
-                          )}
+                          <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setVideoBrightness(100)}
+                          >
+                            Reset
+                          </Button>
                         </div>
                       </div>
                       <input
                         id="brightness"
                         type="range"
-                        min="80"
+                        min="50"
                         max="150"
                         value={videoBrightness}
                         onChange={(e) => setVideoBrightness(Number(e.target.value))}
                         className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                       />
-                      {showBrightnessWarning && detectedBrightness !== null && detectedBrightness < 30 && (
-                        <div className="flex items-start gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs">
-                          <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                          <div className="space-y-1">
-                            <p className="text-destructive font-medium">Low brightness detected ({detectedBrightness}%)</p>
-                            <p className="text-muted-foreground">Improve room lighting or adjust camera settings before going live</p>
-                          </div>
-                        </div>
-                      )}
-                      {videoBrightness < 90 && (
+                      {videoBrightness < 80 && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
                           ⚠️ Preview may look too dark
                         </p>
@@ -1591,6 +1217,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             size="sm" 
                             className="h-7 px-2 text-xs"
                             onClick={resetDevices}
+                            disabled={isStreaming}
                           >
                             <RefreshCw className="w-3 h-3 mr-1" />
                             Reset

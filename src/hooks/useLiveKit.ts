@@ -240,7 +240,7 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
   }, [options, toast, retryCount]);
 
   // Publish local tracks (for streamers)
-  const publishTracks = useCallback(async (mediaStream: MediaStream, previewVideoElement?: HTMLVideoElement) => {
+  const publishTracks = useCallback(async (mediaStream: MediaStream) => {
     if (!roomRef.current || !mediaStream) {
       throw new Error('Room not connected or no media stream available');
     }
@@ -256,12 +256,6 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         const lvt = new LocalVideoTrack(videoTrack);
         await roomRef.current.localParticipant.publishTrack(lvt);
         console.log('✓ Video track published');
-        
-        // Attach published track to preview element to ensure streamer sees what's broadcast
-        if (previewVideoElement) {
-          lvt.attach(previewVideoElement);
-          console.log('✓ Video track attached to preview element');
-        }
       }
 
       if (audioTrack) {
