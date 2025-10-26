@@ -48,6 +48,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'laptop' | 'desktop'>(getDeviceType());
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerVideoRef = useRef<HTMLVideoElement>(null);
+  const rawVideoRef = useRef<HTMLVideoElement>(null); // Hidden video for raw brightness analysis
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -356,6 +357,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
       streamRef.current = stream;
       
+      // Setup both preview and raw video elements
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true;
@@ -391,20 +393,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               readyState: videoTrack.readyState
             });
           }
-
-          // Analyze brightness after video starts playing
-          setTimeout(() => {
-            const brightness = analyzeVideoBrightness(videoRef.current);
-            if (brightness !== null) {
-              setDetectedBrightness(brightness);
-              if (brightness < 30) {
-                console.warn(`⚠️ Low camera brightness detected: ${brightness}%`);
-                setShowBrightnessWarning(true);
-              } else {
-                setShowBrightnessWarning(false);
-              }
-            }
-          }, 500);
         } catch (playError) {
           console.error('❌ Error playing video:', playError);
           toast({
@@ -413,6 +401,34 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             variant: "destructive"
           });
         }
+      }
+      
+      // Setup hidden raw video for accurate brightness analysis
+      if (rawVideoRef.current) {
+        rawVideoRef.current.srcObject = stream;
+        rawVideoRef.current.muted = true;
+        await rawVideoRef.current.play();
+        
+        // Wait 2.5 seconds for auto-exposure to stabilize
+        console.log('⏳ Waiting for camera auto-exposure to stabilize...');
+        toast({
+          title: "Camera initializing",
+          description: "Auto-exposure adjusting... (2-3s)",
+        });
+        
+        setTimeout(() => {
+          const brightness = analyzeVideoBrightness(rawVideoRef.current);
+          if (brightness !== null) {
+            setDetectedBrightness(brightness);
+            console.log(`📊 Camera brightness: ${brightness}%`);
+            if (brightness < 30) {
+              console.warn(`⚠️ Low camera brightness detected: ${brightness}%`);
+              setShowBrightnessWarning(true);
+            } else {
+              setShowBrightnessWarning(false);
+            }
+          }
+        }, 2500);
       }
       
       setHasCameraPermission(true);
@@ -616,9 +632,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       return;
     }
 
-    // Pre-publish brightness validation
-    console.log('Running pre-publish brightness check...');
-    const brightness = analyzeVideoBrightness(videoRef.current);
+    // Reset preview brightness filter to 100% when going live
+    setVideoBrightness(100);
+    sessionStorage.setItem('stream_brightness', '100');
+    
+    // Pre-publish brightness validation using raw feed
+    console.log('Running pre-publish brightness check on raw feed...');
+    const brightness = analyzeVideoBrightness(rawVideoRef.current);
     if (brightness !== null && brightness < 20) {
       toast({
         title: "Camera Too Dark",
@@ -628,6 +648,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setShowBrightnessWarning(true);
       return;
     }
+    
+    console.log(`✅ Brightness check passed: ${brightness}%`);
 
     // Check video track health
     const videoTrack = streamRef.current?.getVideoTracks()[0];
@@ -1408,18 +1430,28 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                    {isCameraOn ? <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      muted 
-                      playsInline 
-                      className="w-full h-full object-cover" 
-                      style={{ 
-                        filter: `brightness(${videoBrightness}%)`,
-                        visibility: 'visible',
-                        opacity: 1
-                      }}
-                    /> : <div className="w-full h-full flex items-center justify-center text-white">
+                    {isCameraOn ? <>
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover" 
+                        style={{ 
+                          filter: `brightness(${videoBrightness}%)`,
+                          visibility: 'visible',
+                          opacity: 1
+                        }}
+                      />
+                      {/* Hidden raw video for accurate brightness analysis */}
+                      <video 
+                        ref={rawVideoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className="hidden" 
+                      />
+                    </> : <div className="w-full h-full flex items-center justify-center text-white">
                         <VideoOff className="w-12 h-12" />
                       </div>}
                     
