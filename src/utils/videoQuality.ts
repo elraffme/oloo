@@ -112,11 +112,19 @@ export const getOptimalVideoConstraints = (deviceId?: string, deviceType?: 'mobi
     desktop: { ideal: 30, max: 60 }
   };
   
+  // Mobile devices always use front camera, others respect deviceId
   const constraints: MediaTrackConstraints = {
-    deviceId: deviceId ? { exact: deviceId } : undefined,
+    deviceId: device === 'mobile' ? undefined : (deviceId ? { exact: deviceId } : undefined),
     ...resolutionMap[device],
     frameRate: frameRateMap[device],
-    facingMode: deviceId ? undefined : 'user'
+    facingMode: device === 'mobile' ? { ideal: 'user' } : (deviceId ? undefined : 'user'),
+    // Auto-exposure and brightness controls (using type assertion for non-standard properties)
+    ...(({
+      exposureMode: 'continuous',
+      exposureCompensation: 0,
+      whiteBalanceMode: 'continuous',
+      focusMode: 'continuous'
+    } as any) as MediaTrackConstraints)
   };
   
   return constraints;
