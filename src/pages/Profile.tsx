@@ -184,7 +184,7 @@ const Profile = () => {
       const [matchesRes, likesRes, streamsRes, giftsRes] = await Promise.allSettled([
         supabase.from('user_connections').select('id').eq('connection_type', 'match').eq('user_id', user?.id),
         supabase.from('user_connections').select('id').eq('connection_type', 'like').eq('connected_user_id', user?.id),
-        supabase.from('streaming_sessions').select('id').eq('host_user_id', user?.id),
+        supabase.from('streaming_sessions').select('id').eq('host_user_id', user?.id).eq('status', 'ended'),
         supabase.from('token_transactions').select('id').eq('reason', 'gift_received').eq('user_id', user?.id)
       ]);
 

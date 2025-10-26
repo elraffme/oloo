@@ -116,6 +116,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       try {
         console.log('Fetching live streams for discovery...');
 
+        // Cleanup stale streams before fetching
+        await supabase.rpc('cleanup_stale_streams');
+
         // Fetch live streams without join
         const {
           data: streams,
@@ -284,6 +287,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     sessionStorage.setItem('stream_brightness', String(videoBrightness));
   }, [videoBrightness]);
+
+  // Cleanup: End active stream on component unmount
+  useEffect(() => {
+    return () => {
+      if (isStreaming && activeStreamId && user) {
+        console.log('Component unmounting - ending active stream...');
+        // End stream in database
+        supabase
+          .from('streaming_sessions')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          })
+          .eq('id', activeStreamId)
+          .eq('host_user_id', user.id)
+          .eq('status', 'live')
+          .then(({ error }) => {
+            if (error) console.error('Error ending stream on unmount:', error);
+            else console.log('✓ Stream ended on unmount');
+          });
+      }
+    };
+  }, [isStreaming, activeStreamId, user]);
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {

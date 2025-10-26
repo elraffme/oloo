@@ -819,6 +819,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
+      cleanup_stale_streams: { Args: never; Returns: undefined }
       create_secure_token_transaction: {
         Args: {
           operation_reason: string
