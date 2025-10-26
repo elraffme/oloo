@@ -78,18 +78,18 @@ const AppLayout = () => {
             {/* Right Actions */}
             <div className="flex items-center space-x-2">
               {/* Quick Actions */}
-              <Button variant="outline" size="default" className="flex shadow-sm hover:shadow-md transition-shadow">
+              <Button variant="outline" size="default" className="flex bg-white shadow-sm hover:shadow-md transition-shadow">
                 <Search className="w-5 h-5" />
               </Button>
               
-              <Button variant="outline" size="default" className="relative shadow-sm hover:shadow-md transition-shadow">
+              <Button variant="outline" size="default" className="relative bg-white shadow-sm hover:shadow-md transition-shadow">
                 <Zap className="w-5 h-5 text-accent" />
                 <Badge variant="secondary" className="absolute -top-2 -right-2 h-6 w-6 text-xs p-0 flex items-center justify-center font-bold shadow-md">
                   0
                 </Badge>
               </Button>
 
-              <Button variant="outline" size="default" onClick={handleSignOut} className="shadow-sm hover:shadow-md transition-shadow">
+              <Button variant="outline" size="default" onClick={handleSignOut} className="bg-white shadow-sm hover:shadow-md transition-shadow">
                 <LogOut className="w-5 h-5" />
               </Button>
             </div>
