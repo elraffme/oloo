@@ -57,6 +57,17 @@ const Profile = () => {
     relationship_goals: '',
     age: 0
   });
+  const [settings, setSettings] = useState({
+    show_profile: true,
+    allow_messages: true,
+    show_online_status: true,
+    open_to_kids: false,
+    want_kids: false,
+    have_kids: false,
+    notify_matches: true,
+    notify_messages: true,
+    notify_streams: true
+  });
 
   useEffect(() => {
     if (user) {
@@ -85,6 +96,17 @@ const Profile = () => {
           interests: data.interests || [],
           relationship_goals: data.relationship_goals || '',
           age: data.age || 0
+        });
+        setSettings({
+          show_profile: data.show_profile ?? true,
+          allow_messages: data.allow_messages ?? true,
+          show_online_status: data.show_online_status ?? true,
+          open_to_kids: data.open_to_kids ?? false,
+          want_kids: data.want_kids ?? false,
+          have_kids: data.have_kids ?? false,
+          notify_matches: data.notify_matches ?? true,
+          notify_messages: data.notify_messages ?? true,
+          notify_streams: data.notify_streams ?? true
         });
       }
     } catch (error) {
@@ -190,6 +212,31 @@ const Profile = () => {
         interests: profile.interests || [],
         relationship_goals: profile.relationship_goals || '',
         age: profile.age || 0
+      });
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(settings)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, ...settings });
+      
+      toast({
+        title: "Settings saved",
+        description: "Your account settings have been updated successfully."
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -713,27 +760,57 @@ const Profile = () => {
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center justify-between">
                     <span>Show my profile to others</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.show_profile}
+                      onChange={(e) => setSettings({...settings, show_profile: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Allow direct messages</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.allow_messages}
+                      onChange={(e) => setSettings({...settings, allow_messages: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Show online status</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.show_online_status}
+                      onChange={(e) => setSettings({...settings, show_online_status: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Open to people with kids</span>
-                    <input type="checkbox" className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.open_to_kids}
+                      onChange={(e) => setSettings({...settings, open_to_kids: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Want to have kids in the future</span>
-                    <input type="checkbox" className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.want_kids}
+                      onChange={(e) => setSettings({...settings, want_kids: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Already have kids</span>
-                    <input type="checkbox" className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.have_kids}
+                      onChange={(e) => setSettings({...settings, have_kids: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                 </div>
               </div>
@@ -743,15 +820,30 @@ const Profile = () => {
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center justify-between">
                     <span>New matches</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.notify_matches}
+                      onChange={(e) => setSettings({...settings, notify_matches: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Messages</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.notify_messages}
+                      onChange={(e) => setSettings({...settings, notify_messages: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                   <label className="flex items-center justify-between">
                     <span>Live stream notifications</span>
-                    <input type="checkbox" defaultChecked className="rounded" />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.notify_streams}
+                      onChange={(e) => setSettings({...settings, notify_streams: e.target.checked})}
+                      className="rounded" 
+                    />
                   </label>
                 </div>
               </div>
@@ -759,7 +851,7 @@ const Profile = () => {
               <div className="flex gap-2">
                 <Button 
                   className="flex-1"
-                  onClick={handleSave}
+                  onClick={handleSaveSettings}
                 >
                   Save Changes
                 </Button>

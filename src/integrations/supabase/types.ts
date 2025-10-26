@@ -359,6 +359,7 @@ export type Database = {
       profiles: {
         Row: {
           age: number
+          allow_messages: boolean | null
           ar_avatar_url: string | null
           ar_model_data: Json | null
           avatar_url: string | null
@@ -367,6 +368,7 @@ export type Database = {
           display_name: string
           education: string | null
           gender: string | null
+          have_kids: boolean | null
           height_cm: number | null
           id: string
           interests: string[] | null
@@ -375,17 +377,25 @@ export type Database = {
           location: string
           main_profile_photo_index: number | null
           membership_tier: string | null
+          notify_matches: boolean | null
+          notify_messages: boolean | null
+          notify_streams: boolean | null
           occupation: string | null
+          open_to_kids: boolean | null
           profile_photos: string[] | null
           prompt_responses: Json | null
           relationship_goals: string | null
+          show_online_status: boolean | null
+          show_profile: boolean | null
           subscription_tier: string | null
           updated_at: string
           user_id: string
           verified: boolean | null
+          want_kids: boolean | null
         }
         Insert: {
           age: number
+          allow_messages?: boolean | null
           ar_avatar_url?: string | null
           ar_model_data?: Json | null
           avatar_url?: string | null
@@ -394,6 +404,7 @@ export type Database = {
           display_name: string
           education?: string | null
           gender?: string | null
+          have_kids?: boolean | null
           height_cm?: number | null
           id?: string
           interests?: string[] | null
@@ -402,17 +413,25 @@ export type Database = {
           location: string
           main_profile_photo_index?: number | null
           membership_tier?: string | null
+          notify_matches?: boolean | null
+          notify_messages?: boolean | null
+          notify_streams?: boolean | null
           occupation?: string | null
+          open_to_kids?: boolean | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
+          show_online_status?: boolean | null
+          show_profile?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
           user_id: string
           verified?: boolean | null
+          want_kids?: boolean | null
         }
         Update: {
           age?: number
+          allow_messages?: boolean | null
           ar_avatar_url?: string | null
           ar_model_data?: Json | null
           avatar_url?: string | null
@@ -421,6 +440,7 @@ export type Database = {
           display_name?: string
           education?: string | null
           gender?: string | null
+          have_kids?: boolean | null
           height_cm?: number | null
           id?: string
           interests?: string[] | null
@@ -429,14 +449,21 @@ export type Database = {
           location?: string
           main_profile_photo_index?: number | null
           membership_tier?: string | null
+          notify_matches?: boolean | null
+          notify_messages?: boolean | null
+          notify_streams?: boolean | null
           occupation?: string | null
+          open_to_kids?: boolean | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
           relationship_goals?: string | null
+          show_online_status?: boolean | null
+          show_profile?: boolean | null
           subscription_tier?: string | null
           updated_at?: string
           user_id?: string
           verified?: boolean | null
+          want_kids?: boolean | null
         }
         Relationships: []
       }
