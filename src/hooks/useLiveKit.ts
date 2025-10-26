@@ -114,7 +114,20 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         dynacast: true,
         videoCaptureDefaults: {
           resolution: VideoPresets.h720.resolution,
+          frameRate: 30
         },
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        publishDefaults: {
+          simulcast: true,
+          videoEncoding: {
+            maxBitrate: 1_500_000,
+            maxFramerate: 30
+          }
+        }
       });
 
       roomRef.current = newRoom;

@@ -283,6 +283,60 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     sessionStorage.setItem('stream_brightness', String(videoBrightness));
   }, [videoBrightness]);
+  // Helper: measure brightness from raw camera track
+  const measureAverageLumaFromTrack = async (track: MediaStreamTrack): Promise<number> => {
+    try {
+      // @ts-ignore - ImageCapture is experimental but widely supported
+      if (window.ImageCapture) {
+        // @ts-ignore
+        const ic = new ImageCapture(track);
+        // @ts-ignore
+        const bitmap = await ic.grabFrame();
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return 1; // fail open
+        ctx.drawImage(bitmap, 0, 0);
+        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let sum = 0;
+        // Y' approx = 0.2126 R + 0.7152 G + 0.0722 B
+        for (let i = 0; i < data.length; i += 4) {
+          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        }
+        const avg = sum / (data.length / 4) / 255; // 0..1
+        return avg;
+      }
+    } catch (err) {
+      console.warn('ImageCapture failed, using fallback:', err);
+    }
+
+    // Fallback: hidden video element
+    return new Promise<number>((resolve) => {
+      const hiddenVideo = document.createElement('video');
+      hiddenVideo.srcObject = new MediaStream([track]);
+      hiddenVideo.muted = true;
+      hiddenVideo.playsInline = true;
+      hiddenVideo.onloadeddata = () => {
+        const w = 160, h = 90;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(1);
+        ctx.drawImage(hiddenVideo, 0, 0, w, h);
+        const { data } = ctx.getImageData(0, 0, w, h);
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        }
+        const avg = sum / (data.length / 4) / 255;
+        resolve(avg);
+      };
+      hiddenVideo.play();
+    });
+  };
+
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {
@@ -291,10 +345,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         video: savedDeviceId ? {
           deviceId: { exact: savedDeviceId },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 }
         } : {
           width: { ideal: 1280 },
           height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 30 },
           facingMode: 'user'
         }
       });
@@ -532,6 +588,47 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       console.log('✓ Video and audio tracks validated');
       setAudioDetected(true);
+
+      // Reset preview brightness for live streaming
+      setVideoBrightness(100);
+      sessionStorage.setItem('stream_brightness', '100');
+      toast({
+        title: "Preview brightness reset",
+        description: "Camera optimized for live streaming"
+      });
+
+      // Warm-up period + brightness check
+      console.log('🔄 Camera warming up...');
+      await new Promise(r => setTimeout(r, 2500));
+
+      // Measure brightness from raw camera track
+      const luma = await measureAverageLumaFromTrack(videoTrack);
+      console.log('📊 Camera luma:', luma);
+      
+      if (luma < 0.2) {
+        // Try to improve capture via constraints
+        try {
+          await videoTrack.applyConstraints({
+            frameRate: { ideal: 30, max: 30 },
+            advanced: [
+              // @ts-ignore - best-effort hints
+              { exposureMode: 'continuous' },
+              // @ts-ignore
+              { whiteBalanceMode: 'continuous' },
+              // @ts-ignore
+              { focusMode: 'continuous' },
+            ],
+          } as MediaTrackConstraints);
+          console.log('✓ Applied low-light optimizations');
+        } catch (e) {
+          console.warn('Low-light constraint tuning not supported:', e);
+        }
+        toast({
+          title: "Low light detected",
+          description: "Increase room light or switch to back camera with a light source for better exposure.",
+          variant: "destructive"
+        });
+      }
 
       // Create stream record in database
       const streamData = {
