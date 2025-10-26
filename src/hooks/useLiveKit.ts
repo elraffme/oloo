@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Room, RoomEvent, Track, LocalVideoTrack, LocalAudioTrack, RemoteTrack, RemoteParticipant } from 'livekit-client';
+import { Room, RoomEvent, Track, LocalVideoTrack, LocalAudioTrack, RemoteTrack, RemoteParticipant, VideoPresets } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -16,11 +16,20 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [connectionState, setConnectionState] = useState<'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'>('idle');
+  const [retryCount, setRetryCount] = useState(0);
   const roomRef = useRef<Room | null>(null);
 
-  // Get LiveKit token from edge function
-  const getToken = async (roomName: string, participantName: string, canPublish: boolean = false) => {
+  // Get LiveKit token from edge function with retry logic
+  const getToken = async (
+    roomName: string, 
+    participantName: string, 
+    canPublish: boolean = false,
+    attempt: number = 1
+  ): Promise<{ token: string; url: string } | null> => {
     try {
+      console.log(`🔑 Requesting LiveKit token (attempt ${attempt})...`);
+      
       // Get fresh session to ensure auth header is included
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -28,7 +37,6 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         throw new Error('No active session. Please sign in to join the stream.');
       }
 
-      console.log('Requesting LiveKit token with auth...');
       const { data, error } = await supabase.functions.invoke('livekit-token', {
         body: {
           roomName,
@@ -40,98 +48,196 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
       });
 
       if (error) {
-        console.error('Error getting LiveKit token:', error);
-        throw error;
+        console.error('❌ Error getting LiveKit token:', error);
+        
+        // Retry logic with exponential backoff
+        if (attempt < 3) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(`⏳ Retrying in ${delay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return getToken(roomName, participantName, canPublish, attempt + 1);
+        }
+        
+        toast({
+          title: "Connection Error",
+          description: error.message || "Failed to get streaming token. Please check your LiveKit credentials.",
+          variant: "destructive",
+        });
+        return null;
       }
 
       if (!data?.token || !data?.url) {
         throw new Error('Invalid response from token service');
       }
 
-      console.log('✓ LiveKit token received');
-      return data;
-    } catch (error) {
-      console.error('Failed to get LiveKit token:', error);
-      throw error;
+      console.log('✅ LiveKit token received');
+      return { token: data.token, url: data.url };
+    } catch (error: any) {
+      console.error('❌ Exception getting LiveKit token:', error);
+      
+      // Retry on network errors
+      if (attempt < 3 && (error.message?.includes('fetch') || error.message?.includes('network'))) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Network error, retrying in ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return getToken(roomName, participantName, canPublish, attempt + 1);
+      }
+      
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to streaming service. Please check your internet connection.",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
-  // Connect to LiveKit room
+  // Connect to LiveKit room with enhanced error handling
   const connect = useCallback(async (
     roomName: string,
     participantName: string,
     canPublish: boolean = false
   ) => {
     try {
-      console.log('Connecting to LiveKit room:', roomName);
+      console.log('🔌 Connecting to LiveKit room:', roomName);
+      setConnectionState('connecting');
+      setRetryCount(0);
+      
+      const tokenData = await getToken(roomName, participantName, canPublish);
+      if (!tokenData) {
+        setConnectionState('error');
+        return false;
+      }
 
-      // Get token from backend
-      const { token, url } = await getToken(roomName, participantName, canPublish);
-
-      // Create and connect room
       const newRoom = new Room({
         adaptiveStream: true,
         dynacast: true,
         videoCaptureDefaults: {
-          resolution: {
-            width: 1280,
-            height: 720,
-            frameRate: 30,
-          },
+          resolution: VideoPresets.h720.resolution,
         },
       });
 
       roomRef.current = newRoom;
 
-      // Setup event handlers
+      // Set up event listeners
       newRoom.on(RoomEvent.Connected, () => {
-        console.log('✓ Connected to LiveKit room');
+        console.log('✅ Connected to LiveKit room');
         setIsConnected(true);
+        setConnectionState('connected');
         setParticipantCount(newRoom.numParticipants);
+        setRetryCount(0);
         options.onConnected?.();
+        
+        toast({
+          title: "Connected",
+          description: "Successfully connected to the stream",
+        });
       });
 
-      newRoom.on(RoomEvent.Disconnected, () => {
-        console.log('Disconnected from LiveKit room');
+      newRoom.on(RoomEvent.Disconnected, (reason) => {
+        console.log('❌ Disconnected from room:', reason);
         setIsConnected(false);
-        setParticipantCount(0);
+        setConnectionState('disconnected');
         options.onDisconnected?.();
       });
 
-      newRoom.on(RoomEvent.ParticipantConnected, () => {
-        const count = newRoom.numParticipants;
-        console.log('Participant connected. Total:', count);
-        setParticipantCount(count);
-        options.onParticipantConnected?.(count);
+      newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log('👤 Participant connected:', participant.identity);
+        setParticipantCount(newRoom.numParticipants);
+        options.onParticipantConnected?.(newRoom.numParticipants);
       });
 
-      newRoom.on(RoomEvent.ParticipantDisconnected, () => {
-        const count = newRoom.numParticipants;
-        console.log('Participant disconnected. Total:', count);
-        setParticipantCount(count);
-        options.onParticipantConnected?.(count);
+      newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        console.log('👋 Participant disconnected:', participant.identity);
+        setParticipantCount(newRoom.numParticipants);
+        options.onParticipantConnected?.(newRoom.numParticipants);
+      });
+
+      newRoom.on(RoomEvent.Reconnecting, () => {
+        console.log('🔄 Reconnecting to room...');
+        setConnectionState('connecting');
+        const currentRetry = retryCount + 1;
+        setRetryCount(currentRetry);
+        
+        toast({
+          title: "Reconnecting",
+          description: `Attempting to reconnect (${currentRetry}/3)...`,
+        });
+      });
+
+      newRoom.on(RoomEvent.Reconnected, () => {
+        console.log('✅ Reconnected to room');
+        setConnectionState('connected');
+        setRetryCount(0);
+        
+        toast({
+          title: "Reconnected",
+          description: "Successfully reconnected to the stream",
+        });
+      });
+
+      newRoom.on(RoomEvent.MediaDevicesError, (error) => {
+        console.error('❌ Media devices error:', error);
+        options.onError?.(error);
+        
+        toast({
+          title: "Media Error",
+          description: "Error accessing camera or microphone. Please check your permissions.",
+          variant: "destructive",
+        });
+      });
+
+      newRoom.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+        const identity = participant?.identity || 'local';
+        console.log(`📊 Connection quality: ${quality} for ${identity}`);
+        
+        if (quality === 'poor') {
+          toast({
+            title: "Poor Connection",
+            description: "Your connection quality is poor. Video may be affected.",
+            variant: "destructive",
+          });
+        }
       });
 
       newRoom.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
-        console.log('Track subscribed:', track.kind, 'from', participant.identity);
+        console.log('📺 Track subscribed:', track.kind, 'from', participant.identity);
       });
 
-      // Connect to room
-      await newRoom.connect(url, token);
-      setRoom(newRoom);
+      newRoom.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
+        console.log('📴 Track unsubscribed:', track.kind, 'from', participant.identity);
+      });
 
-      return newRoom;
+      console.log('🚀 Attempting to connect to:', tokenData.url);
+      await newRoom.connect(tokenData.url, tokenData.token);
+      setRoom(newRoom);
+      
+      return true;
     } catch (error: any) {
-      console.error('Failed to connect to LiveKit:', error);
-      options.onError?.(error);
+      console.error('❌ Error connecting to room:', error);
+      setConnectionState('error');
+      options.onError?.(error as Error);
+      
+      const errorMessage = error.message || 'Unknown error occurred';
+      let userMessage = "Failed to connect to the stream";
+      
+      if (errorMessage.includes('token')) {
+        userMessage = "Authentication failed. Please try again.";
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        userMessage = "Network error. Please check your internet connection.";
+      } else if (errorMessage.includes('timeout')) {
+        userMessage = "Connection timed out. Please try again.";
+      }
+      
       toast({
-        title: "Connection failed",
-        description: error.message || "Failed to connect to streaming server",
+        title: "Connection Failed",
+        description: userMessage,
         variant: "destructive",
       });
-      throw error;
+      
+      return false;
     }
-  }, [options, toast]);
+  }, [options, toast, retryCount]);
 
   // Publish local tracks (for streamers)
   const publishTracks = useCallback(async (mediaStream: MediaStream) => {
@@ -140,7 +246,7 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
     }
 
     try {
-      console.log('Publishing local tracks...');
+      console.log('📤 Publishing local tracks...');
       setIsPublishing(true);
 
       const videoTrack = mediaStream.getVideoTracks()[0];
@@ -158,13 +264,13 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         console.log('✓ Audio track published');
       }
 
-      console.log('✓ All tracks published successfully');
+      console.log('✅ All tracks published successfully');
       toast({
         title: "🎥 Live!",
         description: "Your stream is now broadcasting",
       });
     } catch (error: any) {
-      console.error('Failed to publish tracks:', error);
+      console.error('❌ Failed to publish tracks:', error);
       setIsPublishing(false);
       throw error;
     }
@@ -173,13 +279,15 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
   // Disconnect from room
   const disconnect = useCallback(async () => {
     if (roomRef.current) {
-      console.log('Disconnecting from LiveKit room...');
+      console.log('🔌 Disconnecting from LiveKit room...');
       await roomRef.current.disconnect();
       roomRef.current = null;
       setRoom(null);
       setIsConnected(false);
       setIsPublishing(false);
       setParticipantCount(0);
+      setConnectionState('idle');
+      setRetryCount(0);
     }
   }, []);
 
@@ -197,6 +305,7 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
     isConnected,
     isPublishing,
     participantCount,
+    connectionState,
     connect,
     publishTracks,
     disconnect,

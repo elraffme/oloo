@@ -22,6 +22,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== LiveKit Token Request Started ===');
+    
     // Get Supabase client to verify authentication
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -40,9 +42,12 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser();
 
     if (userError || !user) {
-      console.error('Authentication error:', userError);
+      console.error('❌ Authentication failed:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ 
+          error: 'Unauthorized',
+          details: 'User authentication failed'
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -50,10 +55,28 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const { roomName, participantName, participantIdentity, canPublish = false, canSubscribe = true }: TokenRequest = await req.json();
+    console.log('✓ User authenticated:', user.id);
 
-    console.log('Generating token for:', { roomName, participantName, participantIdentity, canPublish, canSubscribe });
+    // Parse request body
+    const body = await req.json();
+    const { roomName, participantName, participantIdentity, canPublish = false, canSubscribe = true }: TokenRequest = body;
+
+    // Validate required fields
+    if (!roomName || !participantName || !participantIdentity) {
+      console.error('❌ Missing required fields:', { roomName, participantName, participantIdentity });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing required fields',
+          details: 'roomName, participantName, and participantIdentity are required'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log('✓ Token request:', { roomName, participantName, participantIdentity, canPublish, canSubscribe });
 
     // Get LiveKit credentials from environment
     const livekitApiKey = Deno.env.get('LIVEKIT_API_KEY');
@@ -61,9 +84,16 @@ serve(async (req) => {
     const livekitUrl = Deno.env.get('LIVEKIT_URL');
 
     if (!livekitApiKey || !livekitApiSecret || !livekitUrl) {
-      console.error('Missing LiveKit credentials');
+      console.error('❌ Missing LiveKit credentials:', {
+        hasApiKey: !!livekitApiKey,
+        hasApiSecret: !!livekitApiSecret,
+        hasUrl: !!livekitUrl
+      });
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
+        JSON.stringify({ 
+          error: 'Server configuration error',
+          details: 'LiveKit credentials not configured. Please add LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and LIVEKIT_URL to your edge function secrets.'
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,7 +101,10 @@ serve(async (req) => {
       );
     }
 
+    console.log('✓ LiveKit credentials found');
+
     // Create access token
+    console.log('Creating LiveKit access token...');
     const at = new AccessToken(livekitApiKey, livekitApiSecret, {
       identity: participantIdentity,
       name: participantName,
@@ -88,13 +121,15 @@ serve(async (req) => {
 
     const token = await at.toJwt();
 
-    console.log('Token generated successfully');
+    console.log('✅ Token generated successfully');
+    console.log('=== LiveKit Token Request Complete ===');
 
     return new Response(
       JSON.stringify({ 
         token,
         url: livekitUrl,
         roomName,
+        participantIdentity,
       }),
       {
         status: 200,
@@ -102,9 +137,14 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('Error in livekit-token function:', error);
+    console.error('❌ Error in livekit-token function:', error);
+    console.error('Error stack:', error.stack);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message,
+        type: error.name
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

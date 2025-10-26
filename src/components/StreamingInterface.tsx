@@ -481,6 +481,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
+    
+    // Check permission status - block if denied
+    if (permissionStatus.camera === 'denied' || permissionStatus.microphone === 'denied') {
+      toast({
+        title: "Permissions Denied",
+        description: "Please allow camera and microphone access in your browser settings to stream.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (!hasCameraPermission || !streamRef.current) {
       toast({
         title: "Camera not ready",
@@ -558,11 +569,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const participantName = user.user_metadata?.display_name || 'Streamer';
       
       console.log('Connecting to LiveKit room:', roomName);
-      await liveKit.connect(roomName, participantName, true); // canPublish = true for streamer
+      const connected = await liveKit.connect(roomName, participantName, true); // canPublish = true for streamer
+
+      if (!connected) {
+        throw new Error('Failed to connect to LiveKit room');
+      }
 
       // Publish local media tracks
       console.log('Publishing media tracks...');
       await liveKit.publishTracks(streamRef.current);
+
+      // Update stream record with LiveKit URL
+      await supabase
+        .from('streaming_sessions')
+        .update({ stream_url: roomName })
+        .eq('id', newStream.id);
 
       setIsStreaming(true);
       
@@ -579,8 +600,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (activeStreamId) {
         await supabase
           .from('streaming_sessions')
-          .update({ status: 'ended' })
+          .update({ status: 'ended', current_viewers: 0 })
           .eq('id', activeStreamId);
+        setActiveStreamId(null);
       }
       
       await liveKit.disconnect();
@@ -665,52 +687,81 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const joinStream = async (stream: StreamData) => {
     try {
-      console.log('Joining LiveKit stream:', stream.id);
+      console.log('🎬 Joining LiveKit stream:', stream.id);
       
       // Increment viewer count
-      const {
-        error
-      } = await supabase.from('streaming_sessions').update({
-        current_viewers: stream.current_viewers + 1
-      }).eq('id', stream.id);
+      const { error } = await supabase
+        .from('streaming_sessions')
+        .update({ current_viewers: stream.current_viewers + 1 })
+        .eq('id', stream.id);
       if (error) throw error;
 
       // Connect to LiveKit room as viewer
       const roomName = `stream-${stream.id}`;
       const participantName = user?.user_metadata?.display_name || user?.email || 'Viewer';
       
-      await liveKit.connect(roomName, participantName, false); // canPublish = false for viewer
+      console.log('Connecting as viewer to room:', roomName);
+      const connected = await liveKit.connect(roomName, participantName, false); // canPublish = false for viewer
 
-      // Subscribe to remote tracks and ensure video plays
-      if (liveKit.room) {
-        liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
-          console.log('✓ Subscribed to track:', track.kind, 'from', participant.identity);
-          
-          if (viewerVideoRef.current) {
-            track.attach(viewerVideoRef.current);
-            console.log(`✓ ${track.kind} track attached to viewer`);
-            
-            // Ensure video element plays after tracks are attached
-            if (track.kind === 'video') {
-              viewerVideoRef.current.play().catch(e => {
-                console.log('Autoplay prevented, user interaction needed:', e);
-              });
-            }
-          }
-        });
+      if (!connected) {
+        throw new Error('Failed to connect to stream');
       }
 
+      // Set viewing state immediately so video element is mounted
       setViewingStream(stream);
       setIsViewerMode(true);
+
+      // Wait for video element to be mounted in DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Subscribe to remote tracks
+      if (liveKit.room && viewerVideoRef.current) {
+        console.log('✓ Setting up track subscription...');
+        
+        liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
+          console.log('📺 Subscribed to track:', track.kind, 'from', participant.identity);
+          
+          if (viewerVideoRef.current && track.kind === 'video') {
+            track.attach(viewerVideoRef.current);
+            console.log('✓ Video track attached to viewer element');
+            
+            // Handle autoplay restrictions
+            viewerVideoRef.current.muted = false;
+            viewerVideoRef.current.play().catch(error => {
+              console.log('⚠️ Autoplay prevented, user interaction needed:', error);
+              toast({
+                title: "Click to Play",
+                description: "Click the video to start playback",
+              });
+            });
+          }
+        });
+
+        // Also attach any existing tracks (in case they're already published)
+        liveKit.room.remoteParticipants.forEach(participant => {
+          participant.trackPublications.forEach(publication => {
+            if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
+              publication.track.attach(viewerVideoRef.current);
+              console.log('✓ Attached existing video track from', participant.identity);
+            }
+          });
+        });
+      }
       
       toast({
         title: "Joined stream",
         description: `Watching ${stream.title}`,
       });
       
-      console.log('✓ Successfully joined stream');
+      console.log('✅ Successfully joined stream');
     } catch (error: any) {
-      console.error('Error joining stream:', error);
+      console.error('❌ Error joining stream:', error);
+      
+      // Cleanup on error
+      await liveKit.disconnect();
+      setViewingStream(null);
+      setIsViewerMode(false);
+      
       toast({
         title: "Failed to join stream",
         description: error.message || "Please try again.",

@@ -268,7 +268,7 @@ export type Database = {
           amount_cents: number | null
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           metadata: Json | null
           new_status: string | null
           old_status: string | null
@@ -281,7 +281,7 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           new_status?: string | null
           old_status?: string | null
@@ -294,7 +294,7 @@ export type Database = {
           amount_cents?: number | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           new_status?: string | null
           old_status?: string | null
@@ -445,7 +445,7 @@ export type Database = {
           action_type: string
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           metadata: Json | null
           user_agent: string | null
           user_id: string
@@ -454,7 +454,7 @@ export type Database = {
           action_type: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           user_agent?: string | null
           user_id: string
@@ -463,7 +463,7 @@ export type Database = {
           action_type?: string
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           user_agent?: string | null
           user_id?: string
@@ -476,7 +476,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string | null
           success: boolean | null
@@ -488,7 +488,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           success?: boolean | null
@@ -500,7 +500,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string | null
           success?: boolean | null
@@ -523,6 +523,7 @@ export type Database = {
           started_at: string | null
           status: string
           stream_key: string | null
+          stream_url: string | null
           title: string
         }
         Insert: {
@@ -538,6 +539,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           stream_key?: string | null
+          stream_url?: string | null
           title: string
         }
         Update: {
@@ -553,6 +555,7 @@ export type Database = {
           started_at?: string | null
           status?: string
           stream_key?: string | null
+          stream_url?: string | null
           title?: string
         }
         Relationships: []
@@ -761,18 +764,12 @@ export type Database = {
         Args: { user_a: string; user_b: string }
         Returns: boolean
       }
-      check_deployment_readiness: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      check_deployment_readiness: { Args: never; Returns: Json }
       check_mutual_match: {
         Args: { user1_id: string; user2_id: string }
         Returns: boolean
       }
-      check_otp_threshold: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      check_otp_threshold: { Args: { user_uuid: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
           p_action_type: string
@@ -794,6 +791,7 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      cleanup_abandoned_streams: { Args: never; Returns: undefined }
       create_secure_token_transaction: {
         Args: {
           operation_reason: string
@@ -819,12 +817,9 @@ export type Database = {
         Args: { batch_size?: number }
         Returns: number
       }
-      get_anonymized_ride_data: {
-        Args: { ride_id: string }
-        Returns: Json
-      }
+      get_anonymized_ride_data: { Args: { ride_id: string }; Returns: Json }
       get_available_drivers: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           driver_avatar: string
           driver_name: string
@@ -839,7 +834,7 @@ export type Database = {
         }[]
       }
       get_available_drivers_safe: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           driver_avatar: string
           driver_name: string
@@ -871,6 +866,12 @@ export type Database = {
           prompt_responses: Json | null
           relationship_goals: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "demo_profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_discovery_profile: {
         Args: { profile_user_id: string }
@@ -880,10 +881,7 @@ export type Database = {
         Args: { profile_user_id: string }
         Returns: Json
       }
-      get_encryption_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_encryption_key: { Args: never; Returns: string }
       get_friend_requests: {
         Args: { target_user_id?: string }
         Returns: {
@@ -903,7 +901,7 @@ export type Database = {
         Returns: Json
       }
       get_public_streams: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           ar_space_data: Json
           created_at: string
@@ -918,7 +916,7 @@ export type Database = {
         }[]
       }
       get_ride_summaries: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           duration_tier: string
@@ -933,7 +931,7 @@ export type Database = {
         Returns: Json
       }
       get_safe_streaming_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           ar_space_data: Json
           created_at: string
@@ -947,10 +945,7 @@ export type Database = {
           title: string
         }[]
       }
-      get_secure_ride_details: {
-        Args: { ride_id: string }
-        Returns: Json
-      }
+      get_secure_ride_details: { Args: { ride_id: string }; Returns: Json }
       get_secure_verification_status: {
         Args: { target_user_id?: string }
         Returns: Json
@@ -983,10 +978,7 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: string
       }
-      get_user_sensitive_info: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_user_sensitive_info: { Args: never; Returns: Json }
       get_user_streams: {
         Args: { target_user_id?: string }
         Returns: {
@@ -1021,10 +1013,7 @@ export type Database = {
         Args: { p_stream_id: string }
         Returns: undefined
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
       log_membership_access: {
         Args: { action_type: string; target_user_id: string }
         Returns: undefined
@@ -1047,17 +1036,24 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_sensitive_info_access: {
-        Args:
-          | {
+      log_sensitive_info_access:
+        | {
+            Args: {
+              action_type: string
+              field_name: string
+              target_user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
               access_type: string
               additional_metadata?: Json
               field_accessed: string
               user_uuid?: string
             }
-          | { action_type: string; field_name: string; target_user_id: string }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
       log_system_security_event: {
         Args: {
           p_action: string
@@ -1068,10 +1064,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      make_user_admin: {
-        Args: { target_email: string }
-        Returns: boolean
-      }
+      make_user_admin: { Args: { target_email: string }; Returns: boolean }
       record_rate_limit_action: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
@@ -1088,10 +1081,7 @@ export type Database = {
         }
         Returns: Json
       }
-      send_friend_request: {
-        Args: { target_user_id: string }
-        Returns: Json
-      }
+      send_friend_request: { Args: { target_user_id: string }; Returns: Json }
       update_profile_verification_status: {
         Args: { is_verified: boolean; target_user_id: string }
         Returns: boolean
