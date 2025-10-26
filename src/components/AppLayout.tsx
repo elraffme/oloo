@@ -61,7 +61,7 @@ const AppLayout = () => {
                 <span className="logo-text">Ò</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold font-afro-heading">Òloo</h1>
+                
                 
               </div>
             </div>
