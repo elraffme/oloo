@@ -440,7 +440,14 @@ const Profile = () => {
                   {profile?.height_cm && (
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-muted-foreground">📏</span>
-                      <span>{profile.height_cm} cm ({Math.round(profile.height_cm / 2.54)} inches)</span>
+                      <span>
+                        {profile.height_cm} cm ({(() => {
+                          const totalInches = profile.height_cm / 2.54;
+                          const feet = Math.floor(totalInches / 12);
+                          const inches = Math.round(totalInches % 12);
+                          return `${feet}'${inches}"`;
+                        })()})
+                      </span>
                     </div>
                   )}
 
