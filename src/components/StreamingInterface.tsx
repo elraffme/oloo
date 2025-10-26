@@ -511,6 +511,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
 
   const resetDevices = async () => {
+    const wasStreaming = isStreaming;
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -529,6 +531,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     await initializeCamera();
     await initializeMicrophone();
+
+    // If was streaming, reconnect to LiveKit with new devices
+    if (wasStreaming && streamRef.current) {
+      await liveKit.publishTracks(streamRef.current, videoRef.current || undefined);
+    }
   };
   const startStream = async () => {
     // Validate all requirements
@@ -1475,7 +1482,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             size="sm" 
                             className="h-7 px-2 text-xs"
                             onClick={resetDevices}
-                            disabled={isStreaming}
                           >
                             <RefreshCw className="w-3 h-3 mr-1" />
                             Reset
