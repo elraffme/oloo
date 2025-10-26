@@ -759,12 +759,7 @@ const Profile = () => {
               <div className="flex gap-2">
                 <Button 
                   className="flex-1"
-                  onClick={() => {
-                    toast({
-                      title: "Settings saved",
-                      description: "Your account settings have been updated successfully."
-                    });
-                  }}
+                  onClick={handleSave}
                 >
                   Save Changes
                 </Button>
