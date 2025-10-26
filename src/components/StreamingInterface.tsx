@@ -754,10 +754,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       description: "Click the video to start playback",
                     });
                   });
+              } else if (publication.kind === 'video' && !publication.track) {
+                // Ensure we subscribe to the video publication if not yet subscribed
+                // Ensure we subscribe to the video publication if not yet subscribed
+                void (async () => {
+                  try { await publication.setSubscribed(true as any); }
+                  catch (err) { console.warn('Failed to subscribe to video publication:', err); }
+                })();
               }
               
               if (publication.track && publication.kind === 'audio') {
                 console.log('✓ Audio track available from', participant.identity);
+              } else if (publication.kind === 'audio' && !publication.track) {
+                // Ensure audio subscription as well
+                void (async () => {
+                  try { await publication.setSubscribed(true as any); }
+                  catch (err) { console.warn('Failed to subscribe to audio publication:', err); }
+                })();
               }
             });
           });
@@ -797,6 +810,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 console.log('⚠️ Autoplay prevented:', error);
                 setViewerVideoStatus('playing');
               });
+          }
+        });
+
+        // Also subscribe proactively when new publications are announced
+        liveKit.room.on(RoomEvent.TrackPublished, (publication, participant) => {
+          console.log('📢 Track published (proactive subscribe):', publication.kind, 'from', participant.identity);
+          if ((publication.kind === 'video' || publication.kind === 'audio') && publication.isSubscribed === false) {
+            void (async () => {
+              try { await publication.setSubscribed(true as any); }
+              catch (err) { console.warn('Failed to proactively subscribe to publication:', err); }
+            })();
           }
         });
       }
@@ -928,6 +952,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               autoPlay 
               playsInline 
               className="w-full h-full object-cover"
+              onClick={() => {
+                // User gesture to force playback if autoplay was blocked
+                try { viewerVideoRef.current?.play(); } catch {}
+              }}
               onLoadedMetadata={() => {
                 console.log('✓ Viewer video loaded');
                 setViewerVideoStatus('playing');

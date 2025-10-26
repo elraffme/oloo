@@ -223,7 +223,7 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
       });
 
       console.log('🚀 Attempting to connect to:', tokenData.url);
-      await newRoom.connect(tokenData.url, tokenData.token);
+      await newRoom.connect(tokenData.url, tokenData.token, { autoSubscribe: true });
       setRoom(newRoom);
       
       return true;
