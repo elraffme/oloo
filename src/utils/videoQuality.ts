@@ -78,17 +78,46 @@ export const isVideoTrackHealthy = (track: MediaStreamTrack | null): boolean => 
 };
 
 /**
- * Gets optimal video constraints for better low-light performance
+ * Detects device type based on screen size and user agent
  */
-export const getOptimalVideoConstraints = (deviceId?: string) => {
-  return {
+export const getDeviceType = (): 'mobile' | 'tablet' | 'laptop' | 'desktop' => {
+  const width = window.innerWidth;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  if (width < 768) return 'mobile';
+  if (width < 1024) return isTouchDevice ? 'tablet' : 'laptop';
+  if (width < 1920) return 'laptop';
+  return 'desktop';
+};
+
+/**
+ * Gets optimal video constraints based on device type
+ */
+export const getOptimalVideoConstraints = (deviceId?: string, deviceType?: 'mobile' | 'tablet' | 'laptop' | 'desktop') => {
+  const device = deviceType || getDeviceType();
+  
+  // Device-specific resolution settings
+  const resolutionMap = {
+    mobile: { width: { ideal: 640 }, height: { ideal: 480 } },
+    tablet: { width: { ideal: 960 }, height: { ideal: 540 } },
+    laptop: { width: { ideal: 1280 }, height: { ideal: 720 } },
+    desktop: { width: { ideal: 1920 }, height: { ideal: 1080 } }
+  };
+  
+  // Frame rate adaptation
+  const frameRateMap = {
+    mobile: { ideal: 24, max: 30 },
+    tablet: { ideal: 30, max: 30 },
+    laptop: { ideal: 30, max: 60 },
+    desktop: { ideal: 30, max: 60 }
+  };
+  
+  const constraints: MediaTrackConstraints = {
     deviceId: deviceId ? { exact: deviceId } : undefined,
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-    facingMode: deviceId ? undefined : 'user',
-    // Advanced constraints for better low-light performance
-    exposureMode: 'continuous',
-    whiteBalanceMode: 'continuous',
-    focusMode: 'continuous'
-  } as MediaTrackConstraints;
+    ...resolutionMap[device],
+    frameRate: frameRateMap[device],
+    facingMode: deviceId ? undefined : 'user'
+  };
+  
+  return constraints;
 };

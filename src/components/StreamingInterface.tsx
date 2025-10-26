@@ -18,7 +18,8 @@ import { DeviceSelector } from '@/components/DeviceSelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { RoomEvent, RemoteTrack, RemoteParticipant } from 'livekit-client';
-import { analyzeVideoBrightness, isVideoTrackHealthy, getOptimalVideoConstraints } from '@/utils/videoQuality';
+import { analyzeVideoBrightness, isVideoTrackHealthy, getOptimalVideoConstraints, getDeviceType } from '@/utils/videoQuality';
+import { useIsMobile } from '@/hooks/use-mobile';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -43,6 +44,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const {
     toast
   } = useToast();
+  const isMobile = useIsMobile();
+  const [deviceType, setDeviceType] = useState<'mobile' | 'tablet' | 'laptop' | 'desktop'>(getDeviceType());
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -286,6 +289,26 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [user]);
 
+  // Detect device type changes on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const newDeviceType = getDeviceType();
+      if (newDeviceType !== deviceType) {
+        setDeviceType(newDeviceType);
+        console.log(`Device type changed to: ${newDeviceType}`);
+        
+        // Show notification about quality adjustment
+        toast({
+          title: "Camera optimized",
+          description: `Video quality adjusted for ${newDeviceType} device`
+        });
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [deviceType, toast]);
+
   // Persist brightness changes
   useEffect(() => {
     sessionStorage.setItem('stream_brightness', String(videoBrightness));
@@ -317,10 +340,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
     try {
-      console.log('Initializing camera with optimal constraints...');
+      const currentDeviceType = getDeviceType();
+      console.log(`Initializing camera for ${currentDeviceType} device...`);
       const savedDeviceId = deviceId || localStorage.getItem('preferred_cam_deviceId');
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: getOptimalVideoConstraints(savedDeviceId || undefined)
+        video: getOptimalVideoConstraints(savedDeviceId || undefined, currentDeviceType)
       });
 
       // Merge with existing audio track if available
