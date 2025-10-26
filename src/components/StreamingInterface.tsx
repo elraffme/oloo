@@ -81,6 +81,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     microphone: 'prompt' | 'granted' | 'denied';
   }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
+  const [viewerVideoStatus, setViewerVideoStatus] = useState<'loading' | 'playing' | 'error'>('loading');
 
   // LiveKit integration for WebRTC streaming
   const liveKit = useLiveKit({
@@ -688,6 +689,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const joinStream = async (stream: StreamData) => {
     try {
       console.log('🎬 Joining LiveKit stream:', stream.id);
+      setViewerVideoStatus('loading');
       
       // Increment viewer count
       const { error } = await supabase
@@ -712,39 +714,90 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsViewerMode(true);
 
       // Wait for video element to be mounted in DOM
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
 
-      // Subscribe to remote tracks
+      // Phase 1: Robust track subscription with retry mechanism
       if (liveKit.room && viewerVideoRef.current) {
-        console.log('✓ Setting up track subscription...');
+        console.log('✓ Checking for existing published tracks...');
         
+        let tracksAttached = false;
+        let retryCount = 0;
+        const maxRetries = 5;
+        
+        // Retry loop to handle timing issues
+        while (!tracksAttached && retryCount < maxRetries) {
+          liveKit.room.remoteParticipants.forEach(participant => {
+            console.log(`Checking participant: ${participant.identity}`);
+            
+            participant.trackPublications.forEach(publication => {
+              if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
+                // Set muted initially to avoid autoplay blocks
+                viewerVideoRef.current.muted = true;
+                publication.track.attach(viewerVideoRef.current);
+                tracksAttached = true;
+                console.log('✅ Attached existing video track from', participant.identity);
+                
+                // Try to play, then unmute after playback starts
+                viewerVideoRef.current.play()
+                  .then(() => {
+                    if (viewerVideoRef.current) {
+                      viewerVideoRef.current.muted = false;
+                      console.log('✓ Video playing with audio');
+                      setViewerVideoStatus('playing');
+                    }
+                  })
+                  .catch(error => {
+                    console.log('⚠️ Autoplay prevented:', error);
+                    setViewerVideoStatus('playing'); // Still set to playing, user can click
+                    toast({
+                      title: "Click to Play",
+                      description: "Click the video to start playback",
+                    });
+                  });
+              }
+              
+              if (publication.track && publication.kind === 'audio') {
+                console.log('✓ Audio track available from', participant.identity);
+              }
+            });
+          });
+          
+          if (!tracksAttached) {
+            retryCount++;
+            console.log(`No tracks found yet, retry ${retryCount}/${maxRetries}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        
+        if (!tracksAttached) {
+          console.log('⚠️ No existing tracks found, waiting for new publications...');
+          toast({
+            title: "Waiting for stream",
+            description: "Connecting to broadcaster...",
+          });
+        }
+        
+        // Set up listener for future track publications
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
-          console.log('📺 Subscribed to track:', track.kind, 'from', participant.identity);
+          console.log('📺 New track subscribed:', track.kind, 'from', participant.identity);
           
           if (viewerVideoRef.current && track.kind === 'video') {
+            viewerVideoRef.current.muted = true;
             track.attach(viewerVideoRef.current);
-            console.log('✓ Video track attached to viewer element');
+            console.log('✅ Video track attached to viewer element');
             
-            // Handle autoplay restrictions
-            viewerVideoRef.current.muted = false;
-            viewerVideoRef.current.play().catch(error => {
-              console.log('⚠️ Autoplay prevented, user interaction needed:', error);
-              toast({
-                title: "Click to Play",
-                description: "Click the video to start playback",
+            viewerVideoRef.current.play()
+              .then(() => {
+                if (viewerVideoRef.current) {
+                  viewerVideoRef.current.muted = false;
+                  setViewerVideoStatus('playing');
+                }
+              })
+              .catch(error => {
+                console.log('⚠️ Autoplay prevented:', error);
+                setViewerVideoStatus('playing');
               });
-            });
           }
-        });
-
-        // Also attach any existing tracks (in case they're already published)
-        liveKit.room.remoteParticipants.forEach(participant => {
-          participant.trackPublications.forEach(publication => {
-            if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
-              publication.track.attach(viewerVideoRef.current);
-              console.log('✓ Attached existing video track from', participant.identity);
-            }
-          });
         });
       }
       
@@ -861,14 +914,45 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Video Stream */}
           <div className="relative bg-black aspect-video">
+            {viewerVideoStatus === 'loading' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-white">Connecting to stream...</p>
+                </div>
+              </div>
+            )}
+            
             <video 
               ref={viewerVideoRef} 
               autoPlay 
               playsInline 
               className="w-full h-full object-cover"
-              onLoadedMetadata={() => console.log('✓ Viewer video loaded')}
-              onPlay={() => console.log('✓ Viewer video playing')}
+              onLoadedMetadata={() => {
+                console.log('✓ Viewer video loaded');
+                setViewerVideoStatus('playing');
+              }}
+              onPlay={() => {
+                console.log('✓ Viewer video playing');
+                setViewerVideoStatus('playing');
+              }}
+              onError={(e) => {
+                console.error('❌ Video error:', e);
+                setViewerVideoStatus('error');
+              }}
             />
+            
+            {viewerVideoStatus === 'error' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                <div className="text-center">
+                  <p className="text-white mb-4">Failed to load stream</p>
+                  <Button onClick={() => window.location.reload()}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            )}
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">

@@ -208,6 +208,20 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         console.log('📴 Track unsubscribed:', track.kind, 'from', participant.identity);
       });
 
+      // Phase 3: Enhanced logging for track publication
+      newRoom.on(RoomEvent.TrackPublished, (publication, participant) => {
+        console.log('📤 Track published:', publication.kind, 'from', participant.identity);
+        console.log('Publication details:', {
+          trackSid: publication.trackSid,
+          source: publication.source,
+          mimeType: publication.mimeType
+        });
+      });
+
+      newRoom.on(RoomEvent.TrackUnpublished, (publication, participant) => {
+        console.log('📤❌ Track unpublished:', publication.kind, 'from', participant.identity);
+      });
+
       console.log('🚀 Attempting to connect to:', tokenData.url);
       await newRoom.connect(tokenData.url, tokenData.token);
       setRoom(newRoom);
@@ -239,7 +253,7 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
     }
   }, [options, toast, retryCount]);
 
-  // Publish local tracks (for streamers)
+  // Publish local tracks (for streamers) - Phase 4: Enhanced verification
   const publishTracks = useCallback(async (mediaStream: MediaStream) => {
     if (!roomRef.current || !mediaStream) {
       throw new Error('Room not connected or no media stream available');
@@ -247,27 +261,46 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
 
     try {
       console.log('📤 Publishing local tracks...');
+      console.log('Available tracks:', {
+        video: mediaStream.getVideoTracks().length,
+        audio: mediaStream.getAudioTracks().length
+      });
       setIsPublishing(true);
 
       const videoTrack = mediaStream.getVideoTracks()[0];
       const audioTrack = mediaStream.getAudioTracks()[0];
 
       if (videoTrack) {
+        console.log('Video track settings:', videoTrack.getSettings());
         const lvt = new LocalVideoTrack(videoTrack);
-        await roomRef.current.localParticipant.publishTrack(lvt);
-        console.log('✓ Video track published');
+        const publication = await roomRef.current.localParticipant.publishTrack(lvt);
+        console.log('✅ Video track published with SID:', publication.trackSid);
+      } else {
+        console.warn('⚠️ No video track available to publish');
       }
 
       if (audioTrack) {
+        console.log('Audio track settings:', audioTrack.getSettings());
         const lat = new LocalAudioTrack(audioTrack);
-        await roomRef.current.localParticipant.publishTrack(lat);
-        console.log('✓ Audio track published');
+        const publication = await roomRef.current.localParticipant.publishTrack(lat);
+        console.log('✅ Audio track published with SID:', publication.trackSid);
+      } else {
+        console.warn('⚠️ No audio track available to publish');
       }
+
+      // Wait a moment and verify publications
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const publications = Array.from(roomRef.current.localParticipant.trackPublications.values());
+      console.log('📊 Total publications:', publications.length);
+      publications.forEach(pub => {
+        console.log(`  - ${pub.kind}: ${pub.trackSid} (${pub.mimeType})`);
+      });
 
       console.log('✅ All tracks published successfully');
       toast({
         title: "🎥 Live!",
-        description: "Your stream is now broadcasting",
+        description: "Your stream is now broadcasting to viewers",
       });
     } catch (error: any) {
       console.error('❌ Failed to publish tracks:', error);
