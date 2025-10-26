@@ -72,6 +72,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     type: string;
     x: number;
   }>>([]);
+  const [viewerVolumeMuted, setViewerVolumeMuted] = useState(true);
   const [videoBrightness, setVideoBrightness] = useState(() => {
     const saved = sessionStorage.getItem('stream_brightness');
     return saved ? Number(saved) : 100;
@@ -306,15 +307,52 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
       streamRef.current = stream;
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.muted = true; // Important: mute preview to avoid feedback
+        videoRef.current.muted = true;
+        
+        // Add event listeners for debugging
+        videoRef.current.onloadedmetadata = () => {
+          console.log('✓ Video metadata loaded', {
+            readyState: videoRef.current?.readyState,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight
+          });
+        };
+        
+        videoRef.current.onplaying = () => {
+          console.log('✓ Video is playing');
+        };
+        
+        videoRef.current.onerror = (e) => {
+          console.error('❌ Video element error:', e);
+        };
+        
+        // Ensure video plays
         try {
           await videoRef.current.play();
+          console.log('✓ Video playback started');
+          
+          // Verify video track is active
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            console.log('Video track state:', {
+              enabled: videoTrack.enabled,
+              muted: videoTrack.muted,
+              readyState: videoTrack.readyState
+            });
+          }
         } catch (playError) {
-          console.error('Error playing video:', playError);
+          console.error('❌ Error playing video:', playError);
+          toast({
+            title: "Video playback issue",
+            description: "Camera is on but preview may not display. Try refreshing.",
+            variant: "destructive"
+          });
         }
       }
+      
       setHasCameraPermission(true);
       setIsCameraOn(true);
       toast({
@@ -575,9 +613,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Failed to connect to LiveKit room');
       }
 
-      // Publish local media tracks
+      // Publish local media tracks and attach to preview
       console.log('Publishing media tracks...');
-      await liveKit.publishTracks(streamRef.current);
+      await liveKit.publishTracks(streamRef.current, videoRef.current || undefined);
 
       // Update stream record with LiveKit URL
       await supabase
@@ -718,6 +756,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (liveKit.room && viewerVideoRef.current) {
         console.log('✓ Setting up track subscription...');
         
+        // Ensure viewer video is muted for autoplay
+        viewerVideoRef.current.muted = true;
+        viewerVideoRef.current.playsInline = true;
+        viewerVideoRef.current.autoplay = true;
+        
+        // Check for existing tracks from remote participants
+        liveKit.room.remoteParticipants.forEach((participant) => {
+          console.log('Found remote participant:', participant.identity);
+          participant.trackPublications.forEach((publication) => {
+            if (publication.track && publication.track.kind === 'video' && viewerVideoRef.current) {
+              const videoTrack = publication.track as RemoteTrack;
+              videoTrack.attach(viewerVideoRef.current);
+              console.log('✓ Existing video track attached');
+              viewerVideoRef.current.play().catch(e => console.log('Autoplay prevented:', e));
+            }
+          });
+        });
+        
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
           console.log('📺 Subscribed to track:', track.kind, 'from', participant.identity);
           
@@ -725,8 +781,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             track.attach(viewerVideoRef.current);
             console.log('✓ Video track attached to viewer element');
             
-            // Handle autoplay restrictions
-            viewerVideoRef.current.muted = false;
+            // Handle autoplay with muted video
+            viewerVideoRef.current.muted = true;
             viewerVideoRef.current.play().catch(error => {
               console.log('⚠️ Autoplay prevented, user interaction needed:', error);
               toast({
@@ -789,6 +845,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setViewingStream(null);
       setIsViewerMode(false);
       setHasLiked(false);
+      setViewerVolumeMuted(true); // Reset for next stream
       
       toast({
         title: "Left stream",
@@ -869,6 +926,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               onLoadedMetadata={() => console.log('✓ Viewer video loaded')}
               onPlay={() => console.log('✓ Viewer video playing')}
             />
+            
+            {/* Unmute Button Overlay */}
+            {viewerVolumeMuted && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <Button 
+                  size="lg"
+                  className="pointer-events-auto bg-black/70 hover:bg-black/90 text-white backdrop-blur-sm"
+                  onClick={() => {
+                    if (viewerVideoRef.current) {
+                      viewerVideoRef.current.muted = false;
+                      setViewerVolumeMuted(false);
+                    }
+                  }}
+                >
+                  <Volume2 className="w-5 h-5 mr-2" />
+                  Tap to Unmute
+                </Button>
+              </div>
+            )}
             
             {/* Stream Overlay Info */}
             <div className="absolute top-4 left-4 flex items-center space-x-2">
@@ -1139,13 +1215,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       <input
                         id="brightness"
                         type="range"
-                        min="50"
+                        min="80"
                         max="150"
                         value={videoBrightness}
                         onChange={(e) => setVideoBrightness(Number(e.target.value))}
                         className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
                       />
-                      {videoBrightness < 80 && (
+                      {videoBrightness < 90 && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
                           ⚠️ Preview may look too dark
                         </p>
