@@ -52,41 +52,45 @@ const AppLayout = () => {
   };
   return <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
       {/* Top Navigation */}
-      <header className="bg-background/95 backdrop-blur-sm border-b border-border/20 sticky top-0 z-50">
+      <header className="bg-background border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
             {/* Logo */}
             
 
             {/* Center Navigation - All Screens */}
-            <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide">
+            <nav className="flex items-center space-x-2 overflow-x-auto scrollbar-hide">
               {navItems.map(item => {
               const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
               return <NavLink key={item.path} to={item.path}>
-                    <Button variant="default" size="sm" className="flex items-center space-x-1 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap">
-                      <item.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{item.label}</span>
+                    <Button 
+                      variant="default" 
+                      size="default" 
+                      className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap shadow-md hover:shadow-lg transition-shadow"
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="hidden sm:inline font-medium">{item.label}</span>
                     </Button>
                   </NavLink>;
             })}
             </nav>
 
             {/* Right Actions */}
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="flex items-center space-x-2">
               {/* Quick Actions */}
-              <Button variant="ghost" size="sm" className="flex">
-                <Search className="w-4 h-4" />
+              <Button variant="outline" size="default" className="flex shadow-sm hover:shadow-md transition-shadow">
+                <Search className="w-5 h-5" />
               </Button>
               
-              <Button variant="ghost" size="sm" className="relative">
-                <Zap className="w-4 h-4 text-accent" />
-                <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
+              <Button variant="outline" size="default" className="relative shadow-sm hover:shadow-md transition-shadow">
+                <Zap className="w-5 h-5 text-accent" />
+                <Badge variant="secondary" className="absolute -top-2 -right-2 h-6 w-6 text-xs p-0 flex items-center justify-center font-bold shadow-md">
                   0
                 </Badge>
               </Button>
 
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4" />
+              <Button variant="outline" size="default" onClick={handleSignOut} className="shadow-sm hover:shadow-md transition-shadow">
+                <LogOut className="w-5 h-5" />
               </Button>
             </div>
           </div>
