@@ -72,10 +72,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     type: string;
     x: number;
   }>>([]);
-  const [videoBrightness, setVideoBrightness] = useState(() => {
-    const saved = sessionStorage.getItem('stream_brightness');
-    return saved ? Number(saved) : 100;
-  });
   const [permissionStatus, setPermissionStatus] = useState<{
     camera: 'prompt' | 'granted' | 'denied';
     microphone: 'prompt' | 'granted' | 'denied';
@@ -278,64 +274,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     };
   }, [user]);
-
-  // Persist brightness changes
-  useEffect(() => {
-    sessionStorage.setItem('stream_brightness', String(videoBrightness));
-  }, [videoBrightness]);
-  // Helper: measure brightness from raw camera track
-  const measureAverageLumaFromTrack = async (track: MediaStreamTrack): Promise<number> => {
-    try {
-      // @ts-ignore - ImageCapture is experimental but widely supported
-      if (window.ImageCapture) {
-        // @ts-ignore
-        const ic = new ImageCapture(track);
-        // @ts-ignore
-        const bitmap = await ic.grabFrame();
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return 1; // fail open
-        ctx.drawImage(bitmap, 0, 0);
-        const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let sum = 0;
-        // Y' approx = 0.2126 R + 0.7152 G + 0.0722 B
-        for (let i = 0; i < data.length; i += 4) {
-          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-        }
-        const avg = sum / (data.length / 4) / 255; // 0..1
-        return avg;
-      }
-    } catch (err) {
-      console.warn('ImageCapture failed, using fallback:', err);
-    }
-
-    // Fallback: hidden video element
-    return new Promise<number>((resolve) => {
-      const hiddenVideo = document.createElement('video');
-      hiddenVideo.srcObject = new MediaStream([track]);
-      hiddenVideo.muted = true;
-      hiddenVideo.playsInline = true;
-      hiddenVideo.onloadeddata = () => {
-        const w = 160, h = 90;
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(1);
-        ctx.drawImage(hiddenVideo, 0, 0, w, h);
-        const { data } = ctx.getImageData(0, 0, w, h);
-        let sum = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-        }
-        const avg = sum / (data.length / 4) / 255;
-        resolve(avg);
-      };
-      hiddenVideo.play();
-    });
-  };
 
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
@@ -589,46 +527,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.log('✓ Video and audio tracks validated');
       setAudioDetected(true);
 
-      // Reset preview brightness for live streaming
-      setVideoBrightness(100);
-      sessionStorage.setItem('stream_brightness', '100');
-      toast({
-        title: "Preview brightness reset",
-        description: "Camera optimized for live streaming"
-      });
-
-      // Warm-up period + brightness check
+      // Brief warm-up period
       console.log('🔄 Camera warming up...');
-      await new Promise(r => setTimeout(r, 2500));
-
-      // Measure brightness from raw camera track
-      const luma = await measureAverageLumaFromTrack(videoTrack);
-      console.log('📊 Camera luma:', luma);
-      
-      if (luma < 0.2) {
-        // Try to improve capture via constraints
-        try {
-          await videoTrack.applyConstraints({
-            frameRate: { ideal: 30, max: 30 },
-            advanced: [
-              // @ts-ignore - best-effort hints
-              { exposureMode: 'continuous' },
-              // @ts-ignore
-              { whiteBalanceMode: 'continuous' },
-              // @ts-ignore
-              { focusMode: 'continuous' },
-            ],
-          } as MediaTrackConstraints);
-          console.log('✓ Applied low-light optimizations');
-        } catch (e) {
-          console.warn('Low-light constraint tuning not supported:', e);
-        }
-        toast({
-          title: "Low light detected",
-          description: "Increase room light or switch to back camera with a light source for better exposure.",
-          variant: "destructive"
-        });
-      }
+      await new Promise(r => setTimeout(r, 1000));
 
       // Create stream record in database
       const streamData = {
@@ -1311,7 +1212,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       playsInline 
                       className="w-full h-full object-cover" 
                       style={{ 
-                        filter: `brightness(${videoBrightness}%)`,
+                        filter: 'brightness(100%)',
                         visibility: 'visible',
                         opacity: 1
                       }}
@@ -1324,52 +1225,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         LIVE
                       </Badge>}
                   </div>
-
-                   {/* Brightness Control */}
-                  {isCameraOn && (
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor="brightness" className="text-xs">Preview Brightness</Label>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs max-w-xs">Adjusts your preview only. Viewers see the original brightness.</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{videoBrightness}%</span>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 px-2 text-xs"
-                            onClick={() => setVideoBrightness(100)}
-                          >
-                            Reset
-                          </Button>
-                        </div>
-                      </div>
-                      <input
-                        id="brightness"
-                        type="range"
-                        min="50"
-                        max="150"
-                        value={videoBrightness}
-                        onChange={(e) => setVideoBrightness(Number(e.target.value))}
-                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
-                      />
-                      {videoBrightness < 80 && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
-                          ⚠️ Preview may look too dark
-                        </p>
-                      )}
-                    </div>
-                  )}
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
