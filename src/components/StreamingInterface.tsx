@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, ThumbsUp, Laugh, Flower2, RefreshCw, Info, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +43,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     toast
   } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const viewerVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -77,9 +76,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     microphone: 'prompt' | 'granted' | 'denied';
   }>({ camera: 'prompt', microphone: 'prompt' });
   const [audioDetected, setAudioDetected] = useState(false);
-  const [viewerVideoStatus, setViewerVideoStatus] = useState<'loading' | 'playing' | 'error'>('loading');
+  const [viewerConnectionState, setViewerConnectionState] = useState<'connecting' | 'waiting' | 'playing' | 'error'>('connecting');
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'fair' | 'poor'>('good');
+  const [selectedStream, setSelectedStream] = useState<StreamData | null>(null);
+  const [viewerVideoRef, setViewerVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [viewerAudioRef, setViewerAudioRef] = useState<HTMLAudioElement | null>(null);
 
-  // LiveKit integration for WebRTC streaming
+  // LiveKit integration for WebRTC streaming (broadcaster)
   const liveKit = useLiveKit({
     onConnected: () => {
       console.log('✓ LiveKit connected successfully');
@@ -98,6 +102,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         description: error.message,
         variant: "destructive",
       });
+    },
+  });
+
+  // LiveKit integration for viewer
+  const {
+    room: viewerRoom,
+    connectionState: viewerLiveKitConnectionState,
+    connect: viewerConnect,
+    disconnect: viewerDisconnect,
+  } = useLiveKit({
+    onConnected: () => {
+      console.log('✓ Viewer connected to LiveKit room');
+      setViewerConnectionState('waiting');
+    },
+    onDisconnected: () => {
+      console.log('Viewer disconnected from LiveKit room');
+      setViewerConnectionState('error');
+    },
+    onError: (error) => {
+      console.error('Viewer LiveKit error:', error);
+      setViewerConnectionState('error');
+      toast({
+        title: "Connection error",
+        description: "Failed to connect. Retrying...",
+        variant: "destructive",
+      });
+    },
+    onConnectionQualityChanged: (quality) => {
+      setConnectionQuality(quality);
     },
   });
 
@@ -274,6 +307,52 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     };
   }, [user]);
+
+  // Camera warm-up and pre-flight checks when going live
+  useEffect(() => {
+    if (isStreaming && streamRef.current) {
+      console.log('📹 Camera warm-up: Starting 2.5s initialization period...');
+      
+      let checksPassed = true;
+      
+      // Check if video track is producing frames
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        console.log('📹 Camera settings:', settings);
+        
+        if (!settings.width || !settings.height) {
+          console.warn('⚠️ Camera may not be producing frames');
+          checksPassed = false;
+        }
+      }
+      
+      // Check if audio track is working
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (audioTrack && audioTrack.enabled) {
+        console.log('🎤 Microphone enabled and ready');
+      }
+      
+      const warmupTimer = setTimeout(() => {
+        if (checksPassed) {
+          console.log('✓ Camera warm-up complete - all checks passed');
+          toast({
+            title: "Stream ready!",
+            description: "Broadcasting to viewers"
+          });
+        } else {
+          console.warn('⚠️ Camera warm-up complete but some checks failed');
+          toast({
+            title: "Stream started",
+            description: "Camera may need adjustment",
+            variant: "destructive"
+          });
+        }
+      }, 2500);
+
+      return () => clearTimeout(warmupTimer);
+    }
+  }, [isStreaming]);
 
   const initializeCamera = async (deviceId?: string) => {
     setIsRequestingCamera(true);
@@ -687,7 +766,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const joinStream = async (stream: StreamData) => {
     try {
       console.log('🎬 Joining LiveKit stream:', stream.id);
-      setViewerVideoStatus('loading');
+      setViewerConnectionState('connecting');
       
       // Increment viewer count
       const { error } = await supabase
@@ -715,7 +794,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
 
       // Phase 1: Robust track subscription with retry mechanism
-      if (liveKit.room && viewerVideoRef.current) {
+      if (liveKit.room && viewerVideoRef) {
         console.log('✓ Checking for existing published tracks...');
         
         let tracksAttached = false;
@@ -728,32 +807,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             console.log(`Checking participant: ${participant.identity}`);
             
             participant.trackPublications.forEach(publication => {
-              if (publication.track && publication.kind === 'video' && viewerVideoRef.current) {
+              if (publication.track && publication.kind === 'video' && viewerVideoRef) {
                 // Set muted initially to avoid autoplay blocks
-                viewerVideoRef.current.muted = true;
-                publication.track.attach(viewerVideoRef.current);
+                viewerVideoRef.muted = true;
+                publication.track.attach(viewerVideoRef);
                 tracksAttached = true;
                 console.log('✅ Attached existing video track from', participant.identity);
                 
                 // Try to play, then unmute after playback starts
-                viewerVideoRef.current.play()
+                viewerVideoRef.play()
                   .then(() => {
-                    if (viewerVideoRef.current) {
-                      viewerVideoRef.current.muted = false;
+                    if (viewerVideoRef) {
+                      viewerVideoRef.muted = false;
                       console.log('✓ Video playing with audio');
-                      setViewerVideoStatus('playing');
+                      setViewerConnectionState('playing');
+                      setAutoplayBlocked(false);
                     }
                   })
                   .catch(error => {
                     console.log('⚠️ Autoplay prevented:', error);
-                    setViewerVideoStatus('playing'); // Still set to playing, user can click
-                    toast({
-                      title: "Click to Play",
-                      description: "Click the video to start playback",
-                    });
+                    setViewerConnectionState('waiting');
+                    setAutoplayBlocked(true);
                   });
               } else if (publication.kind === 'video' && !publication.track) {
-                // Ensure we subscribe to the video publication if not yet subscribed
                 // Ensure we subscribe to the video publication if not yet subscribed
                 void (async () => {
                   try { await publication.setSubscribed(true as any); }
@@ -792,21 +868,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         liveKit.room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
           console.log('📺 New track subscribed:', track.kind, 'from', participant.identity);
           
-          if (viewerVideoRef.current && track.kind === 'video') {
-            viewerVideoRef.current.muted = true;
-            track.attach(viewerVideoRef.current);
+          if (viewerVideoRef && track.kind === 'video') {
+            viewerVideoRef.muted = true;
+            track.attach(viewerVideoRef);
             console.log('✅ Video track attached to viewer element');
             
-            viewerVideoRef.current.play()
+            viewerVideoRef.play()
               .then(() => {
-                if (viewerVideoRef.current) {
-                  viewerVideoRef.current.muted = false;
-                  setViewerVideoStatus('playing');
+                if (viewerVideoRef) {
+                  viewerVideoRef.muted = false;
+                  setViewerConnectionState('playing');
+                  setAutoplayBlocked(false);
                 }
               })
               .catch(error => {
                 console.log('⚠️ Autoplay prevented:', error);
-                setViewerVideoStatus('playing');
+                setViewerConnectionState('waiting');
+                setAutoplayBlocked(true);
               });
           }
         });
@@ -936,43 +1014,75 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Video Stream */}
           <div className="relative bg-black aspect-video">
-            {viewerVideoStatus === 'loading' && (
+            {viewerConnectionState === 'connecting' && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                  <p className="text-white">Connecting to stream...</p>
+                <div className="text-center space-y-3">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-white text-lg font-medium">Connecting to stream...</p>
+                  <p className="text-white/60 text-sm">Please wait</p>
+                </div>
+              </div>
+            )}
+            
+            {viewerConnectionState === 'waiting' && !autoplayBlocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                <div className="text-center space-y-3">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-white text-lg font-medium">Waiting for video...</p>
+                  <p className="text-white/60 text-sm">Broadcaster is setting up</p>
+                </div>
+              </div>
+            )}
+            
+            {autoplayBlocked && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-20 cursor-pointer" onClick={() => {
+                if (viewerVideoRef) {
+                  viewerVideoRef.play()
+                    .then(() => {
+                      setAutoplayBlocked(false);
+                      setViewerConnectionState('playing');
+                    })
+                    .catch(err => console.error('Failed to play:', err));
+                }
+              }}>
+                <div className="text-center space-y-4 p-6">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
+                    <Play className="h-10 w-10 text-primary" />
+                  </div>
+                  <p className="text-white text-xl font-semibold">Click to Play</p>
+                  <p className="text-white/70 text-sm">Your browser requires interaction to play video</p>
                 </div>
               </div>
             )}
             
             <video 
-              ref={viewerVideoRef} 
+              ref={setViewerVideoRef} 
               autoPlay 
               playsInline 
               className="w-full h-full object-cover"
-              onClick={() => {
-                // User gesture to force playback if autoplay was blocked
-                try { viewerVideoRef.current?.play(); } catch {}
-              }}
               onLoadedMetadata={() => {
                 console.log('✓ Viewer video loaded');
-                setViewerVideoStatus('playing');
+                setViewerConnectionState('playing');
               }}
               onPlay={() => {
                 console.log('✓ Viewer video playing');
-                setViewerVideoStatus('playing');
+                setViewerConnectionState('playing');
+                setAutoplayBlocked(false);
               }}
               onError={(e) => {
                 console.error('❌ Video error:', e);
-                setViewerVideoStatus('error');
+                setViewerConnectionState('error');
               }}
             />
+            <audio ref={setViewerAudioRef} autoPlay />
             
-            {viewerVideoStatus === 'error' && (
+            {viewerConnectionState === 'error' && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-                <div className="text-center">
-                  <p className="text-white mb-4">Failed to load stream</p>
-                  <Button onClick={() => window.location.reload()}>
+                <div className="text-center space-y-4 p-6">
+                  <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+                  <p className="text-white text-lg font-medium">Connection Error</p>
+                  <p className="text-white/60 text-sm">Failed to connect to stream</p>
+                  <Button onClick={() => window.location.reload()} variant="outline" size="sm">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Retry
                   </Button>

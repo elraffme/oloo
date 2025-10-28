@@ -8,6 +8,7 @@ interface UseLiveKitOptions {
   onDisconnected?: () => void;
   onParticipantConnected?: (count: number) => void;
   onError?: (error: Error) => void;
+  onConnectionQualityChanged?: (quality: 'excellent' | 'good' | 'fair' | 'poor') => void;
 }
 
 export const useLiveKit = (options: UseLiveKitOptions = {}) => {
@@ -200,17 +201,16 @@ export const useLiveKit = (options: UseLiveKitOptions = {}) => {
         });
       });
 
-      newRoom.on(RoomEvent.ConnectionQualityChanged, (quality, participant) => {
-        const identity = participant?.identity || 'local';
-        console.log(`📊 Connection quality: ${quality} for ${identity}`);
-        
-        if (quality === 'poor') {
-          toast({
-            title: "Poor Connection",
-            description: "Your connection quality is poor. Video may be affected.",
-            variant: "destructive",
-          });
-        }
+      // Monitor connection quality
+      room.on(RoomEvent.ConnectionQualityChanged, (quality: any) => {
+        console.log('Connection quality changed:', quality);
+        const qualityMap: Record<string, 'excellent' | 'good' | 'fair' | 'poor'> = {
+          excellent: 'excellent',
+          good: 'good',
+          poor: 'fair',
+          lost: 'poor'
+        };
+        options.onConnectionQualityChanged?.(qualityMap[quality] || 'good');
       });
 
       newRoom.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication, participant: RemoteParticipant) => {
