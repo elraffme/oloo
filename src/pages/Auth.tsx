@@ -11,8 +11,6 @@ import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
@@ -20,8 +18,6 @@ const passwordSchema = z.string().min(10, 'Password must be at least 10 characte
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
@@ -201,111 +197,23 @@ const Auth = () => {
           try {
             const { data: session } = await supabase.auth.getSession();
             if (session?.session?.user) {
-              // Calculate age from birthDate
-              let age = 25; // default
-              if (onboardingData.birthDate) {
-                const birth = new Date(onboardingData.birthDate);
-                const today = new Date();
-                age = today.getFullYear() - birth.getFullYear();
-                const monthDiff = today.getMonth() - birth.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-                  age--;
-                }
-              }
-
-              // Parse height
-              let heightInCm = null;
-              if (onboardingData.height && onboardingData.height.includes("'")) {
-                const parts = onboardingData.height.split("'");
-                const feet = parseInt(parts[0]) || 0;
-                const inches = parseInt(parts[1]) || 0;
-                heightInCm = Math.round(feet * 30.48 + inches * 2.54);
-              }
-
-              // Parse interests from hobbies
-              const interests = onboardingData.hobbies 
-                ? onboardingData.hobbies.split(',').map((h: string) => h.trim()).filter((h: string) => h)
-                : [];
-
-              // Build bio from hobbies and personality
-              const bio = onboardingData.hobbies || onboardingData.personality
-                ? `${onboardingData.hobbies || ''}\n\nPersonality: ${onboardingData.personality || ''}`.trim()
-                : formData.bio || 'Hello, I\'m new to Òloo!';
-
-              // Upload photos if they exist
-              const profilePhotoUrls: string[] = [];
-              if (onboardingData.photoDataUrls && onboardingData.photoDataUrls.length > 0) {
-                toast({
-                  title: "Uploading photos...",
-                  description: `Uploading ${onboardingData.photoDataUrls.length} photo(s)`,
-                });
-
-                for (let i = 0; i < onboardingData.photoDataUrls.length; i++) {
-                  try {
-                    const dataUrl = onboardingData.photoDataUrls[i];
-                    const base64Data = dataUrl.split(',')[1];
-                    const mimeType = dataUrl.split(';')[0].split(':')[1];
-                    const fileExt = mimeType.split('/')[1];
-                    const fileName = `${session.session.user.id}/${Date.now()}_${i}.${fileExt}`;
-                    
-                    // Convert base64 to blob
-                    const byteCharacters = atob(base64Data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let j = 0; j < byteCharacters.length; j++) {
-                      byteNumbers[j] = byteCharacters.charCodeAt(j);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: mimeType });
-                    
-                    const { error: uploadError } = await supabase.storage
-                      .from('profile-photos')
-                      .upload(fileName, blob, {
-                        contentType: mimeType,
-                        upsert: false
-                      });
-                    
-                    if (!uploadError) {
-                      const { data: { publicUrl } } = supabase.storage
-                        .from('profile-photos')
-                        .getPublicUrl(fileName);
-                      profilePhotoUrls.push(publicUrl);
-                    } else {
-                      console.error('Photo upload error:', uploadError);
-                    }
-                  } catch (error) {
-                    console.error('Photo processing error:', error);
-                  }
-                }
-
-                if (profilePhotoUrls.length > 0) {
-                  toast({
-                    title: "Photos uploaded!",
-                    description: `Successfully uploaded ${profilePhotoUrls.length} photo(s)`,
-                  });
-                }
-              }
-
               await supabase
                 .from('profiles')
                 .update({
-                  display_name: onboardingData.name || '',
-                  age: age,
-                  bio: bio,
-                  location: formData.location || 'Not specified',
-                  height_cm: heightInCm,
+                  display_name: onboardingData.displayName || '',
+                  age: onboardingData.age || 0,
+                  bio: onboardingData.bio || formData.bio || 'Hello, I\'m new to Òloo!',
+                  height_cm: onboardingData.height || null,
                   gender: onboardingData.gender || null,
-                  education: onboardingData.education || 'Not specified',
-                  occupation: onboardingData.occupation || 'Not specified',
-                  interests: interests,
-                  relationship_goals: onboardingData.lookingFor || 'Getting to know people',
-                  profile_photos: profilePhotoUrls,
-                  avatar_url: profilePhotoUrls[0] || null,
+                  interests: onboardingData.interests || [],
+                  relationship_goals: onboardingData.relationshipGoal || null,
+                  profile_photos: onboardingData.photos || [],
+                  prompt_responses: onboardingData.promptResponses || {}
                 })
                 .eq('user_id', session.session.user.id);
               
               // Clear onboarding data from localStorage
               localStorage.removeItem('onboardingData');
-              console.log('Onboarding data saved to profile');
             }
           } catch (error) {
             console.error('Error saving profile:', error);
@@ -365,7 +273,7 @@ const Auth = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('back')}
+            Back
           </Button>
           
           <div className="heart-logo mx-auto mb-4">
@@ -385,10 +293,10 @@ const Auth = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {t('createAccount')}
+                Create Account
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                {t('meaningfulConnections')}
+                Experience meaningful connections rooted in culture and heritage
               </CardDescription>
             </CardHeader>
             
@@ -399,7 +307,7 @@ const Auth = () => {
               <div className="relative z-10">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">{t('email')}</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       name="email"
@@ -417,7 +325,7 @@ const Auth = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="location">{t('location')}</Label>
+                    <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
                       name="location"
@@ -429,7 +337,7 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">{t('passwordMinimum')}</Label>
+                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
                     <Input
                       id="password"
                       name="password"
@@ -437,7 +345,7 @@ const Auth = () => {
                       value={formData.password}
                       onChange={handleInputChange}
                       onBlur={() => formData.password && validatePassword(formData.password)}
-                      placeholder={t('createStrongPassword')}
+                      placeholder="Create a strong password"
                       className={passwordError ? 'border-red-500' : ''}
                       required
                       minLength={10}
@@ -455,14 +363,14 @@ const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      placeholder={t('confirmYourPassword')}
+                      placeholder="Confirm your password"
                       className={passwordError && formData.confirmPassword ? 'border-red-500' : ''}
                       required
                       minLength={10}

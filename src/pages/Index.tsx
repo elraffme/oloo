@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import SwipeInterface from "@/components/SwipeInterface";
@@ -10,7 +9,6 @@ import MembershipTiers from "@/components/MembershipTiers";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const { t } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +24,7 @@ const Index = () => {
           <div className="w-16 h-16 romantic-gradient rounded-full flex items-center justify-center mb-4 mx-auto animate-pulse">
             <span className="text-primary-foreground font-bold text-xl">Ò</span>
           </div>
-          <p className="text-muted-foreground">{t('loading')}</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -57,13 +55,13 @@ const Index = () => {
               </span>
             </div>
             <p className="text-muted-foreground mb-6">
-              {t('premiumDatingExperience')}
+              Premium dating experience for sophisticated connections
             </p>
             <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-              <Link to="/privacy" className="hover:text-primary transition-colors">{t('privacyPolicy')}</Link>
-              <Link to="/terms" className="hover:text-primary transition-colors">{t('termsOfService')}</Link>
-              <Link to="/cookies" className="hover:text-primary transition-colors">{t('cookiesPolicy')}</Link>
-              <Link to="/about" className="hover:text-primary transition-colors">{t('about')}</Link>
+              <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
+              <Link to="/cookies" className="hover:text-primary transition-colors">Cookies Policy</Link>
+              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
             </div>
           </div>
         </div>

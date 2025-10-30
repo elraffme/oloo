@@ -2,56 +2,53 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Heart, Zap, Eye, Star, Check } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 const Premium = () => {
-  const { t } = useLanguage();
-  
   const plans = [
     {
-      name: t('silver'),
+      name: "Silver",
       price: "$9.99",
-      period: t('perMonth'),
-      description: t('enhancedDating'),
+      period: "/month",
+      description: "Enhanced dating experience",
       features: [
-        t('unlimitedLikes'),
-        t('seeWhoLikedYou'),
-        `5 ${t('superLikesPerDay')}`,
-        `1 ${t('boostPerMonth')}`,
-        t('noAds')
+        "Unlimited likes",
+        "See who liked you",
+        "5 Super Likes per day",
+        "1 Boost per month",
+        "No ads"
       ],
       color: "silver",
       icon: Star
     },
     {
-      name: t('gold'),
+      name: "Gold",
       price: "$19.99",
-      period: t('perMonth'),
-      description: t('premiumCultural'),
+      period: "/month",
+      description: "Premium cultural connections",
       features: [
-        t('everythingInSilver'),
-        t('unlimitedSuperLikes'),
-        `5 ${t('boostsPerMonth')}`,
-        t('priorityLikes'),
-        t('readReceipts'),
-        t('culturalMatchFilter')
+        "Everything in Silver",
+        "Unlimited Super Likes",
+        "5 Boosts per month",
+        "Priority likes",
+        "Read receipts",
+        "Cultural match filter"
       ],
       color: "gold",
       icon: Crown,
       popular: true
     },
     {
-      name: t('platinum'),
+      name: "Platinum",
       price: "$34.99",
-      period: t('perMonth'),
-      description: t('eliteDating'),
+      period: "/month",
+      description: "Elite dating experience",
       features: [
-        t('everythingInGold'),
-        t('unlimitedBoosts'),
-        t('messageBeforeMatching'),
-        t('prioritySupport'),
-        t('exclusiveEvents'),
-        t('advancedFilters')
+        "Everything in Gold",
+        "Unlimited Boosts",
+        "Message before matching",
+        "Priority customer support",
+        "Exclusive events access",
+        "Advanced filters"
       ],
       color: "platinum",
       icon: Zap
@@ -67,10 +64,10 @@ const Premium = () => {
             <span className="logo-text">Ò</span>
           </div>
           <h1 className="text-4xl font-bold font-afro-heading mb-4">
-            {t('upgradeYourLoveLife')}
+            Upgrade Your Love Life
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('premiumDesc')}
+            Unlock premium features and find meaningful connections with people who share your cultural values
           </p>
         </div>
 
@@ -82,7 +79,7 @@ const Premium = () => {
               <Card key={index} className={`membership-card ${plan.color} relative ${plan.popular ? 'scale-105' : ''}`}>
                 {plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground">
-                    {t('mostPopular')}
+                    Most Popular
                   </Badge>
                 )}
                 <CardHeader className="text-center">
@@ -106,7 +103,7 @@ const Premium = () => {
                     ))}
                   </ul>
                   <Button className="w-full bg-white/20 hover:bg-white/30 text-current border-0">
-                    {t('choose')} {plan.name}
+                    Choose {plan.name}
                   </Button>
                 </CardContent>
               </Card>
@@ -118,30 +115,30 @@ const Premium = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <div className="text-center cultural-card p-6">
             <Heart className="w-8 h-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">{t('unlimitedLikes')}</h3>
+            <h3 className="font-semibold mb-2">Unlimited Likes</h3>
             <p className="text-sm text-muted-foreground">
-              {t('neverRunOut')}
+              Never run out of chances to connect
             </p>
           </div>
           <div className="text-center cultural-card p-6">
             <Eye className="w-8 h-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">{t('seeWhoLikedYou')}</h3>
+            <h3 className="font-semibold mb-2">See Who Likes You</h3>
             <p className="text-sm text-muted-foreground">
-              {t('noMoreGuessing')}
+              No more guessing - see your admirers
             </p>
           </div>
           <div className="text-center cultural-card p-6">
             <Zap className="w-8 h-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">{t('superBoosts')}</h3>
+            <h3 className="font-semibold mb-2">Super Boosts</h3>
             <p className="text-sm text-muted-foreground">
-              {t('getMoreViews')}
+              Get 10x more profile views
             </p>
           </div>
           <div className="text-center cultural-card p-6">
             <Star className="w-8 h-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">{t('culturalFilters')}</h3>
+            <h3 className="font-semibold mb-2">Cultural Filters</h3>
             <p className="text-sm text-muted-foreground">
-              {t('findSharedHeritage')}
+              Find matches who share your heritage
             </p>
           </div>
         </div>
@@ -149,22 +146,22 @@ const Premium = () => {
         {/* FAQ */}
         <div className="text-center">
           <h2 className="text-2xl font-bold font-afro-heading mb-6">
-            {t('faq')}
+            Frequently Asked Questions
           </h2>
           <div className="max-w-2xl mx-auto space-y-4">
             <Card className="cultural-card">
               <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">{t('canCancelAnytime')}</h3>
+                <h3 className="font-semibold mb-2">Can I cancel anytime?</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('cancelDesc')}
+                  Yes, you can cancel your subscription at any time. No questions asked.
                 </p>
               </CardContent>
             </Card>
             <Card className="cultural-card">
               <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">{t('paymentsSecure')}</h3>
+                <h3 className="font-semibold mb-2">Are payments secure?</h3>
                 <p className="text-sm text-muted-foreground">
-                  {t('paymentsSecureDesc')}
+                  Absolutely. We use industry-standard encryption to protect your payment information.
                 </p>
               </CardContent>
             </Card>

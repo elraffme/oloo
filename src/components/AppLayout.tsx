@@ -117,13 +117,13 @@ const AppLayout = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-2 pt-16 md:pt-2 max-h-[calc(100vh-4rem)] overflow-auto">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <Outlet />
       </main>
 
-      {/* Top Navigation - Mobile */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-b border-border z-50">
-        <div className="grid grid-cols-4 h-14">
+      {/* Bottom Navigation - Mobile */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border">
+        <div className="grid grid-cols-4 h-16">
           {navItems.map((item) => {
             const isActive = item.end 
               ? location.pathname === item.path

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
-import {
+import { 
   Edit, 
   Settings, 
   Shield, 
@@ -34,9 +31,6 @@ import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
-  const { toast } = useToast();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [stats, setStats] = useState({
@@ -104,30 +98,12 @@ const Profile = () => {
   };
 
   const getMainProfilePhoto = () => {
-    if (profile?.profile_photos && profile.profile_photos.length > 0) {
-      const mainIndex = profile.main_profile_photo_index || 0;
-      return profile.profile_photos[mainIndex] || profile.profile_photos[0];
+    if (!profile?.profile_photos || profile.profile_photos.length === 0) {
+      return profile?.avatar_url;
     }
     
-    // Always return avatar_url or a default placeholder
-    return profile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (profile?.user_id || 'default');
-  };
-
-  const getBioWithoutPersonality = () => {
-    if (!profile?.bio) return '';
-    const bioText = profile.bio;
-    const personalityIndex = bioText.indexOf('\n\nPersonality:');
-    if (personalityIndex !== -1) {
-      return bioText.substring(0, personalityIndex).trim();
-    }
-    return bioText;
-  };
-
-  const getPersonality = () => {
-    if (!profile?.bio) return null;
-    const bioText = profile.bio;
-    const personalityMatch = bioText.match(/Personality:\s*(.+)/);
-    return personalityMatch ? personalityMatch[1].trim() : null;
+    const mainIndex = profile.main_profile_photo_index || 0;
+    return profile.profile_photos[mainIndex] || profile.profile_photos[0];
   };
 
   const handleMainPhotoUpdate = (newIndex: number) => {
@@ -242,7 +218,7 @@ const Profile = () => {
               <span className="logo-text">Ò</span>
             </div>
           </div>
-          <p className="text-muted-foreground">{t('loading')}</p>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     );
@@ -253,18 +229,13 @@ const Profile = () => {
       {/* Profile Header */}
       <Card className="cultural-card">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-6">
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              {/* Profile Image */}
-              <div className="relative">
-                <Avatar className="w-32 h-32">
-                  <AvatarImage 
-                    src={getMainProfilePhoto()} 
-                    alt={profile?.display_name}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="text-2xl bg-primary/10">
-                    {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
+          <div className="flex flex-col md:flex-row items-start gap-6">
+            {/* Profile Image */}
+            <div className="relative">
+              <Avatar className="w-32 h-32">
+                <AvatarImage src={getMainProfilePhoto()} alt={profile?.display_name} />
+                <AvatarFallback className="text-2xl">
+                  {profile?.display_name?.[0] || user?.email?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <Button
@@ -275,27 +246,6 @@ const Profile = () => {
               </Button>
             </div>
 
-            {/* Photo Gallery */}
-            {profile?.profile_photos && profile.profile_photos.length > 0 && (
-              <div className="col-span-full w-full">
-                <h3 className="text-sm font-semibold mb-2">
-                  Photos ({profile.profile_photos.length})
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {profile.profile_photos.map((photo, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10 border border-border">
-                      <img 
-                        src={photo} 
-                        alt={`${profile.display_name} photo ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => window.open(photo, '_blank')}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Profile Info */}
             <div className="flex-1 space-y-4">
               <div className="flex items-center justify-between">
@@ -303,22 +253,22 @@ const Profile = () => {
                   {isEditing ? (
                     <div className="space-y-3">
                       <div>
-                        <Label htmlFor="display_name">{t('displayName')}</Label>
+                        <Label htmlFor="display_name">Display Name</Label>
                         <Input
                           id="display_name"
                           value={editForm.display_name}
                           onChange={(e) => handleInputChange('display_name', e.target.value)}
-                          placeholder={t('displayName')}
+                          placeholder="Your display name"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="age">{t('age')}</Label>
+                        <Label htmlFor="age">Age</Label>
                         <Input
                           id="age"
                           type="number"
                           value={editForm.age}
                           onChange={(e) => handleInputChange('age', parseInt(e.target.value) || 0)}
-                          placeholder={t('age')}
+                          placeholder="Your age"
                           min="18"
                           max="100"
                         />
@@ -353,16 +303,16 @@ const Profile = () => {
                 {isEditing ? (
                   <div className="flex gap-2">
                     <Button onClick={handleSave} size="sm">
-                      {t('save')}
+                      Save
                     </Button>
                     <Button variant="outline" onClick={handleEditToggle} size="sm">
-                      {t('cancel')}
+                      Cancel
                     </Button>
                   </div>
                 ) : (
                   <Button variant="outline" onClick={handleEditToggle}>
                     <Edit className="w-4 h-4 mr-2" />
-                    {t('editProfile')}
+                    Edit Profile
                   </Button>
                 )}
               </div>
@@ -371,39 +321,39 @@ const Profile = () => {
               {isEditing ? (
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="location">{t('location')}</Label>
+                    <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
                       value={editForm.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      placeholder={t('location')}
+                      placeholder="Your location"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="occupation">{t('occupation')}</Label>
+                    <Label htmlFor="occupation">Occupation</Label>
                     <Input
                       id="occupation"
                       value={editForm.occupation}
                       onChange={(e) => handleInputChange('occupation', e.target.value)}
-                      placeholder={t('occupation')}
+                      placeholder="Your occupation"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="education">{t('education')}</Label>
+                    <Label htmlFor="education">Education</Label>
                     <Input
                       id="education"
                       value={editForm.education}
                       onChange={(e) => handleInputChange('education', e.target.value)}
-                      placeholder={t('education')}
+                      placeholder="Your education"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="relationship_goals">{t('relationshipGoals')}</Label>
+                    <Label htmlFor="relationship_goals">Relationship Goals</Label>
                     <Input
                       id="relationship_goals"
                       value={editForm.relationship_goals}
                       onChange={(e) => handleInputChange('relationship_goals', e.target.value)}
-                      placeholder={t('relationshipGoals')}
+                      placeholder="What are you looking for?"
                     />
                   </div>
                 </div>
@@ -429,53 +379,24 @@ const Profile = () => {
                       <span>{profile.education}</span>
                     </div>
                   )}
-
-                  {profile?.relationship_goals && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Heart className="w-4 h-4 text-muted-foreground" />
-                      <span>{profile.relationship_goals}</span>
-                    </div>
-                  )}
-
-                  {profile?.height_cm && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">📏</span>
-                      <span>{profile.height_cm} cm ({Math.round(profile.height_cm / 2.54)} inches)</span>
-                    </div>
-                  )}
-
-                  {profile?.languages && profile.languages.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-muted-foreground">🗣️</span>
-                      <span>{profile.languages.join(', ')}</span>
-                    </div>
-                  )}
                 </div>
               )}
 
               {isEditing ? (
                 <div>
-                  <Label htmlFor="bio">{t('bio')}</Label>
+                  <Label htmlFor="bio">Bio</Label>
                   <Textarea
                     id="bio"
                     value={editForm.bio}
                     onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder={t('bio')}
+                    placeholder="Tell us about yourself..."
                     rows={3}
                   />
                 </div>
               ) : (
-                getBioWithoutPersonality() && (
-                  <p className="text-sm leading-relaxed">{getBioWithoutPersonality()}</p>
+                profile?.bio && (
+                  <p className="text-sm leading-relaxed">{profile.bio}</p>
                 )
-              )}
-
-              {/* Personality */}
-              {!isEditing && getPersonality() && (
-                <div className="flex items-start gap-2">
-                  <span className="text-muted-foreground text-sm font-semibold">Personality:</span>
-                  <p className="text-sm leading-relaxed">{getPersonality()}</p>
-                </div>
               )}
 
               {/* Interests */}
@@ -517,28 +438,6 @@ const Profile = () => {
                 )
               )}
             </div>
-            </div>
-
-            {/* Photo Gallery */}
-            {profile?.profile_photos && profile.profile_photos.length > 0 && (
-              <div className="w-full">
-                <h3 className="text-sm font-semibold mb-2">
-                  Photos ({profile.profile_photos.length})
-                </h3>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                  {profile.profile_photos.map((photo, index) => (
-                    <div key={index} className="aspect-square rounded-lg overflow-hidden bg-accent/10 border border-border">
-                      <img 
-                        src={photo} 
-                        alt={`${profile.display_name} photo ${index + 1}`}
-                        className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => window.open(photo, '_blank')}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -555,10 +454,7 @@ const Profile = () => {
         <TabsContent value="overview" className="space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/app')}
-            >
+            <Card>
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Heart className="w-5 h-5 text-red-500" />
@@ -568,10 +464,7 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/app/messages')}
-            >
+            <Card>
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Users className="w-5 h-5 text-primary" />
@@ -581,10 +474,7 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/app/streaming')}
-            >
+            <Card>
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Video className="w-5 h-5 text-blue-500" />
@@ -594,10 +484,7 @@ const Profile = () => {
               </CardContent>
             </Card>
             
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/app/premium')}
-            >
+            <Card>
               <CardContent className="p-4 text-center">
                 <div className="flex items-center justify-center mb-2">
                   <Gift className="w-5 h-5 text-gold" />
@@ -749,22 +636,9 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button 
-                  className="flex-1"
-                  onClick={() => {
-                    toast({
-                      title: "Settings saved",
-                      description: "Your account settings have been updated successfully."
-                    });
-                  }}
-                >
-                  Save Changes
-                </Button>
-                <Button variant="destructive" className="flex-1">
-                  Delete Account
-                </Button>
-              </div>
+              <Button variant="destructive" className="w-full">
+                Delete Account
+              </Button>
             </CardContent>
           </Card>
           {/* Secure Contact Information */}

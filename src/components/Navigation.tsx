@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 
 const Navigation = () => {
@@ -13,7 +12,6 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { t } = useLanguage();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -63,7 +61,7 @@ const Navigation = () => {
             className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
           >
             <span className="nsibidi-symbol">◊</span>
-            {t('discover')}
+            Discover
           </button>
           <button 
             onClick={() => navigate('/app/messages')}
@@ -71,7 +69,7 @@ const Navigation = () => {
           >
             <MessageCircle className="w-4 h-4" />
             <span className="nsibidi-symbol">◊</span>
-            {t('messages')}
+            Messages
           </button>
           <button 
             onClick={() => navigate('/app/streaming')}
@@ -79,7 +77,7 @@ const Navigation = () => {
           >
             <Video className="w-4 h-4" />
             <span className="nsibidi-symbol">⬟</span>
-            {t('liveStream')}
+            Live Stream
           </button>
           <button
             onClick={() => navigate('/verification')}
@@ -87,7 +85,7 @@ const Navigation = () => {
           >
             <Shield className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
-            {t('getVerified')}
+            Get Verified
           </button>
           <button 
             onClick={() => navigate('/app/premium')}
@@ -95,7 +93,7 @@ const Navigation = () => {
           >
             <Crown className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
-            {t('premium')}
+            Premium
           </button>
         </div>
 
@@ -105,17 +103,17 @@ const Navigation = () => {
             <>
               <span className="text-sm text-muted-foreground nsibidi-text">
                 <span className="nsibidi-symbol mr-1">⟡</span>
-                {t('welcome')}, {user.user_metadata?.display_name || user.email}
+                Welcome, {user.user_metadata?.display_name || user.email}
               </span>
               <Button variant="ghost" onClick={handleSignOut} className="font-afro-body">
                 <LogOut className="w-4 h-4 mr-2" />
-                {t('signOut')}
+                Sign Out
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" onClick={() => navigate('/auth')} className="font-afro-body">
-                {t('signIn')}
+                Sign In
               </Button>
               <Button 
                 variant="default" 
@@ -123,7 +121,7 @@ const Navigation = () => {
                 onClick={() => navigate('/auth')}
               >
                 <span className="nsibidi-symbol mr-1">♦</span>
-                {t('joinNow')}
+                Join Now
               </Button>
             </>
           )}
@@ -144,7 +142,7 @@ const Navigation = () => {
                 onClick={() => scrollToSection('culture')}
               >
                 <span className="nsibidi-symbol mr-2">◊</span>
-                {t('culture')}
+                Culture
               </Button>
               <Button
                 variant="ghost"
@@ -152,7 +150,7 @@ const Navigation = () => {
                 onClick={() => scrollToSection('discover')}
               >
                 <span className="nsibidi-symbol mr-2">◊</span>
-                {t('discover')}
+                Discover
               </Button>
               <Button
                 variant="ghost"
@@ -160,7 +158,7 @@ const Navigation = () => {
                 onClick={() => scrollToSection('collective')}
               >
                 <span className="nsibidi-symbol mr-2">◊</span>
-                {t('collective')}
+                Collective
               </Button>
               <Button
                 variant="ghost"
@@ -183,7 +181,7 @@ const Navigation = () => {
                   }}
                 >
                   <LogOut className="w-5 h-5 mr-2" />
-                  {t('signOut')}
+                  Sign Out
                 </Button>
               ) : (
                 <>
@@ -195,7 +193,7 @@ const Navigation = () => {
                       setIsMobileMenuOpen(false);
                     }}
                   >
-                    {t('signIn')}
+                    Sign In
                   </Button>
                   <Button
                     variant="default"
@@ -206,7 +204,7 @@ const Navigation = () => {
                     }}
                   >
                     <span className="nsibidi-symbol mr-1">♦</span>
-                    {t('joinNow')}
+                    Join Now
                   </Button>
                 </>
               )}

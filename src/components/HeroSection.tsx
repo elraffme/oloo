@@ -1,10 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Heart, Play, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-dating.jpg";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 const HeroSection = () => {
-  const { t } = useLanguage();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
       {/* Background Image with White Overlay */}
@@ -46,18 +44,19 @@ const HeroSection = () => {
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-afro-heading mb-6 leading-tight">
           <span className="nsibidi-gradient bg-clip-text text-transparent">
             <span className="nsibidi-symbol text-3xl md:text-4xl">◊ </span>
-            {t('premiumDating')}
+            Premium Dating
             <span className="nsibidi-symbol text-3xl md:text-4xl"> ◊</span>
           </span>
           <br />
-          <span className="text-foreground font-afro-display">{t('redefined')}</span>
+          <span className="text-foreground font-afro-display">Redefined</span>
           <div className="text-2xl md:text-3xl font-nsibidi text-primary/70 mt-2">
-            ⟡ ◈ ⬟ {t('culturalConnections')} ⬟ ◈ ⟡
+            ⟡ ◈ ⬟ Cultural Connections ⬟ ◈ ⟡
           </div>
         </h1>
         
         <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed font-afro-body">
-          {t('experienceAfrocentricLuxury')}
+          Experience Afrocentric luxury dating with vibrant cultural connections, 
+          exclusive streaming features, and meaningful relationships rooted in heritage.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -69,7 +68,7 @@ const HeroSection = () => {
               <span className="text-primary-foreground font-bold text-xs">Ò</span>
             </div>
             <span className="nsibidi-symbol mr-2">♦</span>
-            {t('startMatching')}
+            Start Matching
           </Button>
           
           <Button 
@@ -79,7 +78,7 @@ const HeroSection = () => {
           >
             <Play className="w-5 h-5 mr-2" />
             <span className="nsibidi-symbol mr-2">⬟</span>
-            {t('watchDemo')}
+            Watch Demo
           </Button>
         </div>
 
@@ -88,19 +87,19 @@ const HeroSection = () => {
           <div className="text-center cultural-card p-3 rounded-xl">
             <div className="text-2xl md:text-3xl font-afro-heading text-primary">50K+</div>
             <div className="text-sm text-muted-foreground font-afro-body">
-              <span className="nsibidi-symbol">◊</span> {t('culturalMembers')}
+              <span className="nsibidi-symbol">◊</span> Cultural Members
             </div>
           </div>
           <div className="text-center cultural-card p-3 rounded-xl">
             <div className="text-2xl md:text-3xl font-afro-heading text-accent">95%</div>
             <div className="text-sm text-muted-foreground font-afro-body">
-              <span className="nsibidi-symbol">◈</span> {t('matchSuccess')}
+              <span className="nsibidi-symbol">◈</span> Match Success
             </div>
           </div>
           <div className="text-center cultural-card p-3 rounded-xl">
             <div className="text-2xl md:text-3xl font-afro-heading text-primary-glow">24/7</div>
             <div className="text-sm text-muted-foreground font-afro-body">
-              <span className="nsibidi-symbol">⟡</span> {t('liveStreamingTitle')}
+              <span className="nsibidi-symbol">⟡</span> Live Streaming
             </div>
           </div>
         </div>

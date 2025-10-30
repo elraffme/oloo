@@ -1,24 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "@/contexts/LanguageContext";
-
 const CookiesPolicy = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
   return <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto px-6 py-8">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {t('back')}
+          Back
         </Button>
 
-        <h1 className="text-4xl font-bold mb-2">{t('cookiesPolicyTitle')}</h1>
-        <p className="text-muted-foreground mb-8">{t('lastUpdated')}: {new Date().toLocaleDateString()}</p>
+        <h1 className="text-4xl font-bold mb-2">Cookies Policy</h1>
+        <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
 
         <div className="space-y-8 text-foreground">
           <section>
-            <h2 className="font-semibold mb-4 text-xl">1. What Are Cookies</h2>
+            <h2 className="text-2xl font-semibold mb-4">1. What Are Cookies</h2>
             <p className="leading-relaxed">
               Cookies are small text files stored on your device when you visit Òloo. They help us provide, protect, 
               and improve our service by remembering your preferences, analyzing usage patterns, and enabling essential 
@@ -27,11 +24,11 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">2. Types of Cookies We Use</h2>
+            <h2 className="text-2xl font-semibold mb-4">2. Types of Cookies We Use</h2>
             
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold mb-2 text-base">Essential Cookies</h3>
+                <h3 className="text-xl font-semibold mb-2">Essential Cookies</h3>
                 <p className="leading-relaxed">
                   These cookies are necessary for the website to function properly. They enable core features like 
                   account authentication, security, and basic navigation. You cannot opt out of essential cookies 
@@ -45,7 +42,7 @@ const CookiesPolicy = () => {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2 text-base">Functional Cookies</h3>
+                <h3 className="text-xl font-semibold mb-2">Functional Cookies</h3>
                 <p className="leading-relaxed">
                   These cookies remember your preferences and choices to provide an enhanced, personalized experience.
                 </p>
@@ -58,7 +55,7 @@ const CookiesPolicy = () => {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2 text-base">Analytics Cookies</h3>
+                <h3 className="text-xl font-semibold mb-2">Analytics Cookies</h3>
                 <p className="leading-relaxed">
                   These cookies help us understand how users interact with Òloo, allowing us to improve the service.
                 </p>
@@ -71,7 +68,7 @@ const CookiesPolicy = () => {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2 text-base">Marketing Cookies</h3>
+                <h3 className="text-xl font-semibold mb-2">Marketing Cookies</h3>
                 <p className="leading-relaxed">
                   These cookies track your activity to show relevant advertisements and measure campaign effectiveness.
                 </p>
@@ -86,7 +83,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">3. Third-Party Cookies</h2>
+            <h2 className="text-2xl font-semibold mb-4">3. Third-Party Cookies</h2>
             <p className="leading-relaxed mb-4">
               We work with trusted third-party services that may place cookies on your device:
             </p>
@@ -103,7 +100,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">4. Cookie Duration</h2>
+            <h2 className="text-2xl font-semibold mb-4">4. Cookie Duration</h2>
             <p className="leading-relaxed mb-4">Cookies may be temporary or persistent:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Session Cookies:</strong> Deleted when you close your browser</li>
@@ -113,7 +110,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">5. Managing Cookie Preferences</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. Managing Cookie Preferences</h2>
             <p className="leading-relaxed mb-4">You have several options to manage cookies:</p>
             
             <div className="space-y-4">
@@ -154,7 +151,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">6. Mobile Devices</h2>
+            <h2 className="text-2xl font-semibold mb-4">6. Mobile Devices</h2>
             <p className="leading-relaxed">
               Mobile devices may use advertising identifiers instead of cookies. You can limit ad tracking on:
             </p>
@@ -165,7 +162,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">7. Updates to This Policy</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. Updates to This Policy</h2>
             <p className="leading-relaxed">
               We may update this Cookies Policy to reflect changes in technology, legislation, or our practices. 
               We will notify you of significant changes and update the "Last updated" date at the top of this page.
@@ -173,7 +170,7 @@ const CookiesPolicy = () => {
           </section>
 
           <section>
-            <h2 className="font-semibold mb-4 text-xl">8. Contact Us</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
             <p className="leading-relaxed">For questions about our use of cookies, contact us at privacy@oloo.media</p>
           </section>
         </div>

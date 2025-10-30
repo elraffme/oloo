@@ -9,20 +9,15 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRateLimiting } from '@/hooks/useRateLimiting';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const Discover = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { t } = useLanguage();
-  const { checkProfileViewLimit, recordAction } = useRateLimiting();
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
   const [matchModal, setMatchModal] = useState<{ isOpen: boolean; profile: any | null }>({
     isOpen: false,
     profile: null
@@ -47,20 +42,6 @@ const Discover = () => {
 
   const loadProfiles = async (append = false) => {
     try {
-      // Check rate limit before loading profiles
-      const limitCheck = await checkProfileViewLimit();
-      if (!limitCheck.allowed) {
-        setRateLimitExceeded(true);
-        setLoading(false);
-        setLoadingNext(false);
-        toast({
-          title: "Rate limit reached",
-          description: `Please wait before viewing more profiles. Limit resets at ${new Date(limitCheck.resetTime || Date.now()).toLocaleTimeString()}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
       if (append) setLoadingNext(true);
 
       const currentOffset = append ? pageOffset : 0;
@@ -110,9 +91,6 @@ const Discover = () => {
           // Load friendship states for new profiles
           await loadFriendshipStates(shuffledNewProfiles);
           
-          // Record profile view action for rate limiting
-          await recordAction('profile_view');
-          
           toast({
             title: "More profiles loaded! 🎉",
             description: `Found ${shuffledNewProfiles.length} more people for you to meet.`,
@@ -131,9 +109,6 @@ const Discover = () => {
           
           // Load friendship states for initial profiles
           await loadFriendshipStates(shuffledNewProfiles);
-          
-          // Record profile view action for rate limiting
-          await recordAction('profile_view');
         } else {
           // Fallback to mock data if no profiles
           setProfiles(mockProfiles);
@@ -537,33 +512,6 @@ const Discover = () => {
       }, 3000);
     }
   };
-
-  if (rateLimitExceeded) {
-    return (
-      <div className="flex items-center justify-center min-h-96 px-4">
-        <div className="text-center max-w-md">
-          <div className="heart-logo mb-6 mx-auto opacity-50">
-            <span className="logo-text">Ò</span>
-          </div>
-          <h2 className="text-2xl font-bold mb-4">Take a Break! ☕</h2>
-          <p className="text-muted-foreground mb-6">
-            You've viewed the maximum number of profiles for now. This helps maintain a quality experience for everyone and prevents automated scraping.
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            Your limit will reset soon. In the meantime, why not check your matches or update your profile?
-          </p>
-          <div className="flex gap-2 justify-center">
-            <Button onClick={() => navigate('/app/matches')} variant="default">
-              View Matches
-            </Button>
-            <Button onClick={() => navigate('/app/profile')} variant="outline">
-              Edit Profile
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

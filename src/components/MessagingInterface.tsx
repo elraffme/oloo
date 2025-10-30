@@ -11,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { usePresence } from '@/hooks/usePresence';
-import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 
 interface Message {
   id: string;
@@ -524,23 +523,21 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                           {conversation.display_name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute -bottom-1 -right-1">
-                        <OnlineStatusBadge userId={conversation.user_id} />
+                      {/* Online status indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center ${
+                        isUserOnline(conversation.user_id) 
+                          ? 'bg-green-500' 
+                          : 'bg-gray-400'
+                      }`}>
+                        <Circle className="w-2 h-2 fill-current" />
                       </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 truncate">
-                          <h3 className="font-medium truncate">{conversation.display_name}</h3>
-                          {(conversation as any).connection_type === 'match' && (
-                            <Badge variant="secondary" className="text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400 flex-shrink-0">
-                              <Heart className="w-3 h-3 fill-current" />
-                            </Badge>
-                          )}
-                        </div>
+                        <h3 className="font-medium truncate">{conversation.display_name}</h3>
                         {conversation.last_message_time && (
-                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                          <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(conversation.last_message_time), { addSuffix: false })}
                           </span>
                         )}
@@ -584,32 +581,17 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
                 const conversation = conversations.find(c => c.user_id === selectedChat);
                 return conversation ? (
                   <>
-                    <div className="relative">
-                      <Avatar>
-                        <AvatarImage src={conversation.avatar_url} />
-                        <AvatarFallback>
-                          {conversation.display_name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="absolute -bottom-1 -right-1">
-                        <OnlineStatusBadge userId={conversation.user_id} />
-                      </div>
-                    </div>
+                    <Avatar>
+                      <AvatarImage src={conversation.avatar_url} />
+                      <AvatarFallback>
+                        {conversation.display_name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{conversation.display_name}</h3>
-                        {(conversation as any).connection_type === 'match' && (
-                          <Badge variant="secondary" className="text-xs bg-pink-500/20 text-pink-600 dark:text-pink-400">
-                            <Heart className="w-3 h-3 mr-1 fill-current" />
-                            Match
-                          </Badge>
-                        )}
-                      </div>
-                      <OnlineStatusBadge 
-                        userId={conversation.user_id} 
-                        showDot={false} 
-                        showText={true} 
-                      />
+                      <h3 className="font-medium">{conversation.display_name}</h3>
+                      <p className={`text-sm ${isUserOnline(conversation.user_id) ? 'text-green-500' : 'text-muted-foreground'}`}>
+                        {isUserOnline(conversation.user_id) ? 'Online' : 'Offline'}
+                      </p>
                     </div>
                   </>
                 ) : null;
@@ -670,12 +652,11 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
           </ScrollArea>
 
           {/* Message Input */}
-          <div className="px-1 py-0.5 border-t border-border bg-background/95 backdrop-blur-sm sticky bottom-0">
-            <div className="flex items-center gap-0.5">
+          <div className="p-4 border-t border-border">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
+                size="sm"
                 onClick={handleSendHeart}
                 disabled={isSending}
               >
@@ -683,39 +664,25 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
+                size="sm"
                 onClick={handleSendGift}
                 disabled={isSending}
               >
                 <Gift className="w-4 h-4" />
               </Button>
-              <div className="flex-1 flex gap-1">
+              <div className="flex-1 flex space-x-2">
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
                   onKeyPress={(e) => e.key === 'Enter' && handleSendText()}
-                  onFocus={() => {
-                    // Hide bottom nav on mobile when typing
-                    const bottomNav = document.querySelector('nav.md\\:hidden');
-                    if (bottomNav) bottomNav.classList.add('hidden');
-                  }}
-                  onBlur={() => {
-                    // Show bottom nav again when done typing
-                    setTimeout(() => {
-                      const bottomNav = document.querySelector('nav.md\\:hidden');
-                      if (bottomNav) bottomNav.classList.remove('hidden');
-                    }, 100);
-                  }}
                   disabled={isSending}
-                  className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base h-9"
+                  className="bg-background text-foreground placeholder:text-muted-foreground border-border focus:border-primary focus:ring-primary/20 text-base"
                 />
                 <Button 
                   onClick={handleSendText} 
                   disabled={!newMessage.trim() || isSending}
-                  size="icon"
-                  className="h-9 w-9 flex-shrink-0"
+                  size="sm"
                 >
                   <Send className="w-4 h-4" />
                 </Button>

@@ -7,14 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 const SignIn = () => {
   const { user, loading, signIn } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -81,130 +77,7 @@ const SignIn = () => {
             .eq('user_id', session.session.user.id)
             .single();
 
-          // Check if there's onboarding data to save
-          const storedData = localStorage.getItem('onboardingData');
-          if (storedData && (!profile || !profile.display_name || !profile.age)) {
-            try {
-              const onboardingData = JSON.parse(storedData);
-              
-              // Calculate age from birthDate
-              let age = 25;
-              if (onboardingData.birthDate) {
-                const birth = new Date(onboardingData.birthDate);
-                const today = new Date();
-                age = today.getFullYear() - birth.getFullYear();
-                const monthDiff = today.getMonth() - birth.getMonth();
-                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-                  age--;
-                }
-              }
-
-              // Parse height
-              let heightInCm = null;
-              if (onboardingData.height && onboardingData.height.includes("'")) {
-                const parts = onboardingData.height.split("'");
-                const feet = parseInt(parts[0]) || 0;
-                const inches = parseInt(parts[1]) || 0;
-                heightInCm = Math.round(feet * 30.48 + inches * 2.54);
-              }
-
-              // Parse interests
-              const interests = onboardingData.hobbies 
-                ? onboardingData.hobbies.split(',').map((h: string) => h.trim()).filter((h: string) => h)
-                : [];
-
-              // Build bio
-              const bio = onboardingData.hobbies || onboardingData.personality
-                ? `${onboardingData.hobbies || ''}\n\nPersonality: ${onboardingData.personality || ''}`.trim()
-                : 'Hello, I\'m new to Òloo!';
-
-              // Upload photos if they exist
-              const profilePhotoUrls: string[] = [];
-              if (onboardingData.photoDataUrls && onboardingData.photoDataUrls.length > 0) {
-                toast({
-                  title: "Uploading photos...",
-                  description: `Uploading ${onboardingData.photoDataUrls.length} photo(s)`,
-                });
-
-                for (let i = 0; i < onboardingData.photoDataUrls.length; i++) {
-                  try {
-                    const dataUrl = onboardingData.photoDataUrls[i];
-                    const base64Data = dataUrl.split(',')[1];
-                    const mimeType = dataUrl.split(';')[0].split(':')[1];
-                    const fileExt = mimeType.split('/')[1];
-                    const fileName = `${session.session.user.id}/${Date.now()}_${i}.${fileExt}`;
-                    
-                    // Convert base64 to blob
-                    const byteCharacters = atob(base64Data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let j = 0; j < byteCharacters.length; j++) {
-                      byteNumbers[j] = byteCharacters.charCodeAt(j);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: mimeType });
-                    
-                    const { error: uploadError } = await supabase.storage
-                      .from('profile-photos')
-                      .upload(fileName, blob, {
-                        contentType: mimeType,
-                        upsert: false
-                      });
-                    
-                    if (!uploadError) {
-                      const { data: { publicUrl } } = supabase.storage
-                        .from('profile-photos')
-                        .getPublicUrl(fileName);
-                      profilePhotoUrls.push(publicUrl);
-                    } else {
-                      console.error('Photo upload error:', uploadError);
-                    }
-                  } catch (error) {
-                    console.error('Photo processing error:', error);
-                  }
-                }
-
-                if (profilePhotoUrls.length > 0) {
-                  toast({
-                    title: "Photos uploaded!",
-                    description: `Successfully uploaded ${profilePhotoUrls.length} photo(s)`,
-                  });
-                }
-              }
-
-              await supabase
-                .from('profiles')
-                .update({
-                  display_name: onboardingData.name || '',
-                  age: age,
-                  bio: bio,
-                  location: onboardingData.location || 'Not specified',
-                  height_cm: heightInCm,
-                  gender: onboardingData.gender || null,
-                  education: onboardingData.education || 'Not specified',
-                  occupation: onboardingData.occupation || 'Not specified',
-                  interests: interests,
-                  relationship_goals: onboardingData.lookingFor || 'Getting to know people',
-                  profile_photos: profilePhotoUrls,
-                  avatar_url: profilePhotoUrls[0] || null,
-                })
-                .eq('user_id', session.session.user.id);
-              
-              localStorage.removeItem('onboardingData');
-              console.log('Onboarding data saved to profile after sign in');
-              
-              // Reload profile after saving
-              const { data: updatedProfile } = await supabase
-                .from('profiles')
-                .select('display_name, age, location')
-                .eq('user_id', session.session.user.id)
-                .single();
-              
-              navigate('/app');
-            } catch (error) {
-              console.error('Error saving onboarding data:', error);
-              navigate('/onboarding');
-            }
-          } else if (!profile || !profile.display_name || !profile.age || !profile.location) {
+          if (!profile || !profile.display_name || !profile.age || !profile.location) {
             navigate('/onboarding');
           } else {
             navigate('/app');
@@ -236,7 +109,7 @@ const SignIn = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('back')}
+            Back
           </Button>
           
           <div className="heart-logo mx-auto mb-4">
@@ -247,7 +120,7 @@ const SignIn = () => {
             <span className="afro-heading">Òloo</span>
           </h1>
           <p className="text-xl text-muted-foreground font-afro-body">
-            {t('welcomeBack')}
+            Welcome back
           </p>
         </div>
 
@@ -256,10 +129,10 @@ const SignIn = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                {t('signIn')}
+                Sign In
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                {t('continueJourney')}
+                Continue your journey of meaningful connections
               </CardDescription>
             </CardHeader>
             
@@ -270,7 +143,7 @@ const SignIn = () => {
               <div className="relative z-10">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">{t('email')}</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       name="email"
@@ -283,14 +156,14 @@ const SignIn = () => {
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">{t('password')}</Label>
+                    <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder={t('yourPassword')}
+                      placeholder="Your password"
                       required
                     />
                     <button
@@ -307,21 +180,21 @@ const SignIn = () => {
                     className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? t('signingIn') : t('signIn')}
+                    {isSubmitting ? 'Signing In...' : 'Sign In'}
                   </Button>
                 </form>
 
                 {/* Create Account Link */}
                 <div className="mt-6 pt-6 border-t border-border text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    {t('dontHaveAccount')}
+                    Don't have an account?
                   </p>
                   <Button 
                     variant="ghost" 
                     className="text-primary hover:text-primary/80 hover:bg-primary/5"
                     onClick={() => navigate('/auth')}
                   >
-                    {t('createAccount')}
+                    Create Account
                   </Button>
                 </div>
 
