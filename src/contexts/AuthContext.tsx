@@ -215,6 +215,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const requestPasswordReset = async (email: string) => {
     try {
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!email || !emailRegex.test(email)) {
+        const validationError = { message: 'Please enter a valid email address' };
+        toast({
+          title: "Invalid Email",
+          description: validationError.message,
+          variant: "destructive",
+        });
+        return { error: validationError };
+      }
+
       const redirectUrl = `${window.location.origin}/reset-password/confirm`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -222,15 +234,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       
       if (error) {
-        toast({
-          title: "Reset Request Error",
-          description: error.message,
-          variant: "destructive",
-        });
+        // Check for rate limiting
+        if (error.message.includes('rate limit')) {
+          toast({
+            title: "Too Many Requests",
+            description: "Please wait a moment before requesting another reset link.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Reset Request Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Check Your Email",
-          description: "If an account exists with this email, you'll receive a password reset link",
+          description: "If an account exists with this email, you'll receive a password reset link (valid for 1 hour)",
         });
       }
       

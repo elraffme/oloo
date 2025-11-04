@@ -6,12 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { parseAuthHash, cleanAuthHash } from '@/utils/authUtils';
+import { useToast } from '@/hooks/use-toast';
 
 const ResetPasswordConfirm = () => {
   const navigate = useNavigate();
   const { updatePassword } = useAuth();
+  const { toast } = useToast();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,15 +23,76 @@ const ResetPasswordConfirm = () => {
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
   const [error, setError] = useState('');
   const [validToken, setValidToken] = useState<boolean | null>(null);
+  const [tokenError, setTokenError] = useState<string>('');
+  const [isProcessingToken, setIsProcessingToken] = useState(true);
 
   useEffect(() => {
-    // Check if user has a valid recovery session
-    const checkRecoverySession = async () => {
+    const handleTokenExchange = async () => {
+      setIsProcessingToken(true);
+      
+      const hash = window.location.hash;
+      const authParams = parseAuthHash(hash);
+      
+      console.log('Password reset - Hash params:', authParams?.type);
+      
+      if (authParams?.error) {
+        console.error('Auth error in URL:', authParams.error_description);
+        setTokenError(authParams.error_description || 'Invalid reset link');
+        setValidToken(false);
+        setIsProcessingToken(false);
+        cleanAuthHash();
+        return;
+      }
+      
+      if (authParams?.access_token && authParams?.type === 'recovery') {
+        console.log('Recovery token found, exchanging for session...');
+        
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: authParams.access_token,
+            refresh_token: authParams.refresh_token || '',
+          });
+          
+          if (error) throw error;
+          
+          if (data.session) {
+            console.log('Session established successfully');
+            setValidToken(true);
+            setTokenError('');
+            cleanAuthHash();
+            toast({
+              title: "Link verified",
+              description: "You can now set your new password.",
+            });
+          } else {
+            throw new Error('No session created');
+          }
+        } catch (err: any) {
+          console.error('Token exchange error:', err);
+          setTokenError(err.message || 'Failed to verify reset link');
+          setValidToken(false);
+        }
+        
+        setIsProcessingToken(false);
+        return;
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
-      setValidToken(!!session);
+      
+      if (session) {
+        console.log('Existing session found');
+        setValidToken(true);
+      } else {
+        console.log('No token or session found');
+        setTokenError('No reset token found. Please request a new password reset link.');
+        setValidToken(false);
+      }
+      
+      setIsProcessingToken(false);
     };
-    checkRecoverySession();
-  }, []);
+
+    handleTokenExchange();
+  }, [toast]);
 
   useEffect(() => {
     // Calculate password strength
@@ -83,25 +147,30 @@ const ResetPasswordConfirm = () => {
       const { error } = await updatePassword(password);
       
       if (!error) {
-        // Success - redirect to sign in after brief delay
+        toast({
+          title: "Password updated",
+          description: "Your password has been changed successfully.",
+        });
         setTimeout(() => {
           navigate('/signin');
-        }, 2000);
+        }, 1000);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (validToken === null) {
+  if (isProcessingToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
-        <div className="animate-pulse">
-          <div className="heart-logo mx-auto mb-4">
-            <span className="logo-text">Ò</span>
-          </div>
-          <p className="text-muted-foreground text-center">Verifying reset link...</p>
-        </div>
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Processing reset link...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -113,18 +182,31 @@ const ResetPasswordConfirm = () => {
           <div className="max-w-md mx-auto">
             <Card className="backdrop-blur-md bg-card/80 border-destructive/20">
               <CardHeader className="text-center">
-                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-                <CardTitle className="text-2xl">Invalid or Expired Link</CardTitle>
+                <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <CardTitle className="text-2xl">Reset Link Issue</CardTitle>
                 <CardDescription>
-                  This password reset link is invalid or has expired. Please request a new one.
+                  {tokenError || "This password reset link is invalid or has expired."}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Password reset links expire after 1 hour. Please request a new link if yours has expired.
+                  </AlertDescription>
+                </Alert>
                 <Button 
                   className="w-full"
                   onClick={() => navigate('/reset-password')}
                 >
-                  Request New Reset Link
+                  Request New Link
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/signin')} 
+                  className="w-full"
+                >
+                  Back to Sign In
                 </Button>
               </CardContent>
             </Card>
