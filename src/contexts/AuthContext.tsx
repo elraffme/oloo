@@ -11,6 +11,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (data: any) => Promise<{ error: any }>;
+  requestPasswordReset: (email: string) => Promise<{ error: any }>;
+  updatePassword: (newPassword: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -211,6 +213,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const requestPasswordReset = async (email: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password/confirm`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) {
+        toast({
+          title: "Reset Request Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Check Your Email",
+          description: "If an account exists with this email, you'll receive a password reset link",
+        });
+      }
+      
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Reset Request Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      
+      if (error) {
+        toast({
+          title: "Password Update Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password Updated",
+          description: "Your password has been successfully updated. Redirecting to sign in...",
+        });
+      }
+      
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Password Update Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -219,6 +283,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     updateProfile,
+    requestPasswordReset,
+    updatePassword,
   };
 
   return (

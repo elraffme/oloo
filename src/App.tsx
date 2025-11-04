@@ -17,6 +17,8 @@ import Premium from "./pages/Premium";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiesPolicy from "./pages/CookiesPolicy";
+import ResetPassword from "./pages/ResetPassword";
+import ResetPasswordConfirm from "./pages/ResetPasswordConfirm";
 
 const App = () => (
   <AuthProvider>
@@ -26,6 +28,8 @@ const App = () => (
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/confirm" element={<ResetPasswordConfirm />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/about" element={<About />} />
         <Route path="/terms" element={<TermsOfService />} />

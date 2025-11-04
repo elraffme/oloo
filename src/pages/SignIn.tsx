@@ -184,8 +184,19 @@ const SignIn = () => {
                   </Button>
                 </form>
 
+                {/* Forgot Password Link */}
+                <div className="mt-4 text-center">
+                  <Button 
+                    variant="link" 
+                    className="text-sm text-primary hover:text-primary/80"
+                    onClick={() => navigate('/reset-password')}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+
                 {/* Create Account Link */}
-                <div className="mt-6 pt-6 border-t border-border text-center">
+                <div className="mt-2 pt-6 border-t border-border text-center">
                   <p className="text-sm text-muted-foreground mb-3">
                     Don't have an account?
                   </p>
