@@ -9,6 +9,8 @@ import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { BroadcastManager } from '@/utils/BroadcastManager';
+import StreamViewer from '@/components/StreamViewer';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -49,6 +51,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [hasMicPermission, setHasMicPermission] = useState(false);
   const [isRequestingCamera, setIsRequestingCamera] = useState(false);
   const [isRequestingMic, setIsRequestingMic] = useState(false);
+  const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
+  const [viewingStreamId, setViewingStreamId] = useState<string | null>(null);
+  const [viewingStreamData, setViewingStreamData] = useState<StreamData | null>(null);
+  const broadcastManagerRef = useRef<BroadcastManager | null>(null);
+  const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch live streams from database
   useEffect(() => {
@@ -254,46 +261,59 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const startStream = async () => {
-    if (!user || !streamTitle.trim()) {
+    if (!user || !streamTitle.trim() || !streamRef.current) {
       toast({
         title: "Missing information",
-        description: "Please enter a stream title before going live.",
+        description: "Please enable camera/mic and enter a stream title.",
         variant: "destructive"
       });
       return;
     }
     setIsLoading(true);
     try {
-      // Create stream record in database
-      const streamData = {
-        title: streamTitle,
-        description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
-        host_user_id: user.id,
-        status: 'live' as const,
-        is_private: false,
-        ar_space_data: {
-          category: streamCategory || 'General'
-        }
-      };
-      const {
-        data,
-        error
-      } = await supabase.from('streaming_sessions').insert(streamData).select().single();
-      if (error) throw error;
-      setIsStreaming(true);
-      setCurrentViewers(1);
-      toast({
-        title: "Stream started!",
-        description: "You're now live. Share your stream to get more viewers."
-      });
+      const { data, error } = await supabase
+        .from('streaming_sessions')
+        .insert({
+          title: streamTitle,
+          description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
+          host_user_id: user.id,
+          status: 'live',
+          is_private: false,
+          ar_space_data: { category: streamCategory || 'General' }
+        })
+        .select()
+        .single();
 
-      // In a real implementation, you would start the actual streaming here
-      // This would involve WebRTC, RTMP, or another streaming protocol
+      if (error) throw error;
+
+      setActiveStreamId(data.id);
+
+      // Initialize broadcast manager
+      broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
+      await broadcastManagerRef.current.initializeChannel(supabase);
+
+      // Update viewer count periodically
+      viewerCountIntervalRef.current = setInterval(() => {
+        const count = broadcastManagerRef.current?.getViewerCount() || 0;
+        setCurrentViewers(count);
+        
+        supabase
+          .from('streaming_sessions')
+          .update({ current_viewers: count })
+          .eq('id', data.id)
+          .then();
+      }, 5000);
+
+      setIsStreaming(true);
+      toast({
+        title: "🎥 You're Live!",
+        description: "Broadcasting to viewers now."
+      });
     } catch (error: any) {
       console.error('Error starting stream:', error);
       toast({
         title: "Failed to start stream",
-        description: error.message || "Please try again.",
+        description: error.message,
         variant: "destructive"
       });
     } finally {
@@ -303,38 +323,42 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const endStream = async () => {
     setIsLoading(true);
     try {
-      // Update stream status in database
-      const {
-        error
-      } = await supabase.from('streaming_sessions').update({
-        status: 'ended',
-        ended_at: new Date().toISOString()
-      }).eq('host_user_id', user?.id).eq('status', 'live');
-      if (error) throw error;
+      // Cleanup viewer count interval
+      if (viewerCountIntervalRef.current) {
+        clearInterval(viewerCountIntervalRef.current);
+        viewerCountIntervalRef.current = null;
+      }
+
+      // Cleanup broadcast manager
+      broadcastManagerRef.current?.cleanup();
+      broadcastManagerRef.current = null;
+
+      // Update database
+      await supabase
+        .from('streaming_sessions')
+        .update({
+          status: 'ended',
+          ended_at: new Date().toISOString()
+        })
+        .eq('id', activeStreamId);
+
       setIsStreaming(false);
+      setActiveStreamId(null);
       setCurrentViewers(0);
-      setStreamTitle('');
+      
       toast({
         title: "Stream ended",
-        description: `Your stream had ${currentViewers} viewers. Great job!`
+        description: "Thanks for streaming!"
       });
     } catch (error: any) {
       console.error('Error ending stream:', error);
-      toast({
-        title: "Error ending stream",
-        description: error.message || "Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
   };
-  const joinStream = (streamId: string) => {
-    // In a real implementation, this would connect to the stream
-    toast({
-      title: "Joining stream...",
-      description: "This feature will be available soon!"
-    });
+  const joinStream = (stream: StreamData) => {
+    setViewingStreamId(stream.id);
+    setViewingStreamData(stream);
   };
   return <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-6xl mx-auto">
@@ -390,7 +414,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </p>
                     <div className="flex items-center justify-between">
                       <Badge variant="outline">{stream.category}</Badge>
-                      <Button size="sm" onClick={() => joinStream(stream.id)} className="bg-primary hover:bg-primary/90">
+                      <Button size="sm" onClick={() => joinStream(stream)} className="bg-primary hover:bg-primary/90">
                         <Play className="w-3 h-3 mr-1" />
                         Watch
                       </Button>
@@ -525,6 +549,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           </TabsContent>
         </Tabs>
       </div>
+
+      {viewingStreamId && viewingStreamData && (
+        <StreamViewer
+          streamId={viewingStreamId}
+          streamTitle={viewingStreamData.title}
+          hostName={viewingStreamData.host_name || 'Anonymous'}
+          onClose={() => {
+            setViewingStreamId(null);
+            setViewingStreamData(null);
+          }}
+        />
+      )}
     </div>;
 };
 export default StreamingInterface;
