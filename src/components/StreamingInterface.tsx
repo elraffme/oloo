@@ -82,28 +82,49 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     const fetchLiveStreams = async () => {
       try {
-        const {
-          data,
-          error
-        } = await supabase.from('streaming_sessions').select(`
-            *,
-            profiles:host_user_id (display_name)
-          `).eq('status', 'live').order('created_at', {
-          ascending: false
+        // Fetch live streaming sessions
+        const { data: streamsData, error: streamsError } = await supabase
+          .from('streaming_sessions')
+          .select('*')
+          .eq('status', 'live')
+          .order('created_at', { ascending: false });
+        
+        if (streamsError) throw streamsError;
+        if (!streamsData || streamsData.length === 0) {
+          setLiveStreams([]);
+          return;
+        }
+
+        // Fetch profiles for all hosts in one query
+        const hostIds = [...new Set(streamsData.map(s => s.host_user_id))];
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url')
+          .in('user_id', hostIds);
+        
+        if (profilesError) console.warn('Error fetching profiles:', profilesError);
+
+        // Create a map of user_id to profile for quick lookup
+        const profilesMap = new Map(
+          profilesData?.map(p => [p.user_id, p]) || []
+        );
+
+        const formattedStreams: StreamData[] = streamsData.map((stream: any) => {
+          const profile = profilesMap.get(stream.host_user_id);
+          return {
+            id: stream.id,
+            title: stream.title,
+            description: stream.description || '',
+            host_user_id: stream.host_user_id,
+            host_name: profile?.display_name || 'Anonymous',
+            current_viewers: stream.current_viewers || 0,
+            status: stream.status,
+            created_at: stream.created_at,
+            category: stream.ar_space_data?.category || 'General',
+            thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+          };
         });
-        if (error) throw error;
-        const formattedStreams: StreamData[] = data?.map((stream: any) => ({
-          id: stream.id,
-          title: stream.title,
-          description: stream.description || '',
-          host_user_id: stream.host_user_id,
-          host_name: stream.profiles?.display_name || 'Anonymous',
-          current_viewers: stream.current_viewers || 0,
-          status: stream.status,
-          created_at: stream.created_at,
-          category: stream.ar_space_data?.category || 'General',
-          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-        })) || [];
+        
         setLiveStreams(formattedStreams);
       } catch (error) {
         console.error('Error fetching live streams:', error);
