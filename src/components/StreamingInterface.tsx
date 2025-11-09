@@ -382,9 +382,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           <TabsContent value="discover" className="space-y-6">
             <div className="text-center mb-8">
               <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-3">
                 Connect with your community through live cultural content
               </p>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                ✨ Real-time WebRTC Broadcasting
+              </Badge>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -469,10 +472,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </Select>
                   </div>
 
-                  {isStreaming && <div className="p-4 bg-muted rounded-lg space-y-2">
+                   {isStreaming && <div className="p-4 bg-muted rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Current Viewers:</span>
-                        <Badge>{currentViewers}</Badge>
+                        <span className="text-sm font-medium">Broadcasting Status:</span>
+                        <Badge className="bg-green-500 text-white">
+                          <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+                          Live via WebRTC
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Connected Viewers:</span>
+                        <Badge variant="secondary">{currentViewers} watching</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Likes:</span>
@@ -489,7 +499,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               {/* Video Preview */}
               <Card className="cultural-card">
                 <CardHeader>
-                  <CardTitle>Preview</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Preview</span>
+                    {isStreaming && (
+                      <Badge variant="secondary" className="text-xs">
+                        🔴 Broadcasting to {currentViewers} viewers
+                      </Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
@@ -534,14 +551,26 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Go Live Button */}
-                  <div className="mt-6">
-                    {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
-                        {isLoading ? 'Starting...' : 'Go Live'}
-                      </Button> : <Button onClick={endStream} disabled={isLoading} variant="destructive" className="w-full" size="lg">
+                  <div className="mt-6 space-y-2">
+                    {!isStreaming ? (
+                      <>
+                        <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                          {isLoading ? 'Starting...' : '🎥 Start WebRTC Broadcast'}
+                        </Button>
+                        {hasCameraPermission && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            Viewers will connect to your stream in real-time via peer-to-peer connection
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Button onClick={endStream} disabled={isLoading} variant="destructive" className="w-full" size="lg">
                         {isLoading ? 'Ending...' : 'End Stream'}
-                      </Button>}
+                      </Button>
+                    )}
                     {!hasCameraPermission && <p className="text-sm text-muted-foreground text-center mt-2">
-                  </p>}
+                      Enable camera to start broadcasting
+                    </p>}
                   </div>
                 </CardContent>
               </Card>

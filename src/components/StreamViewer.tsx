@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ViewerConnection } from '@/utils/ViewerConnection';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { X, Volume2, VolumeX } from 'lucide-react';
 
 interface StreamViewerProps {
@@ -72,9 +73,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         />
         
         {!isConnected && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-pulse text-white">Connecting to stream...</div>
+          <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p className="text-white font-medium">Establishing WebRTC connection...</p>
+            <p className="text-white/70 text-sm">Connecting peer-to-peer</p>
           </div>
+        )}
+        
+        {isConnected && (
+          <Badge className="absolute top-4 left-4 bg-green-500 text-white">
+            <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+            Connected via WebRTC
+          </Badge>
         )}
       </div>
 
