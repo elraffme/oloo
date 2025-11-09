@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,12 +30,17 @@ interface StreamData {
 const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   onBack
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     user
   } = useAuth();
   const {
     toast
   } = useToast();
+  
+  // Determine active tab from URL
+  const activeTab = location.pathname.includes('/go-live') ? 'go-live' : 'discover';
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -372,7 +378,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           </div>
         </div>
 
-        <Tabs defaultValue="discover" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => navigate(`/app/streaming/${value}`)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="discover">Discover Streams</TabsTrigger>
             <TabsTrigger value="go-live">Go Live</TabsTrigger>
