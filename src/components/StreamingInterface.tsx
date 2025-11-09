@@ -71,6 +71,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   }, [activeTab]);
 
+  // Ensure video element gets the stream when it mounts or stream changes
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(err => {
+        console.error('Error playing video:', err);
+      });
+    }
+  }, [isCameraOn, streamRef.current]);
+
   // Fetch live streams from database
   useEffect(() => {
     const fetchLiveStreams = async () => {
