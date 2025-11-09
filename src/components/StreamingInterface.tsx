@@ -39,8 +39,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     toast
   } = useToast();
   
-  // Determine active tab from URL
-  const activeTab = location.pathname.includes('/go-live') ? 'go-live' : 'discover';
+  // Determine active tab from URL - default to discover
+  const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -62,6 +62,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [viewingStreamData, setViewingStreamData] = useState<StreamData | null>(null);
   const broadcastManagerRef = useRef<BroadcastManager | null>(null);
   const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize camera/mic on "Go Live" tab when navigating to it
+  useEffect(() => {
+    if (activeTab === 'go-live' && !hasCameraPermission && !isRequestingCamera) {
+      // Auto-initialize camera when user navigates to "Go Live" tab
+      initializeCamera();
+    }
+  }, [activeTab]);
 
   // Fetch live streams from database
   useEffect(() => {
@@ -135,14 +143,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, []);
 
-  // Cleanup camera on unmount
+  // Cleanup camera and broadcast on unmount
   useEffect(() => {
     return () => {
+      // Stop all media tracks
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      
+      // Cleanup broadcast manager if streaming
+      if (broadcastManagerRef.current) {
+        broadcastManagerRef.current.cleanup();
+      }
+      
+      // Clear viewer count interval
+      if (viewerCountIntervalRef.current) {
+        clearInterval(viewerCountIntervalRef.current);
+      }
+
+      // Update stream status if actively streaming
+      if (activeStreamId && isStreaming) {
+        supabase
+          .from('streaming_sessions')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          })
+          .eq('id', activeStreamId)
+          .then();
+      }
     };
-  }, []);
+  }, [activeStreamId, isStreaming]);
   const initializeCamera = async () => {
     setIsRequestingCamera(true);
     try {
@@ -267,14 +299,46 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const startStream = async () => {
-    if (!user || !streamTitle.trim() || !streamRef.current) {
+    if (!user) {
       toast({
-        title: "Missing information",
-        description: "Please enable camera/mic and enter a stream title.",
+        title: "Not authenticated",
+        description: "Please sign in to start streaming.",
         variant: "destructive"
       });
       return;
     }
+
+    if (!streamTitle.trim()) {
+      toast({
+        title: "Missing title",
+        description: "Please enter a stream title.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!streamRef.current) {
+      toast({
+        title: "Camera not ready",
+        description: "Please enable your camera first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Ensure we have both video and audio tracks
+    const videoTracks = streamRef.current.getVideoTracks();
+    const audioTracks = streamRef.current.getAudioTracks();
+    
+    if (videoTracks.length === 0) {
+      toast({
+        title: "No video source",
+        description: "Please enable your camera to start streaming.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -294,32 +358,31 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       setActiveStreamId(data.id);
 
-      // Initialize broadcast manager
+      // Initialize broadcast manager with current stream
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
       await broadcastManagerRef.current.initializeChannel(supabase);
 
       // Update viewer count periodically
-      viewerCountIntervalRef.current = setInterval(() => {
+      viewerCountIntervalRef.current = setInterval(async () => {
         const count = broadcastManagerRef.current?.getViewerCount() || 0;
         setCurrentViewers(count);
         
-        supabase
+        await supabase
           .from('streaming_sessions')
           .update({ current_viewers: count })
-          .eq('id', data.id)
-          .then();
-      }, 5000);
+          .eq('id', data.id);
+      }, 3000); // Update every 3 seconds
 
       setIsStreaming(true);
       toast({
         title: "🎥 You're Live!",
-        description: "Broadcasting to viewers now."
+        description: `Broadcasting via WebRTC to viewers now.`
       });
     } catch (error: any) {
       console.error('Error starting stream:', error);
       toast({
         title: "Failed to start stream",
-        description: error.message,
+        description: error.message || "Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -327,6 +390,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const endStream = async () => {
+    if (!activeStreamId) return;
+
     setIsLoading(true);
     try {
       // Cleanup viewer count interval
@@ -336,17 +401,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
 
       // Cleanup broadcast manager
-      broadcastManagerRef.current?.cleanup();
-      broadcastManagerRef.current = null;
+      if (broadcastManagerRef.current) {
+        broadcastManagerRef.current.cleanup();
+        broadcastManagerRef.current = null;
+      }
 
       // Update database
-      await supabase
+      const { error } = await supabase
         .from('streaming_sessions')
         .update({
           status: 'ended',
-          ended_at: new Date().toISOString()
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
         })
         .eq('id', activeStreamId);
+
+      if (error) {
+        console.error('Error updating stream status:', error);
+      }
 
       setIsStreaming(false);
       setActiveStreamId(null);
@@ -354,10 +426,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       toast({
         title: "Stream ended",
-        description: "Thanks for streaming!"
+        description: `Thanks for streaming! ${currentViewers} viewers watched.`
       });
     } catch (error: any) {
       console.error('Error ending stream:', error);
+      toast({
+        title: "Error ending stream",
+        description: "Stream has been stopped locally.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -365,6 +442,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const joinStream = (stream: StreamData) => {
     setViewingStreamId(stream.id);
     setViewingStreamData(stream);
+  };
+
+  const closeStreamViewer = () => {
+    setViewingStreamId(null);
+    setViewingStreamData(null);
   };
   return <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-6xl mx-auto">
@@ -590,10 +672,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           streamId={viewingStreamId}
           streamTitle={viewingStreamData.title}
           hostName={viewingStreamData.host_name || 'Anonymous'}
-          onClose={() => {
-            setViewingStreamId(null);
-            setViewingStreamData(null);
-          }}
+          onClose={closeStreamViewer}
         />
       )}
     </div>;

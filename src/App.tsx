@@ -38,6 +38,8 @@ const App = () => (
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Discover />} />
           <Route path="streaming" element={<Streaming />} />
+          <Route path="streaming/discover" element={<Streaming />} />
+          <Route path="streaming/go-live" element={<Streaming />} />
           <Route path="messages" element={<Messages />} />
           <Route path="profile" element={<Profile />} />
           <Route path="premium" element={<Premium />} />
