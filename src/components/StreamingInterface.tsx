@@ -664,7 +664,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {!isStreaming ? (
                       <>
                         <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
-                          {isLoading ? 'Starting...' : '🎥 Start WebRTC Broadcast'}
+                          {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button>
                         {hasCameraPermission && (
                           <p className="text-xs text-muted-foreground text-center">
