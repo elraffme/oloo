@@ -21,21 +21,38 @@ export class BroadcastManager {
 
   private handleViewerJoined = async ({ payload }: any) => {
     const { viewerId } = payload;
+    console.log(`Viewer joined: ${viewerId}`);
     await this.createPeerConnection(viewerId);
   }
 
   private async createPeerConnection(viewerId: string) {
+    // Check if already exists
+    if (this.peerConnections.has(viewerId)) {
+      console.warn(`Peer connection already exists for ${viewerId}`);
+      return;
+    }
+
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' }
       ]
     });
 
-    this.localStream?.getTracks().forEach(track => {
+    // Verify we have tracks before adding
+    const tracks = this.localStream?.getTracks() || [];
+    if (tracks.length === 0) {
+      console.error('No media tracks available for broadcasting');
+      return;
+    }
+
+    tracks.forEach(track => {
+      console.log(`Adding ${track.kind} track to peer connection for ${viewerId}`);
       pc.addTrack(track, this.localStream!);
     });
 
+    // Enhanced ICE candidate handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this.sendSignal('ice-candidate', {
@@ -45,18 +62,56 @@ export class BroadcastManager {
       }
     };
 
+    // Monitor ICE connection state
+    pc.oniceconnectionstatechange = () => {
+      console.log(`ICE connection state for ${viewerId}: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'failed') {
+        console.error(`ICE failed for ${viewerId}, attempting restart`);
+        pc.restartIce();
+      }
+    };
+
+    // Monitor ICE gathering state
+    pc.onicegatheringstatechange = () => {
+      console.log(`ICE gathering state for ${viewerId}: ${pc.iceGatheringState}`);
+    };
+
+    // Monitor overall connection state
     pc.onconnectionstatechange = () => {
-      console.log(`Connection to ${viewerId}: ${pc.connectionState}`);
-      if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+      console.log(`Connection state for ${viewerId}: ${pc.connectionState}`);
+      
+      if (pc.connectionState === 'connected') {
+        console.log(`✓ Successfully connected to viewer ${viewerId}`);
+      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        console.warn(`Connection ${pc.connectionState} for ${viewerId}, removing`);
         this.removePeerConnection(viewerId);
       }
     };
 
     this.peerConnections.set(viewerId, pc);
 
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    this.sendSignal('offer', { viewerId, offer });
+    try {
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: false,
+        offerToReceiveVideo: false
+      });
+      await pc.setLocalDescription(offer);
+      
+      console.log(`Sending offer to ${viewerId}`);
+      this.sendSignal('offer', { viewerId, offer });
+      
+      // Set timeout for connection establishment
+      setTimeout(() => {
+        if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') {
+          console.error(`Connection timeout for ${viewerId}`);
+          this.removePeerConnection(viewerId);
+        }
+      }, 15000); // 15 second timeout
+      
+    } catch (error) {
+      console.error(`Error creating offer for ${viewerId}:`, error);
+      this.removePeerConnection(viewerId);
+    }
   }
 
   private handleAnswer = async ({ payload }: any) => {

@@ -60,26 +60,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
   const [viewingStreamId, setViewingStreamId] = useState<string | null>(null);
   const [viewingStreamData, setViewingStreamData] = useState<StreamData | null>(null);
+  const [isBroadcastReady, setIsBroadcastReady] = useState(false);
   const broadcastManagerRef = useRef<BroadcastManager | null>(null);
   const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isCleaningUpRef = useRef(false);
+  const activeStreamIdRef = useRef<string | null>(null);
+
+  // Sync activeStreamId to ref for cleanup
+  useEffect(() => {
+    activeStreamIdRef.current = activeStreamId;
+  }, [activeStreamId]);
 
   // Initialize camera/mic on "Go Live" tab when navigating to it
   useEffect(() => {
     if (activeTab === 'go-live' && !hasCameraPermission && !isRequestingCamera) {
-      // Auto-initialize camera when user navigates to "Go Live" tab
-      initializeCamera();
+      initializeMedia(true, false);
     }
   }, [activeTab]);
-
-  // Ensure video element gets the stream when it mounts or stream changes
-  useEffect(() => {
-    if (videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(err => {
-        console.error('Error playing video:', err);
-      });
-    }
-  }, [isCameraOn, streamRef.current]);
 
   // Fetch live streams from database
   useEffect(() => {
@@ -153,26 +150,36 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, []);
 
-  // Cleanup camera and broadcast on unmount
+  // Improved cleanup on unmount
   useEffect(() => {
     return () => {
-      // Stop all media tracks
+      if (isCleaningUpRef.current) return;
+      isCleaningUpRef.current = true;
+
+      console.log('Component unmounting, cleaning up...');
+      
+      // 1. Stop media tracks first
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log(`Stopped ${track.kind} track`);
+        });
       }
       
-      // Cleanup broadcast manager if streaming
+      // 2. Cleanup broadcast manager
       if (broadcastManagerRef.current) {
+        console.log('Cleaning up broadcast manager');
         broadcastManagerRef.current.cleanup();
       }
       
-      // Clear viewer count interval
+      // 3. Clear intervals
       if (viewerCountIntervalRef.current) {
         clearInterval(viewerCountIntervalRef.current);
       }
 
-      // Update stream status if actively streaming
-      if (activeStreamId && isStreaming) {
+      // 4. Update database if streaming (use ref for current value)
+      if (activeStreamIdRef.current) {
+        console.log('Updating stream status on unmount');
         supabase
           .from('streaming_sessions')
           .update({
@@ -180,114 +187,91 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             ended_at: new Date().toISOString(),
             current_viewers: 0
           })
-          .eq('id', activeStreamId)
-          .then();
+          .eq('id', activeStreamIdRef.current)
+          .then(() => console.log('Stream status updated'));
       }
     };
-  }, [activeStreamId, isStreaming]);
-  const initializeCamera = async () => {
-    setIsRequestingCamera(true);
+  }, []);
+  const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
+    if (requestVideo) setIsRequestingCamera(true);
+    if (requestAudio) setIsRequestingMic(true);
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: {
-            ideal: 1280
-          },
-          height: {
-            ideal: 720
-          },
+      const constraints: MediaStreamConstraints = {};
+      
+      if (requestVideo) {
+        constraints.video = {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
           facingMode: 'user'
-        }
-      });
-
-      // Merge with existing audio track if available
-      if (streamRef.current) {
-        const audioTrack = streamRef.current.getAudioTracks()[0];
-        if (audioTrack) {
-          stream.addTrack(audioTrack);
-        }
+        };
       }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        try {
-          await videoRef.current.play();
-        } catch (playError) {
-          console.error('Error playing video:', playError);
-        }
-      }
-      setHasCameraPermission(true);
-      setIsCameraOn(true);
-      toast({
-        title: "Camera enabled ✓",
-        description: "Camera is ready to stream."
-      });
-    } catch (error: any) {
-      console.error('Error accessing camera:', error);
-      setHasCameraPermission(false);
-      let errorMessage = "Please enable camera permissions.";
-      if (error.name === 'NotAllowedError') {
-        errorMessage = "Permission denied. Please click 'Allow' for camera access.";
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = "No camera found. Please connect a camera and try again.";
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = "Camera is already in use. Please close other apps.";
-      }
-      toast({
-        title: "Camera access failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setIsRequestingCamera(false);
-    }
-  };
-  const initializeMicrophone = async () => {
-    setIsRequestingMic(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
+      
+      if (requestAudio) {
+        constraints.audio = {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
-        }
+        };
+      }
+
+      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // If we already have a stream, add new tracks to it
+      if (streamRef.current) {
+        newStream.getTracks().forEach(track => {
+          streamRef.current!.addTrack(track);
+        });
+      } else {
+        streamRef.current = newStream;
+      }
+
+      // Set video element once and play
+      if (videoRef.current && streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        await videoRef.current.play();
+      }
+
+      if (requestVideo) {
+        setHasCameraPermission(true);
+        setIsCameraOn(true);
+      }
+      if (requestAudio) {
+        setHasMicPermission(true);
+        setIsMicOn(true);
+      }
+
+      const mediaTypes = [];
+      if (requestVideo) mediaTypes.push('Camera');
+      if (requestAudio) mediaTypes.push('Microphone');
+
+      toast({
+        title: "Media enabled ✓",
+        description: `${mediaTypes.join(' and ')} ready to stream.`
       });
 
-      // Merge with existing video track if available
-      if (streamRef.current) {
-        const videoTrack = streamRef.current.getVideoTracks()[0];
-        if (videoTrack) {
-          stream.addTrack(videoTrack);
-        }
-      }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setHasMicPermission(true);
-      setIsMicOn(true);
-      toast({
-        title: "Microphone enabled ✓",
-        description: "Microphone is ready to stream."
-      });
     } catch (error: any) {
-      console.error('Error accessing microphone:', error);
-      setHasMicPermission(false);
-      let errorMessage = "Please enable microphone permissions.";
+      console.error('Error accessing media:', error);
+      if (requestVideo) setHasCameraPermission(false);
+      if (requestAudio) setHasMicPermission(false);
+      
+      let errorMessage = "Please enable permissions.";
       if (error.name === 'NotAllowedError') {
-        errorMessage = "Permission denied. Please click 'Allow' for microphone access.";
+        errorMessage = "Permission denied. Please click 'Allow' to grant access.";
       } else if (error.name === 'NotFoundError') {
-        errorMessage = "No microphone found. Please connect a microphone.";
+        errorMessage = `No ${requestVideo ? 'camera' : 'microphone'} found. Please connect a device.`;
       } else if (error.name === 'NotReadableError') {
-        errorMessage = "Microphone is already in use. Please close other apps.";
+        errorMessage = "Device is already in use. Please close other apps.";
       }
+      
       toast({
-        title: "Microphone access failed",
+        title: "Media access failed",
         description: errorMessage,
         variant: "destructive"
       });
     } finally {
-      setIsRequestingMic(false);
+      if (requestVideo) setIsRequestingCamera(false);
+      if (requestAudio) setIsRequestingMic(false);
     }
   };
   const toggleCamera = () => {
@@ -372,6 +356,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
       await broadcastManagerRef.current.initializeChannel(supabase);
 
+      // Small delay to ensure channel is ready
+      setTimeout(() => {
+        setIsBroadcastReady(true);
+        console.log('Broadcast channel ready, viewers can now join');
+      }, 1000);
+
       // Update viewer count periodically
       viewerCountIntervalRef.current = setInterval(async () => {
         const count = broadcastManagerRef.current?.getViewerCount() || 0;
@@ -381,12 +371,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           .from('streaming_sessions')
           .update({ current_viewers: count })
           .eq('id', data.id);
-      }, 3000); // Update every 3 seconds
+      }, 3000);
 
       setIsStreaming(true);
       toast({
         title: "🎥 You're Live!",
-        description: `Broadcasting via WebRTC to viewers now.`
+        description: `Broadcasting via WebRTC${isBroadcastReady ? '' : ' (preparing...)'}`
       });
     } catch (error: any) {
       console.error('Error starting stream:', error);
@@ -622,11 +612,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <div className="mt-4 space-y-3">
                     {/* Permission Buttons */}
                     {(!hasCameraPermission || !hasMicPermission) && <div className="grid grid-cols-2 gap-2">
-                        {!hasCameraPermission && <Button onClick={initializeCamera} disabled={isRequestingCamera} variant="outline" size="sm">
+                        {!hasCameraPermission && <Button onClick={() => initializeMedia(true, false)} disabled={isRequestingCamera} variant="outline" size="sm">
                             <Video className="w-4 h-4 mr-2" />
                             {isRequestingCamera ? 'Enabling...' : 'Enable Camera'}
                           </Button>}
-                        {!hasMicPermission && <Button onClick={initializeMicrophone} disabled={isRequestingMic} variant="outline" size="sm">
+                        {!hasMicPermission && <Button onClick={() => initializeMedia(false, true)} disabled={isRequestingMic} variant="outline" size="sm">
                             <Mic className="w-4 h-4 mr-2" />
                             {isRequestingMic ? 'Enabling...' : 'Enable Mic'}
                           </Button>}

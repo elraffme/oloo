@@ -2,6 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Throttle function to prevent excessive updates
+const throttle = (func: Function, delay: number) => {
+  let lastCall = 0;
+  return (...args: any[]) => {
+    const now = new Date().getTime();
+    if (now - lastCall < delay) return;
+    lastCall = now;
+    return func(...args);
+  };
+};
+
 interface PresenceState {
   [key: string]: {
     user_id: string;
@@ -109,26 +120,24 @@ export const usePresence = () => {
     }
   };
 
-  // Set up activity heartbeat
+  // Set up activity heartbeat with throttling
   useEffect(() => {
     if (!user) return;
 
-    const interval = setInterval(updateActivity, 30000); // Update every 30 seconds
+    // Only update every 30 seconds automatically
+    const interval = setInterval(updateActivity, 30000);
     
-    // Update on user activity
-    const handleActivity = () => updateActivity();
+    // Throttle user activity updates to max once per 5 seconds
+    const throttledUpdate = throttle(updateActivity, 5000);
     
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keypress', handleActivity);
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('scroll', handleActivity);
+    // Only listen to meaningful interactions (removed mousemove and scroll)
+    window.addEventListener('click', throttledUpdate);
+    window.addEventListener('keypress', throttledUpdate);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keypress', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('click', throttledUpdate);
+      window.removeEventListener('keypress', throttledUpdate);
     };
   }, [user]);
 
