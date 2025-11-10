@@ -78,11 +78,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   }, [activeTab]);
 
-  // Fetch live streams from database
+  // Fetch live streams from database (archived/ended sessions excluded)
   useEffect(() => {
     const fetchLiveStreams = async () => {
       try {
-        // Fetch live streaming sessions
+        // Fetch only live streaming sessions - ended sessions are archived and hidden
         const { data: streamsData, error: streamsError } = await supabase
           .from('streaming_sessions')
           .select('*')
