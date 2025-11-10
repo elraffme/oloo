@@ -495,7 +495,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 Connect with your community through live cultural content
               </p>
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                ✨ Real-time WebRTC Broadcasting
+                ✨ Real-time Streaming
               </Badge>
             </div>
 
