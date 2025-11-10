@@ -773,6 +773,51 @@ export type Database = {
         }
         Relationships: []
       }
+      video_calls: {
+        Row: {
+          answered_at: string | null
+          call_id: string
+          call_type: string
+          caller_id: string
+          created_at: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          metadata: Json | null
+          receiver_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          answered_at?: string | null
+          call_id: string
+          call_type: string
+          caller_id: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          receiver_id: string
+          started_at?: string | null
+          status: string
+        }
+        Update: {
+          answered_at?: string | null
+          call_id?: string
+          call_type?: string
+          caller_id?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json | null
+          receiver_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       video_verification_requests: {
         Row: {
           call_link: string | null
@@ -830,6 +875,10 @@ export type Database = {
         Args: { user_a: string; user_b: string }
         Returns: boolean
       }
+      can_user_call: {
+        Args: { caller_uuid: string; receiver_uuid: string }
+        Returns: boolean
+      }
       check_deployment_readiness: { Args: never; Returns: Json }
       check_mutual_match: {
         Args: { user1_id: string; user2_id: string }
@@ -867,6 +916,10 @@ export type Database = {
           target_user_id: string
           token_amount: number
         }
+        Returns: string
+      }
+      create_video_call: {
+        Args: { p_call_id: string; p_call_type: string; p_receiver_id: string }
         Returns: string
       }
       decrement_stream_viewers: {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +42,7 @@ interface MessagingInterfaceProps {
 const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selectedUserId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isUserOnline } = usePresence();
   
@@ -48,6 +50,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isInitiatingCall, setIsInitiatingCall] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
@@ -469,6 +472,104 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
     sendMessage('gift', '🎁 Virtual Rose', { gift_type: 'rose', cost: 10 });
   };
 
+  const handleVideoCall = async () => {
+    if (!selectedChat || isInitiatingCall) return;
+
+    setIsInitiatingCall(true);
+    try {
+      const callId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const { error } = await supabase.rpc('create_video_call', {
+        p_receiver_id: selectedChat,
+        p_call_type: 'video',
+        p_call_id: callId
+      });
+
+      if (error) {
+        if (error.message.includes('only call matched users')) {
+          toast({
+            title: "Can't Call",
+            description: "You can only call matched users or friends",
+            variant: "destructive"
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      const selectedConversation = conversations.find(c => c.user_id === selectedChat);
+      
+      navigate('/video-call', {
+        state: {
+          callId,
+          isInitiator: true,
+          participantId: selectedChat,
+          participantName: selectedConversation?.display_name || 'User',
+          callType: 'video'
+        }
+      });
+    } catch (error) {
+      console.error('Error initiating video call:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initiate call. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsInitiatingCall(false);
+    }
+  };
+
+  const handleAudioCall = async () => {
+    if (!selectedChat || isInitiatingCall) return;
+
+    setIsInitiatingCall(true);
+    try {
+      const callId = `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const { error } = await supabase.rpc('create_video_call', {
+        p_receiver_id: selectedChat,
+        p_call_type: 'audio',
+        p_call_id: callId
+      });
+
+      if (error) {
+        if (error.message.includes('only call matched users')) {
+          toast({
+            title: "Can't Call",
+            description: "You can only call matched users or friends",
+            variant: "destructive"
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      const selectedConversation = conversations.find(c => c.user_id === selectedChat);
+      
+      navigate('/video-call', {
+        state: {
+          callId,
+          isInitiator: true,
+          participantId: selectedChat,
+          participantName: selectedConversation?.display_name || 'User',
+          callType: 'audio'
+        }
+      });
+    } catch (error) {
+      console.error('Error initiating audio call:', error);
+      toast({
+        title: "Error",
+        description: "Failed to initiate call. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsInitiatingCall(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -599,10 +700,22 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
             </div>
             
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleAudioCall}
+                disabled={isInitiatingCall || !isUserOnline(selectedChat)}
+                title={!isUserOnline(selectedChat) ? "User is offline" : "Start voice call"}
+              >
                 <Phone className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleVideoCall}
+                disabled={isInitiatingCall || !isUserOnline(selectedChat)}
+                title={!isUserOnline(selectedChat) ? "User is offline" : "Start video call"}
+              >
                 <Video className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="sm">

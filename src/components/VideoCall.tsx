@@ -21,6 +21,8 @@ interface VideoCallProps {
   isInitiator: boolean;
   onCallEnd: () => void;
   participantName: string;
+  participantId?: string;
+  callType?: 'video' | 'audio';
 }
 
 interface ICECandidate {
@@ -33,7 +35,9 @@ const VideoCall: React.FC<VideoCallProps> = ({
   callId, 
   isInitiator, 
   onCallEnd, 
-  participantName 
+  participantName,
+  participantId,
+  callType = 'video'
 }) => {
   const { toast } = useToast();
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -41,11 +45,12 @@ const VideoCall: React.FC<VideoCallProps> = ({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(callType === 'video');
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [callStartTime, setCallStartTime] = useState<number | null>(null);
 
   // Timer for call duration
   useEffect(() => {
@@ -90,7 +95,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
       
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480 },
+        video: callType === 'video' ? { width: 640, height: 480 } : false,
         audio: true
       });
       
@@ -139,6 +144,7 @@ const VideoCall: React.FC<VideoCallProps> = ({
         if (pc.connectionState === 'connected') {
           setIsConnected(true);
           setIsConnecting(false);
+          setCallStartTime(Date.now());
         } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
           setIsConnected(false);
           setIsConnecting(false);
@@ -214,7 +220,24 @@ const VideoCall: React.FC<VideoCallProps> = ({
     onCallEnd();
   };
 
-  const endCall = () => {
+  const endCall = async () => {
+    // Update call status in database
+    if (participantId && callStartTime) {
+      const duration = Math.floor((Date.now() - callStartTime) / 1000);
+      try {
+        await supabase
+          .from('video_calls')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            duration_seconds: duration
+          })
+          .eq('call_id', callId);
+      } catch (error) {
+        console.error('Error updating call status:', error);
+      }
+    }
+    
     sendSignalingMessage('call-end', {});
     cleanup();
     onCallEnd();
@@ -256,7 +279,9 @@ const VideoCall: React.FC<VideoCallProps> = ({
       {/* Header */}
       <div className="bg-black/80 p-4 flex items-center justify-between text-white">
         <div>
-          <h2 className="text-lg font-semibold">Video Verification</h2>
+          <h2 className="text-lg font-semibold">
+            {callType === 'video' ? 'Video Call' : 'Voice Call'}
+          </h2>
           <p className="text-sm text-gray-300">with {participantName}</p>
         </div>
         <div className="text-center">
