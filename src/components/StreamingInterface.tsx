@@ -30,6 +30,11 @@ interface StreamData {
   created_at: string;
   category?: string;
   thumbnail?: string;
+  ar_space_data?: {
+    category?: string;
+    [key: string]: any;
+  };
+  total_likes?: number;
 }
 const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   onBack
@@ -733,8 +738,67 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             </div>
 
 
+            {/* Live Streams Grid */}
+            {liveStreams.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveStreams.map((stream) => (
+                  <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        {/* Stream Status Badge */}
+                        <div className="flex items-center justify-between">
+                          <Badge className="bg-red-500 text-white">
+                            <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+                            LIVE
+                          </Badge>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Users className="w-4 h-4 mr-1" />
+                            {stream.current_viewers || 0}
+                          </div>
+                        </div>
+
+                        {/* Stream Title */}
+                        <h3 className="font-semibold text-lg line-clamp-2">
+                          {stream.title}
+                        </h3>
+
+                        {/* Stream Info */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {stream.ar_space_data?.category || 'General'}
+                          </span>
+                          {stream.total_likes > 0 && (
+                            <div className="flex items-center text-pink-500">
+                              <Heart className="w-4 h-4 mr-1 fill-current" />
+                              {stream.total_likes}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Join Button */}
+                        <Button className="w-full" variant="default">
+                          <Play className="w-4 h-4 mr-2" />
+                          Watch Stream
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="p-12 text-center">
+                <div className="space-y-3">
+                  <Video className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">No Live Streams</h3>
+                  <p className="text-muted-foreground">
+                    Be the first to go live! Switch to the "Go Live" tab to start streaming.
+                  </p>
+                </div>
+              </Card>
+            )}
+
             {/* Premium Live Events */}
-            <Card className="premium-gradient p-6 text-center">
+            <Card className="premium-gradient p-6 text-center mt-6">
               <h3 className="text-xl font-afro-heading mb-2 text-white">
                 Premium Live Events
               </h3>
