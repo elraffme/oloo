@@ -209,7 +209,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           
           {!isConnected && (
