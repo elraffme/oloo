@@ -575,6 +575,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectItem value="lifestyle">Lifestyle</SelectItem>
                         <SelectItem value="food">Food & Cooking</SelectItem>
                         <SelectItem value="culture">Culture</SelectItem>
+                        <SelectItem value="travel">Travel</SelectItem>
                         <SelectItem value="dating">Dating & Relationships</SelectItem>
                         <SelectItem value="general">General</SelectItem>
                       </SelectContent>
