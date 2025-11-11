@@ -754,6 +754,35 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_likes: {
+        Row: {
+          created_at: string
+          id: string
+          stream_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stream_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_likes_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streaming_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       streaming_analytics: {
         Row: {
           created_at: string | null
@@ -809,6 +838,7 @@ export type Database = {
           stream_key: string | null
           stream_url: string | null
           title: string
+          total_likes: number | null
         }
         Insert: {
           ar_space_data?: Json | null
@@ -825,6 +855,7 @@ export type Database = {
           stream_key?: string | null
           stream_url?: string | null
           title: string
+          total_likes?: number | null
         }
         Update: {
           ar_space_data?: Json | null
@@ -841,6 +872,7 @@ export type Database = {
           stream_key?: string | null
           stream_url?: string | null
           title?: string
+          total_likes?: number | null
         }
         Relationships: []
       }
@@ -1453,6 +1485,7 @@ export type Database = {
         Args: { p_gift_id: number; p_message?: string; p_receiver_id: string }
         Returns: Json
       }
+      toggle_stream_like: { Args: { p_stream_id: string }; Returns: Json }
       update_profile_verification_status: {
         Args: { is_verified: boolean; target_user_id: string }
         Returns: boolean

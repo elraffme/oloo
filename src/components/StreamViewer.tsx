@@ -7,8 +7,12 @@ import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft } f
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
+import { FloatingActionButtons } from '@/components/FloatingActionButtons';
+import { LikeAnimation } from '@/components/LikeAnimation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 interface StreamViewerProps {
   streamId: string;
@@ -29,12 +33,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showGiftSelector, setShowGiftSelector] = useState(false);
   const [showCoinShop, setShowCoinShop] = useState(false);
-  const [showChat, setShowChat] = useState(true);
+  const [showChat, setShowChat] = useState(!isMobile); // Hide chat by default on mobile
+  const [isLiked, setIsLiked] = useState(false);
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
 
+  // Initialize viewer and load like status
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
@@ -48,12 +57,59 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       await viewerConnectionRef.current.connect(supabase);
       setIsConnected(true);
+
+      // Load initial like status and count
+      if (user) {
+        const { data: likeData } = await supabase
+          .from('stream_likes')
+          .select('id')
+          .eq('stream_id', streamId)
+          .eq('user_id', user.id)
+          .single();
+        
+        setIsLiked(!!likeData);
+      }
+
+      const { data: sessionData } = await supabase
+        .from('streaming_sessions')
+        .select('total_likes')
+        .eq('id', streamId)
+        .single();
+      
+      if (sessionData) {
+        setTotalLikes(sessionData.total_likes || 0);
+      }
     };
 
     initViewer();
 
     return () => {
       viewerConnectionRef.current?.disconnect();
+    };
+  }, [streamId, user]);
+
+  // Real-time likes subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('stream-likes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'streaming_sessions',
+          filter: `id=eq.${streamId}`
+        },
+        (payload) => {
+          if (payload.new && 'total_likes' in payload.new) {
+            setTotalLikes(payload.new.total_likes || 0);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
   }, [streamId]);
 
@@ -71,34 +127,68 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     navigate('/app/messages', { state: { selectedUserId: hostUserId } });
   };
 
+  const handleLike = async () => {
+    if (!user) {
+      toast.error('Please sign in to like streams');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc('toggle_stream_like', {
+        p_stream_id: streamId
+      });
+
+      if (error) throw error;
+
+      if (data && typeof data === 'object' && 'liked' in data && 'total_likes' in data) {
+        setIsLiked(data.liked as boolean);
+        setTotalLikes(data.total_likes as number);
+        
+        if (data.liked) {
+          setShowLikeAnimation(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to like stream');
+    }
+  };
+
+  const handleChatToggle = () => {
+    setShowChat(!showChat);
+  };
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      <div className="bg-black/80 p-4 flex items-center justify-between text-white">
-        <div className="flex items-center gap-4 flex-1">
-          <div>
-            <h2 className="text-lg font-semibold">{streamTitle}</h2>
-            <p className="text-sm text-gray-300">{hostName}</p>
+      {/* Header */}
+      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-between text-white">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm md:text-lg font-semibold truncate">{streamTitle}</h2>
+            <p className="text-xs md:text-sm text-gray-300 truncate">{hostName}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          {/* Desktop Message Button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleSendMessage}
-            className="gap-2 text-white hover:bg-white/20"
+            className="gap-2 text-white hover:bg-white/20 hidden md:flex"
           >
             <MessageCircle className="w-4 h-4" />
             Message
           </Button>
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} className="flex-shrink-0">
             <X className="w-5 h-5" />
           </Button>
         </div>
       </div>
 
+      {/* Main Video Area */}
       <div className="flex-1 flex relative bg-black overflow-hidden">
-        <div className={`flex-1 relative transition-all duration-300 ${showChat ? 'mr-80' : ''}`}>
+        <div className={`flex-1 relative transition-all duration-300 ${showChat && !isMobile ? 'md:mr-80' : ''}`}>
           <video
             ref={videoRef}
             autoPlay
@@ -109,36 +199,65 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           {!isConnected && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-              <p className="text-white font-medium">Establishing WebRTC connection...</p>
-              <p className="text-white/70 text-sm">Connecting peer-to-peer</p>
+              <p className="text-white font-medium text-sm md:text-base">Establishing WebRTC connection...</p>
+              <p className="text-white/70 text-xs md:text-sm">Connecting peer-to-peer</p>
             </div>
           )}
           
           {isConnected && (
-            <Badge className="absolute top-4 left-4 bg-green-500 text-white">
+            <Badge className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs">
               <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-              Connected via WebRTC
+              <span className="hidden md:inline">Connected via WebRTC</span>
+              <span className="md:hidden">LIVE</span>
             </Badge>
           )}
 
+          {/* Desktop Chat Toggle */}
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setShowChat(!showChat)}
-            className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
+            onClick={handleChatToggle}
+            className="absolute top-2 right-2 md:top-4 md:right-4 bg-black/50 hover:bg-black/70 text-white hidden md:flex"
           >
             {showChat ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </Button>
         </div>
 
-        {showChat && (
-          <div className="w-80 h-full border-l border-border">
+        {/* Desktop Chat Sidebar */}
+        {showChat && !isMobile && (
+          <div className="w-80 h-full border-l border-border hidden md:block">
             <LiveStreamChat streamId={streamId} />
+          </div>
+        )}
+
+        {/* Mobile Chat Overlay */}
+        {showChat && isMobile && (
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-background border-t border-border md:hidden animate-slide-in-bottom">
+            <div className="relative h-full">
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-muted-foreground/30 rounded-full" />
+              <LiveStreamChat streamId={streamId} isMobile />
+            </div>
           </div>
         )}
       </div>
 
-      <div className="bg-black/80 p-4 flex items-center justify-center gap-4">
+      {/* Mobile FABs */}
+      <FloatingActionButtons
+        isLiked={isLiked}
+        totalLikes={totalLikes}
+        onLike={handleLike}
+        onGift={() => setShowGiftSelector(true)}
+        onChat={handleChatToggle}
+      />
+
+      {/* Like Animation */}
+      <LikeAnimation 
+        show={showLikeAnimation} 
+        onComplete={() => setShowLikeAnimation(false)} 
+      />
+
+      {/* Bottom Controls - Desktop Only */}
+      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-center gap-2 md:gap-4 hidden md:flex">
         <Button
           variant={isMuted ? "destructive" : "default"}
           size="lg"
@@ -154,6 +273,27 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         >
           <Gift className="w-5 h-5" />
           Send Gift
+        </Button>
+      </div>
+
+      {/* Mobile Bottom Bar */}
+      <div className="bg-black/80 p-3 flex items-center justify-between md:hidden">
+        <Button
+          variant={isMuted ? "destructive" : "ghost"}
+          size="icon"
+          onClick={toggleMute}
+          className="h-10 w-10"
+        >
+          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleSendMessage}
+          className="gap-2 text-white"
+        >
+          <MessageCircle className="w-4 h-4" />
+          Message Host
         </Button>
       </div>
 
