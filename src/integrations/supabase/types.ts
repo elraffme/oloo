@@ -727,6 +727,33 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          stream_id: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          stream_id?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       streaming_analytics: {
         Row: {
           created_at: string | null
