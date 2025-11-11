@@ -47,6 +47,129 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_packages: {
+        Row: {
+          active: boolean | null
+          best_value: boolean | null
+          bonus_coins: number | null
+          coin_amount: number
+          created_at: string | null
+          currency: string | null
+          display_order: number | null
+          id: number
+          name: string
+          popular: boolean | null
+          price_cents: number
+        }
+        Insert: {
+          active?: boolean | null
+          best_value?: boolean | null
+          bonus_coins?: number | null
+          coin_amount: number
+          created_at?: string | null
+          currency?: string | null
+          display_order?: number | null
+          id?: number
+          name: string
+          popular?: boolean | null
+          price_cents: number
+        }
+        Update: {
+          active?: boolean | null
+          best_value?: boolean | null
+          bonus_coins?: number | null
+          coin_amount?: number
+          created_at?: string | null
+          currency?: string | null
+          display_order?: number | null
+          id?: number
+          name?: string
+          popular?: boolean | null
+          price_cents?: number
+        }
+        Relationships: []
+      }
+      currency_balances: {
+        Row: {
+          coin_balance: number | null
+          created_at: string | null
+          gold_balance: number | null
+          id: string
+          lifetime_coins_purchased: number | null
+          lifetime_coins_spent: number | null
+          lifetime_gifts_received: number | null
+          lifetime_gifts_sent: number | null
+          updated_at: string | null
+          user_id: string
+          vip_tier: string | null
+        }
+        Insert: {
+          coin_balance?: number | null
+          created_at?: string | null
+          gold_balance?: number | null
+          id?: string
+          lifetime_coins_purchased?: number | null
+          lifetime_coins_spent?: number | null
+          lifetime_gifts_received?: number | null
+          lifetime_gifts_sent?: number | null
+          updated_at?: string | null
+          user_id: string
+          vip_tier?: string | null
+        }
+        Update: {
+          coin_balance?: number | null
+          created_at?: string | null
+          gold_balance?: number | null
+          id?: string
+          lifetime_coins_purchased?: number | null
+          lifetime_coins_spent?: number | null
+          lifetime_gifts_received?: number | null
+          lifetime_gifts_sent?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vip_tier?: string | null
+        }
+        Relationships: []
+      }
+      currency_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          currency_type: string
+          id: string
+          metadata: Json | null
+          reason: string | null
+          reference_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          currency_type: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          reference_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          currency_type?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          reference_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       demo_profiles: {
         Row: {
           age: number
@@ -134,33 +257,101 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_transactions: {
+        Row: {
+          coin_cost: number
+          created_at: string | null
+          expires_at: string | null
+          gift_id: number
+          id: string
+          message: string | null
+          metadata: Json | null
+          opened_at: string | null
+          receiver_id: string
+          sender_id: string
+          status: string | null
+        }
+        Insert: {
+          coin_cost: number
+          created_at?: string | null
+          expires_at?: string | null
+          gift_id: number
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: string | null
+        }
+        Update: {
+          coin_cost?: number
+          created_at?: string | null
+          expires_at?: string | null
+          gift_id?: number
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_transactions_gift_id_fkey"
+            columns: ["gift_id"]
+            isOneToOne: false
+            referencedRelation: "gifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gifts: {
         Row: {
+          animation_url: string | null
           asset_url: string | null
+          available_until: string | null
           category: string | null
           cost_tokens: number
           created_at: string
           description: string | null
           id: number
+          limited_edition: boolean | null
           name: string
+          purchased_count: number | null
+          rarity: string | null
+          sound_url: string | null
         }
         Insert: {
+          animation_url?: string | null
           asset_url?: string | null
+          available_until?: string | null
           category?: string | null
           cost_tokens: number
           created_at?: string
           description?: string | null
           id?: number
+          limited_edition?: boolean | null
           name: string
+          purchased_count?: number | null
+          rarity?: string | null
+          sound_url?: string | null
         }
         Update: {
+          animation_url?: string | null
           asset_url?: string | null
+          available_until?: string | null
           category?: string | null
           cost_tokens?: number
           created_at?: string
           description?: string | null
           id?: number
+          limited_edition?: boolean | null
           name?: string
+          purchased_count?: number | null
+          rarity?: string | null
+          sound_url?: string | null
         }
         Relationships: []
       }
@@ -909,6 +1100,7 @@ export type Database = {
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
+      convert_gold_to_coins: { Args: { p_gold_amount: number }; Returns: Json }
       create_secure_token_transaction: {
         Args: {
           operation_reason: string
@@ -1016,6 +1208,28 @@ export type Database = {
       get_full_profile: {
         Args: { profile_user_id: string; requesting_user_id?: string }
         Returns: Json
+      }
+      get_or_create_currency_balance: {
+        Args: { p_user_id: string }
+        Returns: {
+          coin_balance: number | null
+          created_at: string | null
+          gold_balance: number | null
+          id: string
+          lifetime_coins_purchased: number | null
+          lifetime_coins_spent: number | null
+          lifetime_gifts_received: number | null
+          lifetime_gifts_sent: number | null
+          updated_at: string | null
+          user_id: string
+          vip_tier: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "currency_balances"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_public_profile_data: {
         Args: { profile_user_id: string }
@@ -1186,6 +1400,11 @@ export type Database = {
         Returns: undefined
       }
       make_user_admin: { Args: { target_email: string }; Returns: boolean }
+      open_gift: { Args: { p_transaction_id: string }; Returns: Json }
+      purchase_coins: {
+        Args: { p_package_id: number; p_payment_intent_id: string }
+        Returns: Json
+      }
       record_rate_limit_action: {
         Args: { p_action_type: string; p_user_id: string }
         Returns: undefined
@@ -1203,6 +1422,10 @@ export type Database = {
         Returns: Json
       }
       send_friend_request: { Args: { target_user_id: string }; Returns: Json }
+      send_gift: {
+        Args: { p_gift_id: number; p_message?: string; p_receiver_id: string }
+        Returns: Json
+      }
       update_profile_verification_status: {
         Args: { is_verified: boolean; target_user_id: string }
         Returns: boolean

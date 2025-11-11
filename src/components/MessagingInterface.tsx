@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { usePresence } from '@/hooks/usePresence';
+import { GiftSelector } from './GiftSelector';
 
 interface Message {
   id: string;
@@ -53,6 +54,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
   const [isInitiatingCall, setIsInitiatingCall] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showGiftSelector, setShowGiftSelector] = useState(false);
 
   // Load matches and conversations
   useEffect(() => {
@@ -468,8 +470,7 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
   };
 
   const handleSendGift = () => {
-    // In a real app, this would open a gift selection modal
-    sendMessage('gift', '🎁 Virtual Rose', { gift_type: 'rose', cost: 10 });
+    setShowGiftSelector(true);
   };
 
   const handleVideoCall = async () => {
@@ -812,6 +813,15 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
             </p>
           </div>
         </div>
+      )}
+
+      {selectedChat && (
+        <GiftSelector
+          open={showGiftSelector}
+          onOpenChange={setShowGiftSelector}
+          receiverId={selectedChat}
+          receiverName={conversations.find(c => c.user_id === selectedChat)?.display_name || ''}
+        />
       )}
     </div>
   );

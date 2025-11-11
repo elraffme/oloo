@@ -1,10 +1,13 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useState } from "react";
+import { CurrencyWallet } from "./CurrencyWallet";
+import { CoinShop } from "./CoinShop";
+import { GiftInbox } from "./GiftInbox";
 
 
 const Navigation = () => {
@@ -12,6 +15,8 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showCoinShop, setShowCoinShop] = useState(false);
+  const [showGiftInbox, setShowGiftInbox] = useState(false);
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -101,10 +106,14 @@ const Navigation = () => {
         <div className="hidden md:flex items-center space-x-3 font-afro-body">
           {user ? (
             <>
-              <span className="text-sm text-muted-foreground nsibidi-text">
-                <span className="nsibidi-symbol mr-1">⟡</span>
-                Welcome, {user.user_metadata?.display_name || user.email}
-              </span>
+              <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowGiftInbox(true)}
+              >
+                <Gift className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" onClick={handleSignOut} className="font-afro-body">
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
@@ -212,6 +221,9 @@ const Navigation = () => {
           </SheetContent>
         </Sheet>
       </div>
+
+      <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
+      <GiftInbox open={showGiftInbox} onOpenChange={setShowGiftInbox} />
     </nav>
   );
 };
