@@ -285,6 +285,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           .from('streaming_sessions')
           .select('*')
           .eq('status', 'live')
+          .eq('is_private', false)
           .order('created_at', { ascending: false });
         
         if (streamsError) throw streamsError;
@@ -360,7 +361,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       event: '*',
       schema: 'public',
       table: 'streaming_sessions',
-      filter: 'status=eq.live'
+      filter: 'status=eq.live,is_private=eq.false'
     }, () => {
       fetchLiveStreams();
     }).subscribe();
