@@ -42,6 +42,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [isLiked, setIsLiked] = useState(false);
   const [totalLikes, setTotalLikes] = useState(0);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
 
   // Initialize viewer and load like status
   useEffect(() => {
@@ -88,10 +89,25 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId, user]);
 
-  // Real-time likes subscription
+  // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {
     const channel = supabase
-      .channel('stream-likes-changes')
+      .channel(`viewer_stream_likes_${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stream_likes',
+          filter: `stream_id=eq.${streamId}`
+        },
+        () => {
+          // Trigger animation for any like from any viewer
+          setShowLikeAnimation(true);
+          setLikeAnimationTrigger(prev => prev + 1);
+          setTotalLikes(prev => prev + 1);
+        }
+      )
       .on(
         'postgres_changes',
         {
@@ -252,6 +268,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       {/* Like Animation */}
       <LikeAnimation 
+        key={likeAnimationTrigger}
         show={showLikeAnimation} 
         onComplete={() => setShowLikeAnimation(false)} 
       />
