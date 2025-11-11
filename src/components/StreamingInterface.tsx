@@ -16,6 +16,7 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CoinShop } from '@/components/CoinShop';
 import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
+import { LikeAnimation } from '@/components/LikeAnimation';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -83,6 +84,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }>>([]);
   const { balance } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
@@ -273,6 +276,36 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       supabase.removeChannel(channel);
     };
   }, [activeStreamId, user]);
+
+  // Subscribe to likes for the streamer's active stream
+  useEffect(() => {
+    if (!activeStreamId) return;
+    
+    const channel = supabase
+      .channel(`broadcaster_likes_${activeStreamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stream_likes',
+          filter: `stream_id=eq.${activeStreamId}`,
+        },
+        () => {
+          // Trigger the heart animation
+          setShowLikeAnimation(true);
+          setLikeAnimationTrigger(prev => prev + 1);
+          
+          // Update total likes count
+          setTotalLikes(prev => prev + 1);
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeStreamId]);
 
   // Initialize camera/mic on "Go Live" tab when navigating to it
   useEffect(() => {
@@ -902,6 +935,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                         LIVE
                       </Badge>}
+
+                    {/* Like Animation Overlay */}
+                    {isStreaming && (
+                      <LikeAnimation 
+                        key={likeAnimationTrigger}
+                        show={showLikeAnimation} 
+                        onComplete={() => setShowLikeAnimation(false)} 
+                      />
+                    )}
 
                     {/* Gift Notifications Overlay */}
                     {isStreaming && giftNotifications.length > 0 && (
