@@ -15,6 +15,7 @@ import StreamViewer from '@/components/StreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CoinShop } from '@/components/CoinShop';
+import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -76,11 +77,137 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     giftEmoji: string;
   }>>([]);
   const { balance } = useCurrency();
+  const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
     activeStreamIdRef.current = activeStreamId;
   }, [activeStreamId]);
+
+  // Fetch user's active stream on tab change
+  useEffect(() => {
+    const fetchMyActiveStream = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('streaming_sessions')
+        .select('*')
+        .eq('host_user_id', user.id)
+        .eq('status', 'live')
+        .maybeSingle();
+      
+      if (!error && data) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', data.host_user_id)
+          .single();
+        
+        setMyActiveStream({
+          id: data.id,
+          title: data.title,
+          description: data.description || '',
+          host_user_id: data.host_user_id,
+          host_name: profileData?.display_name || 'You',
+          current_viewers: data.current_viewers || 0,
+          status: data.status as 'live' | 'ended' | 'pending',
+          created_at: data.created_at,
+        });
+      } else {
+        setMyActiveStream(null);
+      }
+    };
+
+    if (user && activeTab === 'discover') {
+      fetchMyActiveStream();
+    }
+  }, [user, activeTab]);
+
+  // Real-time subscription for user's stream updates
+  useEffect(() => {
+    if (!user) return;
+    
+    const channel = supabase
+      .channel('my_stream_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'streaming_sessions',
+          filter: `host_user_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            const streamData = payload.new as any;
+            if (streamData.status === 'live') {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('display_name')
+                .eq('user_id', streamData.host_user_id)
+                .single();
+              
+              setMyActiveStream({
+                id: streamData.id,
+                title: streamData.title,
+                description: streamData.description || '',
+                host_user_id: streamData.host_user_id,
+                host_name: profileData?.display_name || 'You',
+                current_viewers: streamData.current_viewers || 0,
+                status: streamData.status as 'live' | 'ended' | 'pending',
+                created_at: streamData.created_at,
+              });
+            } else {
+              setMyActiveStream(null);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setMyActiveStream(null);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Subscribe to likes for user's stream
+  useEffect(() => {
+    if (!myActiveStream) return;
+    
+    const channel = supabase
+      .channel(`my_stream_likes_${myActiveStream.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'stream_likes',
+          filter: `stream_id=eq.${myActiveStream.id}`,
+        },
+        async () => {
+          // Refresh stream data to get updated like count
+          const { data } = await supabase
+            .from('streaming_sessions')
+            .select('total_likes, current_viewers')
+            .eq('id', myActiveStream.id)
+            .single();
+          
+          if (data && myActiveStream) {
+            setMyActiveStream({
+              ...myActiveStream,
+              current_viewers: data.current_viewers || 0,
+            });
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [myActiveStream]);
 
   // Subscribe to gift transactions when streaming
   useEffect(() => {
@@ -540,6 +667,26 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     setViewingStreamId(null);
     setViewingStreamData(null);
   };
+
+  const handleManageStream = () => {
+    navigate('/app/streaming/go-live');
+  };
+
+  const handleViewAsViewer = () => {
+    if (myActiveStream) {
+      setViewingStreamId(myActiveStream.id);
+      setViewingStreamData({
+        id: myActiveStream.id,
+        title: myActiveStream.title,
+        description: myActiveStream.description,
+        host_user_id: myActiveStream.host_user_id,
+        host_name: user?.user_metadata?.display_name || 'You',
+        current_viewers: myActiveStream.current_viewers,
+        status: myActiveStream.status as 'live' | 'ended' | 'pending',
+        created_at: myActiveStream.created_at,
+      });
+    }
+  };
   return <div className="min-h-screen dark bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -561,6 +708,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-6">
+            {/* My Active Stream Banner */}
+            {myActiveStream && (
+              <MyActiveStreamBanner
+                streamId={myActiveStream.id}
+                title={myActiveStream.title}
+                startedAt={myActiveStream.created_at}
+                currentViewers={myActiveStream.current_viewers || 0}
+                totalLikes={totalLikes}
+                onManageStream={handleManageStream}
+                onViewAsViewer={handleViewAsViewer}
+              />
+            )}
+
             <div className="text-center mb-8">
               <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
               <p className="text-muted-foreground mb-3">

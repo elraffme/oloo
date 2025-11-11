@@ -405,4 +405,34 @@ body {
       gap: 1rem;
     }
   }
+
+  /* Streaming Banner Animations */
+  @keyframes gradient-x {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
+  }
+
+  @keyframes banner-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-banner-slide-in {
+    animation: banner-slide-in 0.4s ease-out;
+  }
 }
