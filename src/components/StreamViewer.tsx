@@ -248,7 +248,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
         {/* Mobile Chat Overlay */}
         {showChat && isMobile && (
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-background border-t border-border md:hidden animate-slide-in-bottom">
+          <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-background border-t border-border md:hidden animate-slide-in-bottom">
             <div className="relative h-full">
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-muted-foreground/30 rounded-full" />
               <LiveStreamChat streamId={streamId} isMobile />
