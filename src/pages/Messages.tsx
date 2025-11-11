@@ -31,34 +31,34 @@ const Messages = () => {
   };
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        <div className="border-b border-border px-4 pt-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
-            <TabsTrigger value="friends" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Friends
+        <div className="border-b border-border px-2 pt-2 md:px-4 md:pt-4">
+          <TabsList className="grid w-full grid-cols-3 h-10 md:h-11 max-w-lg">
+            <TabsTrigger value="friends" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
+              <Users className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden xs:inline">Friends</span>
             </TabsTrigger>
-            <TabsTrigger value="matches" className="flex items-center gap-2">
-              <Heart className="w-4 h-4" />
-              Matches
+            <TabsTrigger value="matches" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
+              <Heart className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden xs:inline">Matches</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" />
-              Messages
+            <TabsTrigger value="messages" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
+              <MessageCircle className="w-3 h-3 md:w-4 md:h-4" />
+              <span className="hidden xs:inline">Messages</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="friends" className="flex-1 p-4 m-0">
+        <TabsContent value="friends" className="flex-1 p-2 md:p-4 m-0 overflow-auto">
           <FriendsSection onStartChat={handleStartChat} />
         </TabsContent>
 
-        <TabsContent value="matches" className="flex-1 p-4 m-0">
+        <TabsContent value="matches" className="flex-1 p-2 md:p-4 m-0 overflow-auto">
           <MatchesSection onStartConversation={handleStartConversation} />
         </TabsContent>
 
-        <TabsContent value="messages" className="flex-1 m-0">
+        <TabsContent value="messages" className="flex-1 m-0 overflow-hidden">
           <MessagingInterface 
             selectedUserId={selectedMatch}
             onBack={() => setActiveTab('friends')}
