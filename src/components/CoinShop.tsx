@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useSecurePayments } from '@/hooks/useSecurePayments';
 import { Skeleton } from './ui/skeleton';
 
 interface CoinPackage {
@@ -25,6 +26,7 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const { refreshBalance, balance, convertGoldToCoins } = useCurrency();
+  const { createPaymentIntent } = useSecurePayments();
   const [goldAmount, setGoldAmount] = useState('');
   const [converting, setConverting] = useState(false);
 
@@ -47,24 +49,21 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
     setSelectedPackage(pkg);
 
     try {
-      // Call secure-payment edge function
-      const { data, error } = await supabase.functions.invoke('secure-payment', {
-        body: {
-          amount: pkg.price_cents,
-          tier: 'coins',
-          metadata: {
-            package_id: pkg.id,
-            coin_amount: pkg.coin_amount + pkg.bonus_coins,
-          },
-        },
+      // Create payment intent using the secure hook
+      const result = await createPaymentIntent({
+        amount_cents: pkg.price_cents,
+        tier: pkg.name,
+        currency: 'usd',
       });
 
-      if (error) throw error;
+      if (!result.success) {
+        throw new Error(result.error || 'Payment creation failed');
+      }
 
       // Purchase coins via RPC
       const { error: purchaseError } = await supabase.rpc('purchase_coins', {
         p_package_id: pkg.id,
-        p_payment_intent_id: data.paymentIntent.id,
+        p_payment_intent_id: result.data?.id || `payment_${Date.now()}`,
       });
 
       if (purchaseError) throw purchaseError;
