@@ -571,41 +571,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </Badge>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {liveStreams.map(stream => <Card key={stream.id} className="cultural-card overflow-hidden">
-                  <div className="relative">
-                    <img src={stream.thumbnail} alt={stream.title} className="w-full h-48 object-cover" />
-                    <Badge className="absolute top-2 left-2 bg-red-500 text-white">
-                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                      LIVE
-                    </Badge>
-                    <div className="absolute bottom-2 right-2 flex items-center space-x-2">
-                      <Badge variant="secondary" className="text-xs">
-                        <Eye className="w-3 h-3 mr-1" />
-                        {stream.current_viewers}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg leading-tight">{stream.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{stream.host_name}</p>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {stream.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <Badge variant="outline">{stream.category}</Badge>
-                      <Button size="sm" onClick={() => joinStream(stream)} className="bg-primary hover:bg-primary/90">
-                        <Play className="w-3 h-3 mr-1" />
-                        Watch
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>)}
-            </div>
 
             {/* Premium Live Events */}
             <Card className="premium-gradient p-6 text-center">
