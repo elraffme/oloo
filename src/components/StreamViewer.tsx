@@ -3,12 +3,16 @@ import { ViewerConnection } from '@/utils/ViewerConnection';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, Volume2, VolumeX } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift } from 'lucide-react';
+import { GiftSelector } from '@/components/GiftSelector';
+import { CurrencyWallet } from '@/components/CurrencyWallet';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface StreamViewerProps {
   streamId: string;
   streamTitle: string;
   hostName: string;
+  hostUserId: string;
   onClose: () => void;
 }
 
@@ -16,12 +20,16 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   streamId,
   streamTitle,
   hostName,
+  hostUserId,
   onClose
 }) => {
+  const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showGiftSelector, setShowGiftSelector] = useState(false);
+  const [showCoinShop, setShowCoinShop] = useState(false);
 
   useEffect(() => {
     const initViewer = async () => {
@@ -55,13 +63,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       <div className="bg-black/80 p-4 flex items-center justify-between text-white">
-        <div>
-          <h2 className="text-lg font-semibold">{streamTitle}</h2>
-          <p className="text-sm text-gray-300">{hostName}</p>
+        <div className="flex items-center gap-4 flex-1">
+          <div>
+            <h2 className="text-lg font-semibold">{streamTitle}</h2>
+            <p className="text-sm text-gray-300">{hostName}</p>
+          </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 relative bg-black">
@@ -96,7 +109,25 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         >
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </Button>
+        <Button
+          variant="default"
+          size="lg"
+          onClick={() => setShowGiftSelector(true)}
+          className="gap-2"
+        >
+          <Gift className="w-5 h-5" />
+          Send Gift
+        </Button>
       </div>
+
+      {user && (
+        <GiftSelector
+          open={showGiftSelector}
+          onOpenChange={setShowGiftSelector}
+          receiverId={hostUserId}
+          receiverName={hostName}
+        />
+      )}
     </div>
   );
 };

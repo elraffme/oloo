@@ -6,12 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BroadcastManager } from '@/utils/BroadcastManager';
 import StreamViewer from '@/components/StreamViewer';
+import { CurrencyWallet } from '@/components/CurrencyWallet';
+import { useCurrency } from '@/hooks/useCurrency';
+import { CoinShop } from '@/components/CoinShop';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -65,11 +68,79 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
   const activeStreamIdRef = useRef<string | null>(null);
+  const [showCoinShop, setShowCoinShop] = useState(false);
+  const [giftNotifications, setGiftNotifications] = useState<Array<{
+    id: string;
+    senderName: string;
+    giftName: string;
+    giftEmoji: string;
+  }>>([]);
+  const { balance } = useCurrency();
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
     activeStreamIdRef.current = activeStreamId;
   }, [activeStreamId]);
+
+  // Subscribe to gift transactions when streaming
+  useEffect(() => {
+    if (!activeStreamId || !user) return;
+
+    const channel = supabase
+      .channel(`gifts_${activeStreamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'gift_transactions',
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        async (payload) => {
+          const giftTransaction = payload.new;
+          
+          // Fetch gift and sender details
+          const { data: giftData } = await supabase
+            .from('gifts')
+            .select('name, asset_url')
+            .eq('id', giftTransaction.gift_id)
+            .single();
+
+          const { data: senderData } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', giftTransaction.sender_id)
+            .single();
+
+          if (giftData && senderData) {
+            const notification = {
+              id: giftTransaction.id,
+              senderName: senderData.display_name,
+              giftName: giftData.name,
+              giftEmoji: giftData.asset_url || '🎁',
+            };
+
+            setGiftNotifications(prev => [...prev, notification]);
+            setTotalGifts(prev => prev + 1);
+
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+              setGiftNotifications(prev => prev.filter(n => n.id !== notification.id));
+            }, 5000);
+
+            toast({
+              title: `${senderData.display_name} sent ${giftData.name}!`,
+              description: `You earned gold from this gift 🪙`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeStreamId, user]);
 
   // Initialize camera/mic on "Go Live" tab when navigating to it
   useEffect(() => {
@@ -479,6 +550,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </Button>}
             <h1 className="text-2xl font-afro-heading">Live Streaming</h1>
           </div>
+          <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => navigate(`/app/streaming/${value}`)} className="space-y-6">
@@ -599,9 +671,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <Badge variant="outline">{totalLikes}</Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Gifts:</span>
-                        <Badge variant="outline">{totalGifts}</Badge>
+                        <span className="text-sm">Gifts Received:</span>
+                        <Badge variant="outline" className="gap-1">
+                          <Gift className="w-3 h-3" />
+                          {totalGifts}
+                        </Badge>
                       </div>
+                      {balance && balance.gold_balance > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Gold Earned:</span>
+                          <Badge variant="outline" className="gap-1 bg-amber-500/10 border-amber-500/30">
+                            <Sparkles className="w-3 h-3 text-amber-500" />
+                            <span className="text-amber-500">{balance.gold_balance}</span>
+                          </Badge>
+                        </div>
+                      )}
                     </div>}
                 </CardContent>
               </Card>
@@ -628,6 +712,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                         LIVE
                       </Badge>}
+
+                    {/* Gift Notifications Overlay */}
+                    {isStreaming && giftNotifications.length > 0 && (
+                      <div className="absolute top-16 right-4 space-y-2 z-10">
+                        {giftNotifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3"
+                          >
+                            <span className="text-3xl">{notification.giftEmoji}</span>
+                            <div>
+                              <p className="font-semibold text-sm">{notification.senderName}</p>
+                              <p className="text-xs text-gray-300">sent {notification.giftName}</p>
+                            </div>
+                            <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Controls */}
@@ -694,9 +797,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           streamId={viewingStreamId}
           streamTitle={viewingStreamData.title}
           hostName={viewingStreamData.host_name || 'Anonymous'}
+          hostUserId={viewingStreamData.host_user_id}
           onClose={closeStreamViewer}
         />
       )}
+
+      <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
     </div>;
 };
 export default StreamingInterface;
