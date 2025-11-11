@@ -726,15 +726,15 @@ const MessagingInterface: React.FC<MessagingInterfaceProps> = ({ onBack, selecte
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 p-2 md:p-3">
+            <div className="space-y-2 md:space-y-3">
               {messages.map((message) => (
                 <div
                   key={message.id}
                   className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                    className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
                       message.sender_id === user?.id
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-foreground border border-border'
