@@ -24,10 +24,18 @@ serve(async (req) => {
     let user = null
     const authHeader = req.headers.get('Authorization')
     if (authHeader) {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      )
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token)
+      
+      if (authError) {
+        console.error('Auth error:', authError)
+        throw new Error(`Authentication failed: ${authError.message}`)
+      }
+      
       user = authUser
+      console.log('User authenticated:', user?.id)
+    } else {
+      console.log('No authorization header found')
     }
 
     const { operation, paymentIntentId, paymentData } = await req.json()
