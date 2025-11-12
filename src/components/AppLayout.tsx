@@ -92,7 +92,7 @@ const AppLayout = () => {
               </Button>
 
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-foreground" />
               </Button>
             </div>
           </div>
