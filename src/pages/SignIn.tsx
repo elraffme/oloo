@@ -161,7 +161,7 @@ const SignIn = () => {
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={(e) => validateEmail(e.target.value)} placeholder="your@email.com" required className={emailError ? 'border-destructive' : ''} />
                     {emailError && (
-                      <p className="text-sm text-destructive mt-1">{emailError}</p>
+                      <p className="text-sm text-white mt-1">{emailError}</p>
                     )}
                   </div>
 
