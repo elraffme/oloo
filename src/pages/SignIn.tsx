@@ -7,9 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
 const SignIn = () => {
-  const { user, loading, signIn } = useAuth();
+  const {
+    user,
+    loading,
+    signIn
+  } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,12 +27,10 @@ const SignIn = () => {
     const checkProfile = async () => {
       if (user && !loading) {
         try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('display_name, age, location')
-            .eq('user_id', user.id)
-            .single();
-
+          const {
+            data,
+            error
+          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', user.id).single();
           if (error || !data || !data.display_name || !data.age || !data.location) {
             setHasProfile(false);
           } else {
@@ -41,7 +42,6 @@ const SignIn = () => {
         }
       }
     };
-
     checkProfile();
   }, [user, loading]);
 
@@ -53,30 +53,33 @@ const SignIn = () => {
       return <Navigate to="/onboarding" replace />;
     }
   }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const {
+      name,
+      value
+    } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    
     setIsSubmitting(true);
     try {
-      const { error } = await signIn(formData.email, formData.password);
-      
+      const {
+        error
+      } = await signIn(formData.email, formData.password);
       if (!error) {
         // Check if user has completed profile
-        const { data: session } = await supabase.auth.getSession();
+        const {
+          data: session
+        } = await supabase.auth.getSession();
         if (session?.session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, age, location')
-            .eq('user_id', session.session.user.id)
-            .single();
-
+          const {
+            data: profile
+          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', session.session.user.id).single();
           if (!profile || !profile.display_name || !profile.age || !profile.location) {
             navigate('/onboarding');
           } else {
@@ -88,22 +91,19 @@ const SignIn = () => {
       setIsSubmitting(false);
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
           <p className="text-muted-foreground text-center">Loading Òloo...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f7f4e8' }}>
+  return <div className="min-h-screen" style={{
+    backgroundColor: '#f7f4e8'
+  }}>
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -128,7 +128,7 @@ const SignIn = () => {
         <div className="max-w-md mx-auto">
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
-              <CardTitle className="text-2xl font-afro-heading text-white">
+              <CardTitle className="font-afro-heading text-white text-xl font-normal">
                 Sign In
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
@@ -144,53 +144,25 @@ const SignIn = () => {
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="your@email.com"
-                      required
-                    />
+                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="your@email.com" required />
                   </div>
 
                   <div className="relative">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="Your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
+                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} placeholder="Your password" required />
+                    <button type="button" className="absolute right-3 top-8 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
-                    disabled={isSubmitting}
-                  >
+                  <Button type="submit" className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" disabled={isSubmitting}>
                     {isSubmitting ? 'Signing In...' : 'Sign In'}
                   </Button>
                 </form>
 
                 {/* Forgot Password Link */}
                 <div className="mt-4 text-center">
-                  <Button 
-                    variant="link" 
-                    className="text-sm text-primary hover:text-primary/80"
-                    onClick={() => navigate('/reset-password')}
-                  >
+                  <Button variant="link" className="text-sm text-primary hover:text-primary/80" onClick={() => navigate('/reset-password')}>
                     Forgot your password?
                   </Button>
                 </div>
@@ -200,11 +172,7 @@ const SignIn = () => {
                   <p className="text-sm text-muted-foreground mb-3">
                     Don't have an account?
                   </p>
-                  <Button 
-                    variant="ghost" 
-                    className="text-primary hover:text-primary/80 hover:bg-primary/5"
-                    onClick={() => navigate('/auth')}
-                  >
+                  <Button variant="ghost" className="text-primary hover:text-primary/80 hover:bg-primary/5" onClick={() => navigate('/auth')}>
                     Create Account
                   </Button>
                 </div>
@@ -221,8 +189,6 @@ const SignIn = () => {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default SignIn;
