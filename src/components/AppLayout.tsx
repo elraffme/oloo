@@ -82,9 +82,16 @@ const AppLayout = () => {
             {/* Right Actions */}
             <div className="flex items-center space-x-2">
               {/* Quick Actions */}
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
-                <Search className="w-4 h-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Search</p>
+                </TooltipContent>
+              </Tooltip>
               
               <Tooltip>
                 <TooltipTrigger asChild>
