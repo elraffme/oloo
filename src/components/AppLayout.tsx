@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 const AppLayout = () => {
   const {
     user,
@@ -50,7 +51,8 @@ const AppLayout = () => {
   const handleSignOut = async () => {
     await signOut();
   };
-  return <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
+  return <TooltipProvider>
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10">
       {/* Top Navigation */}
       <header className="bg-background/95 backdrop-blur-sm border-b border-border/20 sticky top-0 z-50">
         <div className="container mx-auto px-4">
@@ -91,9 +93,16 @@ const AppLayout = () => {
                 </Badge>
               </Button>
 
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 text-foreground" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 text-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Log out</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -119,6 +128,7 @@ const AppLayout = () => {
         </div>
       </nav>
 
-    </div>;
+    </div>
+  </TooltipProvider>;
 };
 export default AppLayout;
