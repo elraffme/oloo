@@ -35,6 +35,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isConnected, setIsConnected] = useState(false);
+  const [hasVideo, setHasVideo] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showGiftSelector, setShowGiftSelector] = useState(false);
   const [showCoinShop, setShowCoinShop] = useState(false);
@@ -55,6 +56,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         viewerId,
         videoRef.current
       );
+
+      // Listen for video tracks to confirm we're receiving video
+      const video = videoRef.current;
+      video.onloadedmetadata = () => {
+        setHasVideo(true);
+      };
+      video.onplay = () => {
+        setHasVideo(true);
+      };
 
       await viewerConnectionRef.current.connect(supabase);
       setIsConnected(true);
@@ -213,10 +223,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           />
           
           {!isConnected && (
-            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3">
+            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
               <p className="text-white font-medium text-sm md:text-base">Establishing WebRTC connection...</p>
               <p className="text-white/70 text-xs md:text-sm">Connecting peer-to-peer</p>
+            </div>
+          )}
+          
+          {isConnected && !hasVideo && (
+            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+              <p className="text-white font-medium text-sm md:text-base">Waiting for video stream...</p>
+              <p className="text-white/70 text-xs md:text-sm">The broadcaster may not be live yet</p>
             </div>
           )}
           
