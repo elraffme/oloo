@@ -52,8 +52,6 @@ export const ProfileCard = ({
   swipeDirection 
 }: ProfileCardProps) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isEditingBio, setIsEditingBio] = useState(false);
-  const [editedBio, setEditedBio] = useState(profile.bio || '');
 
   const handleLikePhoto = (photoIndex: number) => {
     console.log(`Liked photo ${photoIndex} of ${profile.display_name}`);
@@ -155,23 +153,9 @@ export const ProfileCard = ({
             </div>
 
             {profile.bio && (
-              isEditingBio ? (
-                <Textarea
-                  value={editedBio}
-                  onChange={(e) => setEditedBio(e.target.value)}
-                  onBlur={() => setIsEditingBio(false)}
-                  className="text-sm leading-relaxed min-h-[60px]"
-                  autoFocus
-                  placeholder="Write your bio..."
-                />
-              ) : (
-                <p 
-                  className="text-sm leading-relaxed line-clamp-3 cursor-pointer hover:bg-accent/50 rounded p-2 transition-colors"
-                  onClick={() => setIsEditingBio(true)}
-                >
-                  {editedBio || profile.bio}
-                </p>
-              )
+              <p className="text-sm leading-relaxed line-clamp-3">
+                {profile.bio}
+              </p>
             )}
 
             {/* Quick Info */}
