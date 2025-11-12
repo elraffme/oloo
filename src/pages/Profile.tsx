@@ -394,9 +394,12 @@ const Profile = () => {
                   />
                 </div>
               ) : (
-                profile?.bio && (
-                  <p className="text-sm leading-relaxed">{profile.bio}</p>
-                )
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Bio</Label>
+                  <p className="text-sm leading-relaxed">
+                    {profile?.bio || 'No bio added yet. Click Edit Profile to add one!'}
+                  </p>
+                </div>
               )}
 
               {/* Interests */}
