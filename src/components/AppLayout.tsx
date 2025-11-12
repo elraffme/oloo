@@ -84,7 +84,7 @@ const AppLayout = () => {
               {/* Quick Actions */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="hidden sm:flex">
+                  <Button variant="ghost" size="sm" className="flex">
                     <Search className="w-4 h-4 text-foreground" />
                   </Button>
                 </TooltipTrigger>
