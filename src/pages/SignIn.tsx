@@ -21,6 +21,7 @@ const SignIn = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [emailError, setEmailError] = useState<string>('');
 
   // Check if user has completed onboarding
   useEffect(() => {
@@ -53,6 +54,20 @@ const SignIn = () => {
       return <Navigate to="/onboarding" replace />;
     }
   }
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setEmailError('');
+      return true;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const {
       name,
@@ -62,6 +77,10 @@ const SignIn = () => {
       ...prev,
       [name]: value
     }));
+    
+    if (name === 'email') {
+      validateEmail(value);
+    }
   };
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +159,10 @@ const SignIn = () => {
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="your@email.com" required />
+                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={(e) => validateEmail(e.target.value)} placeholder="your@email.com" required className={emailError ? 'border-destructive' : ''} />
+                    {emailError && (
+                      <p className="text-sm text-destructive mt-1">{emailError}</p>
+                    )}
                   </div>
 
                   <div className="relative">
