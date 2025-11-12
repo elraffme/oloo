@@ -86,12 +86,19 @@ const AppLayout = () => {
                 <Search className="w-4 h-4" />
               </Button>
               
-              <Button variant="ghost" size="sm" className="relative">
-                <Zap className="w-4 h-4 text-accent" />
-                <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
-                  0
-                </Badge>
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <Zap className="w-4 h-4 text-accent" />
+                    <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
+                      0
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Coins</p>
+                </TooltipContent>
+              </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
