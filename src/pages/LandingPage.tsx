@@ -136,7 +136,7 @@ const LandingPage = () => {
       {/* Features Section */}
       <section id="culture" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-3 sm:mb-4 text-foreground px-2">Why "The Culture" Is Different</h2>
+          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 font-semibold">Why "The Culture" Is Different</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
