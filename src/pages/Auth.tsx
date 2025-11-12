@@ -330,7 +330,7 @@ const Auth = () => {
                     }))} />
                       <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
                         I accept the <span className="text-black underline">Terms of Service</span> and{' '}
-                        <span className="text-primary underline">Privacy Policy</span>
+                        <span className="text-black underline">Privacy Policy</span>
                       </Label>
                     </div>
 
