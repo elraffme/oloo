@@ -83,7 +83,7 @@ const AppLayout = () => {
                       size="sm"
                       className="flex items-center space-x-2 bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon className="w-4 h-4" fill="currentColor" />
                       <span>{item.label}</span>
                     </Button>
                   </NavLink>
@@ -137,6 +137,7 @@ const AppLayout = () => {
               >
                 <item.icon 
                   className="w-5 h-5 text-primary" 
+                  fill="currentColor"
                 />
                 <span 
                   className="text-xs text-primary font-medium"
