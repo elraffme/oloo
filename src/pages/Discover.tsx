@@ -602,7 +602,7 @@ const Discover = () => {
         {/* Profile Counter and Next Button - Only show in browse mode */}
         {!searchMode && (
           <div className="text-center mt-6 space-y-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-black">
               {currentIndex + 1} of {profiles.length}
             </p>
             
