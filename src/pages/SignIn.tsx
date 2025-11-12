@@ -128,9 +128,7 @@ const SignIn = () => {
         <div className="max-w-md mx-auto">
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
-              <CardTitle className="font-afro-heading text-black text-xl font-normal">
-                Sign In
-              </CardTitle>
+              
               <CardDescription className="text-base text-muted-foreground/90">
                 Continue your journey of meaningful connections
               </CardDescription>
