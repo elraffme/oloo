@@ -160,7 +160,7 @@ const SignIn = () => {
 
                 {/* Forgot Password Link */}
                 <div className="mt-4 text-center">
-                  <Button variant="link" className="text-sm text-primary hover:text-primary/80" onClick={() => navigate('/reset-password')}>
+                  <Button variant="link" className="text-sm text-black hover:text-black/80" onClick={() => navigate('/reset-password')}>
                     Forgot your password?
                   </Button>
                 </div>
@@ -170,7 +170,7 @@ const SignIn = () => {
                   <p className="text-sm text-muted-foreground mb-3">
                     Don't have an account?
                   </p>
-                  <Button variant="ghost" className="text-primary hover:text-primary/80 hover:bg-primary/5" onClick={() => navigate('/auth')}>
+                  <Button variant="ghost" className="text-black hover:text-black/80 hover:bg-black/5" onClick={() => navigate('/auth')}>
                     Create Account
                   </Button>
                 </div>
