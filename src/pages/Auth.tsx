@@ -276,7 +276,7 @@ const Auth = () => {
           <h1 className="text-4xl font-bold font-afro-heading mb-2">
             <span className="afro-heading text-primary">Òloo</span>
           </h1>
-          <p className="text-xl text-muted-foreground font-afro-body">
+          <p className="text-xl text-black font-afro-body">
             Cultured in connection
           </p>
         </div>
