@@ -85,7 +85,7 @@ const AppLayout = () => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className="hidden sm:flex">
-                    <Search className="w-4 h-4" />
+                    <Search className="w-4 h-4 text-foreground" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
