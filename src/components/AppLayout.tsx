@@ -59,7 +59,7 @@ const AppLayout = () => {
             <div className="flex items-center space-x-3">
               
               <div>
-                <h1 className="text-xl font-bold font-afro-heading">Òloo</h1>
+                <h1 className="text-xl font-bold font-afro-heading text-primary">Òloo</h1>
                 <p className="text-xs text-muted-foreground">Cultured connections</p>
               </div>
             </div>
