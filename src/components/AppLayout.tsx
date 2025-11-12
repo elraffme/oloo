@@ -140,7 +140,7 @@ const AppLayout = () => {
                   fill="currentColor"
                 />
                 <span 
-                  className="text-xs text-primary font-medium"
+                  className="text-xs text-white font-medium"
                 >
                   {item.label}
                 </span>
