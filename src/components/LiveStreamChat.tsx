@@ -152,7 +152,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
       </ScrollArea>
 
       <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-border">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
