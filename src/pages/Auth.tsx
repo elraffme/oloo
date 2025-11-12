@@ -329,7 +329,7 @@ const Auth = () => {
                       acceptTerms: checked as boolean
                     }))} />
                       <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
-                        I accept the <span className="text-primary underline">Terms of Service</span> and{' '}
+                        I accept the <span className="text-black underline">Terms of Service</span> and{' '}
                         <span className="text-primary underline">Privacy Policy</span>
                       </Label>
                     </div>
