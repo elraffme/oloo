@@ -112,9 +112,7 @@ const SignIn = () => {
             Back
           </Button>
           
-          <div className="heart-logo mx-auto mb-4">
-            <span className="logo-text">Ò</span>
-          </div>
+          
           
           <h1 className="text-4xl font-bold font-afro-heading mb-2">
             <span className="afro-heading">Òloo</span>
