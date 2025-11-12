@@ -213,8 +213,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       </div>
 
       {/* Main Video Area */}
-      <div className="flex-1 flex relative bg-black overflow-hidden">
-        <div className={`flex-1 relative transition-all duration-300 ${showChat && !isMobile ? 'md:mr-80' : ''}`}>
+      <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
+        <div className="flex-1 relative">
           <video
             ref={videoRef}
             autoPlay
@@ -245,32 +245,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               <span className="md:hidden">LIVE</span>
             </Badge>
           )}
-
-          {/* Desktop Chat Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleChatToggle}
-            className="absolute top-2 right-2 md:top-4 md:right-4 bg-black/50 hover:bg-black/70 text-white hidden md:flex"
-          >
-            {showChat ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-          </Button>
         </div>
 
-        {/* Desktop Chat Sidebar */}
-        {showChat && !isMobile && (
-          <div className="w-80 h-full border-l border-border hidden md:block">
-            <LiveStreamChat streamId={streamId} />
-          </div>
-        )}
-
-        {/* Mobile Chat Overlay */}
-        {showChat && isMobile && (
-          <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-background border-t border-border md:hidden animate-slide-in-bottom">
-            <div className="relative h-full">
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-muted-foreground/30 rounded-full" />
-              <LiveStreamChat streamId={streamId} isMobile />
-            </div>
+        {/* Chat Below Video - Desktop & Mobile */}
+        {showChat && (
+          <div className="h-[300px] md:h-[350px] border-t border-border bg-background">
+            <LiveStreamChat streamId={streamId} isMobile={isMobile} />
           </div>
         )}
       </div>
@@ -291,28 +271,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         onComplete={() => setShowLikeAnimation(false)} 
       />
 
-      {/* Bottom Controls - Desktop Only */}
-      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-center gap-2 md:gap-4 hidden md:flex">
-        <Button
-          variant={isMuted ? "destructive" : "default"}
-          size="lg"
-          onClick={toggleMute}
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </Button>
-        <Button
-          variant="default"
-          size="lg"
-          onClick={() => setShowGiftSelector(true)}
-          className="gap-2"
-        >
-          <Gift className="w-5 h-5" />
-          Send Gift
-        </Button>
-      </div>
-
-      {/* Mobile Bottom Bar */}
-      <div className="bg-black/80 p-3 flex items-center justify-between md:hidden">
+      {/* Bottom Controls */}
+      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-between gap-2">
         <Button
           variant={isMuted ? "destructive" : "ghost"}
           size="icon"
@@ -321,15 +281,37 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         >
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </Button>
+        
         <Button
           variant="ghost"
           size="sm"
           onClick={handleSendMessage}
-          className="gap-2 text-white"
+          className="gap-2 text-white md:hidden"
         >
           <MessageCircle className="w-4 h-4" />
           Message Host
         </Button>
+        
+        <div className="hidden md:flex items-center gap-2">
+          <Button
+            variant="default"
+            size="lg"
+            onClick={() => setShowGiftSelector(true)}
+            className="gap-2"
+          >
+            <Gift className="w-5 h-5" />
+            Send Gift
+          </Button>
+          <Button
+            variant="default"
+            size="lg"
+            onClick={handleSendMessage}
+            className="gap-2"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Message Host
+          </Button>
+        </div>
       </div>
 
       {user && (
