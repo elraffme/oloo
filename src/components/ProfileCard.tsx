@@ -224,7 +224,7 @@ export const ProfileCard = ({
           <Button
             size="sm"
             variant="outline"
-            className="w-10 h-10 rounded-full border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all duration-200"
+            className="w-10 h-10 rounded-full bg-red-500 text-white border-red-500 hover:bg-red-600 hover:border-red-600 transition-all duration-200"
             onClick={() => onSwipe('left')}
           >
             <X className="w-4 h-4" />
