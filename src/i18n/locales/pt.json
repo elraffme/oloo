@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Encontre Seu Par Perfeito",
+    "subtitle": "Conecte-se com pessoas incríveis em toda a África",
+    "getStarted": "Começar",
+    "signIn": "Entrar",
+    "signUp": "Registrar",
+    "features": {
+      "liveStreaming": "Transmissão ao Vivo",
+      "liveStreamingDesc": "Assista e conecte-se com pessoas em tempo real",
+      "videoChat": "Chat de Vídeo",
+      "videoChatDesc": "Tenha conversas cara a cara instantaneamente",
+      "events": "Eventos e Encontros",
+      "eventsDesc": "Participe de eventos locais e conheça novas pessoas",
+      "trivia": "Jogos de Trivia",
+      "triviaDesc": "Desafie outros e ganhe prêmios emocionantes"
+    },
+    "menu": {
+      "language": "Idioma",
+      "selectLanguage": "Selecionar Idioma"
+    }
+  },
+  "navigation": {
+    "discover": "Descobrir",
+    "feed": "Feed",
+    "messages": "Mensagens",
+    "profile": "Perfil",
+    "streaming": "Transmissão",
+    "shop": "Loja",
+    "premium": "Premium",
+    "about": "Sobre"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "send": "Enviar",
+    "close": "Fechar"
+  }
+}

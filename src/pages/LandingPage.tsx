@@ -5,8 +5,11 @@ import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe,
 import landingImage from "@/assets/hero-background.png";
 import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTranslation } from "react-i18next";
+
 const LandingPage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
@@ -64,7 +67,7 @@ const LandingPage = () => {
               </Button>
               <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('get-started')}>
                 <span className="nsibidi-symbol mr-2">◈</span>
-                Get Started
+                {t('landing.getStarted')}
               </Button>
               
               <div className="border-t border-border my-2" />
@@ -77,14 +80,14 @@ const LandingPage = () => {
             navigate('/auth');
             setIsMenuOpen(false);
           }}>
-                Sign In
+                {t('landing.signIn')}
               </Button>
               <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading" onClick={() => {
             navigate('/onboarding');
             setIsMenuOpen(false);
           }}>
                 <span className="nsibidi-symbol mr-1">♦</span>
-                Join Now
+                {t('landing.signUp')}
               </Button>
             </nav>
           </div>}
@@ -111,12 +114,12 @@ const LandingPage = () => {
           <div className="space-y-2.5 sm:space-y-4 pb-6 sm:pb-8 lg:pb-10 max-w-sm sm:max-w-md mx-auto w-full">
             {/* Primary CTA */}
             <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/onboarding')}>
-              Create account
+              {t('landing.signUp')}
             </Button>
 
             {/* Secondary CTA */}
             <Button variant="ghost" onClick={() => navigate('/signin')} className="w-full h-11 sm:h-12 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-sm sm:text-base lg:text-lg">
-              Already a member? Log in
+              {t('landing.signIn')}
             </Button>
           </div>
         </div>

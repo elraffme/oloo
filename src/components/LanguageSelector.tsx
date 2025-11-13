@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Globe, Check } from 'lucide-react';
 import {
@@ -6,6 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { useTranslation } from 'react-i18next';
 
 interface Language {
   code: string;
@@ -38,15 +39,13 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   variant = 'ghost',
   className = ''
 }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  const { i18n, t } = useTranslation();
 
   const handleLanguageChange = (code: string) => {
-    setSelectedLanguage(code);
-    // TODO: Implement actual language switching logic
-    console.log('Language changed to:', code);
+    i18n.changeLanguage(code);
   };
 
-  const currentLanguage = AFRICAN_LANGUAGES.find(lang => lang.code === selectedLanguage);
+  const currentLanguage = AFRICAN_LANGUAGES.find(lang => lang.code === i18n.language);
 
   return (
     <Popover>
@@ -62,7 +61,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       <PopoverContent className="w-64 p-2" align="start">
         <div className="space-y-1">
           <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-            Select Language
+            {t('landing.menu.selectLanguage')}
           </div>
           <div className="max-h-[300px] overflow-y-auto">
             {AFRICAN_LANGUAGES.map((language) => (
@@ -72,14 +71,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                 className={`
                   w-full flex items-center justify-between px-2 py-2 rounded-md
                   text-sm hover:bg-accent transition-colors
-                  ${selectedLanguage === language.code ? 'bg-accent' : ''}
+                  ${i18n.language === language.code ? 'bg-accent' : ''}
                 `}
               >
                 <div className="flex flex-col items-start">
                   <span className="font-medium">{language.nativeName}</span>
                   <span className="text-xs text-muted-foreground">{language.name}</span>
                 </div>
-                {selectedLanguage === language.code && (
+                {i18n.language === language.code && (
                   <Check className="w-4 h-4 text-primary" />
                 )}
               </button>

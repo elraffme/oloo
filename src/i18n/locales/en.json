@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Find Your Perfect Match",
+    "subtitle": "Connect with amazing people across Africa",
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "features": {
+      "liveStreaming": "Live Streaming",
+      "liveStreamingDesc": "Watch and connect with people in real-time",
+      "videoChat": "Video Chat",
+      "videoChatDesc": "Have face-to-face conversations instantly",
+      "events": "Events & Meetups",
+      "eventsDesc": "Join local events and meet new people",
+      "trivia": "Trivia Games",
+      "triviaDesc": "Challenge others and win exciting prizes"
+    },
+    "menu": {
+      "language": "Language",
+      "selectLanguage": "Select Language"
+    }
+  },
+  "navigation": {
+    "discover": "Discover",
+    "feed": "Feed",
+    "messages": "Messages",
+    "profile": "Profile",
+    "streaming": "Streaming",
+    "shop": "Shop",
+    "premium": "Premium",
+    "about": "About"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "send": "Send",
+    "close": "Close"
+  }
+}
