@@ -31,7 +31,10 @@ import { MainPhotoSelector } from '@/components/MainPhotoSelector';
 import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
 import { ProfileVisitors } from '@/components/ProfileVisitors';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
+import { AchievementsSection } from '@/components/AchievementsSection';
+import { BadgeDisplay } from '@/components/BadgeDisplay';
 import { useNavigate } from 'react-router-dom';
+import { useAchievementTrigger } from '@/hooks/useAchievements';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -47,6 +50,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedVisitorProfile, setSelectedVisitorProfile] = useState<string | null>(null);
+  const [featuredBadges, setFeaturedBadges] = useState<any[]>([]);
   const [editForm, setEditForm] = useState({
     display_name: '',
     bio: '',
@@ -57,12 +61,16 @@ const Profile = () => {
     relationship_goals: '',
     age: 0
   });
+  
+  // Auto-check achievements when profile loads
+  useAchievementTrigger();
 
   useEffect(() => {
     if (user) {
       loadProfile();
       loadTokenBalance();
       loadStats();
+      loadFeaturedBadges();
     }
   }, [user]);
 
@@ -140,22 +148,59 @@ const Profile = () => {
 
   const loadStats = async () => {
     try {
-      // Load user statistics
-      const [matchesRes, likesRes, streamsRes, giftsRes] = await Promise.allSettled([
-        supabase.from('user_connections').select('id').eq('connection_type', 'match').eq('user_id', user?.id),
-        supabase.from('user_connections').select('id').eq('connection_type', 'like').eq('connected_user_id', user?.id),
-        supabase.from('streaming_sessions').select('id').eq('host_user_id', user?.id),
-        supabase.from('token_transactions').select('id').eq('reason', 'gift_received').eq('user_id', user?.id)
-      ]);
+      // Get total matches
+      const { count: matchesCount } = await supabase
+        .from('user_connections')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
+        .eq('connection_type', 'match');
+
+      // Get total likes received
+      const { count: likesCount } = await supabase
+        .from('user_connections')
+        .select('*', { count: 'exact', head: true })
+        .eq('connected_user_id', user?.id)
+        .eq('connection_type', 'like');
+
+      // Get total streams
+      const { count: streamsCount } = await supabase
+        .from('streaming_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('host_user_id', user?.id);
+
+      // Get gifts received
+      const { count: giftsCount } = await supabase
+        .from('gift_transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', user?.id);
 
       setStats({
-        matches: matchesRes.status === 'fulfilled' ? matchesRes.value.data?.length || 0 : 0,
-        likes: likesRes.status === 'fulfilled' ? likesRes.value.data?.length || 0 : 0,
-        streams: streamsRes.status === 'fulfilled' ? streamsRes.value.data?.length || 0 : 0,
-        giftsReceived: giftsRes.status === 'fulfilled' ? giftsRes.value.data?.length || 0 : 0
+        matches: matchesCount || 0,
+        likes: likesCount || 0,
+        streams: streamsCount || 0,
+        giftsReceived: giftsCount || 0
       });
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  };
+
+  const loadFeaturedBadges = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          *,
+          achievement:achievements(*)
+        `)
+        .eq('user_id', user?.id)
+        .eq('is_featured', true)
+        .limit(3);
+
+      if (error) throw error;
+      setFeaturedBadges(data || []);
+    } catch (error) {
+      console.error('Error loading featured badges:', error);
     }
   };
 
@@ -457,11 +502,14 @@ const Profile = () => {
       </Card>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="visitors">
             <Eye className="w-4 h-4 mr-1" />
             Visitors
+          </TabsTrigger>
+          <TabsTrigger value="achievements">
+            🏆 Badges
           </TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -575,6 +623,14 @@ const Profile = () => {
         <TabsContent value="visitors" className="space-y-6">
           <ProfileVisitors 
             onViewProfile={(userId) => setSelectedVisitorProfile(userId)}
+          />
+        </TabsContent>
+
+        {/* Achievements Tab */}
+        <TabsContent value="achievements" className="space-y-6">
+          <AchievementsSection 
+            userId={user?.id || ''}
+            isOwnProfile={true}
           />
         </TabsContent>
 

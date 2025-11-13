@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          coin_reward: number | null
+          created_at: string
+          description: string
+          display_order: number | null
+          icon: string
+          id: string
+          is_hidden: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value: number
+          tier: string
+        }
+        Insert: {
+          category: string
+          coin_reward?: number | null
+          created_at?: string
+          description: string
+          display_order?: number | null
+          icon: string
+          id: string
+          is_hidden?: boolean | null
+          name: string
+          requirement_type: string
+          requirement_value: number
+          tier?: string
+        }
+        Update: {
+          category?: string
+          coin_reward?: number | null
+          created_at?: string
+          description?: string
+          display_order?: number | null
+          icon?: string
+          id?: string
+          is_hidden?: boolean | null
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+          tier?: string
+        }
+        Relationships: []
+      }
       ar_sessions: {
         Row: {
           created_at: string
@@ -1091,6 +1136,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          is_featured: boolean | null
+          progress: number | null
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          is_featured?: boolean | null
+          progress?: number | null
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          is_featured?: boolean | null
+          progress?: number | null
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_connections: {
         Row: {
           ar_interaction_data: Json | null
@@ -1313,6 +1393,10 @@ export type Database = {
       can_user_call: {
         Args: { caller_uuid: string; receiver_uuid: string }
         Returns: boolean
+      }
+      check_and_award_achievements: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       check_deployment_readiness: { Args: never; Returns: Json }
       check_meet_me_match: {
