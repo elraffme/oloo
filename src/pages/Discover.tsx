@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { Brain } from 'lucide-react';
 
 const Discover = () => {
   const navigate = useNavigate();
@@ -568,25 +569,39 @@ const Discover = () => {
 
   return (
     <div className="max-w-sm mx-auto">
-      {/* Meet Me Quick Link */}
-      <div className="mb-4 px-4">
+      {/* Quick Links */}
+      <div className="mb-4 px-4 grid grid-cols-2 gap-3">
         <Card 
           className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
           onClick={() => navigate('/app/meet-me')}
         >
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-full">
+          <CardContent className="p-3">
+            <div className="text-center space-y-2">
+              <div className="bg-primary/10 p-2 rounded-full inline-block">
                 <span className="text-2xl">⚡</span>
               </div>
               <div>
-                <h3 className="font-semibold">Meet Me Game</h3>
-                <p className="text-xs text-muted-foreground">Quick browse & earn coins!</p>
+                <h3 className="font-semibold text-sm">Meet Me</h3>
+                <p className="text-xs text-muted-foreground">Quick browse</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1">
-              Play <span className="text-lg">→</span>
-            </Button>
+          </CardContent>
+        </Card>
+        
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/app/trivia')}
+        >
+          <CardContent className="p-3">
+            <div className="text-center space-y-2">
+              <div className="bg-blue-500/10 p-2 rounded-full inline-block">
+                <Brain className="h-6 w-6 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Trivia</h3>
+                <p className="text-xs text-muted-foreground">Earn coins</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

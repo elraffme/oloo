@@ -1136,6 +1136,128 @@ export type Database = {
         }
         Relationships: []
       }
+      trivia_answers: {
+        Row: {
+          answered_at: string
+          coins_earned: number
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          time_taken_seconds: number | null
+          user_answer: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          question_id: string
+          time_taken_seconds?: number | null
+          user_answer: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          coins_earned?: number
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          time_taken_seconds?: number | null
+          user_answer?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trivia_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "trivia_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trivia_questions: {
+        Row: {
+          active: boolean | null
+          category: string
+          coin_reward: number
+          correct_answer: string
+          created_at: string
+          difficulty: string
+          explanation: string | null
+          id: string
+          options: Json
+          question: string
+        }
+        Insert: {
+          active?: boolean | null
+          category: string
+          coin_reward?: number
+          correct_answer: string
+          created_at?: string
+          difficulty?: string
+          explanation?: string | null
+          id?: string
+          options: Json
+          question: string
+        }
+        Update: {
+          active?: boolean | null
+          category?: string
+          coin_reward?: number
+          correct_answer?: string
+          created_at?: string
+          difficulty?: string
+          explanation?: string | null
+          id?: string
+          options?: Json
+          question?: string
+        }
+        Relationships: []
+      }
+      trivia_stats: {
+        Row: {
+          correct_answers: number | null
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_answered_at: string | null
+          longest_streak: number | null
+          total_coins_earned: number | null
+          total_questions_answered: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_answers?: number | null
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_answered_at?: string | null
+          longest_streak?: number | null
+          total_coins_earned?: number | null
+          total_questions_answered?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_answers?: number | null
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_answered_at?: string | null
+          longest_streak?: number | null
+          total_coins_earned?: number | null
+          total_questions_answered?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -1497,6 +1619,18 @@ export type Database = {
           vehicle_year: number
         }[]
       }
+      get_daily_trivia_question: {
+        Args: { p_user_id: string }
+        Returns: {
+          already_answered: boolean
+          category: string
+          coin_reward: number
+          difficulty: string
+          id: string
+          options: Json
+          question: string
+        }[]
+      }
       get_demo_profiles_paginated: {
         Args: { page_offset?: number; page_size?: number }
         Returns: {
@@ -1620,6 +1754,20 @@ export type Database = {
       get_secure_verification_status: {
         Args: { target_user_id?: string }
         Returns: Json
+      }
+      get_trivia_leaderboard: {
+        Args: { p_limit?: number }
+        Returns: {
+          accuracy_percentage: number
+          avatar_url: string
+          correct_answers: number
+          current_streak: number
+          display_name: string
+          longest_streak: number
+          rank: number
+          total_coins_earned: number
+          user_id: string
+        }[]
       }
       get_user_friends: {
         Args: { target_user_id?: string }
@@ -1764,6 +1912,15 @@ export type Database = {
       send_friend_request: { Args: { target_user_id: string }; Returns: Json }
       send_gift: {
         Args: { p_gift_id: number; p_message?: string; p_receiver_id: string }
+        Returns: Json
+      }
+      submit_trivia_answer: {
+        Args: {
+          p_question_id: string
+          p_time_taken_seconds: number
+          p_user_answer: string
+          p_user_id: string
+        }
         Returns: Json
       }
       toggle_stream_like: { Args: { p_stream_id: string }; Returns: Json }

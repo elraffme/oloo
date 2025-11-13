@@ -34,6 +34,8 @@ import ResetPassword from "./pages/ResetPassword";
 import ResetPasswordConfirm from "./pages/ResetPasswordConfirm";
 import BrowseByInterest from "./pages/BrowseByInterest";
 import MeetMe from "./pages/MeetMe";
+import Trivia from "./pages/Trivia";
+import TriviaLeaderboard from "./pages/TriviaLeaderboard";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -59,6 +61,8 @@ const App = () => (
               <Route path="discover" element={<Discover />} />
               <Route path="browse-interest" element={<BrowseByInterest />} />
               <Route path="meet-me" element={<MeetMe />} />
+              <Route path="trivia" element={<Trivia />} />
+              <Route path="trivia/leaderboard" element={<TriviaLeaderboard />} />
               <Route path="streaming" element={<Streaming />} />
               <Route path="streaming/discover" element={<Streaming />} />
               <Route path="streaming/go-live" element={<Streaming />} />
