@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
 import landingImage from "@/assets/hero-background.png";
 import Footer from "@/components/Footer";
+import { LanguageSelector } from "@/components/LanguageSelector";
 const LandingPage = () => {
   const navigate = useNavigate();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
@@ -65,6 +66,10 @@ const LandingPage = () => {
                 <span className="nsibidi-symbol mr-2">◈</span>
                 Get Started
               </Button>
+              
+              <div className="border-t border-border my-2" />
+              
+              <LanguageSelector variant="ghost" />
               
               <div className="border-t border-border my-2" />
               
