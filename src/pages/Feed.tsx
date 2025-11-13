@@ -430,28 +430,48 @@ const Feed = () => {
         <p className="text-muted-foreground">Stay connected with your friends and discover what's happening</p>
       </div>
 
-      {/* Browse by Interest Card */}
-      <Card 
-        className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
-        onClick={() => navigate('/app/browse-interest')}
-      >
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <Sparkles className="w-6 h-6 text-primary" />
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Browse by Interest */}
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/app/browse-interest')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <Sparkles className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Browse by Interest</h3>
+                <p className="text-sm text-muted-foreground">
+                  Find people with shared passions
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1">Browse by Interest</h3>
-              <p className="text-sm text-muted-foreground">
-                Discover people who share your passions and hobbies
-              </p>
+          </CardContent>
+        </Card>
+
+        {/* Meet Me Game */}
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/app/meet-me')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-amber-500/10 p-3 rounded-full">
+                <span className="text-2xl">⚡</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Meet Me Game</h3>
+                <p className="text-sm text-muted-foreground">
+                  Quick browse & earn coins!
+                </p>
+              </div>
             </div>
-            <Button variant="ghost" size="icon">
-              <span className="text-2xl">→</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Status Update */}
       <Card>

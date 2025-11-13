@@ -385,6 +385,72 @@ export type Database = {
         }
         Relationships: []
       }
+      meet_me_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          response: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          response: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          response?: string
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meet_me_stats: {
+        Row: {
+          coins_earned: number | null
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_played_at: string | null
+          longest_streak: number | null
+          total_plays: number | null
+          total_skips: number | null
+          total_yeses: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number | null
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_played_at?: string | null
+          longest_streak?: number | null
+          total_plays?: number | null
+          total_skips?: number | null
+          total_yeses?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number | null
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_played_at?: string | null
+          longest_streak?: number | null
+          total_plays?: number | null
+          total_skips?: number | null
+          total_yeses?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           created_at: string
@@ -1249,6 +1315,10 @@ export type Database = {
         Returns: boolean
       }
       check_deployment_readiness: { Args: never; Returns: Json }
+      check_meet_me_match: {
+        Args: { p_target_user_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_mutual_match: {
         Args: { user1_id: string; user2_id: string }
         Returns: boolean
@@ -1613,6 +1683,10 @@ export type Database = {
         Returns: Json
       }
       toggle_stream_like: { Args: { p_stream_id: string }; Returns: Json }
+      update_meet_me_stats: {
+        Args: { p_response: string; p_user_id: string }
+        Returns: Json
+      }
       update_profile_verification_status: {
         Args: { is_verified: boolean; target_user_id: string }
         Returns: boolean

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ProfileCard } from '@/components/ProfileCard';
 import { MatchModal } from '@/components/MatchModal';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
@@ -567,6 +568,29 @@ const Discover = () => {
 
   return (
     <div className="max-w-sm mx-auto">
+      {/* Meet Me Quick Link */}
+      <div className="mb-4 px-4">
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/app/meet-me')}
+        >
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-full">
+                <span className="text-2xl">⚡</span>
+              </div>
+              <div>
+                <h3 className="font-semibold">Meet Me Game</h3>
+                <p className="text-xs text-muted-foreground">Quick browse & earn coins!</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" className="gap-1">
+              Play <span className="text-lg">→</span>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Search Bar */}
       <div className="mb-6 px-4">
         <SearchBar 

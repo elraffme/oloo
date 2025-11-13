@@ -33,6 +33,7 @@ import CookiesPolicy from "./pages/CookiesPolicy";
 import ResetPassword from "./pages/ResetPassword";
 import ResetPasswordConfirm from "./pages/ResetPasswordConfirm";
 import BrowseByInterest from "./pages/BrowseByInterest";
+import MeetMe from "./pages/MeetMe";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="feed" element={<Feed />} />
               <Route path="discover" element={<Discover />} />
               <Route path="browse-interest" element={<BrowseByInterest />} />
+              <Route path="meet-me" element={<MeetMe />} />
               <Route path="streaming" element={<Streaming />} />
               <Route path="streaming/discover" element={<Streaming />} />
               <Route path="streaming/go-live" element={<Streaming />} />
