@@ -30,24 +30,28 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   useEffect(() => {
     // Load initial messages
     const loadMessages = async () => {
-      const { data, error } = await supabase
-        .from('stream_chat_messages')
-        .select('*')
-        .eq('stream_id', streamId)
-        .order('created_at', { ascending: true })
-        .limit(100);
+      try {
+        const { data, error } = await supabase
+          .from('stream_chat_messages')
+          .select('*')
+          .eq('stream_id', streamId)
+          .order('created_at', { ascending: true })
+          .limit(100);
 
-      if (error) {
-        console.error('Error loading chat messages:', error);
-        return;
+        if (error) {
+          console.error('Error loading chat messages:', error);
+          return;
+        }
+
+        setMessages(data || []);
+      } catch (error) {
+        console.error('Unexpected error loading chat messages:', error);
       }
-
-      setMessages(data || []);
     };
 
     loadMessages();
 
-    // Subscribe to new messages
+    // Subscribe to new messages with error handling
     const channel = supabase
       .channel(`stream_chat:${streamId}`)
       .on(
@@ -59,13 +63,27 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
           filter: `stream_id=eq.${streamId}`
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as ChatMessage]);
+          try {
+            setMessages((prev) => [...prev, payload.new as ChatMessage]);
+          } catch (error) {
+            console.error('Error processing new chat message:', error);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✓ Chat subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Chat subscription error');
+        }
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        supabase.removeChannel(channel);
+      } catch (error) {
+        console.error('Error cleaning up chat channel:', error);
+      }
     };
   }, [streamId]);
 
@@ -87,17 +105,22 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
     if (!newMessage.trim()) return;
 
     setIsSending(true);
+    
     try {
       // Get user profile for username
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('display_name')
         .eq('id', user.id)
         .single();
 
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      }
+
       const username = profile?.display_name || 'Anonymous';
 
-      const { error } = await supabase
+      const { error: insertError } = await supabase
         .from('stream_chat_messages')
         .insert({
           stream_id: streamId,
@@ -106,12 +129,16 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
           message: newMessage.trim()
         });
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Error inserting message:', insertError);
+        throw insertError;
+      }
 
       setNewMessage('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      // Don't crash the component, just show error to user
+      toast.error(error?.message || 'Failed to send message');
     } finally {
       setIsSending(false);
     }
