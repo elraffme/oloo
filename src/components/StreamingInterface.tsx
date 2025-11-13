@@ -798,7 +798,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         {/* Stream Info */}
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">
-                            {stream.ar_space_data?.category || 'General'}
+                            {stream.category || 'General'}
                           </span>
                           {stream.total_likes > 0 && (
                             <div className="flex items-center text-pink-500">
