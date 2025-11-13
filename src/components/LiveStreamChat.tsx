@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { EmotePicker } from './EmotePicker';
 
 interface ChatMessage {
   id: string;
@@ -187,6 +188,10 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
             disabled={!user || isSending}
             maxLength={500}
             className="flex-1 text-sm h-9 md:h-10"
+          />
+          <EmotePicker
+            onEmoteSelect={(emote) => setNewMessage((prev) => prev + emote)}
+            disabled={!user || isSending}
           />
           <Button 
             type="submit" 
