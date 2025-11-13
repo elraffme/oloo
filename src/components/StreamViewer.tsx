@@ -214,12 +214,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex items-center justify-center">
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain md:max-w-md md:mx-auto"
           />
           
           {!isConnected && (

@@ -459,8 +459,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       if (requestVideo) {
         constraints.video = {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
           facingMode: 'user'
         };
       }
@@ -926,7 +926,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-md mx-auto">
                     {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white">
                         <VideoOff className="w-12 h-12" />
                       </div>}
