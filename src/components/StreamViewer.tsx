@@ -3,6 +3,7 @@ import { ViewerConnection } from '@/utils/ViewerConnection';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -181,7 +182,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   };
 
   const handleChatToggle = () => {
-    setShowChat(!showChat);
+    if (isMobile) {
+      setShowChat(!showChat);
+    } else {
+      setShowChat(!showChat);
+    }
   };
 
   return (
@@ -247,10 +252,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           )}
         </div>
 
-        {/* Chat Below Video - Desktop & Mobile */}
-        {showChat && (
+        {/* Chat Below Video - Desktop Only */}
+        {showChat && !isMobile && (
           <div className="h-[300px] md:h-[350px] border-t border-border bg-background">
-            <LiveStreamChat streamId={streamId} isMobile={isMobile} />
+            <LiveStreamChat streamId={streamId} isMobile={false} />
           </div>
         )}
       </div>
@@ -264,8 +269,20 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         onChat={handleChatToggle}
       />
 
+      {/* Mobile Chat Sheet */}
+      <Sheet open={showChat && isMobile} onOpenChange={(open) => isMobile && setShowChat(open)}>
+        <SheetContent side="bottom" className="h-[80vh] p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>Live Chat</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100%-64px)]">
+            <LiveStreamChat streamId={streamId} isMobile={true} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Like Animation */}
-      <LikeAnimation 
+      <LikeAnimation
         key={likeAnimationTrigger}
         show={showLikeAnimation} 
         onComplete={() => setShowLikeAnimation(false)} 
