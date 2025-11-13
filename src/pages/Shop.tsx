@@ -6,10 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShop, ShopItem } from '@/hooks/useShop';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useShopGifts } from '@/hooks/useShopGifts';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useBundles } from '@/hooks/useBundles';
+import { useFeaturedItems } from '@/hooks/useFeaturedItems';
 import { SendShopGiftModal } from '@/components/SendShopGiftModal';
 import { ShopGiftInbox } from '@/components/ShopGiftInbox';
 import { SeasonalCountdown } from '@/components/SeasonalCountdown';
-import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox, Snowflake } from 'lucide-react';
+import { FlashSaleBanner } from '@/components/FlashSaleBanner';
+import { FlashSaleTimer } from '@/components/FlashSaleTimer';
+import { FeaturedItemsCarousel } from '@/components/FeaturedItemsCarousel';
+import { BundleCard } from '@/components/BundleCard';
+import { WishlistModal } from '@/components/WishlistModal';
+import { ItemPreviewModal } from '@/components/ItemPreviewModal';
+import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox, Snowflake, Heart, Eye, Zap, Package } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,31 +44,52 @@ const categoryLabels = {
 };
 
 export default function Shop() {
-  const { shopItems, userPurchases, loading, purchaseItem, toggleEquipped, isPurchased, purchasing } = useShop();
+  const { shopItems, flashSaleItems, userPurchases, loading, purchaseItem, purchaseFlashSale, toggleEquipped, isPurchased, purchasing } = useShop();
   const { balance } = useCurrency();
   const { pendingCount } = useShopGifts();
-  const [selectedCategory, setSelectedCategory] = useState<string>('badge');
+  const { wishlistCount, toggleWishlist, isInWishlist } = useWishlist();
+  const { bundles } = useBundles();
+  const { featuredItems } = useFeaturedItems();
+  const [selectedCategory, setSelectedCategory] = useState<string>('featured');
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [selectedGiftItem, setSelectedGiftItem] = useState<ShopItem | null>(null);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const navigate = useNavigate();
 
   const filteredItems = selectedCategory === 'vip' 
     ? shopItems?.filter((item) => (item as any).vip_only === true) || []
     : selectedCategory === 'seasonal'
     ? shopItems?.filter((item) => (item as any).is_seasonal === true) || []
+    : selectedCategory === 'flash'
+    ? flashSaleItems || []
+    : selectedCategory === 'bundles'
+    ? []
+    : selectedCategory === 'featured'
+    ? []
     : shopItems?.filter((item) => item.category === selectedCategory) || [];
 
-  const handlePurchase = (itemId: string, price: number) => {
+  const handlePurchase = (itemId: string, price: number, isFlashSale = false) => {
     if (!balance || balance.coin_balance < price) {
       return;
     }
-    purchaseItem(itemId);
+    if (isFlashSale) {
+      purchaseFlashSale(itemId);
+    } else {
+      purchaseItem(itemId);
+    }
   };
 
   const handleGiftClick = (item: ShopItem) => {
     setSelectedGiftItem(item);
     setGiftModalOpen(true);
+  };
+
+  const handlePreview = (item: ShopItem) => {
+    setPreviewItem(item);
+    setPreviewOpen(true);
   };
 
   const ShopItemCard = ({ item }: { item: ShopItem }) => {
@@ -71,6 +101,11 @@ export default function Shop() {
     const isSeasonal = (item as any).is_seasonal || false;
     const availableUntil = (item as any).available_until;
     const season = (item as any).season;
+    const isFlashSale = (item as any).flash_sale_active || false;
+    const flashSaleEndsAt = (item as any).flash_sale_ends_at;
+    const flashSaleDiscount = (item as any).flash_sale_discount_percent;
+    const flashSaleStock = (item as any).flash_sale_stock_remaining;
+    const inWishlist = isInWishlist(item.id);
     
     // Get user's membership tier from balance (which has vip_tier)
     const userTier = balance?.vip_tier || 'free';

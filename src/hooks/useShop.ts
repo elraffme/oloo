@@ -50,6 +50,13 @@ export const useShop = () => {
     enabled: !!user,
   });
 
+  // Get flash sale items
+  const flashSaleItems = shopItems?.filter((item: any) => 
+    item.flash_sale_active && 
+    new Date(item.flash_sale_ends_at) > new Date() &&
+    new Date(item.flash_sale_starts_at) <= new Date()
+  ) || [];
+
   // Fetch user purchases
   const { data: userPurchases, isLoading: purchasesLoading } = useQuery({
     queryKey: ['user-purchases', user?.id],
@@ -86,6 +93,27 @@ export const useShop = () => {
     },
   });
 
+  // Purchase flash sale item mutation
+  const purchaseFlashSaleMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { data, error } = await supabase.rpc('purchase_flash_sale_item' as any, {
+        p_item_id: itemId,
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Flash Sale: ${data.item_name} for ${data.coins_spent} coins! Saved ${data.discount_percent}%! 🔥`);
+      queryClient.invalidateQueries({ queryKey: ['user-purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['currency-balance'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-items'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to purchase flash sale item');
+    },
+  });
+
   // Toggle equipped mutation
   const toggleEquippedMutation = useMutation({
     mutationFn: async (itemId: string) => {
@@ -117,12 +145,14 @@ export const useShop = () => {
 
   return {
     shopItems,
+    flashSaleItems,
     userPurchases,
     loading: itemsLoading || purchasesLoading,
     purchaseItem: purchaseItemMutation.mutate,
+    purchaseFlashSale: purchaseFlashSaleMutation.mutate,
     toggleEquipped: toggleEquippedMutation.mutate,
     isPurchased,
     getEquippedItem,
-    purchasing: purchaseItemMutation.isPending,
+    purchasing: purchaseItemMutation.isPending || purchaseFlashSaleMutation.isPending,
   };
 };

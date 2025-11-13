@@ -963,6 +963,134 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_bundle_items: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          item_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "shop_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_bundle_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_bundles: {
+        Row: {
+          active: boolean | null
+          available_until: string | null
+          coin_price: number
+          created_at: string
+          description: string
+          discount_percent: number
+          display_order: number | null
+          icon: string
+          id: string
+          limited_edition: boolean | null
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          available_until?: string | null
+          coin_price: number
+          created_at?: string
+          description: string
+          discount_percent: number
+          display_order?: number | null
+          icon: string
+          id: string
+          limited_edition?: boolean | null
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          available_until?: string | null
+          coin_price?: number
+          created_at?: string
+          description?: string
+          discount_percent?: number
+          display_order?: number | null
+          icon?: string
+          id?: string
+          limited_edition?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      shop_featured_items: {
+        Row: {
+          active: boolean | null
+          background_color: string | null
+          created_at: string
+          description: string
+          display_order: number | null
+          ends_at: string
+          feature_slot: number
+          id: string
+          item_id: string
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          active?: boolean | null
+          background_color?: string | null
+          created_at?: string
+          description: string
+          display_order?: number | null
+          ends_at: string
+          feature_slot: number
+          id?: string
+          item_id: string
+          starts_at: string
+          title: string
+        }
+        Update: {
+          active?: boolean | null
+          background_color?: string | null
+          created_at?: string
+          description?: string
+          display_order?: number | null
+          ends_at?: string
+          feature_slot?: number
+          id?: string
+          item_id?: string
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_featured_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_items: {
         Row: {
           active: boolean | null
@@ -974,6 +1102,12 @@ export type Database = {
           created_at: string
           description: string
           display_order: number | null
+          flash_sale_active: boolean | null
+          flash_sale_discount_percent: number | null
+          flash_sale_ends_at: string | null
+          flash_sale_starts_at: string | null
+          flash_sale_stock_limit: number | null
+          flash_sale_stock_remaining: number | null
           icon: string
           id: string
           is_seasonal: boolean | null
@@ -997,6 +1131,12 @@ export type Database = {
           created_at?: string
           description: string
           display_order?: number | null
+          flash_sale_active?: boolean | null
+          flash_sale_discount_percent?: number | null
+          flash_sale_ends_at?: string | null
+          flash_sale_starts_at?: string | null
+          flash_sale_stock_limit?: number | null
+          flash_sale_stock_remaining?: number | null
           icon: string
           id: string
           is_seasonal?: boolean | null
@@ -1020,6 +1160,12 @@ export type Database = {
           created_at?: string
           description?: string
           display_order?: number | null
+          flash_sale_active?: boolean | null
+          flash_sale_discount_percent?: number | null
+          flash_sale_ends_at?: string | null
+          flash_sale_starts_at?: string | null
+          flash_sale_stock_limit?: number | null
+          flash_sale_stock_remaining?: number | null
           icon?: string
           id?: string
           is_seasonal?: boolean | null
@@ -1034,6 +1180,48 @@ export type Database = {
           vip_only?: boolean | null
         }
         Relationships: []
+      }
+      shop_wishlists: {
+        Row: {
+          added_at: string
+          id: string
+          item_id: string
+          notes: string | null
+          priority: number | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          priority?: number | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          priority?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_wishlists_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_wishlists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       social_interactions: {
         Row: {
@@ -1803,6 +1991,21 @@ export type Database = {
         Args: { batch_size?: number }
         Returns: number
       }
+      get_active_featured_items: {
+        Args: never
+        Returns: {
+          background_color: string
+          description: string
+          display_order: number
+          ends_at: string
+          feature_slot: number
+          id: string
+          item_data: Json
+          item_id: string
+          starts_at: string
+          title: string
+        }[]
+      }
       get_anonymized_ride_data: { Args: { ride_id: string }; Returns: Json }
       get_available_drivers: {
         Args: never
@@ -2105,6 +2308,8 @@ export type Database = {
         Args: { p_package_id: number; p_payment_intent_id: string }
         Returns: Json
       }
+      purchase_flash_sale_item: { Args: { p_item_id: string }; Returns: Json }
+      purchase_shop_bundle: { Args: { p_bundle_id: string }; Returns: Json }
       record_profile_view: {
         Args: { p_viewed_profile_id: string }
         Returns: undefined
@@ -2144,6 +2349,7 @@ export type Database = {
         Returns: Json
       }
       toggle_stream_like: { Args: { p_stream_id: string }; Returns: Json }
+      toggle_wishlist_item: { Args: { p_item_id: string }; Returns: Json }
       update_meet_me_stats: {
         Args: { p_response: string; p_user_id: string }
         Returns: Json

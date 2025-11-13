@@ -8,8 +8,10 @@ import { useState } from "react";
 import { CurrencyWallet } from "./CurrencyWallet";
 import { CoinShop } from "./CoinShop";
 import { GiftInbox } from "./GiftInbox";
+import { WishlistModal } from "./WishlistModal";
 import { useSocialInteractions } from "@/hooks/useSocialInteractions";
 import { useShopGifts } from "@/hooks/useShopGifts";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -20,8 +22,10 @@ const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showGiftInbox, setShowGiftInbox] = useState(false);
+  const [showWishlist, setShowWishlist] = useState(false);
   const { unreadCount } = useSocialInteractions();
   const { pendingCount } = useShopGifts();
+  const { wishlistCount } = useWishlist();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -248,6 +252,7 @@ const Navigation = () => {
 
       <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
       <GiftInbox open={showGiftInbox} onOpenChange={setShowGiftInbox} />
+      <WishlistModal open={showWishlist} onOpenChange={setShowWishlist} />
     </nav>
   );
 };
