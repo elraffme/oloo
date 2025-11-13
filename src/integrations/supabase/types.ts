@@ -963,6 +963,78 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_items: {
+        Row: {
+          active: boolean | null
+          asset_data: Json | null
+          available_from: string | null
+          available_until: string | null
+          category: string
+          coin_price: number
+          created_at: string
+          description: string
+          display_order: number | null
+          icon: string
+          id: string
+          is_seasonal: boolean | null
+          item_type: string
+          limited_edition: boolean | null
+          name: string
+          purchased_count: number | null
+          rarity: string
+          recurring_annual: boolean | null
+          required_tier: string | null
+          season: string | null
+          vip_only: boolean | null
+        }
+        Insert: {
+          active?: boolean | null
+          asset_data?: Json | null
+          available_from?: string | null
+          available_until?: string | null
+          category: string
+          coin_price: number
+          created_at?: string
+          description: string
+          display_order?: number | null
+          icon: string
+          id: string
+          is_seasonal?: boolean | null
+          item_type: string
+          limited_edition?: boolean | null
+          name: string
+          purchased_count?: number | null
+          rarity?: string
+          recurring_annual?: boolean | null
+          required_tier?: string | null
+          season?: string | null
+          vip_only?: boolean | null
+        }
+        Update: {
+          active?: boolean | null
+          asset_data?: Json | null
+          available_from?: string | null
+          available_until?: string | null
+          category?: string
+          coin_price?: number
+          created_at?: string
+          description?: string
+          display_order?: number | null
+          icon?: string
+          id?: string
+          is_seasonal?: boolean | null
+          item_type?: string
+          limited_edition?: boolean | null
+          name?: string
+          purchased_count?: number | null
+          rarity?: string
+          recurring_annual?: boolean | null
+          required_tier?: string | null
+          season?: string | null
+          vip_only?: boolean | null
+        }
+        Relationships: []
+      }
       social_interactions: {
         Row: {
           created_at: string
@@ -1385,6 +1457,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_purchases: {
+        Row: {
+          coin_price_paid: number
+          id: string
+          is_equipped: boolean | null
+          item_id: string
+          purchased_at: string
+          user_id: string
+        }
+        Insert: {
+          coin_price_paid: number
+          id?: string
+          is_equipped?: boolean | null
+          item_id: string
+          purchased_at?: string
+          user_id: string
+        }
+        Update: {
+          coin_price_paid?: number
+          id?: string
+          is_equipped?: boolean | null
+          item_id?: string
+          purchased_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

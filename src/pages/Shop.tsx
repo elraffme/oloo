@@ -8,7 +8,8 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { useShopGifts } from '@/hooks/useShopGifts';
 import { SendShopGiftModal } from '@/components/SendShopGiftModal';
 import { ShopGiftInbox } from '@/components/ShopGiftInbox';
-import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox } from 'lucide-react';
+import { SeasonalCountdown } from '@/components/SeasonalCountdown';
+import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox, Snowflake } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 
@@ -45,6 +46,8 @@ export default function Shop() {
 
   const filteredItems = selectedCategory === 'vip' 
     ? shopItems?.filter((item) => (item as any).vip_only === true) || []
+    : selectedCategory === 'seasonal'
+    ? shopItems?.filter((item) => (item as any).is_seasonal === true) || []
     : shopItems?.filter((item) => item.category === selectedCategory) || [];
 
   const handlePurchase = (itemId: string, price: number) => {
@@ -65,6 +68,9 @@ export default function Shop() {
     const canAfford = balance && balance.coin_balance >= item.coin_price;
     const isVipOnly = (item as any).vip_only || false;
     const requiredTier = (item as any).required_tier;
+    const isSeasonal = (item as any).is_seasonal || false;
+    const availableUntil = (item as any).available_until;
+    const season = (item as any).season;
     
     // Get user's membership tier from balance (which has vip_tier)
     const userTier = balance?.vip_tier || 'free';
@@ -86,6 +92,13 @@ export default function Shop() {
                   </Badge>
                 </div>
               )}
+              {isSeasonal && !isVipOnly && (
+                <div className="absolute -top-2 -right-2">
+                  <Badge className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 text-xs px-1.5 py-0">
+                    <Snowflake className="w-3 h-3" />
+                  </Badge>
+                </div>
+              )}
             </div>
             <Badge className={rarityColors[item.rarity]}>
               {item.rarity}
@@ -96,6 +109,16 @@ export default function Shop() {
           <p className="text-sm text-muted-foreground mb-4 flex-grow">
             {item.description}
           </p>
+
+          {isSeasonal && availableUntil && (
+            <div className="mb-3">
+              <SeasonalCountdown 
+                availableUntil={availableUntil} 
+                season={season}
+                size="sm"
+              />
+            </div>
+          )}
 
           {requiredTier && (
             <div className="mb-3">
@@ -226,13 +249,16 @@ export default function Shop() {
 
       {/* Categories */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 mb-8">
+        <TabsList className="grid w-full grid-cols-6 mb-8">
           <TabsTrigger value="badge">🏆 Badges</TabsTrigger>
           <TabsTrigger value="theme">🎨 Themes</TabsTrigger>
           <TabsTrigger value="emoji">😊 Emojis</TabsTrigger>
           <TabsTrigger value="customization">✨ Custom</TabsTrigger>
           <TabsTrigger value="vip" className="bg-gradient-to-r from-amber-500/10 to-orange-500/10">
             👑 VIP
+          </TabsTrigger>
+          <TabsTrigger value="seasonal" className="bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+            ❄️ Seasonal
           </TabsTrigger>
         </TabsList>
 
@@ -315,6 +341,36 @@ export default function Shop() {
                         No VIP items available at the moment
                       </div>
                     )}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="seasonal" className="mt-0">
+                <div className="mb-6 p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Snowflake className="w-8 h-8 text-blue-500" />
+                    <div>
+                      <h3 className="text-2xl font-bold">Seasonal Collection</h3>
+                      <p className="text-muted-foreground">
+                        Limited-time items available only during special events and holidays
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {filteredItems.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredItems.map((item) => (
+                      <ShopItemCard key={item.id} item={item} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Snowflake className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-xl font-semibold mb-2">No Seasonal Items</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      There are no seasonal items available right now. Check back during holidays and special events for exclusive limited-time items!
+                    </p>
                   </div>
                 )}
               </TabsContent>
