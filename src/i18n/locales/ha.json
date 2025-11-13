@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Nemo Abokin Zaman Ka Mai Kamala",
+    "subtitle": "Haɗu da mutane masu ban mamaki a duk faɗin Afirka",
+    "getStarted": "Fara",
+    "signIn": "Shiga",
+    "signUp": "Yi Rajista",
+    "features": {
+      "liveStreaming": "Watsa Shirye-shirye Kai Tsaye",
+      "liveStreamingDesc": "Kalli kuma ku haɗu da mutane a lokaci guda",
+      "videoChat": "Tattaunawar Bidiyo",
+      "videoChatDesc": "Yi tattaunawa fuska da fuska nan take",
+      "events": "Abubuwan Da Suka Faru da Tarurruka",
+      "eventsDesc": "Shiga abubuwan da ke faruwa na gida kuma ku sadu da sababbin mutane",
+      "trivia": "Wasannin Tambayoyi",
+      "triviaDesc": "Kalubalantar wasu kuma ku lashe kyawawan kyaututtuka"
+    },
+    "menu": {
+      "language": "Harshe",
+      "selectLanguage": "Zaɓi Harshen"
+    }
+  },
+  "navigation": {
+    "discover": "Gano",
+    "feed": "Ciyarwa",
+    "messages": "Saƙonni",
+    "profile": "Bayanan",
+    "streaming": "Watsa Shirye-shirye",
+    "shop": "Shago",
+    "premium": "Mai Daraja",
+    "about": "Game da"
+  },
+  "common": {
+    "loading": "Ana Lodawa...",
+    "error": "Kuskure",
+    "success": "Nasara",
+    "cancel": "Soke",
+    "save": "Ajiye",
+    "delete": "Share",
+    "edit": "Gyara",
+    "send": "Aika",
+    "close": "Rufe"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "ፍጹም ጓደኛህን አግኝ",
+    "subtitle": "በመላ አፍሪካ አስደናቂ ሰዎች ጋር ተገናኝ",
+    "getStarted": "ጀምር",
+    "signIn": "ግባ",
+    "signUp": "ተመዝገብ",
+    "features": {
+      "liveStreaming": "ቀጥታ ስርጭት",
+      "liveStreamingDesc": "በእውነተኛ ጊዜ ሰዎችን ተመልከት እና ተገናኝ",
+      "videoChat": "የቪዲዮ ውይይት",
+      "videoChatDesc": "ፊት ለፊት ውይይቶችን በቅጽበት አድርግ",
+      "events": "ዝግጅቶች እና ስብሰባዎች",
+      "eventsDesc": "የአካባቢ ዝግጅቶችን ይቀላቀሉ እና አዳዲስ ሰዎችን ያግኙ",
+      "trivia": "የጥያቄ ጨዋታዎች",
+      "triviaDesc": "ሌሎችን ተወዳደር እና አስደሳች ሽልማቶችን አሸንፍ"
+    },
+    "menu": {
+      "language": "ቋንቋ",
+      "selectLanguage": "ቋንቋ ምረጥ"
+    }
+  },
+  "navigation": {
+    "discover": "አግኝ",
+    "feed": "መመገቢያ",
+    "messages": "መልዕክቶች",
+    "profile": "መገለጫ",
+    "streaming": "ስርጭት",
+    "shop": "ሱቅ",
+    "premium": "ፕሪሚየም",
+    "about": "ስለ"
+  },
+  "common": {
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት",
+    "success": "ስኬት",
+    "cancel": "ሰርዝ",
+    "save": "አስቀምጥ",
+    "delete": "ሰርዝ",
+    "edit": "አርትዕ",
+    "send": "ላክ",
+    "close": "ዝጋ"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Pata Mwenzi Wako Kamili",
+    "subtitle": "Unganisha na watu wa ajabu kote Afrika",
+    "getStarted": "Anza",
+    "signIn": "Ingia",
+    "signUp": "Jisajili",
+    "features": {
+      "liveStreaming": "Kueneza Moja kwa Moja",
+      "liveStreamingDesc": "Tazama na unganisha na watu wakati halisi",
+      "videoChat": "Mazungumzo ya Video",
+      "videoChatDesc": "Fanya mazungumzo ya uso kwa uso papo hapo",
+      "events": "Matukio na Mikutano",
+      "eventsDesc": "Jiunge na matukio ya ndani na ukutane na watu wapya",
+      "trivia": "Michezo ya Maswali",
+      "triviaDesc": "Pambana na wengine na ushinde tuzo za kusisimua"
+    },
+    "menu": {
+      "language": "Lugha",
+      "selectLanguage": "Chagua Lugha"
+    }
+  },
+  "navigation": {
+    "discover": "Gundua",
+    "feed": "Mlisho",
+    "messages": "Ujumbe",
+    "profile": "Wasifu",
+    "streaming": "Kueneza",
+    "shop": "Duka",
+    "premium": "Bora",
+    "about": "Kuhusu"
+  },
+  "common": {
+    "loading": "Inapakia...",
+    "error": "Kosa",
+    "success": "Mafanikio",
+    "cancel": "Ghairi",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "send": "Tuma",
+    "close": "Funga"
+  }
+}

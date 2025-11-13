@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Trouvez Votre Partenaire Idéal",
+    "subtitle": "Connectez-vous avec des personnes incroyables à travers l'Afrique",
+    "getStarted": "Commencer",
+    "signIn": "Se Connecter",
+    "signUp": "S'inscrire",
+    "features": {
+      "liveStreaming": "Diffusion en Direct",
+      "liveStreamingDesc": "Regardez et connectez-vous avec des gens en temps réel",
+      "videoChat": "Chat Vidéo",
+      "videoChatDesc": "Ayez des conversations face à face instantanément",
+      "events": "Événements et Rencontres",
+      "eventsDesc": "Rejoignez des événements locaux et rencontrez de nouvelles personnes",
+      "trivia": "Jeux de Trivia",
+      "triviaDesc": "Défiez les autres et gagnez des prix passionnants"
+    },
+    "menu": {
+      "language": "Langue",
+      "selectLanguage": "Sélectionner la Langue"
+    }
+  },
+  "navigation": {
+    "discover": "Découvrir",
+    "feed": "Fil",
+    "messages": "Messages",
+    "profile": "Profil",
+    "streaming": "Diffusion",
+    "shop": "Boutique",
+    "premium": "Premium",
+    "about": "À Propos"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "save": "Sauvegarder",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "send": "Envoyer",
+    "close": "Fermer"
+  }
+}

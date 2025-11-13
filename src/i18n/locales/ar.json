@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "ابحث عن شريك حياتك المثالي",
+    "subtitle": "تواصل مع أشخاص رائعين في جميع أنحاء أفريقيا",
+    "getStarted": "ابدأ الآن",
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "features": {
+      "liveStreaming": "البث المباشر",
+      "liveStreamingDesc": "شاهد وتواصل مع الناس في الوقت الفعلي",
+      "videoChat": "محادثة الفيديو",
+      "videoChatDesc": "أجرِ محادثات وجهاً لوجه فوراً",
+      "events": "الفعاليات واللقاءات",
+      "eventsDesc": "انضم إلى الفعاليات المحلية والتقِ بأشخاص جدد",
+      "trivia": "ألعاب الأسئلة",
+      "triviaDesc": "تحدى الآخرين واربح جوائز مثيرة"
+    },
+    "menu": {
+      "language": "اللغة",
+      "selectLanguage": "اختر اللغة"
+    }
+  },
+  "navigation": {
+    "discover": "اكتشف",
+    "feed": "التغذية",
+    "messages": "الرسائل",
+    "profile": "الملف الشخصي",
+    "streaming": "البث",
+    "shop": "المتجر",
+    "premium": "مميز",
+    "about": "حول"
+  },
+  "common": {
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "success": "نجح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "send": "إرسال",
+    "close": "إغلاق"
+  }
+}
