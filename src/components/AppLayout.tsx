@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { SocialInteractionsNotifier } from '@/components/SocialInteractionsNotifier';
 const AppLayout = () => {
   const {
     user,
@@ -15,6 +16,9 @@ const AppLayout = () => {
 
   // Enable global real-time notifications
   useRealtimeNotifications();
+  
+  // Enable social interaction notifications
+  SocialInteractionsNotifier();
 
   // Redirect to auth if not logged in
   if (!user && !loading) {

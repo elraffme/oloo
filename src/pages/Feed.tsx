@@ -138,6 +138,50 @@ const Feed = () => {
     try {
       const activityList: ActivityItem[] = [];
 
+      // Load recent social interactions
+      const { data: socialInteractions } = await supabase
+        .from('social_interactions')
+        .select('*')
+        .eq('to_user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (socialInteractions && socialInteractions.length > 0) {
+        const senderIds = socialInteractions.map(i => i.from_user_id);
+        const { data: senderProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, profile_photos, main_profile_photo_index, verified')
+          .in('user_id', senderIds);
+
+        const profilesMap = new Map(senderProfiles?.map(p => [p.user_id, p]) || []);
+
+        socialInteractions.forEach((interaction: any) => {
+          const profile = profilesMap.get(interaction.from_user_id);
+          if (profile) {
+            const emoji = interaction.interaction_type === 'wave' ? '👋' : 
+                         interaction.interaction_type === 'wink' ? '😉' : '❄️';
+            const actionText = interaction.interaction_type === 'wave' ? 'waved at you' :
+                              interaction.interaction_type === 'wink' ? 'winked at you' : 
+                              'sent you an icebreaker';
+            
+            activityList.push({
+              id: interaction.id,
+              type: 'profile_view',
+              title: `${emoji} ${actionText}`,
+              description: interaction.message || `${profile.display_name} ${actionText}`,
+              timestamp: interaction.created_at,
+              user: {
+                name: profile.display_name,
+                avatar: profile.profile_photos?.[profile.main_profile_photo_index || 0] || profile.avatar_url || '/placeholder.svg',
+                verified: profile.verified
+              },
+              icon: Sparkles,
+              iconColor: 'text-pink-500'
+            });
+          }
+        });
+      }
+
       // Load recent profile views
       const { data: viewsData } = await supabase
         .from('profile_views')

@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sendFriendRequest, checkFriendshipStatus } from "@/utils/friendsUtils";
 import { useToast } from "@/components/ui/use-toast";
 import { Clock } from "lucide-react";
+import { SocialInteractionButtons } from "@/components/SocialInteractionButtons";
 
 interface PublicProfile {
   id: string;
@@ -320,6 +321,14 @@ export const PublicProfileViewer = ({
 
             {/* Friends and Action Buttons */}
             <div className="space-y-4 pt-4">
+              {/* Social Interaction Buttons */}
+              <SocialInteractionButtons 
+                toUserId={profileId} 
+                toUserName={profile.display_name}
+              />
+
+              <Separator />
+
               {/* Action Buttons - Facebook-style: Message anyone */}
               <div className="flex justify-center gap-3">
                 {/* Always show Message button (Facebook-style) */}

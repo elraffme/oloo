@@ -8,6 +8,8 @@ import { useState } from "react";
 import { CurrencyWallet } from "./CurrencyWallet";
 import { CoinShop } from "./CoinShop";
 import { GiftInbox } from "./GiftInbox";
+import { useSocialInteractions } from "@/hooks/useSocialInteractions";
+import { Badge } from "@/components/ui/badge";
 
 
 const Navigation = () => {
@@ -17,6 +19,7 @@ const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showGiftInbox, setShowGiftInbox] = useState(false);
+  const { unreadCount } = useSocialInteractions();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -63,11 +66,16 @@ const Navigation = () => {
         <div className="hidden md:flex items-center space-x-8 font-afro-body">
           <button 
             onClick={() => navigate('/app')}
-            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1 relative"
           >
             <Sparkles className="w-4 h-4" />
             <span className="nsibidi-symbol">◊</span>
             Feed
+            {unreadCount > 0 && (
+              <Badge className="ml-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center bg-pink-500">
+                {unreadCount}
+              </Badge>
+            )}
           </button>
           <button 
             onClick={() => navigate('/app/discover')}

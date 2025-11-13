@@ -816,6 +816,36 @@ export type Database = {
         }
         Relationships: []
       }
+      social_interactions: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          interaction_type: string
+          message: string | null
+          read_at: string | null
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          interaction_type: string
+          message?: string | null
+          read_at?: string | null
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          interaction_type?: string
+          message?: string | null
+          read_at?: string | null
+          to_user_id?: string
+        }
+        Relationships: []
+      }
       stream_chat_messages: {
         Row: {
           created_at: string
