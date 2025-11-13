@@ -310,7 +310,15 @@ export const PublicProfileViewer = ({
                   <h4 className="text-sm font-medium mb-2">Interests</h4>
                   <div className="flex flex-wrap gap-1">
                     {profile.interests.map((interest) => (
-                      <Badge key={interest} variant="secondary" className="text-xs">
+                      <Badge 
+                        key={interest} 
+                        variant="secondary" 
+                        className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = `/app/browse-interest?interest=${encodeURIComponent(interest)}`;
+                        }}
+                      >
                         {interest}
                       </Badge>
                     ))}

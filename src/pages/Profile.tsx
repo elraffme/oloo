@@ -439,7 +439,12 @@ const Profile = () => {
                 profile?.interests && profile.interests.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {profile.interests.slice(0, 6).map((interest: string, index: number) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                        onClick={() => navigate(`/app/browse-interest?interest=${encodeURIComponent(interest)}`)}
+                      >
                         {interest}
                       </Badge>
                     ))}

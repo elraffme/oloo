@@ -186,7 +186,15 @@ export const ProfileCard = ({
             {profile.interests && profile.interests.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {profile.interests.slice(0, 4).map((interest: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
+                  <Badge 
+                    key={index} 
+                    variant="secondary" 
+                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `/app/browse-interest?interest=${encodeURIComponent(interest)}`;
+                    }}
+                  >
                     {interest}
                   </Badge>
                 ))}
@@ -351,7 +359,15 @@ export const ProfileCard = ({
                 <h3 className="text-lg font-semibold mb-3">Interests</h3>
                 <div className="flex flex-wrap gap-2">
                   {profile.interests.map((interest: string, index: number) => (
-                    <Badge key={index} variant="secondary">
+                    <Badge 
+                      key={index} 
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/app/browse-interest?interest=${encodeURIComponent(interest)}`;
+                      }}
+                    >
                       {interest}
                     </Badge>
                   ))}

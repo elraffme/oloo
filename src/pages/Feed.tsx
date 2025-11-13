@@ -430,6 +430,29 @@ const Feed = () => {
         <p className="text-muted-foreground">Stay connected with your friends and discover what's happening</p>
       </div>
 
+      {/* Browse by Interest Card */}
+      <Card 
+        className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+        onClick={() => navigate('/app/browse-interest')}
+      >
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-primary/10 p-3 rounded-full">
+              <Sparkles className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">Browse by Interest</h3>
+              <p className="text-sm text-muted-foreground">
+                Discover people who share your passions and hobbies
+              </p>
+            </div>
+            <Button variant="ghost" size="icon">
+              <span className="text-2xl">→</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Status Update */}
       <Card>
         <CardContent className="p-4">

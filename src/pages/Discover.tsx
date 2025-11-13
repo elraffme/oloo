@@ -539,15 +539,25 @@ const Discover = () => {
           You've seen all available profiles. Check back later for new connections, 
           or expand your search preferences.
         </p>
-        <Button 
-          onClick={() => {
-            setCurrentIndex(0);
-            loadProfiles();
-          }}
-          className="bg-primary hover:bg-primary/90"
-        >
-          Start Over
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => {
+              setCurrentIndex(0);
+              loadProfiles();
+            }}
+            className="bg-primary hover:bg-primary/90"
+          >
+            Start Over
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/app/browse-interest')}
+            className="gap-2"
+          >
+            <span className="text-lg">✨</span>
+            Browse by Interest
+          </Button>
+        </div>
       </div>
     );
   }
