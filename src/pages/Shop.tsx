@@ -5,7 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShop, ShopItem } from '@/hooks/useShop';
 import { useCurrency } from '@/hooks/useCurrency';
-import { ShoppingBag, Sparkles, Check, Lock } from 'lucide-react';
+import { useShopGifts } from '@/hooks/useShopGifts';
+import { SendShopGiftModal } from '@/components/SendShopGiftModal';
+import { ShopGiftInbox } from '@/components/ShopGiftInbox';
+import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const rarityColors = {
@@ -32,7 +35,11 @@ const categoryLabels = {
 export default function Shop() {
   const { shopItems, userPurchases, loading, purchaseItem, toggleEquipped, isPurchased, purchasing } = useShop();
   const { balance } = useCurrency();
+  const { pendingCount } = useShopGifts();
   const [selectedCategory, setSelectedCategory] = useState<string>('badge');
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
+  const [selectedGiftItem, setSelectedGiftItem] = useState<ShopItem | null>(null);
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   const filteredItems = shopItems?.filter((item) => item.category === selectedCategory) || [];
 
@@ -41,6 +48,11 @@ export default function Shop() {
       return;
     }
     purchaseItem(itemId);
+  };
+
+  const handleGiftClick = (item: ShopItem) => {
+    setSelectedGiftItem(item);
+    setGiftModalOpen(true);
   };
 
   const ShopItemCard = ({ item }: { item: ShopItem }) => {
@@ -86,24 +98,35 @@ export default function Shop() {
                 )}
               </Button>
             ) : (
-              <Button
-                size="sm"
-                onClick={() => handlePurchase(item.id, item.coin_price)}
-                disabled={!canAfford || purchasing}
-                className="gap-1"
-              >
-                {canAfford ? (
-                  <>
-                    <ShoppingBag className="w-4 h-4" />
-                    Buy
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    Locked
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handlePurchase(item.id, item.coin_price)}
+                  disabled={!canAfford || purchasing}
+                  className="gap-1"
+                >
+                  {canAfford ? (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      Buy
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      {item.coin_price}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGiftClick(item)}
+                  disabled={!canAfford}
+                  className="gap-1 px-2"
+                >
+                  <Gift className="w-4 h-4" />
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -114,22 +137,39 @@ export default function Shop() {
   return (
     <div className="container max-w-6xl mx-auto py-8 px-4">
       {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <ShoppingBag className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold">Virtual Shop</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Spend your coins on exclusive items to customize your profile
-          </p>
-          {balance && (
-            <div className="flex items-center gap-2 mt-4 text-xl font-semibold">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <span className="text-amber-500">{balance.coin_balance}</span>
-              <span className="text-muted-foreground">Coins Available</span>
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <ShoppingBag className="w-8 h-8 text-primary" />
+              <h1 className="text-4xl font-bold">Virtual Shop</h1>
             </div>
-          )}
+            <p className="text-muted-foreground">
+              Spend your coins on exclusive items to customize your profile
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setInboxOpen(true)}
+            className="gap-2 relative"
+          >
+            <Inbox className="w-5 h-5" />
+            Gift Inbox
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="absolute -top-2 -right-2 px-1.5 py-0 text-xs">
+                {pendingCount}
+              </Badge>
+            )}
+          </Button>
         </div>
+        {balance && (
+          <div className="flex items-center gap-2 text-xl font-semibold">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            <span className="text-amber-500">{balance.coin_balance}</span>
+            <span className="text-muted-foreground">Coins Available</span>
+          </div>
+        )}
+      </div>
 
         {/* Categories */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
@@ -196,6 +236,17 @@ export default function Shop() {
             </div>
           </div>
         )}
+
+      {/* Gift Modals */}
+      <SendShopGiftModal
+        isOpen={giftModalOpen}
+        onClose={() => setGiftModalOpen(false)}
+        item={selectedGiftItem}
+      />
+      <ShopGiftInbox
+        isOpen={inboxOpen}
+        onClose={() => setInboxOpen(false)}
+      />
     </div>
   );
 }

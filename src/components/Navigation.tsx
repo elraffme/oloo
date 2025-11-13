@@ -9,6 +9,7 @@ import { CurrencyWallet } from "./CurrencyWallet";
 import { CoinShop } from "./CoinShop";
 import { GiftInbox } from "./GiftInbox";
 import { useSocialInteractions } from "@/hooks/useSocialInteractions";
+import { useShopGifts } from "@/hooks/useShopGifts";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -20,6 +21,7 @@ const Navigation = () => {
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showGiftInbox, setShowGiftInbox] = useState(false);
   const { unreadCount } = useSocialInteractions();
+  const { pendingCount } = useShopGifts();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -108,6 +110,19 @@ const Navigation = () => {
             <Crown className="w-4 h-4" />
             <span className="nsibidi-symbol">◈</span>
             Premium
+          </button>
+          <button 
+            onClick={() => navigate('/app/shop')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1 relative"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="nsibidi-symbol">◊</span>
+            Shop
+            {pendingCount > 0 && (
+              <Badge className="ml-1 h-5 min-w-5 px-1 text-xs flex items-center justify-center bg-primary">
+                {pendingCount}
+              </Badge>
+            )}
           </button>
         </div>
 

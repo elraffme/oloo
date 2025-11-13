@@ -15,7 +15,8 @@ import {
   Ruler,
   Calendar,
   UserPlus,
-  MessageCircle
+  MessageCircle,
+  Gift as GiftIcon
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { sendFriendRequest, checkFriendshipStatus } from "@/utils/friendsUtils";
