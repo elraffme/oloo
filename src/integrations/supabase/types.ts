@@ -2023,6 +2023,10 @@ export type Database = {
         Args: { p_gift_id: number; p_message?: string; p_receiver_id: string }
         Returns: Json
       }
+      send_shop_item_gift: {
+        Args: { p_item_id: string; p_message?: string; p_receiver_id: string }
+        Returns: Json
+      }
       submit_trivia_answer: {
         Args: {
           p_question_id: string

@@ -131,7 +131,16 @@ export function SendShopGiftModal({ isOpen, onClose, item }: SendShopGiftModalPr
         {item && (
           <div className="p-4 bg-muted rounded-lg mb-4">
             <div className="flex items-center gap-3">
-              <div className="text-3xl">{item.icon}</div>
+              <div className="relative">
+                <div className="text-3xl">{item.icon}</div>
+                {(item as any).vip_only && (
+                  <div className="absolute -top-1 -right-1">
+                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-[10px] px-1 py-0">
+                      VIP
+                    </Badge>
+                  </div>
+                )}
+              </div>
               <div className="flex-1">
                 <h4 className="font-semibold">{item.name}</h4>
                 <div className="flex items-center gap-2 mt-1">

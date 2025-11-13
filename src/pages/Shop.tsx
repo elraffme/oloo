@@ -10,6 +10,7 @@ import { SendShopGiftModal } from '@/components/SendShopGiftModal';
 import { ShopGiftInbox } from '@/components/ShopGiftInbox';
 import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNavigate } from 'react-router-dom';
 
 const rarityColors = {
   common: 'bg-slate-500',
@@ -40,8 +41,11 @@ export default function Shop() {
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [selectedGiftItem, setSelectedGiftItem] = useState<ShopItem | null>(null);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const filteredItems = shopItems?.filter((item) => item.category === selectedCategory) || [];
+  const filteredItems = selectedCategory === 'vip' 
+    ? shopItems?.filter((item) => (item as any).vip_only === true) || []
+    : shopItems?.filter((item) => item.category === selectedCategory) || [];
 
   const handlePurchase = (itemId: string, price: number) => {
     if (!balance || balance.coin_balance < price) {
@@ -59,12 +63,30 @@ export default function Shop() {
     const purchased = isPurchased(item.id);
     const isEquipped = userPurchases?.find((p) => p.item_id === item.id)?.is_equipped;
     const canAfford = balance && balance.coin_balance >= item.coin_price;
+    const isVipOnly = (item as any).vip_only || false;
+    const requiredTier = (item as any).required_tier;
+    
+    // Get user's membership tier from balance (which has vip_tier)
+    const userTier = balance?.vip_tier || 'free';
+    const hasRequiredTier = !isVipOnly || userTier !== 'free';
+    const meetsSpecificTier = !requiredTier || 
+      (requiredTier === 'premium' && userTier !== 'free') ||
+      (requiredTier === 'gold' && userTier === 'gold');
 
     return (
-      <Card className={`p-4 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all`}>
+      <Card className={`p-4 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all ${!hasRequiredTier || !meetsSpecificTier ? 'opacity-75' : ''}`}>
         <div className="flex flex-col h-full">
           <div className="flex items-start justify-between mb-3">
-            <div className="text-4xl">{item.icon}</div>
+            <div className="relative">
+              <div className="text-4xl">{item.icon}</div>
+              {isVipOnly && (
+                <div className="absolute -top-2 -right-2">
+                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs px-1.5 py-0">
+                    VIP
+                  </Badge>
+                </div>
+              )}
+            </div>
             <Badge className={rarityColors[item.rarity]}>
               {item.rarity}
             </Badge>
@@ -74,6 +96,14 @@ export default function Shop() {
           <p className="text-sm text-muted-foreground mb-4 flex-grow">
             {item.description}
           </p>
+
+          {requiredTier && (
+            <div className="mb-3">
+              <Badge variant="outline" className="text-xs capitalize">
+                Requires {requiredTier}
+              </Badge>
+            </div>
+          )}
 
           <div className="flex items-center justify-between mt-auto">
             <div className="flex items-center gap-1 text-amber-500 font-bold">
@@ -96,6 +126,15 @@ export default function Shop() {
                 ) : (
                   'Equip'
                 )}
+              </Button>
+            ) : !hasRequiredTier || !meetsSpecificTier ? (
+              <Button
+                size="sm"
+                disabled
+                className="gap-1"
+              >
+                <Lock className="w-4 h-4" />
+                {requiredTier ? requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1) : 'Premium'} Only
               </Button>
             ) : (
               <div className="flex gap-2">
@@ -162,23 +201,40 @@ export default function Shop() {
             )}
           </Button>
         </div>
-        {balance && (
-          <div className="flex items-center gap-2 text-xl font-semibold">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            <span className="text-amber-500">{balance.coin_balance}</span>
-            <span className="text-muted-foreground">Coins Available</span>
-          </div>
-        )}
+        
+        <div className="flex items-center justify-between">
+          {balance && (
+            <div className="flex items-center gap-2 text-xl font-semibold">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              <span className="text-amber-500">{balance.coin_balance}</span>
+              <span className="text-muted-foreground">Coins Available</span>
+            </div>
+          )}
+          
+          {balance?.vip_tier === 'free' && (
+            <Button
+              variant="default"
+              onClick={() => navigate('/app/premium')}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Unlock VIP Items
+            </Button>
+          )}
+        </div>
       </div>
 
-        {/* Categories */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="badge">🏆 Badges</TabsTrigger>
-            <TabsTrigger value="theme">🎨 Themes</TabsTrigger>
-            <TabsTrigger value="emoji">😊 Emojis</TabsTrigger>
-            <TabsTrigger value="customization">✨ Custom</TabsTrigger>
-          </TabsList>
+      {/* Categories */}
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsTrigger value="badge">🏆 Badges</TabsTrigger>
+          <TabsTrigger value="theme">🎨 Themes</TabsTrigger>
+          <TabsTrigger value="emoji">😊 Emojis</TabsTrigger>
+          <TabsTrigger value="customization">✨ Custom</TabsTrigger>
+          <TabsTrigger value="vip" className="bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+            👑 VIP
+          </TabsTrigger>
+        </TabsList>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -220,6 +276,47 @@ export default function Shop() {
                     <ShopItemCard key={item.id} item={item} />
                   ))}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="vip" className="mt-0">
+                {balance?.vip_tier === 'free' ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl mb-6">
+                      <Lock className="w-16 h-16 mx-auto mb-4 text-amber-500" />
+                      <h3 className="text-2xl font-bold mb-2">Premium Members Only</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        Unlock exclusive VIP items including legendary badges, premium themes, and special customizations
+                      </p>
+                      <Button
+                        size="lg"
+                        onClick={() => navigate('/app/premium')}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                    
+                    {/* Preview locked items */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-50 pointer-events-none">
+                      {filteredItems.slice(0, 6).map((item) => (
+                        <ShopItemCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredItems.length > 0 ? (
+                      filteredItems.map((item) => (
+                        <ShopItemCard key={item.id} item={item} />
+                      ))
+                    ) : (
+                      <div className="col-span-3 text-center py-12 text-muted-foreground">
+                        No VIP items available at the moment
+                      </div>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </>
           )}
