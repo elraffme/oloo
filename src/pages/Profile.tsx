@@ -9,6 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useAchievementTrigger } from '@/hooks/useAchievements';
+import { useUserLevel } from '@/hooks/useUserLevel';
+import { LevelProgress } from '@/components/LevelProgress';
+import { LevelBadge } from '@/components/LevelBadge';
 import { 
   Edit, 
   Settings, 
@@ -34,7 +38,6 @@ import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { AchievementsSection } from '@/components/AchievementsSection';
 import { BadgeDisplay } from '@/components/BadgeDisplay';
 import { useNavigate } from 'react-router-dom';
-import { useAchievementTrigger } from '@/hooks/useAchievements';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -64,6 +67,7 @@ const Profile = () => {
   
   // Auto-check achievements when profile loads
   useAchievementTrigger();
+  const { level, loading: levelLoading } = useUserLevel();
 
   useEffect(() => {
     if (user) {
@@ -329,9 +333,13 @@ const Profile = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         {profile?.display_name ? (
-                          <h1 className="text-2xl font-bold font-afro-heading">
-                            {profile.display_name}
-                          </h1>
+                          <>
+                            <h1 className="text-2xl font-bold font-afro-heading">
+                              {profile.display_name}
+                            </h1>
+                            <VerifiedBadge verified={profile?.verified} size="sm" />
+                            {level && <LevelBadge level={level.current_level} size="sm" />}
+                          </>
                         ) : (
                           <Button
                             variant="link"
@@ -341,7 +349,6 @@ const Profile = () => {
                             Complete Your Profile
                           </Button>
                         )}
-                        <VerifiedBadge verified={profile?.verified} size="sm" />
                       </div>
                       {profile?.age && (
                         <p className="text-muted-foreground">
@@ -560,6 +567,11 @@ const Profile = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Level Progress */}
+          {level && !levelLoading && (
+            <LevelProgress level={level} />
+          )}
 
           {/* Token Balance */}
           <Card>

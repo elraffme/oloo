@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, Brain, Coins, Flame, Trophy, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useUserLevel } from '@/hooks/useUserLevel';
 
 interface TriviaQuestion {
   id: string;
@@ -27,6 +28,12 @@ interface TriviaResult {
   coins_earned: number;
   current_streak: number;
   error?: string;
+  xp_result?: {
+    xp_awarded: number;
+    old_level: number;
+    new_level: number;
+    level_up: boolean;
+  };
 }
 
 interface TriviaStats {
@@ -57,6 +64,7 @@ export default function Trivia() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { checkAchievements } = useAchievements();
+  const { level: userLevel } = useUserLevel();
   const [loading, setLoading] = useState(true);
   const [question, setQuestion] = useState<TriviaQuestion | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -136,8 +144,12 @@ export default function Trivia() {
       setSubmitted(true);
 
       if (typedResult.is_correct) {
-        toast.success(`Correct! +${typedResult.coins_earned} coins! 🎉`, {
+        const xpResult = typedResult.xp_result as any;
+        const xpAwarded = xpResult?.xp_awarded || 0;
+        
+        toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
           description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
+          duration: 5000,
         });
         checkAchievements();
       } else {

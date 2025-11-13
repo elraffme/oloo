@@ -1320,6 +1320,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_levels: {
+        Row: {
+          created_at: string
+          current_level: number
+          current_xp: number
+          id: string
+          total_xp_earned: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_level?: number
+          current_xp?: number
+          id?: string
+          total_xp_earned?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_level?: number
+          current_xp?: number
+          id?: string
+          total_xp_earned?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1491,6 +1521,36 @@ export type Database = {
         }
         Relationships: []
       }
+      xp_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          reason: string
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          reason: string
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          reason?: string
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1512,6 +1572,17 @@ export type Database = {
         Args: { user_a: string; user_b: string }
         Returns: boolean
       }
+      award_xp: {
+        Args: {
+          p_amount: number
+          p_reason: string
+          p_source_id?: string
+          p_source_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      calculate_level_from_xp: { Args: { xp: number }; Returns: number }
       can_user_call: {
         Args: { caller_uuid: string; receiver_uuid: string }
         Returns: boolean
@@ -1974,6 +2045,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      xp_for_next_level: { Args: { current_level: number }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
