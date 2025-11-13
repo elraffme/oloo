@@ -547,6 +547,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          is_repeat_view: boolean | null
+          viewed_at: string
+          viewed_profile_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_repeat_view?: boolean | null
+          viewed_at?: string
+          viewed_profile_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_repeat_view?: boolean | null
+          viewed_at?: string
+          viewed_profile_id?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number
@@ -1144,6 +1171,10 @@ export type Database = {
         }
         Returns: Json
       }
+      check_repeat_view: {
+        Args: { p_viewed_profile_id: string; p_viewer_id: string }
+        Returns: boolean
+      }
       check_sensitive_info_rate_limit: {
         Args: { user_uuid: string }
         Returns: boolean
@@ -1463,6 +1494,10 @@ export type Database = {
       purchase_coins: {
         Args: { p_package_id: number; p_payment_intent_id: string }
         Returns: Json
+      }
+      record_profile_view: {
+        Args: { p_viewed_profile_id: string }
+        Returns: undefined
       }
       record_rate_limit_action: {
         Args: { p_action_type: string; p_user_id: string }

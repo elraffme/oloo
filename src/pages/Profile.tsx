@@ -22,15 +22,20 @@ import {
   Gift,
   Video,
   Zap,
-  Camera
+  Camera,
+  Eye
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoUpload } from '@/components/PhotoUpload';
 import { MainPhotoSelector } from '@/components/MainPhotoSelector';
 import { SensitiveInfoManager } from '@/components/SensitiveInfoManager';
+import { ProfileVisitors } from '@/components/ProfileVisitors';
+import { PublicProfileViewer } from '@/components/PublicProfileViewer';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [tokenBalance, setTokenBalance] = useState(0);
   const [stats, setStats] = useState({
@@ -41,6 +46,7 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedVisitorProfile, setSelectedVisitorProfile] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     display_name: '',
     bio: '',
@@ -446,8 +452,12 @@ const Profile = () => {
       </Card>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="visitors">
+            <Eye className="w-4 h-4 mr-1" />
+            Visitors
+          </TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="premium">Premium</TabsTrigger>
@@ -554,6 +564,13 @@ const Profile = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Visitors Tab */}
+        <TabsContent value="visitors" className="space-y-6">
+          <ProfileVisitors 
+            onViewProfile={(userId) => setSelectedVisitorProfile(userId)}
+          />
         </TabsContent>
 
         {/* Photos Tab */}
@@ -679,6 +696,19 @@ const Profile = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Profile Viewer Modal */}
+      {selectedVisitorProfile && (
+        <PublicProfileViewer
+          profileId={selectedVisitorProfile}
+          isOpen={!!selectedVisitorProfile}
+          onClose={() => setSelectedVisitorProfile(null)}
+          onStartChat={(userId) => {
+            navigate('/app/messages', { state: { userId } });
+            setSelectedVisitorProfile(null);
+          }}
+        />
+      )}
     </div>
   );
 };

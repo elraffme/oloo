@@ -67,8 +67,21 @@ export const PublicProfileViewer = ({
     if (isOpen && profileId) {
       fetchProfile();
       checkFriendship();
+      recordProfileView();
     }
   }, [isOpen, profileId]);
+
+  const recordProfileView = async () => {
+    try {
+      // Record that the current user viewed this profile
+      await supabase.rpc('record_profile_view', {
+        p_viewed_profile_id: profileId
+      });
+    } catch (error) {
+      // Silently fail - don't block profile viewing if tracking fails
+      console.error('Error recording profile view:', error);
+    }
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
