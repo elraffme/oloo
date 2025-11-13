@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +17,8 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { CoinShop } from '@/components/CoinShop';
 import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
 import { LikeAnimation } from '@/components/LikeAnimation';
+import { LiveStreamChat } from '@/components/LiveStreamChat';
+
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -86,6 +88,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
+  const [showStreamerChat, setShowStreamerChat] = useState(true);
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
@@ -853,7 +856,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Go Live Tab */}
           <TabsContent value="go-live" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`grid gap-6 ${isStreaming ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
               {/* Stream Setup */}
               <Card className="cultural-card">
                 <CardHeader>
@@ -1034,6 +1037,31 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Live Chat (only when streaming) */}
+              {isStreaming && activeStreamId && (
+                <Card className="cultural-card flex flex-col h-[800px] lg:row-span-2">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                    <CardTitle className="text-base">Live Chat</CardTitle>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => setShowStreamerChat(!showStreamerChat)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {showStreamerChat ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="flex-1 p-0 overflow-hidden">
+                    {showStreamerChat && (
+                      <LiveStreamChat 
+                        streamId={activeStreamId}
+                        isMobile={false}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
