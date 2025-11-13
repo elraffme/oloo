@@ -22,6 +22,7 @@ import { sendFriendRequest, checkFriendshipStatus } from "@/utils/friendsUtils";
 import { useToast } from "@/components/ui/use-toast";
 import { Clock } from "lucide-react";
 import { SocialInteractionButtons } from "@/components/SocialInteractionButtons";
+import { EquippedItemsDisplay } from "@/components/EquippedItemsDisplay";
 
 interface PublicProfile {
   id: string;
@@ -259,6 +260,15 @@ export const PublicProfileViewer = ({
                 <p className="text-sm leading-relaxed">{profile.bio}</p>
               </div>
             )}
+
+            {/* Equipped Items */}
+            <div className="py-2">
+              <EquippedItemsDisplay 
+                userId={profile.user_id} 
+                isOwnProfile={false}
+                variant="compact"
+              />
+            </div>
 
             <Separator />
 

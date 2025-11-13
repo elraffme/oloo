@@ -37,6 +37,7 @@ import { ProfileVisitors } from '@/components/ProfileVisitors';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { AchievementsSection } from '@/components/AchievementsSection';
 import { BadgeDisplay } from '@/components/BadgeDisplay';
+import { EquippedItemsDisplay } from '@/components/EquippedItemsDisplay';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -460,6 +461,17 @@ const Profile = () => {
                 </div>
               )}
 
+              {/* Equipped Items Display */}
+              {!isEditing && user && (
+                <div className="pt-2">
+                  <EquippedItemsDisplay 
+                    userId={user.id} 
+                    isOwnProfile={true}
+                    variant="compact"
+                  />
+                </div>
+              )}
+
               {/* Interests */}
               {isEditing ? (
                 <div className="space-y-3">
@@ -571,6 +583,15 @@ const Profile = () => {
           {/* Level Progress */}
           {level && !levelLoading && (
             <LevelProgress level={level} />
+          )}
+
+          {/* Equipped Items - Full Display */}
+          {user && (
+            <EquippedItemsDisplay 
+              userId={user.id} 
+              isOwnProfile={true}
+              variant="full"
+            />
           )}
 
           {/* Token Balance */}
