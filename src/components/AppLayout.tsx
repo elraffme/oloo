@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
-import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown } from 'lucide-react';
+import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 const AppLayout = () => {
   const {
@@ -32,9 +32,13 @@ const AppLayout = () => {
   }
   const navItems = [{
     path: '/app',
-    icon: Heart,
-    label: 'Discover',
+    icon: Sparkles,
+    label: 'Feed',
     end: true
+  }, {
+    path: '/app/discover',
+    icon: Heart,
+    label: 'Discover'
   }, {
     path: '/app/streaming',
     icon: Video,
@@ -129,7 +133,7 @@ const AppLayout = () => {
 
       {/* Bottom Navigation - Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-5 h-16">
           {navItems.map(item => {
           const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
           return <NavLink key={item.path} to={item.path} className="flex flex-col items-center justify-center space-y-1">

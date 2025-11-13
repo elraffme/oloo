@@ -1,4 +1,4 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +65,15 @@ const Navigation = () => {
             onClick={() => navigate('/app')}
             className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
           >
+            <Sparkles className="w-4 h-4" />
+            <span className="nsibidi-symbol">◊</span>
+            Feed
+          </button>
+          <button 
+            onClick={() => navigate('/app/discover')}
+            className="text-foreground hover:text-primary transition-colors flex items-center gap-1"
+          >
+            <Heart className="w-4 h-4" />
             <span className="nsibidi-symbol">◊</span>
             Discover
           </button>
@@ -82,15 +91,7 @@ const Navigation = () => {
           >
             <Video className="w-4 h-4" />
             <span className="nsibidi-symbol">⬟</span>
-            Live Stream
-          </button>
-          <button
-            onClick={() => navigate('/verification')}
-            className="text-foreground hover:text-orange-verified transition-colors flex items-center gap-1"
-          >
-            <Shield className="w-4 h-4" />
-            <span className="nsibidi-symbol">◈</span>
-            Get Verified
+            Streaming
           </button>
           <button 
             onClick={() => navigate('/app/premium')}

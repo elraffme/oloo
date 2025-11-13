@@ -20,6 +20,7 @@ import SignIn from "./pages/SignIn";
 import Onboarding from "./pages/Onboarding";
 import About from "./pages/About";
 import AppLayout from "./components/AppLayout";
+import Feed from "./pages/Feed";
 import Discover from "./pages/Discover";
 import Streaming from "./pages/Streaming";
 import Messages from "./pages/Messages";
@@ -51,7 +52,9 @@ const App = () => (
             <Route path="/cookies" element={<CookiesPolicy />} />
             <Route path="/video-call" element={<VideoCallPage />} />
             <Route path="/app" element={<AppLayout />}>
-              <Route index element={<Discover />} />
+              <Route index element={<Feed />} />
+              <Route path="feed" element={<Feed />} />
+              <Route path="discover" element={<Discover />} />
               <Route path="streaming" element={<Streaming />} />
               <Route path="streaming/discover" element={<Streaming />} />
               <Route path="streaming/go-live" element={<Streaming />} />
