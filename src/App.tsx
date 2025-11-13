@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { PresenceProvider } from '@/contexts/PresenceContext';
 import SecurityHeader from "@/components/SecurityHeader";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
+import '@/i18n/config';
 
 const queryClient = new QueryClient({
   defaultOptions: {
