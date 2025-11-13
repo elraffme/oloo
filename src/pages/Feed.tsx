@@ -19,7 +19,8 @@ import {
   ThumbsUp,
   Flame,
   PartyPopper,
-  Brain
+  Brain,
+  ShoppingBag
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -491,6 +492,26 @@ const Feed = () => {
                 <h3 className="font-semibold mb-1">Daily Trivia</h3>
                 <p className="text-sm text-muted-foreground">
                   Test your knowledge & earn coins
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Virtual Shop */}
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
+          onClick={() => navigate('/app/shop')}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="bg-purple-500/10 p-3 rounded-full">
+                <ShoppingBag className="w-6 h-6 text-purple-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Virtual Shop</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customize your profile with coins
                 </p>
               </div>
             </div>
