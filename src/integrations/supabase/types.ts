@@ -215,6 +215,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_login_rewards: {
+        Row: {
+          coins_awarded: number
+          created_at: string
+          day_in_streak: number
+          id: string
+          is_milestone: boolean | null
+          login_date: string
+          milestone_type: string | null
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          coins_awarded?: number
+          created_at?: string
+          day_in_streak?: number
+          id?: string
+          is_milestone?: boolean | null
+          login_date?: string
+          milestone_type?: string | null
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          coins_awarded?: number
+          created_at?: string
+          day_in_streak?: number
+          id?: string
+          is_milestone?: boolean | null
+          login_date?: string
+          milestone_type?: string | null
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: []
+      }
       demo_profiles: {
         Row: {
           age: number
@@ -1626,6 +1662,7 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
+      claim_daily_login_reward: { Args: never; Returns: Json }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
@@ -1750,6 +1787,7 @@ export type Database = {
         Args: { profile_user_id: string; requesting_user_id?: string }
         Returns: Json
       }
+      get_login_streak_info: { Args: never; Returns: Json }
       get_or_create_currency_balance: {
         Args: { p_user_id: string }
         Returns: {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { DailyLoginRewards } from '@/components/DailyLoginRewards';
 import { 
   Heart, 
   MessageCircle, 
@@ -426,9 +427,12 @@ const Feed = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-6 p-4">
       {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold font-afro-heading mb-2">Social Feed</h1>
-        <p className="text-muted-foreground">Stay connected with your friends and discover what's happening</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold font-afro-heading mb-2">Social Feed</h1>
+          <p className="text-muted-foreground">Stay connected with your friends and discover what's happening</p>
+        </div>
+        <DailyLoginRewards />
       </div>
 
       {/* Quick Actions Grid */}
