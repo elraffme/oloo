@@ -203,7 +203,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
                 placeholder="Type a message..."
                 disabled={isSending}
                 maxLength={500}
-                className="flex-1 text-sm h-9 md:h-10"
+                className="flex-1 text-sm h-9 md:h-10 text-foreground font-medium placeholder:text-muted-foreground"
               />
               <EmotePicker
                 onEmoteSelect={(emote) => setNewMessage((prev) => prev + emote)}
