@@ -149,9 +149,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   const handleSendMessage = () => {
     if (!user) {
+      toast.error('Please sign in to message the host');
       return;
     }
-    navigate('/app/messages', { state: { selectedUserId: hostUserId } });
+    navigate('/app/messages', { state: { selectedUser: hostUserId } });
   };
 
   const handleLike = async () => {

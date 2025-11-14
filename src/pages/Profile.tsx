@@ -798,7 +798,7 @@ const Profile = () => {
           isOpen={!!selectedVisitorProfile}
           onClose={() => setSelectedVisitorProfile(null)}
           onStartChat={(userId) => {
-            navigate('/app/messages', { state: { userId } });
+            navigate('/app/messages', { state: { selectedUser: userId } });
             setSelectedVisitorProfile(null);
           }}
         />
