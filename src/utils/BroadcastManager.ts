@@ -35,7 +35,7 @@ export class BroadcastManager {
 
   private handleViewerJoined = async ({ payload }: any) => {
     const { sessionToken, displayName, isGuest } = payload;
-    console.log(`Viewer joined: ${displayName} (${isGuest ? 'guest' : 'authenticated'})`);
+    console.log(`👤 Viewer joined: ${displayName} (${sessionToken.substring(0, 8)}...)`);
     
     // Store viewer metadata
     this.viewerMetadata.set(sessionToken, {
@@ -43,6 +43,10 @@ export class BroadcastManager {
       joinedAt: new Date(),
       isGuest: isGuest || false
     });
+
+    // Send acknowledgment to viewer
+    this.sendSignal('viewer-ack', { sessionToken });
+    console.log(`✓ Sent viewer-ack to ${sessionToken.substring(0, 8)}...`);
     
     await this.createPeerConnection(sessionToken);
   }
@@ -71,13 +75,23 @@ export class BroadcastManager {
     console.log(`✓ Verified ${activeTracks.length} active tracks:`, 
       activeTracks.map(t => `${t.kind}:${t.label}:${t.readyState}`));
 
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.services.mozilla.com' }
-      ]
-    });
+    // Build ICE servers array with optional TURN servers
+    const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
+      urls: url.trim(),
+      username: import.meta.env.VITE_TURN_USERNAME,
+      credential: import.meta.env.VITE_TURN_CREDENTIAL
+    })) || [];
+
+    const iceServers = [
+      ...turnServers,
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.services.mozilla.com' }
+    ];
+
+    console.log('🧊 Broadcaster ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
+
+    const pc = new RTCPeerConnection({ iceServers });
 
     activeTracks.forEach(track => {
       console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection`);

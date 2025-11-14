@@ -41,7 +41,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const isMobile = useIsMobile();
   const [isConnected, setIsConnected] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [showGiftSelector, setShowGiftSelector] = useState(false);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showChat, setShowChat] = useState(!isMobile); // Hide chat by default on mobile
@@ -73,6 +73,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
+
+      const videoEl = videoRef.current;
+      // Ensure video is muted for autoplay
+      videoEl.muted = true;
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
@@ -288,6 +292,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             ref={videoRef}
             autoPlay
             playsInline
+            muted
             className="w-full h-full object-contain md:max-w-md md:mx-auto"
           />
           
