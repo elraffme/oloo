@@ -78,7 +78,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       viewerConnectionRef.current = new ViewerConnection(
         streamId,
         token,
-        videoRef.current
+        videoRef.current,
+        displayName,
+        !user
       );
 
       // Listen for video tracks to confirm we're receiving video

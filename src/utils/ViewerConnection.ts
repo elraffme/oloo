@@ -4,14 +4,18 @@ export class ViewerConnection {
   private streamId: string;
   private sessionToken: string;
   private remoteVideoRef: HTMLVideoElement | null = null;
+  private displayName: string;
+  private isGuest: boolean;
   private retryCount = 0;
   private maxRetries = 3;
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
-  constructor(streamId: string, sessionToken: string, videoElement: HTMLVideoElement) {
+  constructor(streamId: string, sessionToken: string, videoElement: HTMLVideoElement, displayName: string, isGuest: boolean) {
     this.streamId = streamId;
     this.sessionToken = sessionToken;
     this.remoteVideoRef = videoElement;
+    this.displayName = displayName;
+    this.isGuest = isGuest;
   }
 
   async connect(supabase: any) {
@@ -97,7 +101,11 @@ export class ViewerConnection {
       .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log('Viewer subscribed to channel, sending join signal');
-          this.sendSignal('viewer-joined', { sessionToken: this.sessionToken });
+          this.sendSignal('viewer-joined', { 
+            sessionToken: this.sessionToken,
+            displayName: this.displayName,
+            isGuest: this.isGuest
+          });
         }
       });
   }
