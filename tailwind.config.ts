@@ -87,11 +87,6 @@ export default {
 					500: 'hsl(var(--orange-verified))',
 					600: 'hsl(var(--orange-verified))',
 					foreground: 'hsl(var(--orange-verified-foreground))'
-				},
-				// Brand green theme
-				'brand-green': {
-					DEFAULT: 'hsl(var(--brand-green))',
-					foreground: 'hsl(var(--brand-green-foreground))'
 				}
 			},
 			borderRadius: {
