@@ -27,6 +27,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isGuest = !user;
 
   useEffect(() => {
     // Load initial messages
@@ -177,32 +178,48 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
             ))
           )}
         </div>
-      </ScrollArea>
+        </ScrollArea>
 
-      <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-border">
-        <div className="flex items-center gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={user ? "Type a message..." : "Sign in to chat"}
-            disabled={!user || isSending}
-            maxLength={500}
-            className="flex-1 text-sm h-9 md:h-10"
-          />
-          <EmotePicker
-            onEmoteSelect={(emote) => setNewMessage((prev) => prev + emote)}
-            disabled={!user || isSending}
-          />
-          <Button 
-            type="submit" 
-            size="icon"
-            disabled={!user || !newMessage.trim() || isSending}
-            className="h-9 w-9 md:h-10 md:w-10"
-          >
-            <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-};
+        {/* Message input or guest notice */}
+        {isGuest ? (
+          <div className="bg-muted/50 rounded-lg p-4 mx-3 mb-3 md:mx-4 md:mb-4 text-center space-y-2 border-t border-border">
+            <p className="text-sm text-muted-foreground">
+              Sign in to join the conversation
+            </p>
+            <Button 
+              size="sm" 
+              onClick={() => window.location.href = '/auth'}
+              className="w-full"
+            >
+              Sign In to Chat
+            </Button>
+          </div>
+        ) : (
+          <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-border">
+            <div className="flex items-center gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                disabled={isSending}
+                maxLength={500}
+                className="flex-1 text-sm h-9 md:h-10"
+              />
+              <EmotePicker
+                onEmoteSelect={(emote) => setNewMessage((prev) => prev + emote)}
+                disabled={isSending}
+              />
+              <Button 
+                type="submit" 
+                size="icon"
+                disabled={!newMessage.trim() || isSending}
+                className="h-9 w-9 md:h-10 md:w-10"
+              >
+                <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
+    );
+  };

@@ -1309,6 +1309,50 @@ export type Database = {
           },
         ]
       }
+      stream_viewer_sessions: {
+        Row: {
+          id: string
+          is_guest: boolean
+          joined_at: string
+          last_heartbeat: string
+          left_at: string | null
+          session_token: string
+          stream_id: string
+          viewer_display_name: string
+          viewer_id: string | null
+        }
+        Insert: {
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          last_heartbeat?: string
+          left_at?: string | null
+          session_token: string
+          stream_id: string
+          viewer_display_name: string
+          viewer_id?: string | null
+        }
+        Update: {
+          id?: string
+          is_guest?: boolean
+          joined_at?: string
+          last_heartbeat?: string
+          left_at?: string | null
+          session_token?: string
+          stream_id?: string
+          viewer_display_name?: string
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_viewer_sessions_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streaming_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       streaming_analytics: {
         Row: {
           created_at: string | null
@@ -1973,6 +2017,7 @@ export type Database = {
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
+      cleanup_stale_viewer_sessions: { Args: never; Returns: undefined }
       convert_gold_to_coins: { Args: { p_gold_amount: number }; Returns: Json }
       create_secure_token_transaction: {
         Args: {
@@ -2016,6 +2061,17 @@ export type Database = {
           item_id: string
           starts_at: string
           title: string
+        }[]
+      }
+      get_active_stream_viewers: {
+        Args: { p_stream_id: string }
+        Returns: {
+          avatar_url: string
+          is_guest: boolean
+          joined_at: string
+          session_id: string
+          viewer_display_name: string
+          viewer_id: string
         }[]
       }
       get_anonymized_ride_data: { Args: { ride_id: string }; Returns: Json }
@@ -2267,6 +2323,18 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      join_stream_as_viewer: {
+        Args: {
+          p_display_name: string
+          p_is_guest?: boolean
+          p_stream_id: string
+        }
+        Returns: Json
+      }
+      leave_stream_viewer: {
+        Args: { p_session_token: string }
+        Returns: boolean
+      }
       log_membership_access: {
         Args: { action_type: string; target_user_id: string }
         Returns: undefined
@@ -2380,6 +2448,10 @@ export type Database = {
           new_phone?: string
         }
         Returns: Json
+      }
+      update_viewer_heartbeat: {
+        Args: { p_session_token: string }
+        Returns: boolean
       }
       validate_membership_operation: {
         Args: { target_user_id: string }

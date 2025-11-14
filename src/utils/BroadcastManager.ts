@@ -3,6 +3,7 @@ export class BroadcastManager {
   private localStream: MediaStream | null = null;
   private channel: any = null;
   private streamId: string;
+  private viewerMetadata: Map<string, { name: string; joinedAt: Date; isGuest: boolean }> = new Map();
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -20,15 +21,23 @@ export class BroadcastManager {
   }
 
   private handleViewerJoined = async ({ payload }: any) => {
-    const { viewerId } = payload;
-    console.log(`Viewer joined: ${viewerId}`);
-    await this.createPeerConnection(viewerId);
+    const { sessionToken, displayName, isGuest } = payload;
+    console.log(`Viewer joined: ${displayName} (${isGuest ? 'guest' : 'authenticated'})`);
+    
+    // Store viewer metadata
+    this.viewerMetadata.set(sessionToken, {
+      name: displayName || 'Anonymous',
+      joinedAt: new Date(),
+      isGuest: isGuest || false
+    });
+    
+    await this.createPeerConnection(sessionToken);
   }
 
-  private async createPeerConnection(viewerId: string) {
+  private async createPeerConnection(sessionToken: string) {
     // Check if already exists
-    if (this.peerConnections.has(viewerId)) {
-      console.warn(`Peer connection already exists for ${viewerId}`);
+    if (this.peerConnections.has(sessionToken)) {
+      console.warn(`Peer connection already exists for ${sessionToken}`);
       return;
     }
 
@@ -48,7 +57,7 @@ export class BroadcastManager {
     }
 
     tracks.forEach(track => {
-      console.log(`Adding ${track.kind} track to peer connection for ${viewerId}`);
+      console.log(`Adding ${track.kind} track to peer connection`);
       pc.addTrack(track, this.localStream!);
     });
 
@@ -56,7 +65,7 @@ export class BroadcastManager {
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         this.sendSignal('ice-candidate', {
-          viewerId,
+          sessionToken,
           candidate: event.candidate
         });
       }
@@ -64,31 +73,31 @@ export class BroadcastManager {
 
     // Monitor ICE connection state
     pc.oniceconnectionstatechange = () => {
-      console.log(`ICE connection state for ${viewerId}: ${pc.iceConnectionState}`);
+      console.log(`ICE connection state: ${pc.iceConnectionState}`);
       if (pc.iceConnectionState === 'failed') {
-        console.error(`ICE failed for ${viewerId}, attempting restart`);
+        console.error(`ICE failed, attempting restart`);
         pc.restartIce();
       }
     };
 
     // Monitor ICE gathering state
     pc.onicegatheringstatechange = () => {
-      console.log(`ICE gathering state for ${viewerId}: ${pc.iceGatheringState}`);
+      console.log(`ICE gathering state: ${pc.iceGatheringState}`);
     };
 
     // Monitor overall connection state
     pc.onconnectionstatechange = () => {
-      console.log(`Connection state for ${viewerId}: ${pc.connectionState}`);
+      console.log(`Connection state: ${pc.connectionState}`);
       
       if (pc.connectionState === 'connected') {
-        console.log(`✓ Successfully connected to viewer ${viewerId}`);
+        console.log(`✓ Successfully connected to viewer`);
       } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        console.warn(`Connection ${pc.connectionState} for ${viewerId}, removing`);
-        this.removePeerConnection(viewerId);
+        console.warn(`Connection ${pc.connectionState}, removing`);
+        this.removePeerConnection(sessionToken);
       }
     };
 
-    this.peerConnections.set(viewerId, pc);
+    this.peerConnections.set(sessionToken, pc);
 
     try {
       const offer = await pc.createOffer({
@@ -97,42 +106,43 @@ export class BroadcastManager {
       });
       await pc.setLocalDescription(offer);
       
-      console.log(`Sending offer to ${viewerId}`);
-      this.sendSignal('offer', { viewerId, offer });
+      console.log(`Sending offer to viewer`);
+      this.sendSignal('offer', { sessionToken, offer });
       
       // Set timeout for connection establishment
       setTimeout(() => {
         if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') {
-          console.error(`Connection timeout for ${viewerId}`);
-          this.removePeerConnection(viewerId);
+          console.error(`Connection timeout`);
+          this.removePeerConnection(sessionToken);
         }
       }, 15000); // 15 second timeout
       
     } catch (error) {
-      console.error(`Error creating offer for ${viewerId}:`, error);
-      this.removePeerConnection(viewerId);
+      console.error(`Error creating offer:`, error);
+      this.removePeerConnection(sessionToken);
     }
   }
 
   private handleAnswer = async ({ payload }: any) => {
-    const { viewerId, answer } = payload;
-    const pc = this.peerConnections.get(viewerId);
-    if (pc) {
+    const { sessionToken, answer } = payload;
+    const pc = this.peerConnections.get(sessionToken);
+    if (pc && answer) {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
     }
   }
 
   private handleICECandidate = async ({ payload }: any) => {
-    const { viewerId, candidate } = payload;
-    const pc = this.peerConnections.get(viewerId);
+    const { sessionToken, candidate } = payload;
+    const pc = this.peerConnections.get(sessionToken);
     if (pc && candidate) {
       await pc.addIceCandidate(new RTCIceCandidate(candidate));
     }
   }
 
   private handleViewerLeft = ({ payload }: any) => {
-    const { viewerId } = payload;
-    this.removePeerConnection(viewerId);
+    const { sessionToken } = payload;
+    console.log(`Viewer left`);
+    this.removePeerConnection(sessionToken);
   }
 
   private sendSignal(event: string, payload: any) {
@@ -143,21 +153,32 @@ export class BroadcastManager {
     });
   }
 
-  private removePeerConnection(viewerId: string) {
-    const pc = this.peerConnections.get(viewerId);
+  private removePeerConnection(sessionToken: string) {
+    const pc = this.peerConnections.get(sessionToken);
     if (pc) {
       pc.close();
-      this.peerConnections.delete(viewerId);
+      this.peerConnections.delete(sessionToken);
+      this.viewerMetadata.delete(sessionToken);
     }
   }
 
   cleanup() {
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();
+    this.viewerMetadata.clear();
     this.channel?.unsubscribe();
   }
 
   getViewerCount(): number {
     return this.peerConnections.size;
+  }
+
+  getViewers() {
+    return Array.from(this.viewerMetadata.entries()).map(([sessionToken, metadata]) => ({
+      sessionToken,
+      displayName: metadata.name,
+      joinedAt: metadata.joinedAt,
+      isGuest: metadata.isGuest
+    }));
   }
 }
