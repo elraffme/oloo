@@ -54,7 +54,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           variant={variant} 
           className={`justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200 ${className}`}
         >
-          <Globe className="w-4 h-4 mr-2" />
+          <Globe className="w-4 h-4 mr-2 text-primary" />
           {t('landing.menu.language')}: {currentLanguage?.nativeName}
         </Button>
       </PopoverTrigger>
