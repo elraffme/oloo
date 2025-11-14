@@ -8,6 +8,11 @@ export interface LoginStreakInfo {
   claimed_today: boolean;
   day_in_month: number;
   last_login_date: string | null;
+  coins_today?: number;
+  xp_today?: number;
+  is_milestone_today?: boolean;
+  milestone_type_today?: string;
+  next_milestone_days?: number;
 }
 
 export interface ClaimResult {
@@ -36,10 +41,14 @@ export const useDailyLoginRewards = () => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('get_login_streak_info');
+      const tzOffset = new Date().getTimezoneOffset();
+      const { data, error } = await supabase.rpc('get_login_streak_info', {
+        p_tz_offset_minutes: tzOffset
+      });
 
       if (error) throw error;
 
+      console.debug('[DailyRewards] Streak info:', data);
       setStreakInfo(data as unknown as LoginStreakInfo);
     } catch (error) {
       console.error('Error fetching streak info:', error);
@@ -60,11 +69,17 @@ export const useDailyLoginRewards = () => {
     setClaiming(true);
 
     try {
-      const { data, error } = await supabase.rpc('claim_daily_login_reward');
+      const tzOffset = new Date().getTimezoneOffset();
+      console.debug('[DailyRewards] Claiming with timezone offset:', tzOffset);
+      
+      const { data, error } = await supabase.rpc('claim_daily_login_reward', {
+        p_tz_offset_minutes: tzOffset
+      });
 
       if (error) throw error;
 
       const result = data as unknown as ClaimResult;
+      console.debug('[DailyRewards] Claim result:', result);
 
       if (result.success) {
         if (result.is_milestone) {

@@ -1966,7 +1966,10 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: boolean
       }
-      claim_daily_login_reward: { Args: never; Returns: Json }
+      claim_daily_login_reward: {
+        Args: { p_tz_offset_minutes?: number }
+        Returns: Json
+      }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
@@ -2106,7 +2109,10 @@ export type Database = {
         Args: { profile_user_id: string; requesting_user_id?: string }
         Returns: Json
       }
-      get_login_streak_info: { Args: never; Returns: Json }
+      get_login_streak_info: {
+        Args: { p_tz_offset_minutes?: number }
+        Returns: Json
+      }
       get_or_create_currency_balance: {
         Args: { p_user_id: string }
         Returns: {
