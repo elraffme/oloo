@@ -1903,6 +1903,15 @@ export type Database = {
         Args: { user_a: string; user_b: string }
         Returns: boolean
       }
+      award_coins: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       award_xp: {
         Args: {
           p_amount: number
