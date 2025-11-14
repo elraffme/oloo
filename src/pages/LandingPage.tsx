@@ -51,22 +51,22 @@ const LandingPage = () => {
         <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">Cultured in Connection</p>
         
         {/* Dropdown Menu */}
-        {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background/95 backdrop-blur-md border-b border-border shadow-lg animate-fade-in z-50">
+        {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background backdrop-blur-md border-b border-primary/40 shadow-2xl animate-fade-in z-50">
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-2">
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('culture')}>
-                <span className="nsibidi-symbol mr-2">◊</span>
+              <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => scrollToSection('culture')}>
+                <span className="nsibidi-symbol mr-2 text-primary">◊</span>
                 Culture
               </Button>
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('discover')}>
-                <span className="nsibidi-symbol mr-2">◊</span>
+              <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => scrollToSection('discover')}>
+                <span className="nsibidi-symbol mr-2 text-primary">◊</span>
                 Discover
               </Button>
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('collective')}>
-                <span className="nsibidi-symbol mr-2">◊</span>
+              <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => scrollToSection('collective')}>
+                <span className="nsibidi-symbol mr-2 text-primary">◊</span>
                 Collective
               </Button>
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => scrollToSection('get-started')}>
-                <span className="nsibidi-symbol mr-2">◈</span>
+              <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => scrollToSection('get-started')}>
+                <span className="nsibidi-symbol mr-2 text-primary">◈</span>
                 {t('landing.getStarted')}
               </Button>
               
@@ -74,9 +74,9 @@ const LandingPage = () => {
               
               <LanguageSelector variant="ghost" />
               
-              <div className="border-t border-border my-2" />
+              <div className="border-t border-primary/30 my-2" />
               
-              <Button variant="ghost" className="justify-start text-base font-afro-heading hover:bg-primary/10" onClick={() => {
+              <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => {
             navigate('/auth');
             setIsMenuOpen(false);
           }}>
