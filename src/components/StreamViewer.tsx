@@ -4,7 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -13,7 +15,9 @@ import { LikeAnimation } from '@/components/LikeAnimation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 interface StreamViewerProps {
   streamId: string;
@@ -45,16 +49,35 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [totalLikes, setTotalLikes] = useState(0);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
+  const [showViewers, setShowViewers] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
   // Initialize viewer and load like status
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
 
-      const viewerId = crypto.randomUUID();
+      // Join stream and get session token
+      const displayName = user?.email?.split('@')[0] || 'Guest';
+      const { data: joinData, error: joinError } = await supabase.rpc('join_stream_as_viewer', {
+        p_stream_id: streamId,
+        p_display_name: displayName,
+        p_is_guest: !user
+      });
+
+      if (joinError) {
+        console.error('Error joining stream:', joinError);
+        toast.error('Failed to join stream');
+        return;
+      }
+
+      const token = (joinData as any)?.session_token as string;
+      setSessionToken(token);
+
       viewerConnectionRef.current = new ViewerConnection(
         streamId,
-        viewerId,
+        token,
         videoRef.current
       );
 
@@ -96,7 +119,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     initViewer();
 
     return () => {
-      viewerConnectionRef.current?.disconnect();
+      const cleanup = async () => {
+        viewerConnectionRef.current?.disconnect();
+        
+        // Leave stream
+        if (sessionToken) {
+          await supabase.rpc('leave_stream_viewer', {
+            p_session_token: sessionToken
+          });
+        }
+      };
+      cleanup();
     };
   }, [streamId, user]);
 
