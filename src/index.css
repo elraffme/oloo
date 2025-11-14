@@ -49,6 +49,10 @@
     /* Verification Darkest Dark Juniper Green */
     --orange-verified: 135 75% 8%;
     --orange-verified-foreground: 0 0% 98%;
+    
+    /* Brand Green Theme */
+    --brand-green: 142 76% 36%;
+    --brand-green-foreground: 0 0% 100%;
 
     /* Darkest Dark Juniper Green Gradients */
     --gradient-romantic: linear-gradient(135deg, hsl(135 75% 8%), hsl(135 65% 15%), hsl(130 70% 12%));
