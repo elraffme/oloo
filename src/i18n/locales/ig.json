@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Chọta Onye Dakọtara Gị Nke Ọma",
+    "subtitle": "Jikọọ na ndị dị egwu n'ofe Africa",
+    "getStarted": "Malite",
+    "signIn": "Banye",
+    "signUp": "Debanye Aha",
+    "features": {
+      "liveStreaming": "Mgbasa Ozi Ndụ",
+      "liveStreamingDesc": "Lelee ma jikọọ na ndị mmadụ n'oge ezigbo",
+      "videoChat": "Mkparịta Ụka Vidiyo",
+      "videoChatDesc": "Nwee mkparịta ụka ihu na ihu ozugbo",
+      "events": "Mmemme na Nzukọ",
+      "eventsDesc": "Sonye na mmemme mpaghara wee zute ndị ọhụrụ",
+      "trivia": "Egwuregwu Ajụjụ",
+      "triviaDesc": "Maa ndị ọzọ aka ma nweta onyinye na-atọ ụtọ"
+    },
+    "menu": {
+      "language": "Asụsụ",
+      "selectLanguage": "Họrọ Asụsụ"
+    }
+  },
+  "navigation": {
+    "discover": "Chọpụta",
+    "feed": "Nri",
+    "messages": "Ozi",
+    "profile": "Profaịlụ",
+    "streaming": "Mgbasa Ozi",
+    "shop": "Ụlọ Ahịa",
+    "premium": "Premium",
+    "about": "Gbasara"
+  },
+  "common": {
+    "loading": "Na-ebu...",
+    "error": "Njehie",
+    "success": "Ihe Ịga Nke Ọma",
+    "cancel": "Kagbuo",
+    "save": "Chekwa",
+    "delete": "Hichapụ",
+    "edit": "Dezie",
+    "send": "Zipu",
+    "close": "Mechie"
+  }
+}

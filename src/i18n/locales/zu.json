@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Thola Umlingani Wakho Ophelele",
+    "subtitle": "Xhuma nabantu abamangalisayo kulo lonke i-Afrika",
+    "getStarted": "Qala",
+    "signIn": "Ngena",
+    "signUp": "Bhalisa",
+    "features": {
+      "liveStreaming": "Ukusakaza Bukhoma",
+      "liveStreamingDesc": "Buka futhi uxhumane nabantu ngesikhathi sangempela",
+      "videoChat": "Ingxoxo Yevidiyo",
+      "videoChatDesc": "Yiba nezingxoxo zobuso nobuso ngokushesha",
+      "events": "Imicimbi Nemihlangano",
+      "eventsDesc": "Joyina imicimbi yasendaweni uhlangane nabantu abasha",
+      "trivia": "Imidlalo Yemibuzo",
+      "triviaDesc": "Phonselela abanye futhi uwine imiklomelo ejabulisayo"
+    },
+    "menu": {
+      "language": "Ulimi",
+      "selectLanguage": "Khetha Ulimi"
+    }
+  },
+  "navigation": {
+    "discover": "Thola",
+    "feed": "Ukudla",
+    "messages": "Imilayezo",
+    "profile": "Iphrofayela",
+    "streaming": "Ukusakaza",
+    "shop": "Isitolo",
+    "premium": "Okuhle Kakhulu",
+    "about": "Mayelana"
+  },
+  "common": {
+    "loading": "Iyalayisha...",
+    "error": "Iphutha",
+    "success": "Impumelelo",
+    "cancel": "Khansela",
+    "save": "Gcina",
+    "delete": "Susa",
+    "edit": "Hlela",
+    "send": "Thumela",
+    "close": "Vala"
+  }
+}

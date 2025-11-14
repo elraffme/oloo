@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Wa Ẹlẹgbẹ Pipe Rẹ",
+    "subtitle": "Sopọ pẹlu awọn eniyan iyalẹnu jakejado Afirika",
+    "getStarted": "Bẹrẹ",
+    "signIn": "Wọle",
+    "signUp": "Forukọsilẹ",
+    "features": {
+      "liveStreaming": "Ifiweranṣẹ Laaye",
+      "liveStreamingDesc": "Wo ki o si sopọ pẹlu awọn eniyan ni akoko gidi",
+      "videoChat": "Ibaraẹnisọrọ Fidio",
+      "videoChatDesc": "Ni ibaraẹnisọrọ oju-de-oju lẹsẹkẹsẹ",
+      "events": "Awọn Iṣẹlẹ ati Awọn Ipade",
+      "eventsDesc": "Darapọ mọ awọn iṣẹlẹ agbegbe ki o pade awọn eniyan tuntun",
+      "trivia": "Awọn Ere Ibeere",
+      "triviaDesc": "Koju awọn ẹlomiran ki o si gba awọn ẹbun ti o nifẹ"
+    },
+    "menu": {
+      "language": "Ede",
+      "selectLanguage": "Yan Ede"
+    }
+  },
+  "navigation": {
+    "discover": "Ṣawari",
+    "feed": "Ounjẹ",
+    "messages": "Awọn Ifiranṣẹ",
+    "profile": "Profaili",
+    "streaming": "Ifiweranṣẹ",
+    "shop": "Ile Itaja",
+    "premium": "Alaragbara",
+    "about": "Nipa"
+  },
+  "common": {
+    "loading": "N Ṣiṣẹ...",
+    "error": "Aṣiṣe",
+    "success": "Aṣeyọri",
+    "cancel": "Fagile",
+    "save": "Fipamọ",
+    "delete": "Paarẹ",
+    "edit": "Ṣatunkọ",
+    "send": "Firanṣẹ",
+    "close": "Ti"
+  }
+}
