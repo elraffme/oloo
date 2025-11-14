@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ViewerConnection } from '@/utils/ViewerConnection';
+import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2 } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -51,7 +51,23 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
+
+  const getConnectionMessage = (state: ConnectionState): string => {
+    switch (state) {
+      case 'checking_broadcaster': return 'Checking if broadcaster is online...';
+      case 'joining': return 'Joining stream...';
+      case 'awaiting_offer': return 'Waiting for connection...';
+      case 'processing_offer': return 'Processing connection...';
+      case 'awaiting_ice': return 'Establishing connection...';
+      case 'connected': return 'Connected! Loading video...';
+      case 'streaming': return 'Streaming';
+      case 'failed': return 'Connection failed';
+      case 'timeout': return 'Connection timed out';
+      default: return 'Connecting...';
+    }
+  };
 
   // Initialize viewer and load like status
   useEffect(() => {
@@ -80,7 +96,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         token,
         videoRef.current,
         displayName,
-        !user
+        !user,
+        (state) => setConnectionState(state)
       );
 
       // Listen for video tracks to confirm we're receiving video
@@ -263,26 +280,26 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             className="w-full h-full object-contain md:max-w-md md:mx-auto"
           />
           
-          {!isConnected && (
+          {connectionState !== 'streaming' && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-              <p className="text-white font-medium text-sm md:text-base">Establishing WebRTC connection...</p>
-              <p className="text-white/70 text-xs md:text-sm">Connecting peer-to-peer</p>
+              <Loader2 className="h-12 w-12 animate-spin text-white" />
+              <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
+              {(connectionState === 'failed' || connectionState === 'timeout') && (
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  className="mt-4 text-white border-white hover:bg-white hover:text-black"
+                >
+                  Retry Connection
+                </Button>
+              )}
             </div>
           )}
           
-          {isConnected && !hasVideo && (
-            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-              <p className="text-white font-medium text-sm md:text-base">Waiting for video stream...</p>
-              <p className="text-white/70 text-xs md:text-sm">The broadcaster may not be live yet</p>
-            </div>
-          )}
-          
-          {isConnected && (
+          {connectionState === 'streaming' && (
             <Badge className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs">
               <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-              <span className="hidden md:inline">Connected via WebRTC</span>
+              <span className="hidden md:inline">Live via WebRTC</span>
               <span className="md:hidden">LIVE</span>
             </Badge>
           )}

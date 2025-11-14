@@ -17,7 +17,14 @@ export class BroadcastManager {
       .on('broadcast', { event: 'answer' }, this.handleAnswer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .on('broadcast', { event: 'viewer-left' }, this.handleViewerLeft)
-      .subscribe();
+      .subscribe(async (status: string) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✓ Broadcaster channel ready, broadcasting ready signal');
+          // Wait a moment for channel to fully initialize
+          await new Promise(resolve => setTimeout(resolve, 500));
+          this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+        }
+      });
   }
 
   private handleViewerJoined = async ({ payload }: any) => {
@@ -41,6 +48,23 @@ export class BroadcastManager {
       return;
     }
 
+    // Verify we have active tracks before creating peer connection
+    const tracks = this.localStream?.getTracks() || [];
+    if (tracks.length === 0) {
+      console.error('❌ No media tracks available for broadcasting');
+      return;
+    }
+
+    // Verify each track is active and enabled
+    const activeTracks = tracks.filter(track => track.readyState === 'live' && track.enabled);
+    if (activeTracks.length === 0) {
+      console.error('❌ No active media tracks available');
+      return;
+    }
+
+    console.log(`✓ Verified ${activeTracks.length} active tracks:`, 
+      activeTracks.map(t => `${t.kind}:${t.label}:${t.readyState}`));
+
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -49,15 +73,8 @@ export class BroadcastManager {
       ]
     });
 
-    // Verify we have tracks before adding
-    const tracks = this.localStream?.getTracks() || [];
-    if (tracks.length === 0) {
-      console.error('No media tracks available for broadcasting');
-      return;
-    }
-
-    tracks.forEach(track => {
-      console.log(`Adding ${track.kind} track to peer connection`);
+    activeTracks.forEach(track => {
+      console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection`);
       pc.addTrack(track, this.localStream!);
     });
 
@@ -106,19 +123,34 @@ export class BroadcastManager {
       });
       await pc.setLocalDescription(offer);
       
-      console.log(`Sending offer to viewer`);
+      console.log(`📤 Sending offer to viewer (session: ${sessionToken.substring(0, 8)}...)`);
       this.sendSignal('offer', { sessionToken, offer });
       
-      // Set timeout for connection establishment
-      setTimeout(() => {
-        if (pc.connectionState !== 'connected' && pc.connectionState !== 'connecting') {
-          console.error(`Connection timeout`);
-          this.removePeerConnection(sessionToken);
-        }
-      }, 15000); // 15 second timeout
-      
+      // Set timeout for answer with retry logic
+      let retryCount = 0;
+      const maxRetries = 3;
+      const checkAnswer = () => {
+        setTimeout(() => {
+          const state = pc.connectionState;
+          if (state === 'connected') {
+            console.log(`✓ Connection established successfully`);
+            return;
+          }
+          
+          if (state === 'new' && retryCount < maxRetries) {
+            retryCount++;
+            console.warn(`⚠️ No answer received, resending offer (retry ${retryCount}/${maxRetries})`);
+            this.sendSignal('offer', { sessionToken, offer });
+            checkAnswer();
+          } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
+            console.error(`❌ Connection ${state} after ${retryCount} retries`);
+            this.removePeerConnection(sessionToken);
+          }
+        }, 5000);
+      };
+      checkAnswer();
     } catch (error) {
-      console.error(`Error creating offer:`, error);
+      console.error('❌ Error creating offer:', error);
       this.removePeerConnection(sessionToken);
     }
   }
