@@ -76,6 +76,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
+      
+      console.log('Attempting to join stream:', { streamId, displayName, isGuest: !user });
+      
       const { data: joinData, error: joinError } = await supabase.rpc('join_stream_as_viewer', {
         p_stream_id: streamId,
         p_display_name: displayName,
@@ -84,11 +87,19 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       if (joinError) {
         console.error('Error joining stream:', joinError);
-        toast.error('Failed to join stream');
+        toast.error('Failed to join stream: ' + joinError.message);
         return;
       }
 
+      console.log('Join stream response:', joinData);
+
       const token = (joinData as any)?.session_token as string;
+      if (!token) {
+        console.error('No session token received from join stream');
+        toast.error('Failed to establish viewer session');
+        return;
+      }
+      
       setSessionToken(token);
 
       viewerConnectionRef.current = new ViewerConnection(

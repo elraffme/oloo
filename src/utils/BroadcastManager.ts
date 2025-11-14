@@ -4,6 +4,7 @@ export class BroadcastManager {
   private channel: any = null;
   private streamId: string;
   private viewerMetadata: Map<string, { name: string; joinedAt: Date; isGuest: boolean }> = new Map();
+  private broadcasterReadyInterval: NodeJS.Timeout | null = null;
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -23,6 +24,11 @@ export class BroadcastManager {
           // Wait a moment for channel to fully initialize
           await new Promise(resolve => setTimeout(resolve, 500));
           this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+          
+          // Send broadcaster-ready signal every 2 seconds while broadcasting
+          this.broadcasterReadyInterval = setInterval(() => {
+            this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+          }, 2000);
         }
       });
   }
@@ -195,6 +201,12 @@ export class BroadcastManager {
   }
 
   cleanup() {
+    // Clear broadcaster ready interval
+    if (this.broadcasterReadyInterval) {
+      clearInterval(this.broadcasterReadyInterval);
+      this.broadcasterReadyInterval = null;
+    }
+    
     this.peerConnections.forEach(pc => pc.close());
     this.peerConnections.clear();
     this.viewerMetadata.clear();
