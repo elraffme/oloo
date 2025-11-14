@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Fumana Iqabane Lakho Elifanelekileyo",
+    "subtitle": "Nxibelelana nabantu abamangalisayo kulo lonke elaseAfrika",
+    "getStarted": "Qala",
+    "signIn": "Ngena",
+    "signUp": "Bhalisa",
+    "features": {
+      "liveStreaming": "Ukusasaza Ngqo",
+      "liveStreamingDesc": "Bukela kwaye unxibelelane nabantu ngexesha lokwenene",
+      "videoChat": "Incoko Yevidiyo",
+      "videoChatDesc": "Yiba neencoko ubuso ngobuso ngoko nangoko",
+      "events": "Iziganeko Neentlanganiso",
+      "eventsDesc": "Joyina iziganeko zendawo uze udibane nabantu abatsha",
+      "trivia": "Imidlalo Yemibuzo",
+      "triviaDesc": "Cela eminye kwaye uphumelele amabhaso amnandi"
+    },
+    "menu": {
+      "language": "Ulwimi",
+      "selectLanguage": "Khetha Ulwimi"
+    }
+  },
+  "navigation": {
+    "discover": "Fumanisa",
+    "feed": "Ukondla",
+    "messages": "Imiyalezo",
+    "profile": "Iprofayile",
+    "streaming": "Ukusasaza",
+    "shop": "Ivenkile",
+    "premium": "Okuphezulu",
+    "about": "Malunga"
+  },
+  "common": {
+    "loading": "Iyalayisha...",
+    "error": "Impazamo",
+    "success": "Impumelelo",
+    "cancel": "Rhoxisa",
+    "save": "Gcina",
+    "delete": "Cima",
+    "edit": "Hlela",
+    "send": "Thumela",
+    "close": "Vala"
+  }
+}

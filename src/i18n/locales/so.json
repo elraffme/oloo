@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Hel Qofka Kugu Habboon",
+    "subtitle": "Ku xidh dad cajiib ah Afrika oo dhan",
+    "getStarted": "Bilow",
+    "signIn": "Gal",
+    "signUp": "Isdiiwaangeli",
+    "features": {
+      "liveStreaming": "Baahinta Tooska ah",
+      "liveStreamingDesc": "Daaw oo la xiriir dad waqti dhabta ah",
+      "videoChat": "Sheekada Fiidiyowga",
+      "videoChatDesc": "Yeelo wadahadallo fool ka fool degdeg ah",
+      "events": "Dhacdooyinka iyo Kulamada",
+      "eventsDesc": "Ku biir dhacdooyinka maxalliga ah oo la kulam dad cusub",
+      "trivia": "Ciyaaraha Su'aalaha",
+      "triviaDesc": "Ku ciyaar dadka kale oo ku guulayso abaalmarino xiiso leh"
+    },
+    "menu": {
+      "language": "Luqadda",
+      "selectLanguage": "Dooro Luqadda"
+    }
+  },
+  "navigation": {
+    "discover": "Baadh",
+    "feed": "Quudinta",
+    "messages": "Fariimaha",
+    "profile": "Waaxda",
+    "streaming": "Baahinta",
+    "shop": "Dukaan",
+    "premium": "Heer Sare",
+    "about": "Ku Saabsan"
+  },
+  "common": {
+    "loading": "Soo Raraya...",
+    "error": "Khalad",
+    "success": "Guul",
+    "cancel": "Jooji",
+    "save": "Kaydi",
+    "delete": "Tirtir",
+    "edit": "Wax Ka Bedel",
+    "send": "Dir",
+    "close": "Xir"
+  }
+}

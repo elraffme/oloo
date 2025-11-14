@@ -1,0 +1,44 @@
+{
+  "landing": {
+    "title": "Vind Jou Perfekte Maat",
+    "subtitle": "Koppel met wonderlike mense reg oor Afrika",
+    "getStarted": "Begin",
+    "signIn": "Teken In",
+    "signUp": "Registreer",
+    "features": {
+      "liveStreaming": "Regstreekse Uitsending",
+      "liveStreamingDesc": "Kyk en koppel met mense in regte tyd",
+      "videoChat": "Video Klets",
+      "videoChatDesc": "Hou van aangesig tot aangesig gesprekke onmiddellik",
+      "events": "Geleenthede en Byeenkomste",
+      "eventsDesc": "Sluit aan by plaaslike geleenthede en ontmoet nuwe mense",
+      "trivia": "Trivia Speletjies",
+      "triviaDesc": "Daag ander uit en wen opwindende pryse"
+    },
+    "menu": {
+      "language": "Taal",
+      "selectLanguage": "Kies Taal"
+    }
+  },
+  "navigation": {
+    "discover": "Ontdek",
+    "feed": "Voer",
+    "messages": "Boodskappe",
+    "profile": "Profiel",
+    "streaming": "Uitsending",
+    "shop": "Winkel",
+    "premium": "Premium",
+    "about": "Oor"
+  },
+  "common": {
+    "loading": "Laai...",
+    "error": "Fout",
+    "success": "Sukses",
+    "cancel": "Kanselleer",
+    "save": "Stoor",
+    "delete": "Verwyder",
+    "edit": "Wysig",
+    "send": "Stuur",
+    "close": "Sluit"
+  }
+}
