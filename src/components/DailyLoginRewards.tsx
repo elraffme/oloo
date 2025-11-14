@@ -55,8 +55,12 @@ export const DailyLoginRewards = () => {
 
   const currentStreak = streakInfo.current_streak;
   const dayInMonth = streakInfo.day_in_month;
-  const rewards = calculateRewards(currentStreak + 1);
-  const milestone = getMilestone(currentStreak + 1);
+  
+  // Prefer server-calculated values, fallback to client calculation
+  const coins = streakInfo.coins_today ?? calculateRewards(currentStreak + 1).coins;
+  const xp = streakInfo.xp_today ?? calculateRewards(currentStreak + 1).xp;
+  const isMilestone = streakInfo.is_milestone_today ?? (getMilestone(currentStreak + 1) !== null);
+  const milestoneType = streakInfo.milestone_type_today ?? getMilestone(currentStreak + 1)?.type;
 
   return (
     <>
@@ -116,9 +120,9 @@ export const DailyLoginRewards = () => {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold">Today's Reward</h3>
-                    {milestone && (
+                    {isMilestone && (
                       <span className="ml-auto px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-500 text-xs font-bold">
-                        {milestone.type.toUpperCase()} MILESTONE!
+                        {milestoneType?.toUpperCase()} MILESTONE!
                       </span>
                     )}
                   </div>
@@ -127,21 +131,21 @@ export const DailyLoginRewards = () => {
                       <Coins className="h-5 w-5 text-yellow-500" />
                       <div>
                         <p className="text-sm text-muted-foreground">Coins</p>
-                        <p className="text-xl font-bold text-yellow-500">+{rewards.coins}</p>
+                        <p className="text-xl font-bold text-yellow-500">+{coins}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Zap className="h-5 w-5 text-blue-500" />
                       <div>
                         <p className="text-sm text-muted-foreground">XP</p>
-                        <p className="text-xl font-bold text-blue-500">+{rewards.xp}</p>
+                        <p className="text-xl font-bold text-blue-500">+{xp}</p>
                       </div>
                     </div>
                   </div>
-                  {milestone && (
+                  {isMilestone && (
                     <div className="pt-2 border-t border-border">
                       <p className="text-sm text-center text-yellow-500 font-semibold">
-                        🎉 Bonus: {milestone.bonus}
+                        🎉 {milestoneType === 'monthly' ? 'Monthly Bonus!' : 'Weekly Bonus!'}
                       </p>
                     </div>
                   )}
