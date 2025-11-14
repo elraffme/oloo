@@ -603,6 +603,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
           host_user_id: user.id,
           status: 'live',
+          started_at: new Date().toISOString(),
           is_private: false,
           ar_space_data: { category: streamCategory || 'General' }
         })
