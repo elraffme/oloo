@@ -14,8 +14,13 @@ const Messages = () => {
   // Handle navigation from profile viewer (Facebook-style messaging)
   useEffect(() => {
     const state = location.state as any;
-    if (state?.selectedUser) {
-      setSelectedMatch(state.selectedUser);
+    const directId = 
+      state?.selectedUser || 
+      state?.selectedUserId || 
+      state?.userId || 
+      state?.newConversation;
+    if (directId) {
+      setSelectedMatch(directId);
       setActiveTab('messages');
     }
   }, [location.state]);
