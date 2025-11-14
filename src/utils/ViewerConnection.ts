@@ -79,13 +79,23 @@ export class ViewerConnection {
   }
 
   private async establishConnection(supabase: any) {
-    this.peerConnection = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.services.mozilla.com' }
-      ]
-    });
+    // Build ICE servers array with optional TURN servers
+    const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
+      urls: url.trim(),
+      username: import.meta.env.VITE_TURN_USERNAME,
+      credential: import.meta.env.VITE_TURN_CREDENTIAL
+    })) || [];
+
+    const iceServers = [
+      ...turnServers,
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.services.mozilla.com' }
+    ];
+
+    console.log('🧊 ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
+
+    this.peerConnection = new RTCPeerConnection({ iceServers });
 
     // Monitor connection state
     this.peerConnection.onconnectionstatechange = () => {
@@ -106,7 +116,7 @@ export class ViewerConnection {
       console.log(`🧊 Viewer ICE state: ${this.peerConnection?.iceConnectionState}`);
       
       if (this.peerConnection?.iceConnectionState === 'connected') {
-        this.setState('awaiting_ice');
+        this.setState('connected');
       } else if (this.peerConnection?.iceConnectionState === 'failed' && this.retryCount < this.maxRetries) {
         console.warn('⚠️ ICE connection failed, attempting restart');
         this.retryCount++;
@@ -169,7 +179,7 @@ export class ViewerConnection {
           clearTimeout(this.broadcasterReadyTimeout);
         }
         
-        // Now send join signal
+        // Send join signal
         this.setState('joining');
         setTimeout(() => {
           console.log('📤 Sending viewer-joined signal');
@@ -178,16 +188,21 @@ export class ViewerConnection {
             displayName: this.displayName,
             isGuest: this.isGuest
           });
+        }, 500);
+      })
+      .on('broadcast', { event: 'viewer-ack' }, ({ payload }: any) => {
+        if (payload.sessionToken === this.sessionToken) {
+          console.log('✓ Received viewer-ack from broadcaster');
           this.setState('awaiting_offer');
           
-          // Set timeout for offer
+          // Set timeout for offer after ack
           this.offerTimeout = setTimeout(() => {
             if (this.connectionState === 'awaiting_offer') {
               console.error('❌ Timeout waiting for offer');
               this.setState('timeout');
             }
           }, 10000);
-        }, 500);
+        }
       })
       .on('broadcast', { event: 'offer' }, this.handleOffer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
