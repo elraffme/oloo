@@ -14,6 +14,7 @@ export class BroadcastManager {
   private retryAttempts: Map<string, number> = new Map();
   private iceConfig: ICEServerConfig | null = null;
   private iceConfigExpiry: number = 0;
+  private answerReceived: Map<string, boolean> = new Map();
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -216,38 +217,43 @@ export class BroadcastManager {
     this.peerConnections.set(sessionToken, pc);
 
     try {
+      // Log track count before creating offer
+      const transceivers = pc.getTransceivers();
+      const attachedTracks = transceivers.filter(t => t.sender.track).length;
+      console.log(`📊 Transceivers with attached tracks: ${attachedTracks}/${transceivers.length}`);
+      
       const offer = await pc.createOffer({
         offerToReceiveAudio: false,
         offerToReceiveVideo: false
       });
       await pc.setLocalDescription(offer);
       
+      // Initialize answer received flag
+      this.answerReceived.set(sessionToken, false);
+      
       console.log(`📤 Sending offer to viewer (session: ${sessionToken.substring(0, 8)}...)`);
       this.sendSignal('offer', { sessionToken, offer });
       
-      // Set timeout for answer with retry logic
+      // Retry sending offer until answer is received
       let retryCount = 0;
-      const maxRetries = 3;
-      const checkAnswer = () => {
-        setTimeout(() => {
-          const state = pc.connectionState;
-          if (state === 'connected') {
-            console.log(`✓ Connection established successfully`);
-            return;
-          }
-          
-          if (state === 'new' && retryCount < maxRetries) {
-            retryCount++;
-            console.warn(`⚠️ No answer received, resending offer (retry ${retryCount}/${maxRetries})`);
-            this.sendSignal('offer', { sessionToken, offer });
-            checkAnswer();
-          } else if (state === 'failed' || state === 'closed' || state === 'disconnected') {
-            console.error(`❌ Connection ${state} after ${retryCount} retries`);
-            this.removePeerConnection(sessionToken);
-          }
-        }, 5000);
-      };
-      checkAnswer();
+      const maxRetries = 5;
+      const resendInterval = setInterval(() => {
+        if (this.answerReceived.get(sessionToken) || pc.signalingState === 'closed') {
+          console.log(`✓ Answer received or connection closed, stopping offer retries`);
+          clearInterval(resendInterval);
+          return;
+        }
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.warn(`⚠️ No answer received yet, resending offer (retry ${retryCount}/${maxRetries})`);
+          this.sendSignal('offer', { sessionToken, offer });
+        } else {
+          console.error(`❌ No answer after ${maxRetries} retries`);
+          clearInterval(resendInterval);
+          this.removePeerConnection(sessionToken);
+        }
+      }, 3000);
     } catch (error) {
       console.error('❌ Error creating offer:', error);
       this.removePeerConnection(sessionToken);
@@ -256,9 +262,13 @@ export class BroadcastManager {
 
   private handleAnswer = async ({ payload }: any) => {
     const { sessionToken, answer } = payload;
+    console.log(`✓ Received answer from viewer ${sessionToken.substring(0, 8)}...`);
+    
     const pc = this.peerConnections.get(sessionToken);
     if (pc && answer) {
       await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      // Mark answer as received to stop offer retries
+      this.answerReceived.set(sessionToken, true);
     }
   }
 
@@ -290,6 +300,7 @@ export class BroadcastManager {
       pc.close();
       this.peerConnections.delete(sessionToken);
       this.viewerMetadata.delete(sessionToken);
+      this.answerReceived.delete(sessionToken);
     }
   }
 

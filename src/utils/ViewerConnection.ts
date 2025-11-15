@@ -37,6 +37,10 @@ export class ViewerConnection {
   private iceConfig: ICEServerConfig | null = null;
   private iceConfigExpiry: number = 0;
   private viewerJoinedSent = false;
+  private viewerAcked = false;
+  private viewerJoinInterval: NodeJS.Timeout | null = null;
+  private debugLog: string[] = [];
+  private broadcasterReadyReceived = false;
 
   constructor(
     streamId: string, 
@@ -58,8 +62,21 @@ export class ViewerConnection {
 
   private setState(state: ConnectionState) {
     this.connectionState = state;
-    console.log(`🔄 Connection state: ${state}`);
+    const logEntry = `🔄 ${new Date().toISOString().split('T')[1].slice(0, 8)} Connection state: ${state}`;
+    console.log(logEntry);
+    this.addDebugLog(logEntry);
     this.onStateChange?.(state);
+  }
+
+  private addDebugLog(message: string) {
+    this.debugLog.push(message);
+    if (this.debugLog.length > 20) {
+      this.debugLog.shift();
+    }
+  }
+
+  getDebugLog(): string[] {
+    return [...this.debugLog];
   }
 
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
@@ -251,32 +268,52 @@ export class ViewerConnection {
           clearTimeout(this.broadcasterReadyTimeout);
           this.broadcasterReadyTimeout = null;
         }
-        console.log('✓ Broadcaster is ready');
-        this.setState('joining');
         
-        // Send viewer-joined signal (with retry if no ack within 3s)
-        if (!this.viewerJoinedSent) {
+        const logMsg = '✓ Broadcaster is ready';
+        console.log(logMsg);
+        this.addDebugLog(logMsg);
+        
+        // Only transition states on first broadcaster-ready
+        if (!this.broadcasterReadyReceived) {
+          this.broadcasterReadyReceived = true;
+          this.setState('joining');
+          
+          // Send viewer-joined and start persistent retry until ack/offer
           this.sendSignal('viewer-joined', {
             sessionToken: this.sessionToken,
             displayName: this.displayName,
             isGuest: this.isGuest
           });
-          this.viewerJoinedSent = true;
+          this.addDebugLog(`📤 Sending viewer-joined (attempt 1)`);
           
-          // Re-send if no viewer-ack within 3s
-          setTimeout(() => {
-            if (this.connectionState === 'joining' || this.connectionState === 'awaiting_offer') {
-              console.log('🔄 Re-sending viewer-joined (no ack received)');
-              this.sendSignal('viewer-joined', {
-                sessionToken: this.sessionToken,
-                displayName: this.displayName,
-                isGuest: this.isGuest
-              });
+          let attemptCount = 1;
+          this.viewerJoinInterval = setInterval(() => {
+            if (this.viewerAcked) {
+              console.log('✓ Viewer acknowledged or offer received, stopping resend');
+              clearInterval(this.viewerJoinInterval!);
+              this.viewerJoinInterval = null;
+              return;
             }
-          }, 3000);
+            
+            attemptCount++;
+            if (attemptCount > 10) { // Max 10 attempts = 20s
+              console.error('❌ Failed to get acknowledgment after 10 attempts');
+              clearInterval(this.viewerJoinInterval!);
+              this.viewerJoinInterval = null;
+              return;
+            }
+            
+            console.log(`🔄 Re-sending viewer-joined (attempt ${attemptCount})`);
+            this.addDebugLog(`📤 Re-sending viewer-joined (attempt ${attemptCount})`);
+            this.sendSignal('viewer-joined', {
+              sessionToken: this.sessionToken,
+              displayName: this.displayName,
+              isGuest: this.isGuest
+            });
+          }, 2000);
+          
+          this.setState('awaiting_offer');
         }
-        
-        this.setState('awaiting_offer');
         
         // Set timeout for offer (increased to 20s for slower networks)
         if (this.offerTimeout) clearTimeout(this.offerTimeout);
@@ -296,8 +333,16 @@ export class ViewerConnection {
       })
       .on('broadcast', { event: 'viewer-ack' }, ({ payload }: any) => {
         if (payload.sessionToken === this.sessionToken) {
-          console.log('✓ Received viewer acknowledgment from broadcaster');
-          this.viewerJoinedSent = true; // Mark as acknowledged
+          const logMsg = '✓ Received viewer acknowledgment from broadcaster';
+          console.log(logMsg);
+          this.addDebugLog(logMsg);
+          this.viewerAcked = true;
+          
+          // Stop resending viewer-joined
+          if (this.viewerJoinInterval) {
+            clearInterval(this.viewerJoinInterval);
+            this.viewerJoinInterval = null;
+          }
         }
       })
       .on('broadcast', { event: 'offer' }, this.handleOffer)
@@ -331,7 +376,16 @@ export class ViewerConnection {
   private handleOffer = async ({ payload }: any) => {
     if (payload.sessionToken !== this.sessionToken) return;
 
-    console.log('📥 Received offer from broadcaster');
+    const logMsg = '📥 Received offer from broadcaster';
+    console.log(logMsg);
+    this.addDebugLog(logMsg);
+    
+    // Mark as acknowledged - stop resending viewer-joined
+    this.viewerAcked = true;
+    if (this.viewerJoinInterval) {
+      clearInterval(this.viewerJoinInterval);
+      this.viewerJoinInterval = null;
+    }
     
     if (this.offerTimeout) {
       clearTimeout(this.offerTimeout);
@@ -406,6 +460,10 @@ export class ViewerConnection {
     }
     if (this.offerTimeout) {
       clearTimeout(this.offerTimeout);
+    }
+    if (this.viewerJoinInterval) {
+      clearInterval(this.viewerJoinInterval);
+      this.viewerJoinInterval = null;
     }
     this.sendSignal('viewer-left', { sessionToken: this.sessionToken });
     this.peerConnection?.close();
