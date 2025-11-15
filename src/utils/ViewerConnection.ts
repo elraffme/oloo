@@ -25,6 +25,9 @@ export class ViewerConnection {
   private broadcasterReadyTimeout: NodeJS.Timeout | null = null;
   private offerTimeout: NodeJS.Timeout | null = null;
   private onStateChange?: (state: ConnectionState) => void;
+  private useRelayOnly = false;
+  private iceType: string = 'unknown';
+  private onICETypeChange?: (type: string) => void;
 
   constructor(
     streamId: string, 
@@ -32,7 +35,8 @@ export class ViewerConnection {
     videoElement: HTMLVideoElement, 
     displayName: string, 
     isGuest: boolean,
-    onStateChange?: (state: ConnectionState) => void
+    onStateChange?: (state: ConnectionState) => void,
+    onICETypeChange?: (type: string) => void
   ) {
     this.streamId = streamId;
     this.sessionToken = sessionToken;
@@ -40,6 +44,7 @@ export class ViewerConnection {
     this.displayName = displayName;
     this.isGuest = isGuest;
     this.onStateChange = onStateChange;
+    this.onICETypeChange = onICETypeChange;
   }
 
   private setState(state: ConnectionState) {
@@ -79,7 +84,6 @@ export class ViewerConnection {
   }
 
   private async establishConnection(supabase: any) {
-    // Build ICE servers array with optional TURN servers
     const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
       urls: url.trim(),
       username: import.meta.env.VITE_TURN_USERNAME,
@@ -93,9 +97,15 @@ export class ViewerConnection {
       { urls: 'stun:stun.services.mozilla.com' }
     ];
 
+    const config: RTCConfiguration = { iceServers };
+    if (this.useRelayOnly && turnServers.length > 0) {
+      config.iceTransportPolicy = 'relay';
+      console.log('🔒 Using relay-only mode (TURN-only)');
+    }
+
     console.log('🧊 ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
 
-    this.peerConnection = new RTCPeerConnection({ iceServers });
+    this.peerConnection = new RTCPeerConnection(config);
 
     // Monitor connection state
     this.peerConnection.onconnectionstatechange = () => {
@@ -159,10 +169,13 @@ export class ViewerConnection {
 
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log(`🧊 Viewer ICE candidate type: ${event.candidate.type} (${event.candidate.protocol})`);
         this.sendSignal('ice-candidate', {
           sessionToken: this.sessionToken,
           candidate: event.candidate
         });
+      } else {
+        console.log('✓ ICE gathering complete');
       }
     };
 
@@ -210,13 +223,24 @@ export class ViewerConnection {
         if (status === 'SUBSCRIBED') {
           console.log('✓ Viewer subscribed to channel');
           
-          // Set timeout for broadcaster-ready signal
           this.broadcasterReadyTimeout = setTimeout(() => {
             if (!broadcasterReady) {
               console.error('❌ Timeout: Broadcaster is not online');
               this.setState('timeout');
             }
           }, 10000);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
+          if (!broadcasterReady) {
+            setTimeout(() => {
+              console.log('🔄 Re-sending viewer-joined after channel reconnect');
+              this.sendSignal('viewer-joined', { 
+                sessionToken: this.sessionToken,
+                displayName: this.displayName,
+                isGuest: this.isGuest
+              });
+            }, 1000);
+          }
         }
       });
   }
@@ -273,6 +297,20 @@ export class ViewerConnection {
 
   getConnectionState(): ConnectionState {
     return this.connectionState;
+  }
+
+  getICEType(): string {
+    return this.iceType;
+  }
+
+  async hardReconnect(supabase: any) {
+    console.log('🔄 Hard reconnect initiated');
+    this.disconnect();
+    this.retryCount = 0;
+    this.useRelayOnly = false;
+    this.iceType = 'unknown';
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await this.connect(supabase);
   }
 
   disconnect() {

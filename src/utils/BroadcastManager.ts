@@ -5,6 +5,7 @@ export class BroadcastManager {
   private streamId: string;
   private viewerMetadata: Map<string, { name: string; joinedAt: Date; isGuest: boolean }> = new Map();
   private broadcasterReadyInterval: NodeJS.Timeout | null = null;
+  private retryAttempts: Map<string, number> = new Map();
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -21,14 +22,18 @@ export class BroadcastManager {
       .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           console.log('✓ Broadcaster channel ready, broadcasting ready signal');
-          // Wait a moment for channel to fully initialize
           await new Promise(resolve => setTimeout(resolve, 500));
           this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           
-          // Send broadcaster-ready signal every 2 seconds while broadcasting
           this.broadcasterReadyInterval = setInterval(() => {
             this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           }, 2000);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
+          if (this.broadcasterReadyInterval) {
+            clearInterval(this.broadcasterReadyInterval);
+            this.broadcasterReadyInterval = null;
+          }
         }
       });
   }
@@ -51,21 +56,18 @@ export class BroadcastManager {
     await this.createPeerConnection(sessionToken);
   }
 
-  private async createPeerConnection(sessionToken: string) {
-    // Check if already exists
+  private async createPeerConnection(sessionToken: string, useRelayOnly = false) {
     if (this.peerConnections.has(sessionToken)) {
       console.warn(`Peer connection already exists for ${sessionToken}`);
       return;
     }
 
-    // Verify we have active tracks before creating peer connection
     const tracks = this.localStream?.getTracks() || [];
     if (tracks.length === 0) {
       console.error('❌ No media tracks available for broadcasting');
       return;
     }
 
-    // Verify each track is active and enabled
     const activeTracks = tracks.filter(track => track.readyState === 'live' && track.enabled);
     if (activeTracks.length === 0) {
       console.error('❌ No active media tracks available');
@@ -75,7 +77,6 @@ export class BroadcastManager {
     console.log(`✓ Verified ${activeTracks.length} active tracks:`, 
       activeTracks.map(t => `${t.kind}:${t.label}:${t.readyState}`));
 
-    // Build ICE servers array with optional TURN servers
     const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
       urls: url.trim(),
       username: import.meta.env.VITE_TURN_USERNAME,
@@ -89,45 +90,87 @@ export class BroadcastManager {
       { urls: 'stun:stun.services.mozilla.com' }
     ];
 
+    const config: RTCConfiguration = { iceServers };
+    if (useRelayOnly && turnServers.length > 0) {
+      config.iceTransportPolicy = 'relay';
+      console.log('🔒 Using relay-only mode (TURN-only)');
+    }
+
     console.log('🧊 Broadcaster ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
 
-    const pc = new RTCPeerConnection({ iceServers });
+    const pc = new RTCPeerConnection(config);
+
+    // Prefer H.264 codec for Safari compatibility
+    const videoTransceiver = pc.addTransceiver('video', { direction: 'sendonly' });
+    const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendonly' });
+    
+    if (RTCRtpSender.getCapabilities) {
+      const videoCapabilities = RTCRtpSender.getCapabilities('video');
+      if (videoCapabilities?.codecs) {
+        const h264Codecs = videoCapabilities.codecs.filter(c => c.mimeType.toLowerCase().includes('h264'));
+        if (h264Codecs.length > 0) {
+          try {
+            videoTransceiver.setCodecPreferences([...h264Codecs, ...videoCapabilities.codecs.filter(c => !c.mimeType.toLowerCase().includes('h264'))]);
+            console.log('✓ H.264 codec preference set');
+          } catch (e) {
+            console.warn('⚠️ Could not set codec preferences:', e);
+          }
+        }
+      }
+    }
 
     activeTracks.forEach(track => {
       console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection`);
-      pc.addTrack(track, this.localStream!);
+      const sender = track.kind === 'video' ? videoTransceiver.sender : audioTransceiver.sender;
+      sender.replaceTrack(track);
     });
 
-    // Enhanced ICE candidate handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log(`🧊 Broadcaster ICE candidate type: ${event.candidate.type} (${event.candidate.protocol})`);
         this.sendSignal('ice-candidate', {
           sessionToken,
           candidate: event.candidate
         });
+      } else {
+        console.log('✓ ICE gathering complete');
       }
     };
 
-    // Monitor ICE connection state
     pc.oniceconnectionstatechange = () => {
-      console.log(`ICE connection state: ${pc.iceConnectionState}`);
-      if (pc.iceConnectionState === 'failed') {
-        console.error(`ICE failed, attempting restart`);
-        pc.restartIce();
+      console.log(`🧊 ICE connection state: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === 'connected') {
+        pc.getStats().then(stats => {
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              console.log(`✓ Active candidate pair: local=${report.localCandidateId}, remote=${report.remoteCandidateId}`);
+            }
+          });
+        });
+      } else if (pc.iceConnectionState === 'failed') {
+        console.error(`❌ ICE failed for ${sessionToken}`);
+        const retries = this.retryAttempts.get(sessionToken) || 0;
+        if (retries < 2 && !useRelayOnly && turnServers.length > 0) {
+          console.log(`🔄 Retrying with relay-only mode (attempt ${retries + 1})`);
+          this.retryAttempts.set(sessionToken, retries + 1);
+          this.removePeerConnection(sessionToken);
+          setTimeout(() => this.createPeerConnection(sessionToken, true), 1000);
+        } else {
+          pc.restartIce();
+        }
       }
     };
 
-    // Monitor ICE gathering state
     pc.onicegatheringstatechange = () => {
-      console.log(`ICE gathering state: ${pc.iceGatheringState}`);
+      console.log(`🧊 ICE gathering state: ${pc.iceGatheringState}`);
     };
 
-    // Monitor overall connection state
     pc.onconnectionstatechange = () => {
-      console.log(`Connection state: ${pc.connectionState}`);
+      console.log(`📡 Connection state: ${pc.connectionState}`);
       
       if (pc.connectionState === 'connected') {
         console.log(`✓ Successfully connected to viewer`);
+        this.retryAttempts.delete(sessionToken);
       } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
         console.warn(`Connection ${pc.connectionState}, removing`);
         this.removePeerConnection(sessionToken);
