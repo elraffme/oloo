@@ -332,10 +332,22 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                 <span className="hidden md:inline">Live via WebRTC</span>
                 <span className="md:hidden">LIVE</span>
               </Badge>
-              {showDebugInfo && iceType !== 'unknown' && (
-                <Badge className="absolute top-10 left-2 md:top-14 md:left-4 bg-blue-500/80 text-white text-xs">
-                  ICE: {iceType}
-                </Badge>
+              {showDebugInfo && (
+                <>
+                  {iceType !== 'unknown' && (
+                    <Badge className="absolute top-10 left-2 md:top-14 md:left-4 bg-blue-500/80 text-white text-xs">
+                      ICE: {iceType}
+                    </Badge>
+                  )}
+                  {viewerConnectionRef.current && (
+                    <div className="absolute top-20 left-2 md:top-24 md:left-4 bg-black/70 text-white text-xs p-2 rounded max-w-xs max-h-32 overflow-y-auto">
+                      <div className="font-bold mb-1">Debug Log:</div>
+                      {viewerConnectionRef.current.getDebugLog().map((log, i) => (
+                        <div key={i} className="font-mono text-[10px]">{log}</div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
