@@ -52,6 +52,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+  const [iceType, setICEType] = useState<string>('unknown');
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
   const getConnectionMessage = (state: ConnectionState): string => {
@@ -112,7 +114,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         videoRef.current,
         displayName,
         !user,
-        (state) => setConnectionState(state)
+        (state) => setConnectionState(state),
+        (type) => setICEType(type)
       );
 
       // Listen for video tracks to confirm we're receiving video
@@ -257,6 +260,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
+  const handleHardReconnect = async () => {
+    if (viewerConnectionRef.current) {
+      await viewerConnectionRef.current.hardReconnect(supabase);
+      toast.info('Reconnecting to stream...');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -301,23 +311,42 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               <Loader2 className="h-12 w-12 animate-spin text-white" />
               <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
               {(connectionState === 'failed' || connectionState === 'timeout') && (
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  className="mt-4 text-white border-white hover:bg-white hover:text-black"
-                >
-                  Retry Connection
-                </Button>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={handleHardReconnect}
+                    variant="outline"
+                    className="text-white border-white hover:bg-white hover:text-black"
+                  >
+                    Retry Connection
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    className="text-white border-white/50 hover:bg-white/10"
+                  >
+                    Hard Reset
+                  </Button>
+                </div>
               )}
             </div>
           )}
           
           {connectionState === 'streaming' && (
-            <Badge className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs">
-              <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-              <span className="hidden md:inline">Live via WebRTC</span>
-              <span className="md:hidden">LIVE</span>
-            </Badge>
+            <>
+              <Badge 
+                className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs cursor-pointer"
+                onClick={() => setShowDebugInfo(!showDebugInfo)}
+              >
+                <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+                <span className="hidden md:inline">Live via WebRTC</span>
+                <span className="md:hidden">LIVE</span>
+              </Badge>
+              {showDebugInfo && iceType !== 'unknown' && (
+                <Badge className="absolute top-10 left-2 md:top-14 md:left-4 bg-blue-500/80 text-white text-xs">
+                  ICE: {iceType}
+                </Badge>
+              )}
+            </>
           )}
         </div>
 
