@@ -10,6 +10,12 @@ export type ConnectionState =
   | 'failed'
   | 'timeout';
 
+interface ICEServerConfig {
+  iceServers: RTCIceServer[];
+  hasTURN: boolean;
+  warning?: string;
+}
+
 export class ViewerConnection {
   private peerConnection: RTCPeerConnection | null = null;
   private channel: any = null;
@@ -28,6 +34,9 @@ export class ViewerConnection {
   private useRelayOnly = false;
   private iceType: string = 'unknown';
   private onICETypeChange?: (type: string) => void;
+  private iceConfig: ICEServerConfig | null = null;
+  private iceConfigExpiry: number = 0;
+  private viewerJoinedSent = false;
 
   constructor(
     streamId: string, 
@@ -51,6 +60,40 @@ export class ViewerConnection {
     this.connectionState = state;
     console.log(`🔄 Connection state: ${state}`);
     this.onStateChange?.(state);
+  }
+
+  private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
+    // Cache for 5 minutes
+    if (this.iceConfig && Date.now() < this.iceConfigExpiry) {
+      return this.iceConfig;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-ice-servers');
+      
+      if (error) throw error;
+      
+      this.iceConfig = data;
+      this.iceConfigExpiry = Date.now() + 5 * 60 * 1000;
+      
+      if (data.warning) {
+        console.warn('⚠️ ICE server warning:', data.warning);
+      }
+      
+      console.log(`✓ Fetched ICE config: ${data.hasTURN ? 'TURN+STUN' : 'STUN only'}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch ICE servers, using STUN fallback:', error);
+      
+      return {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ],
+        hasTURN: false,
+        warning: 'Failed to load TURN config'
+      };
+    }
   }
 
   async connect(supabase: any) {
@@ -84,26 +127,16 @@ export class ViewerConnection {
   }
 
   private async establishConnection(supabase: any) {
-    const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
-      urls: url.trim(),
-      username: import.meta.env.VITE_TURN_USERNAME,
-      credential: import.meta.env.VITE_TURN_CREDENTIAL
-    })) || [];
+    // Fetch dynamic ICE servers
+    const iceConfig = await this.fetchIceServers(supabase);
 
-    const iceServers = [
-      ...turnServers,
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.services.mozilla.com' }
-    ];
-
-    const config: RTCConfiguration = { iceServers };
-    if (this.useRelayOnly && turnServers.length > 0) {
+    const config: RTCConfiguration = { iceServers: iceConfig.iceServers };
+    if (this.useRelayOnly && iceConfig.hasTURN) {
       config.iceTransportPolicy = 'relay';
       console.log('🔒 Using relay-only mode (TURN-only)');
     }
 
-    console.log('🧊 ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
+    console.log('🧊 ICE servers:', iceConfig.iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
 
     this.peerConnection = new RTCPeerConnection(config);
 
@@ -122,15 +155,43 @@ export class ViewerConnection {
     };
 
     // Monitor ICE connection state
-    this.peerConnection.oniceconnectionstatechange = () => {
-      console.log(`🧊 Viewer ICE state: ${this.peerConnection?.iceConnectionState}`);
+    this.peerConnection.oniceconnectionstatechange = async () => {
+      console.log(`🧊 ICE connection state: ${this.peerConnection?.iceConnectionState}`);
       
-      if (this.peerConnection?.iceConnectionState === 'connected') {
+      if (this.peerConnection?.iceConnectionState === 'connected' || 
+          this.peerConnection?.iceConnectionState === 'completed') {
         this.setState('connected');
-      } else if (this.peerConnection?.iceConnectionState === 'failed' && this.retryCount < this.maxRetries) {
-        console.warn('⚠️ ICE connection failed, attempting restart');
-        this.retryCount++;
-        this.peerConnection?.restartIce();
+        
+        // Detect selected candidate pair type
+        try {
+          const stats = await this.peerConnection.getStats();
+          stats.forEach((report: any) => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              stats.forEach((candidate: any) => {
+                if (candidate.id === report.localCandidateId && candidate.type === 'local-candidate') {
+                  const type = candidate.candidateType; // host, srflx (STUN), or relay (TURN)
+                  this.iceType = type;
+                  this.onICETypeChange?.(type);
+                  console.log(`🎯 Connected via: ${type}`);
+                }
+              });
+            }
+          });
+        } catch (err) {
+          console.warn('Could not detect ICE candidate type:', err);
+        }
+      } else if (this.peerConnection?.iceConnectionState === 'failed') {
+        console.error('❌ ICE connection failed');
+        
+        // Retry with relay-only if TURN is available and we haven't tried it yet
+        if (!this.useRelayOnly && iceConfig.hasTURN) {
+          console.log('🔄 Retrying with TURN relay-only mode');
+          this.useRelayOnly = true;
+          this.disconnect();
+          setTimeout(() => this.connect(supabase), 1000);
+        } else {
+          this.setState('failed');
+        }
       }
     };
 
@@ -185,36 +246,58 @@ export class ViewerConnection {
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`)
       .on('broadcast', { event: 'broadcaster-ready' }, () => {
-        console.log('✓ Broadcaster is ready');
         broadcasterReady = true;
-        
         if (this.broadcasterReadyTimeout) {
           clearTimeout(this.broadcasterReadyTimeout);
+          this.broadcasterReadyTimeout = null;
         }
-        
-        // Send join signal
+        console.log('✓ Broadcaster is ready');
         this.setState('joining');
-        setTimeout(() => {
-          console.log('📤 Sending viewer-joined signal');
-          this.sendSignal('viewer-joined', { 
+        
+        // Send viewer-joined signal (with retry if no ack within 3s)
+        if (!this.viewerJoinedSent) {
+          this.sendSignal('viewer-joined', {
             sessionToken: this.sessionToken,
             displayName: this.displayName,
             isGuest: this.isGuest
           });
-        }, 500);
+          this.viewerJoinedSent = true;
+          
+          // Re-send if no viewer-ack within 3s
+          setTimeout(() => {
+            if (this.connectionState === 'joining' || this.connectionState === 'awaiting_offer') {
+              console.log('🔄 Re-sending viewer-joined (no ack received)');
+              this.sendSignal('viewer-joined', {
+                sessionToken: this.sessionToken,
+                displayName: this.displayName,
+                isGuest: this.isGuest
+              });
+            }
+          }, 3000);
+        }
+        
+        this.setState('awaiting_offer');
+        
+        // Set timeout for offer (increased to 20s for slower networks)
+        if (this.offerTimeout) clearTimeout(this.offerTimeout);
+        this.offerTimeout = setTimeout(() => {
+          console.error('❌ Offer timeout - broadcaster did not send offer in 20s');
+          
+          // Retry with relay-only if TURN available
+          if (!this.useRelayOnly && iceConfig.hasTURN) {
+            console.log('🔄 Offer timeout - retrying with TURN relay-only');
+            this.useRelayOnly = true;
+            this.disconnect();
+            setTimeout(() => this.connect(supabase), 1000);
+          } else {
+            this.setState('timeout');
+          }
+        }, 20000);
       })
       .on('broadcast', { event: 'viewer-ack' }, ({ payload }: any) => {
         if (payload.sessionToken === this.sessionToken) {
-          console.log('✓ Received viewer-ack from broadcaster');
-          this.setState('awaiting_offer');
-          
-          // Set timeout for offer after ack
-          this.offerTimeout = setTimeout(() => {
-            if (this.connectionState === 'awaiting_offer') {
-              console.error('❌ Timeout waiting for offer');
-              this.setState('timeout');
-            }
-          }, 10000);
+          console.log('✓ Received viewer acknowledgment from broadcaster');
+          this.viewerJoinedSent = true; // Mark as acknowledged
         }
       })
       .on('broadcast', { event: 'offer' }, this.handleOffer)
