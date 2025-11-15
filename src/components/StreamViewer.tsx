@@ -53,7 +53,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [iceType, setICEType] = useState<string>('unknown');
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(true); // Show by default for debugging
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
   const getConnectionMessage = (state: ConnectionState): string => {
@@ -227,27 +227,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   const handleLike = async () => {
     if (!user) {
-      toast.error('Please sign in to like streams');
-      return;
-    }
-
+  const handleHardReconnect = async () => {
+    if (!viewerConnectionRef.current) return;
+    
     try {
-      const { data, error } = await supabase.rpc('toggle_stream_like', {
-        p_stream_id: streamId
-      });
-
-      if (error) throw error;
-
-      if (data && typeof data === 'object' && 'liked' in data && 'total_likes' in data) {
-        setIsLiked(data.liked as boolean);
-        setTotalLikes(data.total_likes as number);
-        
-        if (data.liked) {
-          setShowLikeAnimation(true);
-        }
-      }
+      setConnectionState('checking_broadcaster');
+      await viewerConnectionRef.current.hardReconnect(supabase);
+      toast.info('Reconnecting with fresh connection...');
     } catch (error) {
-      console.error('Error toggling like:', error);
+      console.error('Hard reconnect failed:', error);
+      toast.error('Reconnection failed');
+    }
+  };
       toast.error('Failed to like stream');
     }
   };

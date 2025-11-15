@@ -1,3 +1,9 @@
+interface ICEServerConfig {
+  iceServers: RTCIceServer[];
+  hasTURN: boolean;
+  warning?: string;
+}
+
 export class BroadcastManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
@@ -6,16 +12,56 @@ export class BroadcastManager {
   private viewerMetadata: Map<string, { name: string; joinedAt: Date; isGuest: boolean }> = new Map();
   private broadcasterReadyInterval: NodeJS.Timeout | null = null;
   private retryAttempts: Map<string, number> = new Map();
+  private iceConfig: ICEServerConfig | null = null;
+  private iceConfigExpiry: number = 0;
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
     this.localStream = localStream;
   }
 
+  private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
+    // Cache for 5 minutes
+    if (this.iceConfig && Date.now() < this.iceConfigExpiry) {
+      return this.iceConfig;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('get-ice-servers');
+      
+      if (error) throw error;
+      
+      this.iceConfig = data;
+      this.iceConfigExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+      
+      if (data.warning) {
+        console.warn('⚠️ ICE server warning:', data.warning);
+      }
+      
+      console.log(`✓ Fetched ICE config: ${data.hasTURN ? 'TURN+STUN' : 'STUN only'}`);
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch ICE servers, using STUN fallback:', error);
+      
+      // Fallback to STUN only
+      return {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ],
+        hasTURN: false,
+        warning: 'Failed to load TURN config'
+      };
+    }
+  }
+
   async initializeChannel(supabase: any) {
+    // Prefetch ICE servers
+    await this.fetchIceServers(supabase);
+    
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`)
-      .on('broadcast', { event: 'viewer-joined' }, this.handleViewerJoined)
+      .on('broadcast', { event: 'viewer-joined' }, (payload: any) => this.handleViewerJoined(payload, supabase))
       .on('broadcast', { event: 'answer' }, this.handleAnswer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .on('broadcast', { event: 'viewer-left' }, this.handleViewerLeft)
@@ -38,7 +84,7 @@ export class BroadcastManager {
       });
   }
 
-  private handleViewerJoined = async ({ payload }: any) => {
+  private handleViewerJoined = async ({ payload }: any, supabase: any) => {
     const { sessionToken, displayName, isGuest } = payload;
     console.log(`👤 Viewer joined: ${displayName} (${sessionToken.substring(0, 8)}...)`);
     
@@ -53,10 +99,10 @@ export class BroadcastManager {
     this.sendSignal('viewer-ack', { sessionToken });
     console.log(`✓ Sent viewer-ack to ${sessionToken.substring(0, 8)}...`);
     
-    await this.createPeerConnection(sessionToken);
+    await this.createPeerConnection(sessionToken, false, supabase);
   }
 
-  private async createPeerConnection(sessionToken: string, useRelayOnly = false) {
+  private async createPeerConnection(sessionToken: string, useRelayOnly = false, supabase: any) {
     if (this.peerConnections.has(sessionToken)) {
       console.warn(`Peer connection already exists for ${sessionToken}`);
       return;
@@ -77,26 +123,16 @@ export class BroadcastManager {
     console.log(`✓ Verified ${activeTracks.length} active tracks:`, 
       activeTracks.map(t => `${t.kind}:${t.label}:${t.readyState}`));
 
-    const turnServers = import.meta.env.VITE_TURN_URLS?.split(',').map((url: string) => ({
-      urls: url.trim(),
-      username: import.meta.env.VITE_TURN_USERNAME,
-      credential: import.meta.env.VITE_TURN_CREDENTIAL
-    })) || [];
+    // Fetch dynamic ICE servers
+    const iceConfig = await this.fetchIceServers(supabase);
 
-    const iceServers = [
-      ...turnServers,
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.services.mozilla.com' }
-    ];
-
-    const config: RTCConfiguration = { iceServers };
-    if (useRelayOnly && turnServers.length > 0) {
+    const config: RTCConfiguration = { iceServers: iceConfig.iceServers };
+    if (useRelayOnly && iceConfig.hasTURN) {
       config.iceTransportPolicy = 'relay';
       console.log('🔒 Using relay-only mode (TURN-only)');
     }
 
-    console.log('🧊 Broadcaster ICE servers:', iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
+    console.log('🧊 Broadcaster ICE servers:', iceConfig.iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
 
     const pc = new RTCPeerConnection(config);
 
@@ -150,11 +186,11 @@ export class BroadcastManager {
       } else if (pc.iceConnectionState === 'failed') {
         console.error(`❌ ICE failed for ${sessionToken}`);
         const retries = this.retryAttempts.get(sessionToken) || 0;
-        if (retries < 2 && !useRelayOnly && turnServers.length > 0) {
+        if (retries < 2 && !useRelayOnly && iceConfig.hasTURN) {
           console.log(`🔄 Retrying with relay-only mode (attempt ${retries + 1})`);
           this.retryAttempts.set(sessionToken, retries + 1);
           this.removePeerConnection(sessionToken);
-          setTimeout(() => this.createPeerConnection(sessionToken, true), 1000);
+          setTimeout(() => this.createPeerConnection(sessionToken, true, supabase), 1000);
         } else {
           pc.restartIce();
         }
