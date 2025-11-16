@@ -63,6 +63,7 @@ export class BroadcastManager {
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`)
       .on('broadcast', { event: 'viewer-joined' }, (payload: any) => this.handleViewerJoined(payload, supabase))
+      .on('broadcast', { event: 'request-offer' }, this.handleRequestOffer)
       .on('broadcast', { event: 'answer' }, this.handleAnswer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .on('broadcast', { event: 'viewer-left' }, this.handleViewerLeft)
@@ -137,29 +138,10 @@ export class BroadcastManager {
 
     const pc = new RTCPeerConnection(config);
 
-    // Prefer H.264 codec for Safari compatibility
-    const videoTransceiver = pc.addTransceiver('video', { direction: 'sendonly' });
-    const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendonly' });
-    
-    if (RTCRtpSender.getCapabilities) {
-      const videoCapabilities = RTCRtpSender.getCapabilities('video');
-      if (videoCapabilities?.codecs) {
-        const h264Codecs = videoCapabilities.codecs.filter(c => c.mimeType.toLowerCase().includes('h264'));
-        if (h264Codecs.length > 0) {
-          try {
-            videoTransceiver.setCodecPreferences([...h264Codecs, ...videoCapabilities.codecs.filter(c => !c.mimeType.toLowerCase().includes('h264'))]);
-            console.log('✓ H.264 codec preference set');
-          } catch (e) {
-            console.warn('⚠️ Could not set codec preferences:', e);
-          }
-        }
-      }
-    }
-
+    // Attach tracks directly using addTrack for robust MSID signaling
     activeTracks.forEach(track => {
-      console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection`);
-      const sender = track.kind === 'video' ? videoTransceiver.sender : audioTransceiver.sender;
-      sender.replaceTrack(track);
+      console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection via addTrack`);
+      pc.addTrack(track, this.localStream!);
     });
 
     pc.onicecandidate = (event) => {
@@ -268,6 +250,28 @@ export class BroadcastManager {
     } catch (error) {
       console.error('❌ Error creating offer:', error);
       this.removePeerConnection(sessionToken);
+    }
+  }
+
+  private handleRequestOffer = async ({ payload }: any) => {
+    const { sessionToken } = payload;
+    const pc = this.peerConnections.get(sessionToken);
+    if (!pc) {
+      console.warn(`⚠️ request-offer received but no PC exists for ${sessionToken?.substring?.(0,8)}...`);
+      return;
+    }
+    try {
+      // Re-send existing localDescription if present, else create a fresh offer
+      let offer = pc.localDescription as RTCSessionDescriptionInit | null;
+      if (!offer) {
+        const newOffer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
+        await pc.setLocalDescription(newOffer);
+        offer = newOffer;
+      }
+      console.log(`📤 Re-sending offer on request for viewer ${sessionToken.substring(0,8)}...`);
+      this.sendSignal('offer', { sessionToken, offer });
+    } catch (err) {
+      console.error('❌ Failed to handle request-offer:', err);
     }
   }
 
