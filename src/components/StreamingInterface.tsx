@@ -581,7 +581,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       return;
     }
 
-    // Ensure we have both video and audio tracks
+    // Verify camera is actually capturing (Phase 7)
     const videoTracks = streamRef.current.getVideoTracks();
     const audioTracks = streamRef.current.getAudioTracks();
     
@@ -593,6 +593,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
+
+    // Test if camera is actually capturing frames
+    const videoTrack = videoTracks[0];
+    const settings = videoTrack.getSettings();
+    console.log('📹 Camera settings:', settings);
+    
+    if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
+      toast({
+        title: "Camera not active",
+        description: "Video track is not live. Please check your camera.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (settings.width === 0 || settings.height === 0) {
+      toast({
+        title: "Camera error",
+        description: "Camera is not capturing video frames.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log(`✅ Verified: ${videoTracks.length} video tracks, ${audioTracks.length} audio tracks`);
+    console.log(`📹 Video: ${settings.width}x${settings.height}, enabled: ${videoTrack.enabled}, state: ${videoTrack.readyState}`);
 
     setIsLoading(true);
     try {
