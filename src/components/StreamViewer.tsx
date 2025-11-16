@@ -65,6 +65,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       case 'awaiting_ice': return 'Establishing connection...';
       case 'connected': return 'Connected! Loading video...';
       case 'streaming': return 'Streaming';
+      case 'awaiting_user_interaction': return 'Click to play';
       case 'failed': return 'Connection failed';
       case 'timeout': return 'Connection timed out';
       default: return 'Connecting...';
@@ -121,10 +122,38 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // Listen for video tracks to confirm we're receiving video
       const video = videoRef.current;
       video.onloadedmetadata = () => {
+        console.log('✓ Video metadata loaded:', {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          duration: video.duration,
+          readyState: video.readyState
+        });
         setHasVideo(true);
       };
+      
+      video.oncanplay = () => {
+        console.log('✓ Video can play');
+      };
+
+      video.onplaying = () => {
+        console.log('✓ Video is playing');
+      };
+
       video.onplay = () => {
+        console.log('✓ Video play event fired');
         setHasVideo(true);
+      };
+
+      video.onerror = (e) => {
+        console.error('❌ Video element error:', video.error);
+      };
+
+      video.onstalled = () => {
+        console.warn('⚠️ Video playback stalled');
+      };
+
+      video.onwaiting = () => {
+        console.warn('⚠️ Video waiting for data');
       };
 
       await viewerConnectionRef.current.connect(supabase);
@@ -214,6 +243,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
       setIsMuted(videoRef.current.muted);
+      
+      // If unmuting and video isn't playing, try to play it
+      if (!videoRef.current.muted && videoRef.current.paused) {
+        videoRef.current.play().catch(err => {
+          console.error('Failed to play video on unmute:', err);
+        });
+      }
     }
   };
 
@@ -299,8 +335,31 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           
           {connectionState !== 'streaming' && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
-              <Loader2 className="h-12 w-12 animate-spin text-white" />
-              <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
+              {connectionState === 'awaiting_user_interaction' ? (
+                <Button
+                  onClick={() => {
+                    if (videoRef.current) {
+                      videoRef.current.play()
+                        .then(() => {
+                          console.log('✅ Video playing after user interaction');
+                          setConnectionState('streaming');
+                        })
+                        .catch(err => {
+                          console.error('❌ Failed to play video:', err);
+                          toast.error('Failed to play video');
+                        });
+                    }
+                  }}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
+                  Click to Play Video
+                </Button>
+              ) : (
+                <>
+                  <Loader2 className="h-12 w-12 animate-spin text-white" />
+                  <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
+                </>
+              )}
               {(connectionState === 'failed' || connectionState === 'timeout') && (
                 <div className="flex gap-2 mt-4">
                   <Button

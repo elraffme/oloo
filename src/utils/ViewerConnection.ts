@@ -7,6 +7,7 @@ export type ConnectionState =
   | 'awaiting_ice'
   | 'connected'
   | 'streaming'
+  | 'awaiting_user_interaction'
   | 'failed'
   | 'timeout';
 
@@ -218,30 +219,61 @@ export class ViewerConnection {
     };
 
     this.peerConnection.ontrack = (event) => {
-      console.log(`🎥 Received remote ${event.track.kind} track:`, {
-        id: event.track.id,
-        kind: event.track.kind,
-        label: event.track.label,
-        enabled: event.track.enabled,
-        readyState: event.track.readyState,
-        muted: event.track.muted
+      console.log('🎥 ontrack event details:', {
+        trackKind: event.track.kind,
+        trackEnabled: event.track.enabled,
+        trackReadyState: event.track.readyState,
+        trackMuted: event.track.muted,
+        streamsCount: event.streams.length,
+        streamId: event.streams[0]?.id
       });
+
+      // Log ALL tracks in the stream
+      if (event.streams[0]) {
+        const allTracks = event.streams[0].getTracks();
+        console.log('📹 All tracks in stream:', allTracks.map(t => ({
+          kind: t.kind,
+          id: t.id,
+          enabled: t.enabled,
+          readyState: t.readyState,
+          muted: t.muted,
+          label: t.label
+        })));
+      }
       
       if (this.remoteVideoRef && event.streams[0]) {
-        this.remoteVideoRef.srcObject = event.streams[0];
-        this.setState('streaming');
-        
-        // Verify tracks in the stream
+        // Only set srcObject once, accumulate tracks
+        if (!this.remoteVideoRef.srcObject) {
+          this.remoteVideoRef.srcObject = event.streams[0];
+          console.log('✓ Set video srcObject for the first time');
+        } else {
+          console.log('✓ Additional track added to existing stream');
+        }
+
+        // Only set to streaming when we have both audio AND video
         const stream = event.streams[0];
         const videoTracks = stream.getVideoTracks();
         const audioTracks = stream.getAudioTracks();
-        
-        console.log(`✓ Stream tracks: ${videoTracks.length} video, ${audioTracks.length} audio`);
-        
-        // Ensure video element plays
-        this.remoteVideoRef.play().catch(err => {
-          console.warn('⚠️ Autoplay prevented, user interaction required:', err);
-        });
+
+        console.log(`📊 Current stream state: ${videoTracks.length} video, ${audioTracks.length} audio`);
+
+        if (videoTracks.length > 0 && videoTracks[0].readyState === 'live') {
+          this.setState('streaming');
+          console.log('✅ Video track is live, transitioning to streaming state');
+          
+          // Attempt to play with autoplay fallback
+          this.remoteVideoRef.play()
+            .then(() => {
+              console.log('✅ Video playing automatically');
+            })
+            .catch(err => {
+              console.error('❌ Autoplay failed:', err.message);
+              // Show a "Click to play" button in the UI
+              this.setState('awaiting_user_interaction');
+            });
+        } else {
+          console.warn('⚠️ Video track not live yet:', videoTracks[0]?.readyState);
+        }
       }
     };
 
