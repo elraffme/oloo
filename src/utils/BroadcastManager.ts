@@ -216,6 +216,17 @@ export class BroadcastManager {
 
     this.peerConnections.set(sessionToken, pc);
 
+    // Verify transceivers have tracks attached BEFORE creating offer
+    const transceivers = pc.getTransceivers();
+    console.log('📡 Transceivers before createOffer:', transceivers.map(t => ({
+      direction: t.direction,
+      currentDirection: t.currentDirection,
+      trackKind: t.sender.track?.kind,
+      trackEnabled: t.sender.track?.enabled,
+      trackReadyState: t.sender.track?.readyState,
+      trackLabel: t.sender.track?.label
+    })));
+
     try {
       // Log track count before creating offer
       const transceivers = pc.getTransceivers();
