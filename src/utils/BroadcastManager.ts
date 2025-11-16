@@ -138,10 +138,29 @@ export class BroadcastManager {
 
     const pc = new RTCPeerConnection(config);
 
+    // Final pre-offer track verification
+    const allTracks = this.localStream!.getTracks();
+    const liveTracks = allTracks.filter(t => t.enabled && t.readyState === 'live');
+    const videoTracks = liveTracks.filter(t => t.kind === 'video');
+    const audioTracks = liveTracks.filter(t => t.kind === 'audio');
+    
+    console.log(`📊 Final pre-offer check: ${liveTracks.length}/${allTracks.length} tracks live (${videoTracks.length} video, ${audioTracks.length} audio)`);
+    
+    if (videoTracks.length === 0) {
+      throw new Error('No live video tracks available - cannot create offer');
+    }
+    
     // Attach tracks directly using addTrack for robust MSID signaling
     activeTracks.forEach(track => {
-      console.log(`➕ Adding ${track.kind} track (${track.label}) to peer connection via addTrack`);
+      console.log(`➕ Adding ${track.kind} track "${track.label}" [${track.id}] to peer connection (enabled: ${track.enabled}, state: ${track.readyState})`);
       pc.addTrack(track, this.localStream!);
+    });
+
+    // Log active transceivers before creating offer
+    console.log('📡 Active transceivers before createOffer:');
+    pc.getTransceivers().forEach((transceiver, idx) => {
+      const track = transceiver.sender.track;
+      console.log(`  Transceiver ${idx}: ${transceiver.direction} ${track?.kind || 'no-track'} (enabled: ${track?.enabled}, state: ${track?.readyState})`);
     });
 
     pc.onicecandidate = (event) => {

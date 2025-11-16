@@ -41,7 +41,9 @@ export class ViewerConnection {
   private viewerAcked = false;
   private viewerJoinInterval: NodeJS.Timeout | null = null;
   private debugLog: string[] = [];
+  private signalingLog: string[] = [];
   private broadcasterReadyReceived = false;
+  private videoPlaybackTimeout: NodeJS.Timeout | null = null;
 
   constructor(
     streamId: string, 
@@ -63,7 +65,8 @@ export class ViewerConnection {
 
   private setState(state: ConnectionState) {
     this.connectionState = state;
-    const logEntry = `🔄 ${new Date().toISOString().split('T')[1].slice(0, 8)} Connection state: ${state}`;
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
+    const logEntry = `[${timestamp}] 🔄 State: ${state}`;
     console.log(logEntry);
     this.addDebugLog(logEntry);
     this.onStateChange?.(state);
@@ -71,13 +74,28 @@ export class ViewerConnection {
 
   private addDebugLog(message: string) {
     this.debugLog.push(message);
-    if (this.debugLog.length > 20) {
+    if (this.debugLog.length > 30) {
       this.debugLog.shift();
+    }
+  }
+
+  private addSignalingLog(event: string, details: string = '') {
+    const timestamp = new Date().toISOString().split('T')[1].slice(0, 12);
+    const logEntry = `[${timestamp}] 📡 ${event}${details ? ': ' + details : ''}`;
+    console.log(logEntry);
+    this.signalingLog.push(logEntry);
+    this.addDebugLog(logEntry);
+    if (this.signalingLog.length > 30) {
+      this.signalingLog.shift();
     }
   }
 
   getDebugLog(): string[] {
     return [...this.debugLog];
+  }
+
+  getSignalingLog(): string[] {
+    return [...this.signalingLog];
   }
 
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
@@ -219,60 +237,94 @@ export class ViewerConnection {
     };
 
     this.peerConnection.ontrack = (event) => {
-      console.log('🎥 ontrack event details:', {
-        trackKind: event.track.kind,
-        trackEnabled: event.track.enabled,
-        trackReadyState: event.track.readyState,
-        trackMuted: event.track.muted,
-        streamsCount: event.streams.length,
-        streamId: event.streams[0]?.id
+      this.addSignalingLog('ontrack', `${event.track.kind} track received`);
+      console.log('Track details:', {
+        kind: event.track.kind,
+        id: event.track.id,
+        label: event.track.label,
+        enabled: event.track.enabled,
+        muted: event.track.muted,
+        readyState: event.track.readyState
+      });
+      
+      console.log('Stream details:', {
+        id: event.streams[0]?.id,
+        active: event.streams[0]?.active,
+        trackCount: event.streams[0]?.getTracks().length
+      });
+      
+      event.streams[0]?.getTracks().forEach((track, index) => {
+        console.log(`Stream track ${index}:`, {
+          kind: track.kind,
+          id: track.id,
+          label: track.label,
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState
+        });
       });
 
-      // Log ALL tracks in the stream
-      if (event.streams[0]) {
-        const allTracks = event.streams[0].getTracks();
-        console.log('📹 All tracks in stream:', allTracks.map(t => ({
-          kind: t.kind,
-          id: t.id,
-          enabled: t.enabled,
-          readyState: t.readyState,
-          muted: t.muted,
-          label: t.label
-        })));
-      }
-      
-      if (this.remoteVideoRef && event.streams[0]) {
-        // Only set srcObject once, accumulate tracks
+      if (event.streams && event.streams[0] && this.remoteVideoRef) {
+        console.log('Setting srcObject on video element');
+        
+        // Only set srcObject once
         if (!this.remoteVideoRef.srcObject) {
           this.remoteVideoRef.srcObject = event.streams[0];
-          console.log('✓ Set video srcObject for the first time');
-        } else {
-          console.log('✓ Additional track added to existing stream');
         }
-
-        // Only set to streaming when we have both audio AND video
-        const stream = event.streams[0];
-        const videoTracks = stream.getVideoTracks();
-        const audioTracks = stream.getAudioTracks();
-
-        console.log(`📊 Current stream state: ${videoTracks.length} video, ${audioTracks.length} audio`);
-
-        if (videoTracks.length > 0 && videoTracks[0].readyState === 'live') {
-          this.setState('streaming');
-          console.log('✅ Video track is live, transitioning to streaming state');
+        
+        // Check and unmute video tracks if needed
+        const videoTracks = event.streams[0].getVideoTracks();
+        videoTracks.forEach(track => {
+          if (track.muted) {
+            console.warn('⚠️ Video track is muted, attempting to enable');
+            track.enabled = true;
+          }
+        });
+        
+        const hasLiveVideo = videoTracks.some(track => 
+          track.enabled && 
+          track.readyState === 'live'
+        );
+        
+        console.log(`Video tracks status: ${videoTracks.length} tracks, live: ${hasLiveVideo}`);
+        
+        if (hasLiveVideo) {
+          // Set a timeout to detect black/stuck video
+          this.videoPlaybackTimeout = setTimeout(() => {
+            if (this.remoteVideoRef && (this.remoteVideoRef.videoWidth === 0 || this.remoteVideoRef.videoHeight === 0)) {
+              console.error('❌ Video timeout: No video dimensions after 5 seconds');
+              this.setState('failed');
+            }
+          }, 5000);
           
-          // Attempt to play with autoplay fallback
+          // Try to play the video with proper error handling
           this.remoteVideoRef.play()
             .then(() => {
-              console.log('✅ Video playing automatically');
+              console.log('✅ Video autoplay succeeded');
+              if (this.videoPlaybackTimeout) {
+                clearTimeout(this.videoPlaybackTimeout);
+                this.videoPlaybackTimeout = null;
+              }
+              // Log video dimensions
+              setTimeout(() => {
+                if (this.remoteVideoRef) {
+                  console.log(`📐 Video dimensions: ${this.remoteVideoRef.videoWidth}x${this.remoteVideoRef.videoHeight}`);
+                }
+              }, 1000);
+              this.setState('streaming');
             })
-            .catch(err => {
-              console.error('❌ Autoplay failed:', err.message);
-              // Show a "Click to play" button in the UI
-              this.setState('awaiting_user_interaction');
+            .catch((error) => {
+              console.error('❌ Video play failed:', error);
+              if (error.name === 'NotAllowedError') {
+                console.warn('⚠️ Autoplay blocked by browser - need user interaction');
+                this.setState('awaiting_user_interaction');
+              } else {
+                console.error('❌ Unknown play error:', error.name, error.message);
+                this.setState('failed');
+              }
             });
         } else {
-          console.warn('⚠️ Video track not live yet:', videoTracks[0]?.readyState);
+          console.warn('⚠️ No live video tracks available yet');
         }
       }
     };

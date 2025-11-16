@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2 } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -72,14 +72,69 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
+  // Setup video element event listeners early
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
+
+    console.log('📹 Setting up video element event listeners');
+    
+    const handleLoadedMetadata = () => {
+      console.log(`📹 Video metadata loaded: ${videoEl.videoWidth}x${videoEl.videoHeight}, readyState: ${videoEl.readyState}`);
+    };
+    
+    const handleCanPlay = () => {
+      console.log('📹 Video can play - buffered enough data');
+    };
+    
+    const handlePlaying = () => {
+      console.log('📹 Video is playing!');
+      setHasVideo(true);
+    };
+    
+    const handlePlay = () => {
+      console.log('📹 Video play event fired');
+    };
+    
+    const handleWaiting = () => {
+      console.log('⏳ Video is buffering/waiting for data');
+    };
+    
+    const handleStalled = () => {
+      console.warn('⚠️ Video playback stalled');
+    };
+    
+    const handleError = (e: Event) => {
+      console.error('❌ Video error:', {
+        error: videoEl.error,
+        networkState: videoEl.networkState,
+        readyState: videoEl.readyState
+      });
+    };
+
+    videoEl.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoEl.addEventListener('canplay', handleCanPlay);
+    videoEl.addEventListener('playing', handlePlaying);
+    videoEl.addEventListener('play', handlePlay);
+    videoEl.addEventListener('waiting', handleWaiting);
+    videoEl.addEventListener('stalled', handleStalled);
+    videoEl.addEventListener('error', handleError);
+
+    return () => {
+      videoEl.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoEl.removeEventListener('canplay', handleCanPlay);
+      videoEl.removeEventListener('playing', handlePlaying);
+      videoEl.removeEventListener('play', handlePlay);
+      videoEl.removeEventListener('waiting', handleWaiting);
+      videoEl.removeEventListener('stalled', handleStalled);
+      videoEl.removeEventListener('error', handleError);
+    };
+  }, []);
+
   // Initialize viewer and load like status
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
-
-      const videoEl = videoRef.current;
-      // Ensure video is muted for autoplay
-      videoEl.muted = true;
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
@@ -239,16 +294,32 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId]);
 
-  const toggleMute = () => {
+  const toggleMute = async () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
       setIsMuted(videoRef.current.muted);
       
-      // If unmuting and video isn't playing, try to play it
+      // Try to play video if unmuting and video is paused
       if (!videoRef.current.muted && videoRef.current.paused) {
-        videoRef.current.play().catch(err => {
-          console.error('Failed to play video on unmute:', err);
-        });
+        try {
+          await videoRef.current.play();
+          console.log('✅ Video started playing after unmute');
+        } catch (err) {
+          console.warn('⚠️ Could not play after unmute:', err);
+        }
+      }
+    }
+  };
+
+  const handlePlayVideo = async () => {
+    if (videoRef.current) {
+      try {
+        await videoRef.current.play();
+        console.log('✅ Manual play succeeded');
+        setConnectionState('streaming');
+      } catch (err) {
+        console.error('❌ Manual play failed:', err);
+        toast.error('Failed to start video playback');
       }
     }
   };
@@ -336,30 +407,24 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           {connectionState !== 'streaming' && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
               {connectionState === 'awaiting_user_interaction' ? (
-                <Button
-                  onClick={() => {
-                    if (videoRef.current) {
-                      videoRef.current.play()
-                        .then(() => {
-                          console.log('✅ Video playing after user interaction');
-                          setConnectionState('streaming');
-                        })
-                        .catch(err => {
-                          console.error('❌ Failed to play video:', err);
-                          toast.error('Failed to play video');
-                        });
-                    }
-                  }}
-                  className="bg-primary hover:bg-primary/90 text-white"
-                >
-                  Click to Play Video
-                </Button>
+                <div className="flex flex-col items-center gap-4">
+                  <Button
+                    onClick={handlePlayVideo}
+                    size="lg"
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Play className="w-6 h-6 mr-2" />
+                    Tap to Play Video
+                  </Button>
+                  <p className="text-white text-sm">Autoplay was blocked. Click to start.</p>
+                </div>
               ) : (
                 <>
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
                 </>
               )}
+              
               {(connectionState === 'failed' || connectionState === 'timeout') && (
                 <div className="flex gap-2 mt-4">
                   <Button
@@ -378,6 +443,50 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                   </Button>
                 </div>
               )}
+              
+              {/* Enhanced Debug Panel */}
+              <div className="absolute bottom-4 left-4 right-4 p-4 bg-black/90 rounded-lg text-left max-h-64 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-400">Connection State</p>
+                    <p className="text-sm text-white font-semibold">{connectionState}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">ICE Type</p>
+                    <p className="text-sm text-white font-semibold">{iceType}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Session Token</p>
+                    <p className="text-sm text-white font-mono">{sessionToken?.substring(0, 12)}...</p>
+                  </div>
+                  {videoRef.current && (
+                    <div>
+                      <p className="text-xs text-gray-400">Video Resolution</p>
+                      <p className="text-sm text-white">{videoRef.current.videoWidth}x{videoRef.current.videoHeight}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {viewerConnectionRef.current && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-400 mb-1">Signaling Log (last 10):</p>
+                    <div className="space-y-1">
+                      {viewerConnectionRef.current.getDebugLog().slice(-10).map((log, i) => (
+                        <p key={i} className="text-xs text-gray-300 font-mono leading-tight">{log}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={handleHardReconnect}
+                  size="sm"
+                  variant="secondary"
+                  className="mt-3 w-full"
+                >
+                  Force Reconnect
+                </Button>
+              </div>
             </div>
           )}
           
