@@ -18,6 +18,7 @@ import { CoinShop } from '@/components/CoinShop';
 import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
 import { LikeAnimation } from '@/components/LikeAnimation';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
+import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 
 interface StreamingInterfaceProps {
   onBack?: () => void;
@@ -89,6 +90,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
@@ -1034,7 +1036,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                         </Button>
                         
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => setShowTroubleshooting(true)}>
                           <Settings className="w-4 h-4" />
                         </Button>
                       </div>}
@@ -1105,6 +1107,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       )}
 
       <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
+
+      <CameraTroubleshootingWizard
+        open={showTroubleshooting}
+        onOpenChange={setShowTroubleshooting}
+      />
     </div>;
 };
 export default StreamingInterface;
