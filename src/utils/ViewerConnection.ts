@@ -20,6 +20,7 @@ interface ICEServerConfig {
 export class ViewerConnection {
   private peerConnection: RTCPeerConnection | null = null;
   private channel: any = null;
+  private dbSignalingChannel: any = null;
   private streamId: string;
   private sessionToken: string;
   private remoteVideoRef: HTMLVideoElement | null = null;
@@ -31,6 +32,9 @@ export class ViewerConnection {
   private connectionState: ConnectionState = 'disconnected';
   private broadcasterReadyTimeout: NodeJS.Timeout | null = null;
   private offerTimeout: NodeJS.Timeout | null = null;
+  private requestOfferTimer: NodeJS.Timeout | null = null;
+  private requestOfferCount = 0;
+  private maxRequestOfferRetries = 5;
   private onStateChange?: (state: ConnectionState) => void;
   private useRelayOnly = false;
   private iceType: string = 'unknown';
@@ -44,6 +48,9 @@ export class ViewerConnection {
   private signalingLog: string[] = [];
   private broadcasterReadyReceived = false;
   private videoPlaybackTimeout: NodeJS.Timeout | null = null;
+  private offerReceived = false;
+  private dbFallbackTimeout: NodeJS.Timeout | null = null;
+  private usingDbFallback = false;
 
   constructor(
     streamId: string, 
@@ -74,7 +81,7 @@ export class ViewerConnection {
 
   private addDebugLog(message: string) {
     this.debugLog.push(message);
-    if (this.debugLog.length > 30) {
+    if (this.debugLog.length > 50) {
       this.debugLog.shift();
     }
   }
@@ -85,7 +92,7 @@ export class ViewerConnection {
     console.log(logEntry);
     this.signalingLog.push(logEntry);
     this.addDebugLog(logEntry);
-    if (this.signalingLog.length > 30) {
+    if (this.signalingLog.length > 50) {
       this.signalingLog.shift();
     }
   }
@@ -98,8 +105,15 @@ export class ViewerConnection {
     return [...this.signalingLog];
   }
 
+  getConnectionState(): ConnectionState {
+    return this.connectionState;
+  }
+
+  getICEType(): string {
+    return this.iceType;
+  }
+
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
-    // Cache for 5 minutes
     if (this.iceConfig && Date.now() < this.iceConfigExpiry) {
       return this.iceConfig;
     }
@@ -132,456 +146,498 @@ export class ViewerConnection {
     }
   }
 
+  private shouldUseTURNEarly(): boolean {
+    try {
+      // @ts-ignore
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (connection) {
+        if (connection.effectiveType === '2g' || connection.effectiveType === '3g' || connection.saveData) {
+          console.log('📱 Detected constrained network, will prefer TURN early');
+          return true;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return false;
+  }
+
   async connect(supabase: any) {
     try {
+      this.addDebugLog('🔌 Starting connection process');
       this.setState('checking_broadcaster');
+
+      const iceConfig = await this.fetchIceServers(supabase);
+      
+      if (this.shouldUseTURNEarly() && iceConfig.hasTURN) {
+        this.addDebugLog('📱 Using TURN relay from start due to network conditions');
+        this.useRelayOnly = true;
+      }
+
       await this.establishConnection(supabase);
       this.startHeartbeat(supabase);
+
     } catch (error) {
       console.error('Connection failed:', error);
       this.setState('failed');
       
       if (this.retryCount < this.maxRetries) {
         this.retryCount++;
-        console.log(`🔄 Retrying connection (${this.retryCount}/${this.maxRetries})`);
+        this.addDebugLog(`⚠️ Retry ${this.retryCount}/${this.maxRetries} in 2s`);
         setTimeout(() => this.connect(supabase), 2000);
       }
     }
   }
 
-  private startHeartbeat(supabase: any) {
-    // Send heartbeat every 30 seconds to keep session active
-    this.heartbeatInterval = setInterval(async () => {
-      try {
-        await supabase.rpc('update_viewer_heartbeat', {
-          p_session_token: this.sessionToken
-        });
-      } catch (error) {
-        console.error('❌ Heartbeat failed:', error);
-      }
-    }, 30000);
-  }
-
   private async establishConnection(supabase: any) {
-    // Fetch dynamic ICE servers
+    this.setState('joining');
+
     const iceConfig = await this.fetchIceServers(supabase);
+    
+    this.channel = supabase
+      .channel(`live_stream_${this.streamId}`, {
+        config: {
+          broadcast: { ack: true },
+          presence: { key: `viewer:${this.sessionToken}` }
+        }
+      })
+      .on('broadcast', { event: 'broadcaster-ready' }, this.handleBroadcasterReady)
+      .on('broadcast', { event: 'viewer-ack' }, this.handleViewerAck)
+      .on('broadcast', { event: 'offer' }, this.handleOffer)
+      .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
+      .subscribe(async (status: string) => {
+        this.addSignalingLog('Channel status', status);
 
-    const config: RTCConfiguration = { iceServers: iceConfig.iceServers };
-    if (this.useRelayOnly && iceConfig.hasTURN) {
-      config.iceTransportPolicy = 'relay';
-      console.log('🔒 Using relay-only mode (TURN-only)');
-      this.addSignalingLog('🔒 Using TURN relay-only mode');
-    }
+        if (status === 'SUBSCRIBED') {
+          this.addDebugLog('✓ Channel subscribed');
+          
+          this.broadcasterReadyTimeout = setTimeout(() => {
+            if (!this.broadcasterReadyReceived && !this.viewerJoinedSent) {
+              this.addDebugLog('⏰ No broadcaster-ready after 2s, sending viewer-joined anyway');
+              this.sendViewerJoined();
+              this.startRequestOfferCycle();
+            }
+          }, 2000);
+        }
+      });
 
-    console.log('🧊 ICE servers:', iceConfig.iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
-    this.addSignalingLog(`🧊 ICE servers configured (TURN: ${iceConfig.hasTURN ? 'yes' : 'no'})`);
+    this.setupDbSignalingFallback(supabase);
 
-    this.peerConnection = new RTCPeerConnection(config);
+    const pcConfig: RTCConfiguration = {
+      iceServers: this.useRelayOnly && iceConfig.hasTURN
+        ? iceConfig.iceServers.filter(server => 
+            server.urls?.toString().includes('turn')
+          )
+        : iceConfig.iceServers,
+      iceTransportPolicy: this.useRelayOnly ? 'relay' : 'all',
+      iceCandidatePoolSize: 10,
+      bundlePolicy: 'max-bundle'
+    };
 
-    // Monitor connection state
+    this.peerConnection = new RTCPeerConnection(pcConfig);
+    
     this.peerConnection.onconnectionstatechange = () => {
-      console.log(`📡 Viewer connection state: ${this.peerConnection?.connectionState}`);
+      const state = this.peerConnection?.connectionState;
+      this.addDebugLog(`🔗 Connection state: ${state}`);
       
-      if (this.peerConnection?.connectionState === 'connected') {
-        console.log('✓ Successfully connected to broadcaster');
+      if (state === 'connected') {
         this.setState('connected');
-        this.retryCount = 0; // Reset retry count on success
-      } else if (this.peerConnection?.connectionState === 'failed') {
-        console.error('❌ Connection failed');
+        this.clearAllTimers();
+      } else if (state === 'failed') {
+        this.addDebugLog('❌ Connection failed, will retry with TURN');
+        this.setState('failed');
+        
+        if (!this.useRelayOnly && iceConfig.hasTURN) {
+          this.addDebugLog('🔄 Retrying with TURN relay only');
+          this.useRelayOnly = true;
+          this.disconnect();
+          setTimeout(() => this.connect(supabase), 1000);
+        }
+      } else if (state === 'disconnected') {
         this.setState('failed');
       }
     };
 
-    // Monitor ICE connection state
-    this.peerConnection.oniceconnectionstatechange = async () => {
-      console.log(`🧊 ICE connection state: ${this.peerConnection?.iceConnectionState}`);
+    this.peerConnection.oniceconnectionstatechange = () => {
+      const iceState = this.peerConnection?.iceConnectionState;
+      this.addDebugLog(`🧊 ICE state: ${iceState}`);
       
-      if (this.peerConnection?.iceConnectionState === 'connected' || 
-          this.peerConnection?.iceConnectionState === 'completed') {
+      if (iceState === 'connected' || iceState === 'completed') {
         this.setState('connected');
-        
-        // Detect selected candidate pair type
-        try {
-          const stats = await this.peerConnection.getStats();
-          stats.forEach((report: any) => {
-            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-              stats.forEach((candidate: any) => {
-                if (candidate.id === report.localCandidateId && candidate.type === 'local-candidate') {
-                  const type = candidate.candidateType; // host, srflx (STUN), or relay (TURN)
-                  this.iceType = type;
-                  this.onICETypeChange?.(type);
-                  console.log(`🎯 Connected via: ${type}`);
-                }
-              });
-            }
-          });
-        } catch (err) {
-          console.warn('Could not detect ICE candidate type:', err);
-        }
-      } else if (this.peerConnection?.iceConnectionState === 'failed') {
-        console.error('❌ ICE connection failed');
-        
-        // Retry with relay-only if TURN is available and we haven't tried it yet
-        if (!this.useRelayOnly && iceConfig.hasTURN) {
-          console.log('🔄 Retrying with TURN relay-only mode');
-          this.useRelayOnly = true;
-          this.disconnect();
-          setTimeout(() => this.connect(supabase), 1000);
-        } else {
-          this.setState('failed');
-        }
+        this.clearAllTimers();
+      } else if (iceState === 'failed') {
+        this.setState('failed');
       }
     };
 
-    // Monitor ICE gathering state
     this.peerConnection.onicegatheringstatechange = () => {
-      console.log(`🧊 Viewer ICE gathering state: ${this.peerConnection?.iceGatheringState}`);
+      const gatheringState = this.peerConnection?.iceGatheringState;
+      this.addDebugLog(`🧊 ICE gathering: ${gatheringState}`);
     };
 
     this.peerConnection.ontrack = (event) => {
-      this.addSignalingLog('ontrack', `${event.track.kind} track received`);
-      console.log('Track details:', {
-        kind: event.track.kind,
-        id: event.track.id,
-        label: event.track.label,
-        enabled: event.track.enabled,
-        muted: event.track.muted,
-        readyState: event.track.readyState
-      });
+      this.addDebugLog('📹 Received remote track');
       
-      console.log('Stream details:', {
-        id: event.streams[0]?.id,
-        active: event.streams[0]?.active,
-        trackCount: event.streams[0]?.getTracks().length
-      });
-      
-      event.streams[0]?.getTracks().forEach((track, index) => {
-        console.log(`Stream track ${index}:`, {
-          kind: track.kind,
-          id: track.id,
-          label: track.label,
-          enabled: track.enabled,
-          muted: track.muted,
-          readyState: track.readyState
-        });
-      });
-
-      if (event.streams && event.streams[0] && this.remoteVideoRef) {
-        console.log('Setting srcObject on video element');
+      if (this.remoteVideoRef && event.streams[0]) {
+        this.remoteVideoRef.srcObject = event.streams[0];
+        this.setState('streaming');
         
-        // Only set srcObject once
-        if (!this.remoteVideoRef.srcObject) {
-          this.remoteVideoRef.srcObject = event.streams[0];
-        }
-        
-        // Check and unmute video tracks if needed
-        const videoTracks = event.streams[0].getVideoTracks();
-        videoTracks.forEach(track => {
-          if (track.muted) {
-            console.warn('⚠️ Video track is muted, attempting to enable');
-            track.enabled = true;
-          }
-        });
-        
-        const hasLiveVideo = videoTracks.some(track => 
-          track.enabled && 
-          track.readyState === 'live'
-        );
-        
-        console.log(`Video tracks status: ${videoTracks.length} tracks, live: ${hasLiveVideo}`);
-        
-        if (hasLiveVideo) {
-          // Set a timeout to detect black/stuck video
-          this.videoPlaybackTimeout = setTimeout(() => {
-            if (this.remoteVideoRef && (this.remoteVideoRef.videoWidth === 0 || this.remoteVideoRef.videoHeight === 0)) {
-              console.error('❌ Video timeout: No video dimensions after 5 seconds');
-              this.setState('failed');
-            }
-          }, 5000);
-          
-          // Try to play the video with proper error handling
-          this.remoteVideoRef.play()
-            .then(() => {
-              console.log('✅ Video autoplay succeeded');
-              if (this.videoPlaybackTimeout) {
-                clearTimeout(this.videoPlaybackTimeout);
-                this.videoPlaybackTimeout = null;
-              }
-              // Log video dimensions
-              setTimeout(() => {
-                if (this.remoteVideoRef) {
-                  console.log(`📐 Video dimensions: ${this.remoteVideoRef.videoWidth}x${this.remoteVideoRef.videoHeight}`);
-                }
-              }, 1000);
-              this.setState('streaming');
-            })
-            .catch((error) => {
-              console.error('❌ Video play failed:', error);
-              if (error.name === 'NotAllowedError') {
-                console.warn('⚠️ Autoplay blocked by browser - need user interaction');
-                this.setState('awaiting_user_interaction');
-              } else {
-                console.error('❌ Unknown play error:', error.name, error.message);
-                this.setState('failed');
-              }
+        this.videoPlaybackTimeout = setTimeout(() => {
+          if (this.remoteVideoRef && this.remoteVideoRef.paused) {
+            this.addDebugLog('▶️ Auto-playing video');
+            this.remoteVideoRef.play().catch((err) => {
+              this.addDebugLog(`⚠️ Autoplay blocked: ${err.message}`);
+              this.setState('awaiting_user_interaction');
             });
-        } else {
-          console.warn('⚠️ No live video tracks available yet');
-        }
+          }
+        }, 500);
       }
     };
 
-    this.peerConnection.onicecandidate = (event) => {
+    this.peerConnection.onicecandidate = async (event) => {
       if (event.candidate) {
-        console.log(`🧊 Viewer ICE candidate type: ${event.candidate.type} (${event.candidate.protocol})`);
-        this.sendSignal('ice-candidate', {
-          sessionToken: this.sessionToken,
-          candidate: event.candidate
-        });
-      } else {
-        console.log('✓ ICE gathering complete');
+        const candidateStr = event.candidate.candidate;
+        this.addSignalingLog('Sending ICE', candidateStr.substring(0, 50));
+        
+        if (candidateStr.includes('typ relay')) {
+          this.iceType = 'relay (TURN)';
+          this.onICETypeChange?.('relay (TURN)');
+        } else if (candidateStr.includes('typ srflx')) {
+          this.iceType = 'srflx (STUN)';
+          this.onICETypeChange?.('srflx (STUN)');
+        } else if (candidateStr.includes('typ host')) {
+          this.iceType = 'host (direct)';
+          this.onICETypeChange?.('host (direct)');
+        }
+
+        try {
+          const result = await this.channel.send({
+            type: 'broadcast',
+            event: 'ice-candidate',
+            payload: {
+              candidate: event.candidate,
+              sessionToken: this.sessionToken
+            }
+          });
+          
+          if (result !== 'ok') {
+            this.addDebugLog('⚠️ ICE send failed, using DB fallback');
+            await this.sendSignalViaDb(supabase, 'ice', { candidate: event.candidate });
+          }
+        } catch (err) {
+          this.addDebugLog('❌ ICE broadcast error, using DB');
+          await this.sendSignalViaDb(supabase, 'ice', { candidate: event.candidate });
+        }
       }
     };
-
-    // Set up channel and wait for broadcaster-ready signal
-    let broadcasterReady = false;
-    let channelSubscribed = false;
-    
-    this.channel = supabase
-      .channel(`live_stream_${this.streamId}`)
-      .on('broadcast', { event: 'broadcaster-ready' }, ({ payload }: any) => {
-        if (payload.streamId === this.streamId) {
-          broadcasterReady = true;
-          this.broadcasterReadyReceived = true;
-          this.addSignalingLog('✓ Broadcaster ready signal received');
-          
-          if (this.broadcasterReadyTimeout) {
-            clearTimeout(this.broadcasterReadyTimeout);
-            this.broadcasterReadyTimeout = null;
-          }
-          
-          // Only send viewer-joined if channel is subscribed
-          if (channelSubscribed && !this.viewerJoinedSent) {
-            this.setState('joining');
-            this.sendSignal('viewer-joined', {
-              sessionToken: this.sessionToken,
-              displayName: this.displayName,
-              isGuest: this.isGuest
-            });
-            this.viewerJoinedSent = true;
-            this.addSignalingLog(`📤 Sent viewer-joined (${this.displayName})`);
-            console.log('📤 Sent viewer-joined signal');
-            
-            // Set up retry with exponential backoff
-            let retryDelay = 2000;
-            let retryAttempts = 0;
-            const maxRetryAttempts = 5;
-            
-            const sendRetry = () => {
-              if (!this.viewerAcked && retryAttempts < maxRetryAttempts) {
-                retryAttempts++;
-                console.log(`⚠️ No ack yet, resending viewer-joined (attempt ${retryAttempts})...`);
-                this.sendSignal('viewer-joined', {
-                  sessionToken: this.sessionToken,
-                  displayName: this.displayName,
-                  isGuest: this.isGuest
-                });
-                this.addSignalingLog(`🔄 Resent viewer-joined (attempt ${retryAttempts})`);
-                
-                // Exponential backoff
-                retryDelay = Math.min(retryDelay * 1.5, 10000);
-                this.viewerJoinInterval = setTimeout(sendRetry, retryDelay) as any;
-              } else if (retryAttempts >= maxRetryAttempts) {
-                console.error('❌ Max retry attempts reached for viewer-joined');
-                this.setState('failed');
-              }
-            };
-            
-            this.viewerJoinInterval = setTimeout(sendRetry, retryDelay) as any;
-          }
-        }
-      })
-      .on('broadcast', { event: 'viewer-ack' }, ({ payload }: any) => {
-        if (payload.sessionToken === this.sessionToken) {
-          console.log('✓ Received viewer acknowledgment from broadcaster');
-          this.addSignalingLog('✓ Received viewer-ack');
-          this.viewerAcked = true;
-          
-          // Stop resending viewer-joined
-          if (this.viewerJoinInterval) {
-            clearTimeout(this.viewerJoinInterval as any);
-            this.viewerJoinInterval = null;
-          }
-        }
-      })
-      .on('broadcast', { event: 'offer' }, this.handleOffer)
-      .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
-      .subscribe(async (status: string) => {
-        console.log('📡 Channel subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          channelSubscribed = true;
-          console.log('✓ Viewer subscribed to channel');
-          this.addSignalingLog('✓ Channel subscribed, ready to communicate');
-          
-          // Now safe to send viewer-joined if broadcaster is already ready
-          if (broadcasterReady && !this.viewerJoinedSent) {
-            this.setState('joining');
-            this.sendSignal('viewer-joined', {
-              sessionToken: this.sessionToken,
-              displayName: this.displayName,
-              isGuest: this.isGuest
-            });
-            this.viewerJoinedSent = true;
-            this.addSignalingLog(`📤 Sent viewer-joined (${this.displayName})`);
-            console.log('📤 Sent viewer-joined signal');
-          }
-          
-          // Set up broadcaster ready timeout
-          this.broadcasterReadyTimeout = setTimeout(() => {
-            if (!broadcasterReady) {
-              console.error('❌ Timeout: Broadcaster is not online');
-              this.addSignalingLog('❌ Timeout waiting for broadcaster');
-              this.setState('timeout');
-            }
-          }, 10000);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn(`⚠️ Channel status: ${status}`);
-          this.addSignalingLog(`⚠️ Channel status: ${status}`);
-        }
-      });
   }
 
-  private handleOffer = async ({ payload }: any) => {
-    if (payload.sessionToken !== this.sessionToken) return;
+  private setupDbSignalingFallback(supabase: any) {
+    this.dbSignalingChannel = supabase
+      .channel('db-signaling-viewer')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'webrtc_signals',
+          filter: `session_token=eq.${this.sessionToken}`
+        },
+        (payload: any) => {
+          const signal = payload.new;
+          this.addSignalingLog('DB fallback received', signal.type);
+          
+          if (signal.type === 'offer' && signal.role === 'broadcaster') {
+            this.handleOffer({ payload: signal.payload });
+            this.usingDbFallback = true;
+          } else if (signal.type === 'ice' && signal.role === 'broadcaster') {
+            this.handleICECandidate({ payload: signal.payload });
+          }
+        }
+      )
+      .subscribe();
+  }
 
-    this.addSignalingLog('📥 Received offer from broadcaster');
-    console.log('📥 Received offer from broadcaster');
-    
-    // Mark as acknowledged - stop resending viewer-joined
-    this.viewerAcked = true;
-    if (this.viewerJoinInterval) {
-      clearTimeout(this.viewerJoinInterval as any);
-      this.viewerJoinInterval = null;
-    }
-    
-    if (this.offerTimeout) {
-      clearTimeout(this.offerTimeout);
-      this.offerTimeout = null;
-    }
-    
-    this.setState('processing_offer');
-
+  private async sendSignalViaDb(supabase: any, type: string, payload: any) {
     try {
-      const { offer } = payload;
-      await this.peerConnection?.setRemoteDescription(new RTCSessionDescription(offer));
-      console.log('✓ Set remote description');
-      
-      // Send confirmation that offer was received
-      this.sendSignal('offer-received', { sessionToken: this.sessionToken });
-      this.addSignalingLog('📤 Sent offer-received confirmation');
-      
-      const answer = await this.peerConnection?.createAnswer();
-      await this.peerConnection?.setLocalDescription(answer);
-      
-      this.sendSignal('answer', {
-        sessionToken: this.sessionToken,
-        answer
+      await supabase.from('webrtc_signals').insert({
+        stream_id: this.streamId,
+        session_token: this.sessionToken,
+        role: 'viewer',
+        type,
+        payload
       });
-      this.addSignalingLog('📤 Sent answer to broadcaster');
-      console.log('📤 Sent answer to broadcaster');
-      
-      this.setState('awaiting_ice');
-    } catch (error) {
-      console.error('❌ Error processing offer:', error);
-      this.setState('failed');
+      this.addDebugLog(`✓ Sent ${type} via DB`);
+    } catch (err) {
+      console.error('DB signal send failed:', err);
     }
   }
 
-  private handleICECandidate = async ({ payload }: any) => {
-    if (payload.sessionToken !== this.sessionToken) return;
-
-    const { candidate } = payload;
-    if (this.peerConnection && candidate) {
-      try {
-        await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (error) {
-        console.error('❌ Error adding ICE candidate:', error);
-      }
-    }
-  }
-
-  private sendSignal(event: string, payload: any) {
-    this.channel?.send({
-      type: 'broadcast',
-      event,
-      payload
-    });
-  }
-
-  getConnectionState(): ConnectionState {
-    return this.connectionState;
-  }
-
-  getICEType(): string {
-    return this.iceType;
-  }
-
-  async hardReconnect(supabase: any) {
-    console.log('🔄 Hard reconnect initiated');
-    this.disconnect();
-    this.retryCount = 0;
-    this.useRelayOnly = false;
-    this.iceType = 'unknown';
-    await new Promise(resolve => setTimeout(resolve, 500));
-    await this.connect(supabase);
-  }
-
-  disconnect() {
-    console.log('🧹 Disconnecting viewer');
-    this.addSignalingLog('🧹 Disconnecting viewer');
-    
-    // Clear all intervals and timeouts
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
+  private handleBroadcasterReady = () => {
+    this.addSignalingLog('Broadcaster ready received');
+    this.broadcasterReadyReceived = true;
     
     if (this.broadcasterReadyTimeout) {
       clearTimeout(this.broadcasterReadyTimeout);
       this.broadcasterReadyTimeout = null;
     }
     
+    if (!this.viewerJoinedSent) {
+      this.sendViewerJoined();
+      this.startRequestOfferCycle();
+    }
+  };
+
+  private sendViewerJoined() {
+    if (this.viewerJoinedSent) return;
+    
+    this.addSignalingLog('Sending viewer-joined');
+    this.viewerJoinedSent = true;
+    this.setState('awaiting_offer');
+    
+    this.channel.send({
+      type: 'broadcast',
+      event: 'viewer-joined',
+      payload: {
+        sessionToken: this.sessionToken,
+        displayName: this.displayName,
+        isGuest: this.isGuest
+      }
+    });
+
+    this.viewerJoinInterval = setInterval(() => {
+      if (!this.viewerAcked) {
+        this.addDebugLog('🔁 Resending viewer-joined (no ack yet)');
+        this.channel.send({
+          type: 'broadcast',
+          event: 'viewer-joined',
+          payload: {
+            sessionToken: this.sessionToken,
+            displayName: this.displayName,
+            isGuest: this.isGuest
+          }
+        });
+      } else {
+        if (this.viewerJoinInterval) {
+          clearInterval(this.viewerJoinInterval);
+          this.viewerJoinInterval = null;
+        }
+      }
+    }, 1500);
+  }
+
+  private startRequestOfferCycle() {
+    this.requestOfferTimer = setTimeout(() => {
+      if (!this.offerReceived && this.requestOfferCount < this.maxRequestOfferRetries) {
+        this.requestOfferCount++;
+        this.addDebugLog(`🔔 Requesting offer (attempt ${this.requestOfferCount}/${this.maxRequestOfferRetries})`);
+        
+        this.channel.send({
+          type: 'broadcast',
+          event: 'request-offer',
+          payload: { sessionToken: this.sessionToken }
+        });
+
+        if (this.requestOfferCount > 2 && !this.usingDbFallback) {
+          this.addDebugLog('⚠️ Broadcast unreliable, activating DB fallback');
+          this.sendSignalViaDb(
+            (this.channel as any).socket.supabaseClient,
+            'request_offer',
+            { sessionToken: this.sessionToken }
+          );
+        }
+
+        this.startRequestOfferCycle();
+      } else if (this.requestOfferCount >= this.maxRequestOfferRetries) {
+        this.addDebugLog('❌ Max offer requests reached');
+        this.setState('timeout');
+      }
+    }, 3000);
+  }
+
+  private handleViewerAck = ({ payload }: any) => {
+    if (payload.sessionToken === this.sessionToken) {
+      this.addSignalingLog('Viewer ack received');
+      this.viewerAcked = true;
+      
+      if (this.viewerJoinInterval) {
+        clearInterval(this.viewerJoinInterval);
+        this.viewerJoinInterval = null;
+      }
+    }
+  };
+
+  private handleOffer = async ({ payload }: any) => {
+    if (payload.sessionToken !== this.sessionToken) return;
+
+    this.addSignalingLog('Offer received');
+    this.offerReceived = true;
+    
+    if (this.requestOfferTimer) {
+      clearTimeout(this.requestOfferTimer);
+      this.requestOfferTimer = null;
+    }
+
+    if (!this.peerConnection) {
+      this.addDebugLog('❌ No peer connection for offer');
+      return;
+    }
+
+    try {
+      this.setState('processing_offer');
+      
+      await this.peerConnection.setRemoteDescription(
+        new RTCSessionDescription(payload.offer)
+      );
+      
+      const answer = await this.peerConnection.createAnswer();
+      await this.peerConnection.setLocalDescription(answer);
+
+      this.addSignalingLog('Sending answer');
+      this.setState('awaiting_ice');
+
+      const result = await this.channel.send({
+        type: 'broadcast',
+        event: 'answer',
+        payload: {
+          answer,
+          sessionToken: this.sessionToken
+        }
+      });
+
+      if (result !== 'ok') {
+        this.addDebugLog('⚠️ Answer send failed, using DB');
+        await this.sendSignalViaDb(
+          (this.channel as any).socket.supabaseClient,
+          'answer',
+          { answer, sessionToken: this.sessionToken }
+        );
+      }
+
+    } catch (error) {
+      console.error('Error handling offer:', error);
+      this.setState('failed');
+    }
+  };
+
+  private handleICECandidate = async ({ payload }: any) => {
+    if (payload.sessionToken !== this.sessionToken) return;
+
+    if (this.peerConnection && payload.candidate) {
+      try {
+        await this.peerConnection.addIceCandidate(
+          new RTCIceCandidate(payload.candidate)
+        );
+        this.addSignalingLog('Added ICE candidate');
+      } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+      }
+    }
+  };
+
+  private startHeartbeat(supabase: any) {
+    this.heartbeatInterval = setInterval(async () => {
+      try {
+        await supabase.rpc('update_viewer_heartbeat', {
+          p_session_token: this.sessionToken
+        });
+      } catch (error) {
+        console.error('Heartbeat failed:', error);
+      }
+    }, 15000);
+  }
+
+  public async requestOfferManually() {
+    this.addDebugLog('🔄 Manual offer request triggered');
+    this.offerReceived = false;
+    this.requestOfferCount = 0;
+    
+    this.channel.send({
+      type: 'broadcast',
+      event: 'request-offer',
+      payload: { sessionToken: this.sessionToken }
+    });
+    
+    this.startRequestOfferCycle();
+  }
+
+  public async tryTURNOnly(supabase: any) {
+    this.addDebugLog('🔄 Forcing TURN relay only');
+    this.useRelayOnly = true;
+    await this.hardReconnect(supabase);
+  }
+
+  async hardReconnect(supabase: any) {
+    this.addDebugLog('🔄 Hard reconnect initiated');
+    this.disconnect();
+    
+    this.retryCount = 0;
+    this.viewerJoinedSent = false;
+    this.viewerAcked = false;
+    this.offerReceived = false;
+    this.broadcasterReadyReceived = false;
+    this.requestOfferCount = 0;
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await this.connect(supabase);
+  }
+
+  private clearAllTimers() {
+    if (this.broadcasterReadyTimeout) {
+      clearTimeout(this.broadcasterReadyTimeout);
+      this.broadcasterReadyTimeout = null;
+    }
     if (this.offerTimeout) {
       clearTimeout(this.offerTimeout);
       this.offerTimeout = null;
     }
-    
+    if (this.requestOfferTimer) {
+      clearTimeout(this.requestOfferTimer);
+      this.requestOfferTimer = null;
+    }
     if (this.viewerJoinInterval) {
-      clearTimeout(this.viewerJoinInterval as any);
+      clearInterval(this.viewerJoinInterval);
       this.viewerJoinInterval = null;
     }
-    
     if (this.videoPlaybackTimeout) {
       clearTimeout(this.videoPlaybackTimeout);
       this.videoPlaybackTimeout = null;
     }
+    if (this.dbFallbackTimeout) {
+      clearTimeout(this.dbFallbackTimeout);
+      this.dbFallbackTimeout = null;
+    }
+  }
+
+  disconnect() {
+    this.addDebugLog('🔌 Disconnecting');
     
-    // Send viewer-left signal before closing
-    this.sendSignal('viewer-left', { sessionToken: this.sessionToken });
-    
-    // Close peer connection
+    this.clearAllTimers();
+
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
     if (this.peerConnection) {
       this.peerConnection.close();
       this.peerConnection = null;
     }
-    
-    // Unsubscribe from channel
+
     if (this.channel) {
       this.channel.unsubscribe();
       this.channel = null;
     }
-    
+
+    if (this.dbSignalingChannel) {
+      this.dbSignalingChannel.unsubscribe();
+      this.dbSignalingChannel = null;
+    }
+
+    if (this.remoteVideoRef) {
+      this.remoteVideoRef.srcObject = null;
+    }
+
     this.setState('disconnected');
   }
 }

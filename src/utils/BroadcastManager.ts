@@ -8,6 +8,7 @@ export class BroadcastManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
   private channel: any = null;
+  private dbSignalingChannel: any = null;
   private streamId: string;
   private viewerMetadata: Map<string, { name: string; joinedAt: Date; isGuest: boolean }> = new Map();
   private broadcasterReadyInterval: NodeJS.Timeout | null = null;
@@ -15,6 +16,9 @@ export class BroadcastManager {
   private iceConfig: ICEServerConfig | null = null;
   private iceConfigExpiry: number = 0;
   private answerReceived: Map<string, boolean> = new Map();
+  private offerAcked: Map<string, boolean> = new Map();
+  private offerRetryTimers: Map<string, NodeJS.Timeout> = new Map();
+  private lastSignalingEvents: Array<{time: string, event: string}> = [];
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -22,7 +26,6 @@ export class BroadcastManager {
   }
 
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
-    // Cache for 5 minutes
     if (this.iceConfig && Date.now() < this.iceConfigExpiry) {
       return this.iceConfig;
     }
@@ -33,7 +36,7 @@ export class BroadcastManager {
       if (error) throw error;
       
       this.iceConfig = data;
-      this.iceConfigExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+      this.iceConfigExpiry = Date.now() + 5 * 60 * 1000;
       
       if (data.warning) {
         console.warn('⚠️ ICE server warning:', data.warning);
@@ -44,7 +47,6 @@ export class BroadcastManager {
     } catch (error) {
       console.error('Failed to fetch ICE servers, using STUN fallback:', error);
       
-      // Fallback to STUN only
       return {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -56,26 +58,48 @@ export class BroadcastManager {
     }
   }
 
+  private logSignalingEvent(event: string) {
+    const time = new Date().toISOString().split('T')[1].slice(0, 12);
+    this.lastSignalingEvents.push({ time, event });
+    if (this.lastSignalingEvents.length > 20) {
+      this.lastSignalingEvents.shift();
+    }
+  }
+
+  getLastSignalingEvents() {
+    return [...this.lastSignalingEvents];
+  }
+
   async initializeChannel(supabase: any) {
-    // Prefetch ICE servers
     await this.fetchIceServers(supabase);
     
     this.channel = supabase
-      .channel(`live_stream_${this.streamId}`)
+      .channel(`live_stream_${this.streamId}`, {
+        config: {
+          broadcast: { ack: true },
+          presence: { key: `broadcaster:${this.streamId}` }
+        }
+      })
       .on('broadcast', { event: 'viewer-joined' }, (payload: any) => this.handleViewerJoined(payload, supabase))
       .on('broadcast', { event: 'offer-received' }, this.handleOfferReceived)
-      .on('broadcast', { event: 'request-offer' }, this.handleRequestOffer)
+      .on('broadcast', { event: 'request-offer' }, (payload: any) => this.handleRequestOffer(payload, supabase))
       .on('broadcast', { event: 'answer' }, this.handleAnswer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .on('broadcast', { event: 'viewer-left' }, this.handleViewerLeft)
       .subscribe(async (status: string) => {
+        this.logSignalingEvent(`Channel: ${status}`);
+        
         if (status === 'SUBSCRIBED') {
           console.log('✓ Broadcaster channel ready, broadcasting ready signal');
           await new Promise(resolve => setTimeout(resolve, 500));
-          this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           
-          this.broadcasterReadyInterval = setInterval(() => {
-            this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+          const result = await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+          if (result !== 'ok') {
+            console.warn('⚠️ broadcaster-ready send failed');
+          }
+          
+          this.broadcasterReadyInterval = setInterval(async () => {
+            await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           }, 2000);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
@@ -85,294 +109,312 @@ export class BroadcastManager {
           }
         }
       });
+
+    this.setupDbSignalingFallback(supabase);
+  }
+
+  private setupDbSignalingFallback(supabase: any) {
+    this.dbSignalingChannel = supabase
+      .channel('db-signaling-broadcaster')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'webrtc_signals',
+          filter: `stream_id=eq.${this.streamId}`
+        },
+        async (payload: any) => {
+          const signal = payload.new;
+          
+          if (signal.type === 'viewer_joined' && signal.role === 'viewer') {
+            console.log('📨 DB fallback: viewer joined', signal.session_token);
+            await this.handleViewerJoined({ payload: signal.payload }, supabase);
+          } else if (signal.type === 'request_offer' && signal.role === 'viewer') {
+            console.log('📨 DB fallback: offer requested', signal.session_token);
+            await this.handleRequestOffer({ payload: signal.payload }, supabase);
+          } else if (signal.type === 'answer' && signal.role === 'viewer') {
+            console.log('📨 DB fallback: answer received', signal.session_token);
+            await this.handleAnswer({ payload: signal.payload });
+          } else if (signal.type === 'ice' && signal.role === 'viewer') {
+            await this.handleICECandidate({ payload: signal.payload });
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  private async sendSignalViaDb(supabase: any, sessionToken: string, type: string, payload: any) {
+    try {
+      await supabase.from('webrtc_signals').insert({
+        stream_id: this.streamId,
+        session_token: sessionToken,
+        role: 'broadcaster',
+        type,
+        payload
+      });
+      console.log(`✓ Sent ${type} via DB to ${sessionToken.substring(0, 8)}`);
+    } catch (err) {
+      console.error('DB signal send failed:', err);
+    }
   }
 
   private handleViewerJoined = async ({ payload }: any, supabase: any) => {
     const { sessionToken, displayName, isGuest } = payload;
     console.log(`👤 Viewer joined: ${displayName} (${sessionToken.substring(0, 8)}...)`);
+    this.logSignalingEvent(`Viewer joined: ${displayName}`);
     
-    // Store viewer metadata
     this.viewerMetadata.set(sessionToken, {
       name: displayName || 'Anonymous',
       joinedAt: new Date(),
       isGuest: isGuest || false
     });
 
-    // ALWAYS send acknowledgment, even for duplicate joins
-    this.sendSignal('viewer-ack', { sessionToken });
+    const ackResult = await this.sendSignal('viewer-ack', { sessionToken });
+    if (ackResult !== 'ok') {
+      console.warn('⚠️ viewer-ack send failed, using DB');
+      await this.sendSignalViaDb(supabase, sessionToken, 'viewer_ack', { sessionToken });
+    }
     console.log(`✓ Sent viewer-ack to ${sessionToken.substring(0, 8)}...`);
     
-    // Check if peer connection already exists
-    if (this.peerConnections.has(sessionToken)) {
-      console.warn(`⚠️ Peer connection already exists for ${sessionToken}, resending offer`);
-      const pc = this.peerConnections.get(sessionToken);
-      if (pc && pc.localDescription) {
-        // Resend existing offer to help viewer who may have missed it
-        this.sendSignal('offer', { 
-          sessionToken, 
-          offer: pc.localDescription 
-        });
-        console.log(`📤 Resent existing offer to ${sessionToken.substring(0, 8)}...`);
-      }
-      return; // Don't create duplicate peer connection
+    const existingPeer = this.peerConnections.get(sessionToken);
+    if (existingPeer && existingPeer.connectionState !== 'failed' && existingPeer.connectionState !== 'closed') {
+      console.log(`⚠️ Peer already exists for ${sessionToken.substring(0, 8)}... (${existingPeer.connectionState})`);
+      return;
     }
     
+    this.retryAttempts.set(sessionToken, 0);
     await this.createPeerConnection(sessionToken, false, supabase);
-  }
-  
+  };
+
   private handleOfferReceived = ({ payload }: any) => {
     const { sessionToken } = payload;
-    console.log(`✓ Viewer ${sessionToken.substring(0, 8)}... confirmed offer received`);
-    this.answerReceived.set(sessionToken, true);
-  }
-
-  private async createPeerConnection(sessionToken: string, useRelayOnly = false, supabase: any) {
-    if (this.peerConnections.has(sessionToken)) {
-      console.warn(`Peer connection already exists for ${sessionToken}`);
-      return;
-    }
-
-    const tracks = this.localStream?.getTracks() || [];
-    if (tracks.length === 0) {
-      console.error('❌ No media tracks available for broadcasting');
-      return;
-    }
-
-    const activeTracks = tracks.filter(track => track.readyState === 'live' && track.enabled);
-    if (activeTracks.length === 0) {
-      console.error('❌ No active media tracks available');
-      return;
-    }
-
-    console.log(`✓ Verified ${activeTracks.length} active tracks:`, 
-      activeTracks.map(t => `${t.kind}:${t.label}:${t.readyState}`));
-
-    // Fetch dynamic ICE servers
-    const iceConfig = await this.fetchIceServers(supabase);
-
-    const config: RTCConfiguration = { iceServers: iceConfig.iceServers };
-    if (useRelayOnly && iceConfig.hasTURN) {
-      config.iceTransportPolicy = 'relay';
-      console.log('🔒 Using relay-only mode (TURN-only)');
-    }
-
-    console.log('🧊 Broadcaster ICE servers:', iceConfig.iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
-
-    const pc = new RTCPeerConnection(config);
-
-    // Final pre-offer track verification
-    const allTracks = this.localStream!.getTracks();
-    const liveTracks = allTracks.filter(t => t.enabled && t.readyState === 'live');
-    const videoTracks = liveTracks.filter(t => t.kind === 'video');
-    const audioTracks = liveTracks.filter(t => t.kind === 'audio');
+    console.log(`✓ Offer received ACK from ${sessionToken?.substring(0, 8)}...`);
+    this.logSignalingEvent(`Offer ACK: ${sessionToken?.substring(0, 8)}`);
     
-    console.log(`📊 Final pre-offer check: ${liveTracks.length}/${allTracks.length} tracks live (${videoTracks.length} video, ${audioTracks.length} audio)`);
+    this.offerAcked.set(sessionToken, true);
     
-    if (videoTracks.length === 0) {
-      throw new Error('No live video tracks available - cannot create offer');
+    const timer = this.offerRetryTimers.get(sessionToken);
+    if (timer) {
+      clearTimeout(timer);
+      this.offerRetryTimers.delete(sessionToken);
     }
+  };
+
+  private handleRequestOffer = async ({ payload }: any, supabase: any) => {
+    const { sessionToken } = payload;
+    console.log(`🔔 Viewer ${sessionToken?.substring(0, 8)}... requesting offer`);
+    this.logSignalingEvent(`Offer requested: ${sessionToken?.substring(0, 8)}`);
     
-    // Attach tracks directly using addTrack for robust MSID signaling
-    activeTracks.forEach(track => {
-      console.log(`➕ Adding ${track.kind} track "${track.label}" [${track.id}] to peer connection (enabled: ${track.enabled}, state: ${track.readyState})`);
-      pc.addTrack(track, this.localStream!);
-    });
+    const pc = this.peerConnections.get(sessionToken);
+    if (pc) {
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+        iceRestart: true
+      });
+      await pc.setLocalDescription(offer);
 
-    // Log active transceivers before creating offer
-    console.log('📡 Active transceivers before createOffer:');
-    pc.getTransceivers().forEach((transceiver, idx) => {
-      const track = transceiver.sender.track;
-      console.log(`  Transceiver ${idx}: ${transceiver.direction} ${track?.kind || 'no-track'} (enabled: ${track?.enabled}, state: ${track?.readyState})`);
-    });
-
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log(`🧊 Broadcaster ICE candidate type: ${event.candidate.type} (${event.candidate.protocol})`);
-        this.sendSignal('ice-candidate', {
-          sessionToken,
-          candidate: event.candidate
-        });
-      } else {
-        console.log('✓ ICE gathering complete');
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      console.log(`🧊 ICE connection state for ${sessionToken.substring(0, 8)}...: ${pc.iceConnectionState}`);
-      if (pc.iceConnectionState === 'connected') {
-        pc.getStats().then(stats => {
-          stats.forEach(report => {
-            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-              console.log(`✓ Active candidate pair: local=${report.localCandidateId}, remote=${report.remoteCandidateId}`);
-            }
-          });
-        });
-      } else if (pc.iceConnectionState === 'failed') {
-        console.error(`❌ ICE failed for ${sessionToken.substring(0, 8)}...`);
-        const retries = this.retryAttempts.get(sessionToken) || 0;
-        if (retries < 2 && !useRelayOnly && iceConfig.hasTURN) {
-          console.log(`🔄 Retrying with relay-only mode (attempt ${retries + 1})`);
-          this.retryAttempts.set(sessionToken, retries + 1);
-          this.removePeerConnection(sessionToken);
-          setTimeout(() => this.createPeerConnection(sessionToken, true, supabase), 1000);
-        } else {
-          pc.restartIce();
-        }
-      }
-    };
-    
-    // Monitor peer connection state with auto-cleanup
-    pc.onconnectionstatechange = () => {
-      console.log(`📡 Peer connection state for ${sessionToken.substring(0, 8)}...: ${pc.connectionState}`);
+      console.log(`📤 Re-sending offer to ${sessionToken.substring(0, 8)}...`);
+      const result = await this.sendSignal('offer', { offer, sessionToken });
       
-      if (pc.connectionState === 'failed') {
-        console.error(`❌ Connection failed for viewer ${sessionToken.substring(0, 8)}...`);
-        // Give it 5 seconds to recover, then cleanup
-        setTimeout(() => {
-          if (pc.connectionState === 'failed') {
-            console.log(`🗑️ Cleaning up failed connection for ${sessionToken.substring(0, 8)}...`);
-            this.removePeerConnection(sessionToken);
-          }
-        }, 5000);
-      } else if (pc.connectionState === 'disconnected') {
-        console.warn(`⚠️ Connection disconnected for viewer ${sessionToken.substring(0, 8)}...`);
-        // Give it 30 seconds to reconnect
-        setTimeout(() => {
-          if (pc.connectionState === 'disconnected') {
-            console.log(`🗑️ Cleaning up disconnected connection for ${sessionToken.substring(0, 8)}...`);
-            this.removePeerConnection(sessionToken);
-          }
-        }, 30000);
+      if (result !== 'ok') {
+        console.warn('⚠️ Offer resend failed, using DB');
+        await this.sendSignalViaDb(supabase, sessionToken, 'offer', { offer, sessionToken });
       }
-    };
+    } else {
+      console.log(`📤 Creating new connection for ${sessionToken.substring(0, 8)}...`);
+      await this.createPeerConnection(sessionToken, false, supabase);
+    }
+  };
 
-    pc.onicegatheringstatechange = () => {
-      console.log(`🧊 ICE gathering state: ${pc.iceGatheringState}`);
-    };
-
-    pc.onconnectionstatechange = () => {
-      console.log(`📡 Connection state: ${pc.connectionState}`);
-      
-      if (pc.connectionState === 'connected') {
-        console.log(`✓ Successfully connected to viewer`);
-        this.retryAttempts.delete(sessionToken);
-      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        console.warn(`Connection ${pc.connectionState}, removing`);
-        this.removePeerConnection(sessionToken);
-      }
-    };
-
-    this.peerConnections.set(sessionToken, pc);
-
-    // Verify transceivers have tracks attached BEFORE creating offer
-    const transceivers = pc.getTransceivers();
-    console.log('📡 Transceivers before createOffer:', transceivers.map(t => ({
-      direction: t.direction,
-      currentDirection: t.currentDirection,
-      trackKind: t.sender.track?.kind,
-      trackEnabled: t.sender.track?.enabled,
-      trackReadyState: t.sender.track?.readyState,
-      trackLabel: t.sender.track?.label
-    })));
-
+  private async createPeerConnection(sessionToken: string, useRelayOnly: boolean, supabase: any) {
     try {
-      // Log track count before creating offer
-      const transceivers = pc.getTransceivers();
-      const attachedTracks = transceivers.filter(t => t.sender.track).length;
-      console.log(`📊 Transceivers with attached tracks: ${attachedTracks}/${transceivers.length}`);
+      const iceConfig = await this.fetchIceServers(supabase);
       
+      const pcConfig: RTCConfiguration = {
+        iceServers: useRelayOnly && iceConfig.hasTURN
+          ? iceConfig.iceServers.filter(server => 
+              server.urls?.toString().includes('turn')
+            )
+          : iceConfig.iceServers,
+        iceTransportPolicy: useRelayOnly ? 'relay' : 'all',
+        iceCandidatePoolSize: 10
+      };
+
+      const pc = new RTCPeerConnection(pcConfig);
+      
+      pc.onconnectionstatechange = () => {
+        console.log(`🔗 Peer ${sessionToken.substring(0, 8)}... connection: ${pc.connectionState}`);
+        
+        if (pc.connectionState === 'failed') {
+          console.warn(`❌ Connection failed for ${sessionToken.substring(0, 8)}...`);
+          
+          const attempts = this.retryAttempts.get(sessionToken) || 0;
+          if (attempts < 2 && !useRelayOnly && iceConfig.hasTURN) {
+            console.log(`🔄 Retrying with TURN for ${sessionToken.substring(0, 8)}...`);
+            this.retryAttempts.set(sessionToken, attempts + 1);
+            this.removePeerConnection(sessionToken);
+            setTimeout(() => {
+              this.createPeerConnection(sessionToken, true, supabase);
+            }, 1000);
+          } else {
+            this.removePeerConnection(sessionToken);
+          }
+        } else if (pc.connectionState === 'connected') {
+          console.log(`✅ Connected to ${sessionToken.substring(0, 8)}...`);
+          this.retryAttempts.delete(sessionToken);
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          console.log(`🧊 Sending ICE to ${sessionToken.substring(0, 8)}...`);
+          
+          const result = await this.sendSignal('ice-candidate', {
+            candidate: event.candidate,
+            sessionToken
+          });
+
+          if (result !== 'ok') {
+            console.warn('⚠️ ICE send failed, using DB');
+            await this.sendSignalViaDb(supabase, sessionToken, 'ice', {
+              candidate: event.candidate,
+              sessionToken
+            });
+          }
+        }
+      };
+
+      if (this.localStream) {
+        this.localStream.getTracks().forEach(track => {
+          if (this.localStream) {
+            pc.addTrack(track, this.localStream);
+          }
+        });
+      }
+
+      this.peerConnections.set(sessionToken, pc);
+      this.answerReceived.set(sessionToken, false);
+      this.offerAcked.set(sessionToken, false);
+
       const offer = await pc.createOffer({
         offerToReceiveAudio: false,
         offerToReceiveVideo: false
       });
+      
       await pc.setLocalDescription(offer);
+
+      console.log(`📤 Sending offer to ${sessionToken.substring(0, 8)}...${useRelayOnly ? ' (TURN only)' : ''}`);
       
-      // Initialize answer received flag
-      this.answerReceived.set(sessionToken, false);
+      const result = await this.sendSignal('offer', { offer, sessionToken });
       
-      console.log(`📤 Sending offer to viewer (session: ${sessionToken.substring(0, 8)}...)`);
-      this.sendSignal('offer', { sessionToken, offer });
-      
-      // Retry sending offer until answer is received
+      if (result !== 'ok') {
+        console.warn('⚠️ Initial offer send failed, using DB');
+        await this.sendSignalViaDb(supabase, sessionToken, 'offer', { offer, sessionToken });
+      }
+
       let retryCount = 0;
       const maxRetries = 5;
-      const resendInterval = setInterval(() => {
-        if (this.answerReceived.get(sessionToken) || pc.signalingState === 'closed') {
-          console.log(`✓ Answer received or connection closed, stopping offer retries`);
-          clearInterval(resendInterval);
+      
+      const retryTimer = setInterval(async () => {
+        const acked = this.offerAcked.get(sessionToken);
+        const answered = this.answerReceived.get(sessionToken);
+        
+        if (acked || answered) {
+          console.log(`✓ Offer delivered to ${sessionToken.substring(0, 8)}... (${acked ? 'acked' : 'answered'})`);
+          clearInterval(retryTimer);
+          this.offerRetryTimers.delete(sessionToken);
           return;
         }
-        
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.warn(`⚠️ No answer received yet, resending offer (retry ${retryCount}/${maxRetries})`);
-          this.sendSignal('offer', { sessionToken, offer });
-        } else {
-          console.error(`❌ No answer after ${maxRetries} retries`);
-          clearInterval(resendInterval);
-          this.removePeerConnection(sessionToken);
+
+        retryCount++;
+        if (retryCount >= maxRetries) {
+          console.warn(`⚠️ Max offer retries for ${sessionToken.substring(0, 8)}...`);
+          clearInterval(retryTimer);
+          this.offerRetryTimers.delete(sessionToken);
+          
+          await this.sendSignal('request-offer-ready', { sessionToken });
+          return;
         }
-      }, 3000);
+
+        console.log(`🔁 Resending offer to ${sessionToken.substring(0, 8)}... (attempt ${retryCount}/${maxRetries})`);
+        const retryResult = await this.sendSignal('offer', { offer, sessionToken });
+        
+        if (retryResult !== 'ok' && retryCount > 2) {
+          await this.sendSignalViaDb(supabase, sessionToken, 'offer', { offer, sessionToken });
+        }
+      }, 2000);
+
+      this.offerRetryTimers.set(sessionToken, retryTimer);
+
     } catch (error) {
-      console.error('❌ Error creating offer:', error);
+      console.error(`Error creating peer connection for ${sessionToken.substring(0, 8)}:`, error);
       this.removePeerConnection(sessionToken);
     }
   }
 
-  private handleRequestOffer = async ({ payload }: any) => {
-    const { sessionToken } = payload;
-    const pc = this.peerConnections.get(sessionToken);
-    if (!pc) {
-      console.warn(`⚠️ request-offer received but no PC exists for ${sessionToken?.substring?.(0,8)}...`);
-      return;
-    }
-    try {
-      // Re-send existing localDescription if present, else create a fresh offer
-      let offer = pc.localDescription as RTCSessionDescriptionInit | null;
-      if (!offer) {
-        const newOffer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
-        await pc.setLocalDescription(newOffer);
-        offer = newOffer;
-      }
-      console.log(`📤 Re-sending offer on request for viewer ${sessionToken.substring(0,8)}...`);
-      this.sendSignal('offer', { sessionToken, offer });
-    } catch (err) {
-      console.error('❌ Failed to handle request-offer:', err);
-    }
-  }
-
   private handleAnswer = async ({ payload }: any) => {
-    const { sessionToken, answer } = payload;
-    console.log(`✓ Received answer from viewer ${sessionToken.substring(0, 8)}...`);
-    
+    const { answer, sessionToken } = payload;
     const pc = this.peerConnections.get(sessionToken);
-    if (pc && answer) {
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
-      // Mark answer as received to stop offer retries
-      this.answerReceived.set(sessionToken, true);
+
+    if (pc) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        console.log(`✅ Answer set for ${sessionToken.substring(0, 8)}...`);
+        this.logSignalingEvent(`Answer set: ${sessionToken.substring(0, 8)}`);
+        
+        this.answerReceived.set(sessionToken, true);
+        
+        const timer = this.offerRetryTimers.get(sessionToken);
+        if (timer) {
+          clearTimeout(timer);
+          this.offerRetryTimers.delete(sessionToken);
+        }
+      } catch (error) {
+        console.error(`Error setting answer for ${sessionToken.substring(0, 8)}:`, error);
+      }
     }
-  }
+  };
 
   private handleICECandidate = async ({ payload }: any) => {
-    const { sessionToken, candidate } = payload;
+    const { candidate, sessionToken } = payload;
     const pc = this.peerConnections.get(sessionToken);
+
     if (pc && candidate) {
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log(`🧊 ICE added for ${sessionToken.substring(0, 8)}...`);
+      } catch (error) {
+        console.error(`Error adding ICE for ${sessionToken.substring(0, 8)}:`, error);
+      }
     }
-  }
+  };
 
   private handleViewerLeft = ({ payload }: any) => {
     const { sessionToken } = payload;
-    console.log(`Viewer left`);
+    console.log(`👋 Viewer left: ${sessionToken?.substring(0, 8)}...`);
+    this.logSignalingEvent(`Viewer left: ${sessionToken?.substring(0, 8)}`);
     this.removePeerConnection(sessionToken);
-  }
+    this.viewerMetadata.delete(sessionToken);
+  };
 
-  private sendSignal(event: string, payload: any) {
-    this.channel?.send({
-      type: 'broadcast',
-      event,
-      payload
-    });
+  private async sendSignal(event: string, payload: any): Promise<string> {
+    if (!this.channel) return 'error';
+    
+    try {
+      const result = await this.channel.send({
+        type: 'broadcast',
+        event,
+        payload
+      });
+      
+      this.logSignalingEvent(`Sent: ${event}`);
+      return result;
+    } catch (err) {
+      console.error(`Failed to send ${event}:`, err);
+      return 'error';
+    }
   }
 
   private removePeerConnection(sessionToken: string) {
@@ -380,34 +422,70 @@ export class BroadcastManager {
     if (pc) {
       pc.close();
       this.peerConnections.delete(sessionToken);
-      this.viewerMetadata.delete(sessionToken);
-      this.answerReceived.delete(sessionToken);
     }
+    
+    const timer = this.offerRetryTimers.get(sessionToken);
+    if (timer) {
+      clearTimeout(timer);
+      this.offerRetryTimers.delete(sessionToken);
+    }
+    
+    this.retryAttempts.delete(sessionToken);
+    this.answerReceived.delete(sessionToken);
+    this.offerAcked.delete(sessionToken);
   }
 
   cleanup() {
-    // Clear broadcaster ready interval
+    console.log('🧹 Cleaning up broadcast manager');
+    
     if (this.broadcasterReadyInterval) {
       clearInterval(this.broadcasterReadyInterval);
       this.broadcasterReadyInterval = null;
     }
-    
-    this.peerConnections.forEach(pc => pc.close());
+
+    this.offerRetryTimers.forEach(timer => clearTimeout(timer));
+    this.offerRetryTimers.clear();
+
+    this.peerConnections.forEach((pc) => pc.close());
     this.peerConnections.clear();
+
+    if (this.channel) {
+      this.channel.unsubscribe();
+      this.channel = null;
+    }
+
+    if (this.dbSignalingChannel) {
+      this.dbSignalingChannel.unsubscribe();
+      this.dbSignalingChannel = null;
+    }
+
     this.viewerMetadata.clear();
-    this.channel?.unsubscribe();
+    this.retryAttempts.clear();
+    this.answerReceived.clear();
+    this.offerAcked.clear();
   }
 
   getViewerCount(): number {
-    return this.peerConnections.size;
+    return Array.from(this.peerConnections.values()).filter(
+      pc => pc.connectionState === 'connected'
+    ).length;
   }
 
-  getViewers() {
-    return Array.from(this.viewerMetadata.entries()).map(([sessionToken, metadata]) => ({
+  getViewers(): Array<{ sessionToken: string; name: string; joinedAt: Date; connectionState: string; isGuest: boolean }> {
+    return Array.from(this.peerConnections.entries()).map(([sessionToken, pc]) => ({
       sessionToken,
-      displayName: metadata.name,
-      joinedAt: metadata.joinedAt,
-      isGuest: metadata.isGuest
+      name: this.viewerMetadata.get(sessionToken)?.name || 'Unknown',
+      joinedAt: this.viewerMetadata.get(sessionToken)?.joinedAt || new Date(),
+      connectionState: pc.connectionState,
+      isGuest: this.viewerMetadata.get(sessionToken)?.isGuest || false
     }));
+  }
+
+  hasTURN(): boolean {
+    return this.iceConfig?.hasTURN || false;
+  }
+
+  isChannelSubscribed(): boolean {
+    return this.channel?.state === 'joined';
   }
 }
