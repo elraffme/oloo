@@ -1294,28 +1294,40 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {/* Permission Buttons - Always Visible */}
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
-                        onClick={() => initializeMedia(true, false)} 
-                        disabled={isRequestingCamera || (hasCameraPermission && isCameraOn)} 
+                        onClick={() => {
+                          if (!hasCameraPermission) {
+                            initializeMedia(true, false);
+                          } else {
+                            toggleCamera();
+                          }
+                        }} 
+                        disabled={isRequestingCamera} 
                         variant="outline" 
                         size="sm"
                       >
-                        <Video className="w-4 h-4 mr-2" />
-                        {isRequestingCamera ? 'Enabling...' : 
+                        {isCameraOn ? <Video className="w-4 h-4 mr-2" /> : <VideoOff className="w-4 h-4 mr-2" />}
+                        {isRequestingCamera ? 'Requesting...' : 
                          !hasCameraPermission ? 'Enable Camera' :
-                         !isCameraOn ? 'Camera Off - Enable' :
-                         'Camera Enabled ✓'}
+                         isCameraOn ? 'Turn Off Camera' :
+                         'Turn On Camera'}
                       </Button>
                       <Button 
-                        onClick={() => initializeMedia(false, true)} 
-                        disabled={isRequestingMic || (hasMicPermission && isMicOn)} 
+                        onClick={() => {
+                          if (!hasMicPermission) {
+                            initializeMedia(false, true);
+                          } else {
+                            toggleMicrophone();
+                          }
+                        }} 
+                        disabled={isRequestingMic} 
                         variant="outline" 
                         size="sm"
                       >
-                        <Mic className="w-4 h-4 mr-2" />
-                        {isRequestingMic ? 'Enabling...' : 
+                        {isMicOn ? <Mic className="w-4 h-4 mr-2" /> : <MicOff className="w-4 h-4 mr-2" />}
+                        {isRequestingMic ? 'Requesting...' : 
                          !hasMicPermission ? 'Enable Mic' :
-                         !isMicOn ? 'Mic Off - Enable' :
-                         'Mic Enabled ✓'}
+                         isMicOn ? 'Turn Off Mic' :
+                         'Turn On Mic'}
                       </Button>
                     </div>
                     
