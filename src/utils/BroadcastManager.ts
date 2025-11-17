@@ -471,6 +471,13 @@ export class BroadcastManager {
     ).length;
   }
 
+  async manuallyAnnounceReady(): Promise<void> {
+    console.log('📢 Manually announcing broadcaster-ready');
+    if (this.channel) {
+      await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+    }
+  }
+
   getViewers(): Array<{ sessionToken: string; name: string; joinedAt: Date; connectionState: string; isGuest: boolean }> {
     return Array.from(this.peerConnections.entries()).map(([sessionToken, pc]) => ({
       sessionToken,

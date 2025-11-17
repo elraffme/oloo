@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -88,6 +88,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }>>([]);
   const { balance } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
+  const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
+  const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
+  const [hasTURN, setHasTURN] = useState(false);
+  const [channelStatus, setChannelStatus] = useState<string>('disconnected');
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
@@ -719,9 +723,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
       await broadcastManagerRef.current.initializeChannel(supabase);
 
+      // Fetch ICE servers to check TURN availability
+      try {
+        const { data: iceData } = await supabase.functions.invoke('get-ice-servers');
+        if (iceData) {
+          setHasTURN(iceData.hasTURN);
+        }
+      } catch (err) {
+        console.error('Failed to fetch ICE servers:', err);
+      }
+
       // Small delay to ensure channel is ready
       setTimeout(() => {
         setIsBroadcastReady(true);
+        setChannelStatus('subscribed');
         console.log('Broadcast channel ready, viewers can now join');
       }, 1000);
 
@@ -768,6 +783,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         broadcastManagerRef.current.cleanup();
         broadcastManagerRef.current = null;
       }
+      setChannelStatus('disconnected');
 
       // Phase 1: Stop all media tracks
       if (streamRef.current) {
@@ -1079,6 +1095,69 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             <Sparkles className="w-3 h-3 text-amber-500" />
                             <span className="text-amber-500">{balance.gold_balance}</span>
                           </Badge>
+                        </div>
+                      )}
+                      
+                      {/* Broadcaster Diagnostics Toggle */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowBroadcasterDiagnostics(!showBroadcasterDiagnostics)}
+                        className="w-full justify-start"
+                      >
+                        <Activity className="w-4 h-4 mr-2" />
+                        {showBroadcasterDiagnostics ? 'Hide' : 'Show'} Diagnostics
+                      </Button>
+
+                      {/* Diagnostics Panel */}
+                      {showBroadcasterDiagnostics && (
+                        <div className="p-3 bg-background border border-border rounded-lg space-y-2">
+                          <div className="text-xs font-semibold text-primary mb-2">Connection Diagnostics</div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Channel Status:</span>
+                            <Badge variant={channelStatus === 'subscribed' ? 'default' : 'secondary'} className="text-[10px]">
+                              {channelStatus === 'subscribed' ? (
+                                <><CheckCircle2 className="w-3 h-3 mr-1" />Connected</>
+                              ) : (
+                                <><XCircle className="w-3 h-3 mr-1" />Disconnected</>
+                              )}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">TURN Server:</span>
+                            <Badge variant={hasTURN ? 'default' : 'destructive'} className="text-[10px]">
+                              {hasTURN ? 'Available' : 'Not Available'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Active Peers:</span>
+                            <Badge variant="secondary" className="text-[10px]">
+                              {broadcastManagerRef.current?.getViewerCount() || 0}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Broadcast Ready:</span>
+                            <Badge variant={isBroadcastReady ? 'default' : 'secondary'} className="text-[10px]">
+                              {isBroadcastReady ? 'Yes' : 'No'}
+                            </Badge>
+                          </div>
+                          <Button
+                            onClick={async () => {
+                              if (broadcastManagerRef.current) {
+                                await broadcastManagerRef.current.manuallyAnnounceReady();
+                                toast({
+                                  title: 'Signal Sent',
+                                  description: 'Reannounced ready signal to viewers',
+                                });
+                              }
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2"
+                          >
+                            <Radio className="w-3 h-3 mr-2" />
+                            Reannounce Ready
+                          </Button>
                         </div>
                       )}
                     </div>}
