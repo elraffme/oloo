@@ -323,7 +323,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     const fetchLiveStreams = async () => {
       try {
-        // Fetch only live streaming sessions - ended sessions are archived and hidden
+        // Fetch only live streaming sessions - ended/archived sessions are hidden
         const { data: streamsData, error: streamsError } = await supabase
           .from('streaming_sessions')
           .select('*')
@@ -431,6 +431,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       filter: 'is_private=eq.false'  // Only filter by privacy, not status
     }, (payload) => {
       console.log('Stream change detected:', payload.eventType);
+      
+      // Immediately remove ended/archived streams from UI
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        const updatedStream = payload.new as any;
+        if (updatedStream.status === 'ended' || updatedStream.status === 'archived') {
+          setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
+        }
+      }
+      
+      // Refetch to ensure we have the latest live streams
       fetchLiveStreams();
     }).subscribe();
     return () => {
@@ -471,18 +481,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         clearInterval(viewerCountIntervalRef.current);
       }
 
-      // 4. Update database if streaming (use ref for current value)
+      // 4. Update database if streaming (use ref for current value) - Archive immediately
       if (activeStreamIdRef.current) {
-        console.log('Updating stream status on unmount');
+        console.log('Archiving stream on unmount');
         supabase
           .from('streaming_sessions')
           .update({
-            status: 'ended',
+            status: 'archived',
             ended_at: new Date().toISOString(),
             current_viewers: 0
           })
           .eq('id', activeStreamIdRef.current)
-          .then(() => console.log('Stream status updated'));
+          .then(() => console.log('Stream archived on unmount'));
       }
     };
   }, []);
@@ -655,7 +665,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     setIsLoading(true);
     try {
-      // Phase 7: Check for existing active stream and end it
+      // Phase 7: Check for existing active stream and archive it
       const { data: existingStream } = await supabase
         .from('streaming_sessions')
         .select('id')
@@ -664,12 +674,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         .maybeSingle();
 
       if (existingStream) {
-        console.log('Found existing active stream, ending it first...');
-        // Auto-end the old stream
+        console.log('Found existing active stream, archiving it first...');
+        // Auto-archive the old stream
         await supabase
           .from('streaming_sessions')
           .update({
-            status: 'ended',
+            status: 'archived',
             ended_at: new Date().toISOString(),
             current_viewers: 0
           })
@@ -767,18 +777,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsCameraOn(false);
       setIsMicOn(false);
 
-      // Update database
+      // Update database - Archive immediately
       const { error } = await supabase
         .from('streaming_sessions')
         .update({
-          status: 'ended',
+          status: 'archived',
           ended_at: new Date().toISOString(),
           current_viewers: 0
         })
         .eq('id', activeStreamId);
 
       if (error) {
-        console.error('Error updating stream status:', error);
+        console.error('Error archiving stream:', error);
       }
 
       setIsStreaming(false);
@@ -787,8 +797,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       
       // Phase 6: Enhanced visual feedback
       toast({
-        title: "🎬 Stream ended successfully",
-        description: `Thanks for streaming! ${currentViewers} viewers watched. Camera turned off.`
+        title: "🎬 Stream ended and archived",
+        description: `Thanks for streaming! ${currentViewers} viewers watched. Stream archived.`
       });
     } catch (error: any) {
       console.error('Error ending stream:', error);
