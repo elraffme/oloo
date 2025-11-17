@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -389,6 +389,22 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
+  const handleRequestOfferAgain = () => {
+    if (viewerConnectionRef.current) {
+      viewerConnectionRef.current.requestOfferManually();
+      toast.info('Requesting connection offer...');
+    }
+  };
+
+  const handleTryTURNOnly = async () => {
+    if (viewerConnectionRef.current) {
+      await viewerConnectionRef.current.tryTURNOnly(supabase);
+      toast.info('Switching to TURN relay...');
+    }
+  };
+
+  const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
@@ -429,7 +445,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           />
           
           {connectionState !== 'streaming' && (
-            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black">
+            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black p-4">
               {connectionState === 'awaiting_user_interaction' ? (
                 <div className="flex flex-col items-center gap-4">
                   <Button
@@ -450,20 +466,53 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               )}
               
               {(connectionState === 'failed' || connectionState === 'timeout') && (
-                <div className="flex gap-2 mt-4">
+                <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
                   <Button
-                    onClick={handleHardReconnect}
+                    onClick={handleRequestOfferAgain}
                     variant="outline"
-                    className="text-white border-white hover:bg-white hover:text-black"
+                    className="text-white border-white hover:bg-white hover:text-black w-full"
                   >
-                    Retry Connection
+                    <Router className="w-4 h-4 mr-2" />
+                    Request Connection
                   </Button>
                   <Button
-                    onClick={() => window.location.reload()}
+                    onClick={handleTryTURNOnly}
                     variant="outline"
-                    className="text-white border-white/50 hover:bg-white/10"
+                    className="text-white border-white hover:bg-white hover:text-black w-full"
                   >
-                    Hard Reset
+                    <Zap className="w-4 h-4 mr-2" />
+                    Try TURN Relay
+                  </Button>
+                  <Button
+                    onClick={handleHardReconnect}
+                    variant="default"
+                    className="w-full"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Full Reconnect
+                  </Button>
+                </div>
+              )}
+
+              {showConnectionControls && connectionState !== 'failed' && connectionState !== 'timeout' && (
+                <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
+                  <Button
+                    onClick={handleRequestOfferAgain}
+                    variant="outline"
+                    size="sm"
+                    className="text-white border-white/50 hover:bg-white/10 w-full"
+                  >
+                    <Router className="w-4 h-4 mr-2" />
+                    Request Connection
+                  </Button>
+                  <Button
+                    onClick={handleTryTURNOnly}
+                    variant="outline"
+                    size="sm"
+                    className="text-white border-white/50 hover:bg-white/10 w-full"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Try TURN Relay
                   </Button>
                 </div>
               )}
@@ -531,14 +580,54 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                       ICE: {iceType}
                     </Badge>
                   )}
-                  {viewerConnectionRef.current && (
-                    <div className="absolute top-20 left-2 md:top-24 md:left-4 bg-black/70 text-white text-xs p-2 rounded max-w-xs max-h-32 overflow-y-auto">
-                      <div className="font-bold mb-1">Debug Log:</div>
-                      {viewerConnectionRef.current.getDebugLog().map((log, i) => (
-                        <div key={i} className="font-mono text-[10px]">{log}</div>
-                      ))}
+                  <div className="absolute top-20 left-2 md:top-24 md:left-4 bg-black/90 text-white text-xs p-3 rounded-lg max-w-xs border border-border/20">
+                    <div className="font-semibold mb-2 text-primary">Connection Info</div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">State:</span>
+                        <span className="font-medium">{connectionState}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ICE Type:</span>
+                        <span className="font-medium">{iceType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Session:</span>
+                        <span className="font-mono text-[10px]">{sessionToken?.slice(0, 8)}...</span>
+                      </div>
                     </div>
-                  )}
+                    {showConnectionControls && (
+                      <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
+                        <Button
+                          onClick={handleRequestOfferAgain}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start h-7 text-xs"
+                        >
+                          <Router className="w-3 h-3 mr-1" />
+                          Request Offer
+                        </Button>
+                        <Button
+                          onClick={handleTryTURNOnly}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start h-7 text-xs"
+                        >
+                          <Zap className="w-3 h-3 mr-1" />
+                          Force TURN
+                        </Button>
+                        <Button
+                          onClick={handleHardReconnect}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start h-7 text-xs"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Reconnect
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </>
