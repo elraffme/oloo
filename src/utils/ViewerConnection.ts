@@ -170,9 +170,11 @@ export class ViewerConnection {
     if (this.useRelayOnly && iceConfig.hasTURN) {
       config.iceTransportPolicy = 'relay';
       console.log('🔒 Using relay-only mode (TURN-only)');
+      this.addSignalingLog('🔒 Using TURN relay-only mode');
     }
 
     console.log('🧊 ICE servers:', iceConfig.iceServers.map(s => ({ urls: s.urls, hasAuth: !!(s as any).username })));
+    this.addSignalingLog(`🧊 ICE servers configured (TURN: ${iceConfig.hasTURN ? 'yes' : 'no'})`);
 
     this.peerConnection = new RTCPeerConnection(config);
 
@@ -343,88 +345,71 @@ export class ViewerConnection {
 
     // Set up channel and wait for broadcaster-ready signal
     let broadcasterReady = false;
+    let channelSubscribed = false;
     
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`)
-      .on('broadcast', { event: 'broadcaster-ready' }, () => {
-        broadcasterReady = true;
-        if (this.broadcasterReadyTimeout) {
-          clearTimeout(this.broadcasterReadyTimeout);
-          this.broadcasterReadyTimeout = null;
-        }
-        
-        const logMsg = '✓ Broadcaster is ready';
-        console.log(logMsg);
-        this.addDebugLog(logMsg);
-        
-        // Only transition states on first broadcaster-ready
-        if (!this.broadcasterReadyReceived) {
+      .on('broadcast', { event: 'broadcaster-ready' }, ({ payload }: any) => {
+        if (payload.streamId === this.streamId) {
+          broadcasterReady = true;
           this.broadcasterReadyReceived = true;
-          this.setState('joining');
+          this.addSignalingLog('✓ Broadcaster ready signal received');
           
-          // Send viewer-joined and start persistent retry until ack/offer
-          this.sendSignal('viewer-joined', {
-            sessionToken: this.sessionToken,
-            displayName: this.displayName,
-            isGuest: this.isGuest
-          });
-          this.addDebugLog(`📤 Sending viewer-joined (attempt 1)`);
+          if (this.broadcasterReadyTimeout) {
+            clearTimeout(this.broadcasterReadyTimeout);
+            this.broadcasterReadyTimeout = null;
+          }
           
-          let attemptCount = 1;
-          this.viewerJoinInterval = setInterval(() => {
-            if (this.viewerAcked) {
-              console.log('✓ Viewer acknowledged or offer received, stopping resend');
-              clearInterval(this.viewerJoinInterval!);
-              this.viewerJoinInterval = null;
-              return;
-            }
-            
-            attemptCount++;
-            if (attemptCount > 10) { // Max 10 attempts = 20s
-              console.error('❌ Failed to get acknowledgment after 10 attempts');
-              clearInterval(this.viewerJoinInterval!);
-              this.viewerJoinInterval = null;
-              return;
-            }
-            
-            console.log(`🔄 Re-sending viewer-joined (attempt ${attemptCount})`);
-            this.addDebugLog(`📤 Re-sending viewer-joined (attempt ${attemptCount})`);
+          // Only send viewer-joined if channel is subscribed
+          if (channelSubscribed && !this.viewerJoinedSent) {
+            this.setState('joining');
             this.sendSignal('viewer-joined', {
               sessionToken: this.sessionToken,
               displayName: this.displayName,
               isGuest: this.isGuest
             });
-          }, 2000);
-          
-          this.setState('awaiting_offer');
-        }
-        
-        // Set timeout for offer (increased to 20s for slower networks)
-        if (this.offerTimeout) clearTimeout(this.offerTimeout);
-        this.offerTimeout = setTimeout(() => {
-          console.error('❌ Offer timeout - broadcaster did not send offer in 20s');
-          
-          // Retry with relay-only if TURN available
-          if (!this.useRelayOnly && iceConfig.hasTURN) {
-            console.log('🔄 Offer timeout - retrying with TURN relay-only');
-            this.useRelayOnly = true;
-            this.disconnect();
-            setTimeout(() => this.connect(supabase), 1000);
-          } else {
-            this.setState('timeout');
+            this.viewerJoinedSent = true;
+            this.addSignalingLog(`📤 Sent viewer-joined (${this.displayName})`);
+            console.log('📤 Sent viewer-joined signal');
+            
+            // Set up retry with exponential backoff
+            let retryDelay = 2000;
+            let retryAttempts = 0;
+            const maxRetryAttempts = 5;
+            
+            const sendRetry = () => {
+              if (!this.viewerAcked && retryAttempts < maxRetryAttempts) {
+                retryAttempts++;
+                console.log(`⚠️ No ack yet, resending viewer-joined (attempt ${retryAttempts})...`);
+                this.sendSignal('viewer-joined', {
+                  sessionToken: this.sessionToken,
+                  displayName: this.displayName,
+                  isGuest: this.isGuest
+                });
+                this.addSignalingLog(`🔄 Resent viewer-joined (attempt ${retryAttempts})`);
+                
+                // Exponential backoff
+                retryDelay = Math.min(retryDelay * 1.5, 10000);
+                this.viewerJoinInterval = setTimeout(sendRetry, retryDelay) as any;
+              } else if (retryAttempts >= maxRetryAttempts) {
+                console.error('❌ Max retry attempts reached for viewer-joined');
+                this.setState('failed');
+              }
+            };
+            
+            this.viewerJoinInterval = setTimeout(sendRetry, retryDelay) as any;
           }
-        }, 20000);
+        }
       })
       .on('broadcast', { event: 'viewer-ack' }, ({ payload }: any) => {
         if (payload.sessionToken === this.sessionToken) {
-          const logMsg = '✓ Received viewer acknowledgment from broadcaster';
-          console.log(logMsg);
-          this.addDebugLog(logMsg);
+          console.log('✓ Received viewer acknowledgment from broadcaster');
+          this.addSignalingLog('✓ Received viewer-ack');
           this.viewerAcked = true;
           
           // Stop resending viewer-joined
           if (this.viewerJoinInterval) {
-            clearInterval(this.viewerJoinInterval);
+            clearTimeout(this.viewerJoinInterval as any);
             this.viewerJoinInterval = null;
           }
         }
@@ -432,27 +417,37 @@ export class ViewerConnection {
       .on('broadcast', { event: 'offer' }, this.handleOffer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .subscribe(async (status: string) => {
+        console.log('📡 Channel subscription status:', status);
+        
         if (status === 'SUBSCRIBED') {
+          channelSubscribed = true;
           console.log('✓ Viewer subscribed to channel');
+          this.addSignalingLog('✓ Channel subscribed, ready to communicate');
           
+          // Now safe to send viewer-joined if broadcaster is already ready
+          if (broadcasterReady && !this.viewerJoinedSent) {
+            this.setState('joining');
+            this.sendSignal('viewer-joined', {
+              sessionToken: this.sessionToken,
+              displayName: this.displayName,
+              isGuest: this.isGuest
+            });
+            this.viewerJoinedSent = true;
+            this.addSignalingLog(`📤 Sent viewer-joined (${this.displayName})`);
+            console.log('📤 Sent viewer-joined signal');
+          }
+          
+          // Set up broadcaster ready timeout
           this.broadcasterReadyTimeout = setTimeout(() => {
             if (!broadcasterReady) {
               console.error('❌ Timeout: Broadcaster is not online');
+              this.addSignalingLog('❌ Timeout waiting for broadcaster');
               this.setState('timeout');
             }
           }, 10000);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
-          if (!broadcasterReady) {
-            setTimeout(() => {
-              console.log('🔄 Re-sending viewer-joined after channel reconnect');
-              this.sendSignal('viewer-joined', { 
-                sessionToken: this.sessionToken,
-                displayName: this.displayName,
-                isGuest: this.isGuest
-              });
-            }, 1000);
-          }
+          console.warn(`⚠️ Channel status: ${status}`);
+          this.addSignalingLog(`⚠️ Channel status: ${status}`);
         }
       });
   }
@@ -460,19 +455,19 @@ export class ViewerConnection {
   private handleOffer = async ({ payload }: any) => {
     if (payload.sessionToken !== this.sessionToken) return;
 
-    const logMsg = '📥 Received offer from broadcaster';
-    console.log(logMsg);
-    this.addDebugLog(logMsg);
+    this.addSignalingLog('📥 Received offer from broadcaster');
+    console.log('📥 Received offer from broadcaster');
     
     // Mark as acknowledged - stop resending viewer-joined
     this.viewerAcked = true;
     if (this.viewerJoinInterval) {
-      clearInterval(this.viewerJoinInterval);
+      clearTimeout(this.viewerJoinInterval as any);
       this.viewerJoinInterval = null;
     }
     
     if (this.offerTimeout) {
       clearTimeout(this.offerTimeout);
+      this.offerTimeout = null;
     }
     
     this.setState('processing_offer');
@@ -480,15 +475,23 @@ export class ViewerConnection {
     try {
       const { offer } = payload;
       await this.peerConnection?.setRemoteDescription(new RTCSessionDescription(offer));
+      console.log('✓ Set remote description');
+      
+      // Send confirmation that offer was received
+      this.sendSignal('offer-received', { sessionToken: this.sessionToken });
+      this.addSignalingLog('📤 Sent offer-received confirmation');
       
       const answer = await this.peerConnection?.createAnswer();
       await this.peerConnection?.setLocalDescription(answer);
       
-      console.log('📤 Sending answer to broadcaster');
       this.sendSignal('answer', {
         sessionToken: this.sessionToken,
         answer
       });
+      this.addSignalingLog('📤 Sent answer to broadcaster');
+      console.log('📤 Sent answer to broadcaster');
+      
+      this.setState('awaiting_ice');
     } catch (error) {
       console.error('❌ Error processing offer:', error);
       this.setState('failed');
@@ -535,23 +538,50 @@ export class ViewerConnection {
   }
 
   disconnect() {
+    console.log('🧹 Disconnecting viewer');
+    this.addSignalingLog('🧹 Disconnecting viewer');
+    
+    // Clear all intervals and timeouts
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
     }
+    
     if (this.broadcasterReadyTimeout) {
       clearTimeout(this.broadcasterReadyTimeout);
+      this.broadcasterReadyTimeout = null;
     }
+    
     if (this.offerTimeout) {
       clearTimeout(this.offerTimeout);
+      this.offerTimeout = null;
     }
+    
     if (this.viewerJoinInterval) {
-      clearInterval(this.viewerJoinInterval);
+      clearTimeout(this.viewerJoinInterval as any);
       this.viewerJoinInterval = null;
     }
+    
+    if (this.videoPlaybackTimeout) {
+      clearTimeout(this.videoPlaybackTimeout);
+      this.videoPlaybackTimeout = null;
+    }
+    
+    // Send viewer-left signal before closing
     this.sendSignal('viewer-left', { sessionToken: this.sessionToken });
-    this.peerConnection?.close();
-    this.channel?.unsubscribe();
+    
+    // Close peer connection
+    if (this.peerConnection) {
+      this.peerConnection.close();
+      this.peerConnection = null;
+    }
+    
+    // Unsubscribe from channel
+    if (this.channel) {
+      this.channel.unsubscribe();
+      this.channel = null;
+    }
+    
     this.setState('disconnected');
   }
 }
