@@ -32,6 +32,7 @@ interface StreamData {
   current_viewers: number;
   status: 'live' | 'ended' | 'pending';
   created_at: string;
+  started_at?: string | null;
   category?: string;
   thumbnail?: string;
   ar_space_data?: {
@@ -362,6 +363,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             current_viewers: stream.current_viewers || 0,
             status: stream.status,
             created_at: stream.created_at,
+            started_at: stream.started_at,
             category: stream.ar_space_data?.category || 'General',
             thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
           };
@@ -399,23 +401,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
     fetchLiveStreams();
 
-    // Phase 4: Manual cleanup of stale streams on mount
+    // Phase 4: Force immediate cleanup on page load
     const cleanupStaleStreams = async () => {
       try {
-        const { error } = await supabase
+        // Call the database function
+        await supabase.rpc('cleanup_stale_live_streams');
+        console.log('✅ Stale streams cleanup completed');
+        
+        // Additionally, immediately archive any streams that are clearly stale
+        // (This provides instant cleanup without waiting for the function)
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+        const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
+        
+        const { error: immediateCleanupError } = await supabase
           .from('streaming_sessions')
           .update({
-            status: 'ended',
+            status: 'archived',
             ended_at: new Date().toISOString(),
             current_viewers: 0
           })
           .eq('status', 'live')
-          .lt('started_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString());
+          .or(`started_at.lt.${sixHoursAgo},and(started_at.is.null,created_at.lt.${oneHourAgo})`);
         
-        if (error) {
-          console.warn('Failed to cleanup stale streams:', error);
+        if (immediateCleanupError) {
+          console.warn('Failed immediate cleanup:', immediateCleanupError);
         } else {
-          console.log('✅ Stale streams cleanup completed');
+          console.log('✅ Immediate cleanup completed');
         }
       } catch (err) {
         console.warn('Failed to cleanup stale streams:', err);
@@ -886,9 +897,41 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
 
             {/* Live Streams Grid */}
-            {liveStreams.length > 0 ? (
+            {/* Phase 5: Filter out obviously stale streams client-side */}
+            {liveStreams.filter(stream => {
+              // If started_at is null and created more than 1 hour ago, it's stale
+              if (!stream.started_at && stream.created_at) {
+                const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
+                if (ageHours > 1) {
+                  console.warn('Filtering out stale stream:', stream.title);
+                  return false;
+                }
+              }
+              
+              // If started more than 6 hours ago, it's stale
+              if (stream.started_at) {
+                const ageHours = (Date.now() - new Date(stream.started_at).getTime()) / (1000 * 60 * 60);
+                if (ageHours > 6) {
+                  console.warn('Filtering out long-running stream:', stream.title);
+                  return false;
+                }
+              }
+              
+              return true;
+            }).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {liveStreams.map((stream) => (
+                {liveStreams.filter(stream => {
+                  // Apply same health check filter
+                  if (!stream.started_at && stream.created_at) {
+                    const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
+                    if (ageHours > 1) return false;
+                  }
+                  if (stream.started_at) {
+                    const ageHours = (Date.now() - new Date(stream.started_at).getTime()) / (1000 * 60 * 60);
+                    if (ageHours > 6) return false;
+                  }
+                  return true;
+                }).map((stream) => (
                   <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
