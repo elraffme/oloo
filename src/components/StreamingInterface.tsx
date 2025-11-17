@@ -319,13 +319,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [activeStreamId]);
 
-  // Initialize camera/mic on "Go Live" tab when navigating to it
-  useEffect(() => {
-    if (activeTab === 'go-live' && !hasCameraPermission && !isRequestingCamera) {
-      initializeMedia(true, false);
-    }
-  }, [activeTab]);
-
   // Fetch live streams from database (archived/ended sessions excluded)
   useEffect(() => {
     const fetchLiveStreams = async () => {
