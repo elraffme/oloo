@@ -23,6 +23,45 @@ export class BroadcastManager {
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
     this.localStream = localStream;
+    
+    // Validate stream has required tracks
+    this.validateStream();
+  }
+  
+  private validateStream() {
+    if (!this.localStream) {
+      throw new Error('No local stream provided');
+    }
+    
+    const videoTracks = this.localStream.getVideoTracks();
+    const audioTracks = this.localStream.getAudioTracks();
+    
+    console.log('🎥 BroadcastManager stream validation:');
+    console.log(`  Video tracks: ${videoTracks.length}`);
+    console.log(`  Audio tracks: ${audioTracks.length}`);
+    
+    videoTracks.forEach((track, i) => {
+      console.log(`  Video ${i}: enabled=${track.enabled}, state=${track.readyState}, label="${track.label}"`);
+    });
+    
+    audioTracks.forEach((track, i) => {
+      console.log(`  Audio ${i}: enabled=${track.enabled}, state=${track.readyState}, label="${track.label}"`);
+    });
+    
+    if (videoTracks.length === 0) {
+      throw new Error('No video track in stream - camera required for broadcasting');
+    }
+    
+    const videoTrack = videoTracks[0];
+    if (!videoTrack.enabled) {
+      throw new Error('Video track is disabled - please enable camera');
+    }
+    
+    if (videoTrack.readyState !== 'live') {
+      throw new Error(`Video track not live (state: ${videoTrack.readyState})`);
+    }
+    
+    console.log('✅ Stream validation passed');
   }
 
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
