@@ -399,13 +399,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
     fetchLiveStreams();
 
-    // Set up real-time subscription for new streams
+    // Phase 4: Manual cleanup of stale streams on mount
+    const cleanupStaleStreams = async () => {
+      try {
+        const { error } = await supabase
+          .from('streaming_sessions')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          })
+          .eq('status', 'live')
+          .lt('started_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString());
+        
+        if (error) {
+          console.warn('Failed to cleanup stale streams:', error);
+        } else {
+          console.log('✅ Stale streams cleanup completed');
+        }
+      } catch (err) {
+        console.warn('Failed to cleanup stale streams:', err);
+      }
+    };
+    cleanupStaleStreams();
+
+    // Phase 2: Set up real-time subscription for all stream changes
     const channel = supabase.channel('streaming_sessions_changes').on('postgres_changes', {
-      event: '*',
+      event: '*',  // Listen to INSERT, UPDATE, DELETE
       schema: 'public',
       table: 'streaming_sessions',
-      filter: 'status=eq.live,is_private=eq.false'
-    }, () => {
+      filter: 'is_private=eq.false'  // Only filter by privacy, not status
+    }, (payload) => {
+      console.log('Stream change detected:', payload.eventType);
       fetchLiveStreams();
     }).subscribe();
     return () => {
@@ -428,6 +453,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           console.log(`Stopped ${track.kind} track`);
         });
       }
+
+      // Phase 5: Reset permission states
+      setHasCameraPermission(false);
+      setHasMicPermission(false);
+      setIsCameraOn(false);
+      setIsMicOn(false);
       
       // 2. Cleanup broadcast manager
       if (broadcastManagerRef.current) {
@@ -624,6 +655,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     setIsLoading(true);
     try {
+      // Phase 7: Check for existing active stream and end it
+      const { data: existingStream } = await supabase
+        .from('streaming_sessions')
+        .select('id')
+        .eq('host_user_id', user.id)
+        .eq('status', 'live')
+        .maybeSingle();
+
+      if (existingStream) {
+        console.log('Found existing active stream, ending it first...');
+        // Auto-end the old stream
+        await supabase
+          .from('streaming_sessions')
+          .update({
+            status: 'ended',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          })
+          .eq('id', existingStream.id);
+      }
+
       const { data, error } = await supabase
         .from('streaming_sessions')
         .insert({
@@ -696,6 +748,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         broadcastManagerRef.current = null;
       }
 
+      // Phase 1: Stop all media tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log(`✅ Stopped ${track.kind} track`);
+        });
+        streamRef.current = null;
+      }
+
+      // Clear video preview
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.pause();
+      }
+
+      // Reset states
+      setIsCameraOn(false);
+      setIsMicOn(false);
+
       // Update database
       const { error } = await supabase
         .from('streaming_sessions')
@@ -714,9 +785,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setActiveStreamId(null);
       setCurrentViewers(0);
       
+      // Phase 6: Enhanced visual feedback
       toast({
-        title: "Stream ended",
-        description: `Thanks for streaming! ${currentViewers} viewers watched.`
+        title: "🎬 Stream ended successfully",
+        description: `Thanks for streaming! ${currentViewers} viewers watched. Camera turned off.`
       });
     } catch (error: any) {
       console.error('Error ending stream:', error);
