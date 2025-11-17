@@ -319,6 +319,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [activeStreamId]);
 
+  // Ensure video element srcObject is connected when camera turns on
+  useEffect(() => {
+    if (isCameraOn && videoRef.current && streamRef.current) {
+      // Only set if not already set or if it's different
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(err => {
+          console.error('Error playing video:', err);
+        });
+      }
+    }
+  }, [isCameraOn]);
+
   // Fetch live streams from database (archived/ended sessions excluded)
   useEffect(() => {
     const fetchLiveStreams = async () => {
