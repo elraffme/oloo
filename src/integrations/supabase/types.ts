@@ -2016,6 +2016,7 @@ export type Database = {
       }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
+      cleanup_stale_live_streams: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
       cleanup_stale_viewer_sessions: { Args: never; Returns: undefined }
       convert_gold_to_coins: { Args: { p_gold_amount: number }; Returns: Json }
