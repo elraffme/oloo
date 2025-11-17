@@ -761,22 +761,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         title: "🎥 You're Live!",
         description: `Broadcasting via WebRTC${isBroadcastReady ? '' : ' (preparing...)'}`
       });
-
-      // Navigate to view the stream
-      setViewingStreamId(data.id);
-      setViewingStreamData({
-        id: data.id,
-        title: data.title,
-        description: data.description || '',
-        host_user_id: data.host_user_id,
-        host_name: user.user_metadata?.display_name || 'You',
-        current_viewers: 0,
-        status: 'live' as const,
-        created_at: data.created_at,
-        started_at: data.started_at,
-        category: (data.ar_space_data as any)?.category || streamCategory,
-        total_likes: 0
-      });
     } catch (error: any) {
       console.error('Error starting stream:', error);
       toast({
