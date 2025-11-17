@@ -19,6 +19,7 @@ export class BroadcastManager {
   private offerAcked: Map<string, boolean> = new Map();
   private offerRetryTimers: Map<string, NodeJS.Timeout> = new Map();
   private lastSignalingEvents: Array<{time: string, event: string}> = [];
+  private onChannelStatusChange?: (status: 'connecting' | 'connected' | 'error' | 'closed') => void;
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -109,7 +110,12 @@ export class BroadcastManager {
     return [...this.lastSignalingEvents];
   }
 
+  setChannelStatusHandler(callback: (status: 'connecting' | 'connected' | 'error' | 'closed') => void) {
+    this.onChannelStatusChange = callback;
+  }
+
   async initializeChannel(supabase: any) {
+    this.onChannelStatusChange?.('connecting');
     await this.fetchIceServers(supabase);
     
     this.channel = supabase
@@ -130,6 +136,7 @@ export class BroadcastManager {
         
         if (status === 'SUBSCRIBED') {
           console.log('✓ Broadcaster channel ready, broadcasting ready signal');
+          this.onChannelStatusChange?.('connected');
           await new Promise(resolve => setTimeout(resolve, 500));
           
           const result = await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
@@ -140,8 +147,16 @@ export class BroadcastManager {
           this.broadcasterReadyInterval = setInterval(async () => {
             await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           }, 2000);
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
+          this.onChannelStatusChange?.('error');
+          if (this.broadcasterReadyInterval) {
+            clearInterval(this.broadcasterReadyInterval);
+            this.broadcasterReadyInterval = null;
+          }
+        } else if (status === 'CLOSED') {
+          console.warn(`⚠️ Channel closed`);
+          this.onChannelStatusChange?.('closed');
           if (this.broadcasterReadyInterval) {
             clearInterval(this.broadcasterReadyInterval);
             this.broadcasterReadyInterval = null;
