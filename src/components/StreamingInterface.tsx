@@ -536,14 +536,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // If we already have a stream, add new tracks to it
+      // Replace entire stream to avoid track mixing issues
       if (streamRef.current) {
-        newStream.getTracks().forEach(track => {
-          streamRef.current!.addTrack(track);
-        });
-      } else {
-        streamRef.current = newStream;
+        // Stop old tracks
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
+      
+      streamRef.current = newStream;
+      
+      // Log all tracks for debugging
+      console.log('📹 Initialized media with tracks:');
+      streamRef.current.getTracks().forEach(track => {
+        console.log(`  ${track.kind}: enabled=${track.enabled}, state=${track.readyState}, label="${track.label}"`);
+      });
 
       // Set video element once and play
       if (videoRef.current && streamRef.current) {

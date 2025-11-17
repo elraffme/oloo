@@ -81,6 +81,24 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     
     const handleLoadedMetadata = () => {
       console.log(`📹 Video metadata loaded: ${videoEl.videoWidth}x${videoEl.videoHeight}, readyState: ${videoEl.readyState}`);
+      
+      // Log all tracks when metadata loads
+      if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
+        const stream = videoEl.srcObject;
+        console.log('📹 Stream tracks at metadata:');
+        stream.getTracks().forEach(track => {
+          console.log(`  ${track.kind}: enabled=${track.enabled}, state=${track.readyState}, muted=${track.muted}`);
+          
+          // Setup track event listeners
+          track.onended = () => console.log(`❌ ${track.kind} track ended`);
+          track.onmute = () => console.log(`🔇 ${track.kind} track muted`);
+          track.onunmute = () => console.log(`🔊 ${track.kind} track unmuted`);
+        });
+        
+        const hasAudio = stream.getAudioTracks().length > 0;
+        const hasVideo = stream.getVideoTracks().length > 0;
+        console.log(`✓ Stream has: ${hasVideo ? '✅ Video' : '❌ Video'} ${hasAudio ? '✅ Audio' : '❌ Audio'}`);
+      }
     };
     
     const handleCanPlay = () => {

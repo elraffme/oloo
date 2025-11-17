@@ -276,21 +276,42 @@ export class ViewerConnection {
     };
 
     this.peerConnection.ontrack = (event) => {
-      this.addDebugLog('📹 Received remote track');
+      const track = event.track;
+      this.addDebugLog(`📹 Received ${track.kind} track: enabled=${track.enabled}, state=${track.readyState}`);
       
-      if (this.remoteVideoRef && event.streams[0]) {
+      // Set srcObject only once when first track arrives
+      if (this.remoteVideoRef && event.streams[0] && !this.remoteVideoRef.srcObject) {
         this.remoteVideoRef.srcObject = event.streams[0];
-        this.setState('streaming');
+        this.addDebugLog('✓ Set srcObject to remote stream');
         
-        this.videoPlaybackTimeout = setTimeout(() => {
-          if (this.remoteVideoRef && this.remoteVideoRef.paused) {
-            this.addDebugLog('▶️ Auto-playing video');
-            this.remoteVideoRef.play().catch((err) => {
-              this.addDebugLog(`⚠️ Autoplay blocked: ${err.message}`);
-              this.setState('awaiting_user_interaction');
-            });
-          }
-        }, 500);
+        // Log all tracks in the stream
+        event.streams[0].getTracks().forEach(t => {
+          this.addDebugLog(`  Track in stream: ${t.kind}, enabled=${t.enabled}, state=${t.readyState}`);
+        });
+      }
+      
+      // Check if we have both audio and video
+      if (this.remoteVideoRef?.srcObject) {
+        const stream = this.remoteVideoRef.srcObject as MediaStream;
+        const hasAudio = stream.getAudioTracks().length > 0;
+        const hasVideo = stream.getVideoTracks().length > 0;
+        
+        this.addDebugLog(`Stream status: audio=${hasAudio}, video=${hasVideo}`);
+        
+        // Only set to streaming when we have video (audio is optional)
+        if (hasVideo) {
+          this.setState('streaming');
+          
+          this.videoPlaybackTimeout = setTimeout(() => {
+            if (this.remoteVideoRef && this.remoteVideoRef.paused) {
+              this.addDebugLog('▶️ Auto-playing video');
+              this.remoteVideoRef.play().catch((err) => {
+                this.addDebugLog(`⚠️ Autoplay blocked: ${err.message}`);
+                this.setState('awaiting_user_interaction');
+              });
+            }
+          }, 500);
+        }
       }
     };
 
