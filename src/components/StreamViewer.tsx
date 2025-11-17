@@ -135,6 +135,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
+      
+      // Ensure video element is properly configured
+      const videoEl = videoRef.current;
+      videoEl.autoplay = true;
+      videoEl.playsInline = true;
+      videoEl.muted = true;
+      console.log('📹 Video element configured: autoplay, playsInline, muted');
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
@@ -238,21 +245,38 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
 
     initViewer();
-
+    
+    // Cleanup on unmount
     return () => {
-      const cleanup = async () => {
-        viewerConnectionRef.current?.disconnect();
-        
-        // Leave stream
+      console.log('🧹 StreamViewer unmounting, cleaning up...');
+      
+      // Disconnect viewer connection
+      if (viewerConnectionRef.current) {
+        viewerConnectionRef.current.disconnect();
+        viewerConnectionRef.current = null;
+      }
+      
+      // Leave stream - use async IIFE for cleanup
+      (async () => {
         if (sessionToken) {
-          await supabase.rpc('leave_stream_viewer', {
-            p_session_token: sessionToken
-          });
+          try {
+            await supabase.rpc('leave_stream_viewer', {
+              p_session_token: sessionToken
+            });
+            console.log('✓ Left stream successfully');
+          } catch (err) {
+            console.error('❌ Error leaving stream:', err);
+          }
         }
-      };
-      cleanup();
+      })();
+      
+      // Stop video playback
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
     };
-  }, [streamId, user]);
+  }, [streamId, user, hostUserId, sessionToken]);
 
   // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {

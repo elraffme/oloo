@@ -63,6 +63,7 @@ export class BroadcastManager {
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`)
       .on('broadcast', { event: 'viewer-joined' }, (payload: any) => this.handleViewerJoined(payload, supabase))
+      .on('broadcast', { event: 'offer-received' }, this.handleOfferReceived)
       .on('broadcast', { event: 'request-offer' }, this.handleRequestOffer)
       .on('broadcast', { event: 'answer' }, this.handleAnswer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
@@ -97,11 +98,32 @@ export class BroadcastManager {
       isGuest: isGuest || false
     });
 
-    // Send acknowledgment to viewer
+    // ALWAYS send acknowledgment, even for duplicate joins
     this.sendSignal('viewer-ack', { sessionToken });
     console.log(`✓ Sent viewer-ack to ${sessionToken.substring(0, 8)}...`);
     
+    // Check if peer connection already exists
+    if (this.peerConnections.has(sessionToken)) {
+      console.warn(`⚠️ Peer connection already exists for ${sessionToken}, resending offer`);
+      const pc = this.peerConnections.get(sessionToken);
+      if (pc && pc.localDescription) {
+        // Resend existing offer to help viewer who may have missed it
+        this.sendSignal('offer', { 
+          sessionToken, 
+          offer: pc.localDescription 
+        });
+        console.log(`📤 Resent existing offer to ${sessionToken.substring(0, 8)}...`);
+      }
+      return; // Don't create duplicate peer connection
+    }
+    
     await this.createPeerConnection(sessionToken, false, supabase);
+  }
+  
+  private handleOfferReceived = ({ payload }: any) => {
+    const { sessionToken } = payload;
+    console.log(`✓ Viewer ${sessionToken.substring(0, 8)}... confirmed offer received`);
+    this.answerReceived.set(sessionToken, true);
   }
 
   private async createPeerConnection(sessionToken: string, useRelayOnly = false, supabase: any) {
@@ -176,7 +198,7 @@ export class BroadcastManager {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log(`🧊 ICE connection state: ${pc.iceConnectionState}`);
+      console.log(`🧊 ICE connection state for ${sessionToken.substring(0, 8)}...: ${pc.iceConnectionState}`);
       if (pc.iceConnectionState === 'connected') {
         pc.getStats().then(stats => {
           stats.forEach(report => {
@@ -186,7 +208,7 @@ export class BroadcastManager {
           });
         });
       } else if (pc.iceConnectionState === 'failed') {
-        console.error(`❌ ICE failed for ${sessionToken}`);
+        console.error(`❌ ICE failed for ${sessionToken.substring(0, 8)}...`);
         const retries = this.retryAttempts.get(sessionToken) || 0;
         if (retries < 2 && !useRelayOnly && iceConfig.hasTURN) {
           console.log(`🔄 Retrying with relay-only mode (attempt ${retries + 1})`);
@@ -196,6 +218,31 @@ export class BroadcastManager {
         } else {
           pc.restartIce();
         }
+      }
+    };
+    
+    // Monitor peer connection state with auto-cleanup
+    pc.onconnectionstatechange = () => {
+      console.log(`📡 Peer connection state for ${sessionToken.substring(0, 8)}...: ${pc.connectionState}`);
+      
+      if (pc.connectionState === 'failed') {
+        console.error(`❌ Connection failed for viewer ${sessionToken.substring(0, 8)}...`);
+        // Give it 5 seconds to recover, then cleanup
+        setTimeout(() => {
+          if (pc.connectionState === 'failed') {
+            console.log(`🗑️ Cleaning up failed connection for ${sessionToken.substring(0, 8)}...`);
+            this.removePeerConnection(sessionToken);
+          }
+        }, 5000);
+      } else if (pc.connectionState === 'disconnected') {
+        console.warn(`⚠️ Connection disconnected for viewer ${sessionToken.substring(0, 8)}...`);
+        // Give it 30 seconds to reconnect
+        setTimeout(() => {
+          if (pc.connectionState === 'disconnected') {
+            console.log(`🗑️ Cleaning up disconnected connection for ${sessionToken.substring(0, 8)}...`);
+            this.removePeerConnection(sessionToken);
+          }
+        }, 30000);
       }
     };
 
