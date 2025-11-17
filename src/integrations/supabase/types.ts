@@ -1896,6 +1896,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webrtc_signals: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          role: string
+          session_token: string
+          stream_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          role: string
+          session_token: string
+          stream_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          role?: string
+          session_token?: string
+          stream_id?: string
+          type?: string
+        }
+        Relationships: []
+      }
       xp_transactions: {
         Row: {
           amount: number
@@ -2016,6 +2046,7 @@ export type Database = {
       }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
+      cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
       cleanup_stale_viewer_sessions: { Args: never; Returns: undefined }
