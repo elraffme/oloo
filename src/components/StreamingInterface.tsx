@@ -19,6 +19,7 @@ import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
 import { LikeAnimation } from '@/components/LikeAnimation';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
+import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 
 interface StreamingInterfaceProps {
   onBack?: () => void;
@@ -75,6 +76,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [viewingStreamId, setViewingStreamId] = useState<string | null>(null);
   const [viewingStreamData, setViewingStreamData] = useState<StreamData | null>(null);
   const [isBroadcastReady, setIsBroadcastReady] = useState(false);
+  const [streamLifecycle, setStreamLifecycle] = useState<'idle' | 'preparing' | 'waiting' | 'live' | 'ending' | 'ended'>('idle');
+  const [channelStatus, setChannelStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const broadcastManagerRef = useRef<BroadcastManager | null>(null);
   const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
@@ -91,7 +94,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
-  const [channelStatus, setChannelStatus] = useState<string>('disconnected');
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
@@ -684,7 +686,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     console.log(`📹 Video: ${settings.width}x${settings.height}, enabled: ${videoTrack.enabled}, state: ${videoTrack.readyState}`);
 
     setIsLoading(true);
+    setStreamLifecycle('preparing');
+
     try {
+      console.log("🎬 Starting stream...");
+      console.log("Stream payload:", {
+        title: streamTitle,
+        description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
+        host_user_id: user.id,
+        category: streamCategory
+      });
+
       // Phase 7: Check for existing active stream and archive it
       const { data: existingStream } = await supabase
         .from('streaming_sessions')
@@ -712,20 +724,59 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           title: streamTitle,
           description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
           host_user_id: user.id,
-          status: 'live',
-          started_at: new Date().toISOString(),
+          status: 'waiting',
           is_private: false,
           ar_space_data: { category: streamCategory || 'General' }
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
+      }
 
+      console.log("Stream created:", data);
       setActiveStreamId(data.id);
+      activeStreamIdRef.current = data.id;
+      setIsStreaming(true);
+      setStreamLifecycle('waiting');
 
       // Initialize broadcast manager with current stream
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
+      
+      // Set up status handler
+      broadcastManagerRef.current.setChannelStatusHandler(async (status) => {
+        console.log('Channel status changed:', status);
+        
+        if (status === 'connecting') {
+          setChannelStatus('connecting');
+        } else if (status === 'connected') {
+          setChannelStatus('connected');
+          
+          // Update stream to live once channel is ready
+          const { error: updateError } = await supabase
+            .from('streaming_sessions')
+            .update({ 
+              status: 'live', 
+              started_at: new Date().toISOString() 
+            })
+            .eq('id', data.id);
+          
+          if (updateError) {
+            console.error('Error updating stream to live:', updateError);
+          } else {
+            console.log('✅ Stream is now live');
+            setStreamLifecycle('live');
+            setIsBroadcastReady(true);
+          }
+        } else if (status === 'error') {
+          setChannelStatus('error');
+        } else if (status === 'closed') {
+          setChannelStatus('disconnected');
+        }
+      });
+      
       await broadcastManagerRef.current.initializeChannel(supabase);
 
       // Fetch ICE servers to check TURN availability
@@ -738,13 +789,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         console.error('Failed to fetch ICE servers:', err);
       }
 
-      // Small delay to ensure channel is ready
-      setTimeout(() => {
-        setIsBroadcastReady(true);
-        setChannelStatus('subscribed');
-        console.log('Broadcast channel ready, viewers can now join');
-      }, 1000);
-
       // Update viewer count periodically
       viewerCountIntervalRef.current = setInterval(async () => {
         const count = broadcastManagerRef.current?.getViewerCount() || 0;
@@ -756,25 +800,45 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           .eq('id', data.id);
       }, 3000);
 
-      setIsStreaming(true);
+      console.log('✅ Broadcast setup initiated');
+      setIsLoading(false);
+
       toast({
-        title: "🎥 You're Live!",
-        description: `Broadcasting via WebRTC${isBroadcastReady ? '' : ' (preparing...)'}`
+        title: "🎥 Stream Starting...",
+        description: "Establishing broadcast connection"
       });
     } catch (error: any) {
       console.error('Error starting stream:', error);
+      
+      // Enhanced error messages
+      let errorTitle = "Failed to start stream";
+      let errorDescription = error.message || "Unknown error";
+      
+      if (error.code) {
+        errorDescription = `Error ${error.code}: ${error.message}`;
+      }
+      
+      if (error.hint) {
+        errorDescription += `\nHint: ${error.hint}`;
+      }
+      
       toast({
-        title: "Failed to start stream",
-        description: error.message || "Please try again.",
-        variant: "destructive"
+        title: errorTitle,
+        description: errorDescription,
+        variant: "destructive",
+        duration: 10000
       });
-    } finally {
+      
+      setStreamLifecycle('idle');
+      setChannelStatus('disconnected');
+      setIsStreaming(false);
       setIsLoading(false);
     }
   };
   const endStream = async () => {
     if (!activeStreamId) return;
 
+    setStreamLifecycle('ending');
     setIsLoading(true);
     try {
       // Cleanup viewer count interval
@@ -826,6 +890,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsStreaming(false);
       setActiveStreamId(null);
       setCurrentViewers(0);
+      setTotalLikes(0);
+      setTotalGifts(0);
+      setStreamLifecycle('ended');
+      setChannelStatus('disconnected');
       
       // Phase 6: Enhanced visual feedback
       toast({
@@ -1120,8 +1188,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           <div className="text-xs font-semibold text-primary mb-2">Connection Diagnostics</div>
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Channel Status:</span>
-                            <Badge variant={channelStatus === 'subscribed' ? 'default' : 'secondary'} className="text-[10px]">
-                              {channelStatus === 'subscribed' ? (
+                            <Badge variant={channelStatus === 'connected' ? 'default' : 'secondary'} className="text-[10px]">
+                              {channelStatus === 'connected' ? (
                                 <><CheckCircle2 className="w-3 h-3 mr-1" />Connected</>
                               ) : (
                                 <><XCircle className="w-3 h-3 mr-1" />Disconnected</>
@@ -1284,11 +1352,37 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </p>
                   </div>
 
+                  {/* Diagnostics Panel - Show when streaming */}
+                  {isStreaming && activeStreamId && (
+                    <div className="mt-4">
+                      <StreamDiagnostics 
+                        data={{
+                          streamId: activeStreamId,
+                          lifecycle: streamLifecycle,
+                          channelStatus: channelStatus,
+                          viewerCount: currentViewers,
+                          videoTracks: streamRef.current?.getVideoTracks().length || 0,
+                          audioTracks: streamRef.current?.getAudioTracks().length || 0,
+                          videoEnabled: streamRef.current?.getVideoTracks()[0]?.enabled || false,
+                          audioEnabled: streamRef.current?.getAudioTracks()[0]?.enabled || false,
+                          hasTURN: hasTURN,
+                          broadcastReady: isBroadcastReady
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {/* Go Live Button */}
                   <div className="mt-6 space-y-2">
                     {!isStreaming ? (
                       <>
-                        <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !hasCameraPermission} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                        <Button onClick={startStream} disabled={
+                          !streamTitle.trim() || 
+                          isLoading || 
+                          !streamRef.current || 
+                          streamRef.current.getVideoTracks().length === 0 ||
+                          streamRef.current.getVideoTracks()[0]?.readyState !== 'live'
+                        } className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button>
                         {hasCameraPermission && (
