@@ -1223,32 +1223,65 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
-                    {/* Permission Buttons */}
-                    {(!hasCameraPermission || !hasMicPermission) && <div className="grid grid-cols-2 gap-2">
-                        {!hasCameraPermission && <Button onClick={() => initializeMedia(true, false)} disabled={isRequestingCamera} variant="outline" size="sm">
-                            <Video className="w-4 h-4 mr-2" />
-                            {isRequestingCamera ? 'Enabling...' : 'Enable Camera'}
-                          </Button>}
-                        {!hasMicPermission && <Button onClick={() => initializeMedia(false, true)} disabled={isRequestingMic} variant="outline" size="sm">
-                            <Mic className="w-4 h-4 mr-2" />
-                            {isRequestingMic ? 'Enabling...' : 'Enable Mic'}
-                          </Button>}
-                      </div>}
+                    {/* Permission Buttons - Always Visible */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={() => initializeMedia(true, false)} 
+                        disabled={isRequestingCamera || (hasCameraPermission && isCameraOn)} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        <Video className="w-4 h-4 mr-2" />
+                        {isRequestingCamera ? 'Enabling...' : 
+                         !hasCameraPermission ? 'Enable Camera' :
+                         !isCameraOn ? 'Camera Off - Enable' :
+                         'Camera Enabled ✓'}
+                      </Button>
+                      <Button 
+                        onClick={() => initializeMedia(false, true)} 
+                        disabled={isRequestingMic || (hasMicPermission && isMicOn)} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        <Mic className="w-4 h-4 mr-2" />
+                        {isRequestingMic ? 'Enabling...' : 
+                         !hasMicPermission ? 'Enable Mic' :
+                         !isMicOn ? 'Mic Off - Enable' :
+                         'Mic Enabled ✓'}
+                      </Button>
+                    </div>
                     
-                    {/* Toggle Controls */}
-                    {(hasCameraPermission || hasMicPermission) && <div className="flex items-center justify-center space-x-4">
-                        <Button variant={isCameraOn ? "default" : "secondary"} size="sm" onClick={toggleCamera} disabled={!hasCameraPermission}>
-                          {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
-                        </Button>
-                        
-                        <Button variant={isMicOn ? "default" : "secondary"} size="sm" onClick={toggleMicrophone} disabled={!hasMicPermission}>
-                          {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                        </Button>
-                        
-                        <Button variant="ghost" size="sm" onClick={() => setShowTroubleshooting(true)}>
-                          <Settings className="w-4 h-4" />
-                        </Button>
-                      </div>}
+                    {/* Toggle Controls - Always Visible */}
+                    <div className="flex items-center justify-center space-x-4">
+                      <Button 
+                        variant={isCameraOn ? "default" : "secondary"} 
+                        size="sm" 
+                        onClick={toggleCamera} 
+                        disabled={!hasCameraPermission}
+                      >
+                        {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                      </Button>
+                      
+                      <Button 
+                        variant={isMicOn ? "default" : "secondary"} 
+                        size="sm" 
+                        onClick={toggleMicrophone} 
+                        disabled={!hasMicPermission}
+                      >
+                        {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                      </Button>
+                      
+                      <Button variant="ghost" size="sm" onClick={() => setShowTroubleshooting(true)}>
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Helper Text */}
+                    <p className="text-xs text-muted-foreground text-center">
+                      {!hasCameraPermission || !hasMicPermission
+                        ? 'Grant camera and mic permissions to go live'
+                        : 'Camera and mic are ready'}
+                    </p>
                   </div>
 
                   {/* Go Live Button */}
