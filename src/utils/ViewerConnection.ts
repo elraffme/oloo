@@ -473,6 +473,13 @@ export class ViewerConnection {
     this.addSignalingLog('Offer received');
     this.offerReceived = true;
     
+    // CRITICAL: Send offer-received ACK immediately
+    this.channel.send({
+      type: 'broadcast',
+      event: 'offer-received',
+      payload: { sessionToken: this.sessionToken }
+    });
+    
     if (this.requestOfferTimer) {
       clearTimeout(this.requestOfferTimer);
       this.requestOfferTimer = null;
