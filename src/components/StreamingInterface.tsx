@@ -1398,9 +1398,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           !streamTitle.trim() || 
                           isLoading || 
                           !isCameraOn ||
+                          !isMicOn ||
                           !streamRef.current || 
                           !streamRef.current.getVideoTracks()[0]?.enabled ||
-                          streamRef.current.getVideoTracks()[0]?.readyState !== 'live'
+                          streamRef.current.getVideoTracks()[0]?.readyState !== 'live' ||
+                          !streamRef.current.getAudioTracks()[0]?.enabled ||
+                          streamRef.current.getAudioTracks()[0]?.readyState !== 'live'
                         } className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button>
