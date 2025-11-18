@@ -4,6 +4,13 @@ interface ICEServerConfig {
   warning?: string;
 }
 
+interface ConnectionQuality {
+  quality: 'excellent' | 'good' | 'fair' | 'poor';
+  packetLoss: number;
+  rtt: number;
+  bitrate: number;
+}
+
 export class BroadcastManager {
   private peerConnections: Map<string, RTCPeerConnection> = new Map();
   private localStream: MediaStream | null = null;
@@ -20,6 +27,8 @@ export class BroadcastManager {
   private offerRetryTimers: Map<string, NodeJS.Timeout> = new Map();
   private lastSignalingEvents: Array<{time: string, event: string}> = [];
   private onChannelStatusChange?: (status: 'connecting' | 'connected' | 'error' | 'closed') => void;
+  private qualityMonitoringInterval: NodeJS.Timeout | null = null;
+  private connectionQuality: Map<string, ConnectionQuality> = new Map();
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -82,7 +91,12 @@ export class BroadcastManager {
         console.warn('⚠️ ICE server warning:', data.warning);
       }
       
-      console.log(`✓ Fetched ICE config: ${data.hasTURN ? 'TURN+STUN' : 'STUN only'}`);
+      console.log('🔍 ICE Config fetched:', {
+        hasTURN: data.hasTURN,
+        serverCount: data.iceServers?.length,
+        servers: data.iceServers?.map((s: RTCIceServer) => s.urls)
+      });
+      
       return data;
     } catch (error) {
       console.error('Failed to fetch ICE servers, using STUN fallback:', error);
@@ -96,6 +110,78 @@ export class BroadcastManager {
         warning: 'Failed to load TURN config'
       };
     }
+  }
+
+  private async monitorConnectionQuality(sessionToken: string, pc: RTCPeerConnection) {
+    try {
+      const stats = await pc.getStats();
+      let packetLoss = 0;
+      let rtt = 0;
+      let bitrate = 0;
+
+      for (const report of stats.values()) {
+        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+          const sent = report.packetsSent || 0;
+          const retransmitted = report.retransmittedPacketsSent || 0;
+          if (sent > 0) {
+            packetLoss = (retransmitted / sent) * 100;
+          }
+          bitrate = (report.bytesSent || 0) * 8 / 1000; // kbps
+        }
+
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          rtt = report.currentRoundTripTime ? report.currentRoundTripTime * 1000 : 0;
+        }
+      }
+
+      let quality: 'excellent' | 'good' | 'fair' | 'poor' = 'excellent';
+      if (packetLoss > 5 || rtt > 300) {
+        quality = 'poor';
+        await this.adjustBitrate(pc, 'poor');
+      } else if (packetLoss > 2 || rtt > 200) {
+        quality = 'fair';
+        await this.adjustBitrate(pc, 'fair');
+      } else if (packetLoss > 1 || rtt > 100) {
+        quality = 'good';
+        await this.adjustBitrate(pc, 'good');
+      }
+
+      this.connectionQuality.set(sessionToken, { quality, packetLoss, rtt, bitrate });
+      
+      if (quality === 'poor') {
+        console.warn(`⚠️ Poor connection quality for ${sessionToken.substring(0, 8)}: ${packetLoss.toFixed(1)}% loss, ${rtt.toFixed(0)}ms RTT`);
+      }
+    } catch (error) {
+      console.error('Error monitoring connection quality:', error);
+    }
+  }
+
+  private async adjustBitrate(pc: RTCPeerConnection, quality: 'excellent' | 'good' | 'fair' | 'poor') {
+    const bitrateMap = {
+      excellent: 2500000, // 2.5 Mbps
+      good: 1500000,      // 1.5 Mbps
+      fair: 800000,       // 800 Kbps
+      poor: 400000        // 400 Kbps
+    };
+
+    try {
+      const senders = pc.getSenders();
+      const videoSender = senders.find(s => s.track?.kind === 'video');
+      
+      if (videoSender) {
+        const params = videoSender.getParameters();
+        if (!params.encodings) params.encodings = [{}];
+        params.encodings[0].maxBitrate = bitrateMap[quality];
+        await videoSender.setParameters(params);
+        console.log(`📊 Adjusted bitrate to ${(bitrateMap[quality] / 1000000).toFixed(1)} Mbps (${quality})`);
+      }
+    } catch (error) {
+      console.error('Error adjusting bitrate:', error);
+    }
+  }
+
+  getConnectionQuality(sessionToken: string): ConnectionQuality | undefined {
+    return this.connectionQuality.get(sessionToken);
   }
 
   private logSignalingEvent(event: string) {
@@ -298,6 +384,17 @@ export class BroadcastManager {
 
       const pc = new RTCPeerConnection(pcConfig);
       
+      // Start monitoring connection quality every 3 seconds
+      if (!this.qualityMonitoringInterval) {
+        this.qualityMonitoringInterval = setInterval(() => {
+          this.peerConnections.forEach((pc, token) => {
+            if (pc.connectionState === 'connected') {
+              this.monitorConnectionQuality(token, pc);
+            }
+          });
+        }, 3000);
+      }
+      
       pc.onconnectionstatechange = () => {
         console.log(`🔗 Peer ${sessionToken.substring(0, 8)}... connection: ${pc.connectionState}`);
         
@@ -492,6 +589,12 @@ export class BroadcastManager {
   cleanup() {
     console.log('🧹 Cleaning up broadcast manager');
     
+    // Clear quality monitoring
+    if (this.qualityMonitoringInterval) {
+      clearInterval(this.qualityMonitoringInterval);
+      this.qualityMonitoringInterval = null;
+    }
+    
     if (this.broadcasterReadyInterval) {
       clearInterval(this.broadcasterReadyInterval);
       this.broadcasterReadyInterval = null;
@@ -517,6 +620,7 @@ export class BroadcastManager {
     this.retryAttempts.clear();
     this.answerReceived.clear();
     this.offerAcked.clear();
+    this.connectionQuality.clear();
   }
 
   getViewerCount(): number {

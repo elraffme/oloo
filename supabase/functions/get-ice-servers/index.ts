@@ -45,9 +45,16 @@ Deno.serve(async (req) => {
       }
       
       hasTURN = urls.length > 0;
-      console.log(`✓ Configured ${urls.length} TURN server(s)`);
+      console.log(`✓ Configured ${urls.length} TURN server(s):`, urls);
+      console.log('  TURN Username:', turnUsername);
+      console.log('  Credential length:', turnCredential.length);
     } else {
       console.warn('⚠️ TURN servers not configured - NAT traversal may fail');
+      console.warn('  Missing:', { 
+        turnUrls: !turnUrls, 
+        turnUsername: !turnUsername, 
+        turnCredential: !turnCredential 
+      });
     }
 
     // Always add STUN servers as fallback
