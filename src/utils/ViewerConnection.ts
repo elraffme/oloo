@@ -27,7 +27,9 @@ export class ViewerConnection {
   private displayName: string;
   private isGuest: boolean;
   private retryCount = 0;
-  private maxRetries = 3;
+  private maxRetries = 4;
+  private reconnectAttempt = 0;
+  private maxReconnectAttempts = 4;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private connectionState: ConnectionState = 'disconnected';
   private broadcasterReadyTimeout: NodeJS.Timeout | null = null;
@@ -243,18 +245,24 @@ export class ViewerConnection {
       if (state === 'connected') {
         this.setState('connected');
         this.clearAllTimers();
+        this.reconnectAttempt = 0; // Reset reconnect counter on success
       } else if (state === 'failed') {
-        this.addDebugLog('❌ Connection failed, will retry with TURN');
+        this.addDebugLog('❌ Connection failed');
         this.setState('failed');
         
+        // Try TURN-only first
         if (!this.useRelayOnly && iceConfig.hasTURN) {
           this.addDebugLog('🔄 Retrying with TURN relay only');
           this.useRelayOnly = true;
           this.disconnect();
           setTimeout(() => this.connect(supabase), 1000);
+        } else {
+          // Attempt reconnection with exponential backoff
+          this.attemptReconnection(supabase);
         }
       } else if (state === 'disconnected') {
-        this.setState('failed');
+        this.addDebugLog('⚠️ Connection disconnected, attempting reconnection');
+        this.attemptReconnection(supabase);
       }
     };
 
@@ -608,6 +616,33 @@ export class ViewerConnection {
     
     await new Promise(resolve => setTimeout(resolve, 1000));
     await this.connect(supabase);
+  }
+
+  private attemptReconnection(supabase: any) {
+    if (this.reconnectAttempt >= this.maxReconnectAttempts) {
+      this.addDebugLog(`❌ Max reconnection attempts (${this.maxReconnectAttempts}) reached`);
+      this.setState('failed');
+      return;
+    }
+
+    this.reconnectAttempt++;
+    const delays = [1000, 2000, 5000, 10000]; // Exponential backoff: 1s, 2s, 5s, 10s
+    const delay = delays[Math.min(this.reconnectAttempt - 1, delays.length - 1)];
+
+    this.addDebugLog(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempt}/${this.maxReconnectAttempts})`);
+    this.setState('checking_broadcaster');
+
+    setTimeout(async () => {
+      this.disconnect();
+      this.retryCount = 0;
+      this.viewerJoinedSent = false;
+      this.viewerAcked = false;
+      this.offerReceived = false;
+      this.broadcasterReadyReceived = false;
+      this.requestOfferCount = 0;
+      
+      await this.connect(supabase);
+    }, delay);
   }
 
   private clearAllTimers() {

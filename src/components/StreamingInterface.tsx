@@ -20,6 +20,7 @@ import { LikeAnimation } from '@/components/LikeAnimation';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
+import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
 
 interface StreamingInterfaceProps {
   onBack?: () => void;
@@ -1187,6 +1188,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <Activity className="w-4 h-4 mr-2" />
                         {showBroadcasterDiagnostics ? 'Hide' : 'Show'} Diagnostics
                       </Button>
+
+                      {/* Connection Quality Monitor */}
+                      {isStreaming && broadcastManagerRef.current && broadcastManagerRef.current.getViewerCount() > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-xs font-semibold text-primary">Broadcast Quality</div>
+                          <ConnectionStatusIndicator
+                            peerConnection={(Array.from((broadcastManagerRef.current as any).peerConnections?.values() || [])[0] as RTCPeerConnection) || null}
+                            isConnected={true}
+                            compact={true}
+                          />
+                        </div>
+                      )}
 
                       {/* Diagnostics Panel */}
                       {showBroadcasterDiagnostics && (
