@@ -154,6 +154,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     const initViewer = async () => {
       if (!videoRef.current) return;
       
+      // Prevent multiple simultaneous initializations
+      if (viewerConnectionRef.current) {
+        console.log('⚠️ Connection already exists, skipping re-init');
+        return;
+      }
+      
       // Ensure video element is properly configured
       const videoEl = videoRef.current;
       videoEl.autoplay = true;
@@ -268,15 +274,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     return () => {
       console.log('🧹 StreamViewer unmounting, cleaning up...');
       
+      // Only cleanup if we actually have a connection
+      const hasActiveConnection = viewerConnectionRef.current !== null;
+      
       // Disconnect viewer connection
-      if (viewerConnectionRef.current) {
+      if (hasActiveConnection) {
         viewerConnectionRef.current.disconnect();
         viewerConnectionRef.current = null;
       }
       
-      // Leave stream - use async IIFE for cleanup
+      // Leave stream - only if we successfully joined
       (async () => {
-        if (sessionToken) {
+        if (sessionToken && hasActiveConnection) {
           try {
             await supabase.rpc('leave_stream_viewer', {
               p_session_token: sessionToken
@@ -294,7 +303,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         videoRef.current.srcObject = null;
       }
     };
-  }, [streamId, user, hostUserId, sessionToken]);
+  }, [streamId, user, hostUserId]);
 
   // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {
