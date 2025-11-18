@@ -447,27 +447,67 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
     cleanupStaleStreams();
 
-    // Phase 2: Set up real-time subscription for all stream changes
+    // Phase 2: Set up real-time subscription with debounced refetch
+    let refetchTimeout: NodeJS.Timeout | null = null;
+    const debouncedRefetch = () => {
+      if (refetchTimeout) clearTimeout(refetchTimeout);
+      refetchTimeout = setTimeout(() => {
+        fetchLiveStreams();
+      }, 500); // Only refetch once every 500ms max
+    };
+
     const channel = supabase.channel('streaming_sessions_changes').on('postgres_changes', {
-      event: '*',  // Listen to INSERT, UPDATE, DELETE
+      event: '*',
       schema: 'public',
       table: 'streaming_sessions',
-      filter: 'is_private=eq.false'  // Only filter by privacy, not status
+      filter: 'is_private=eq.false'
     }, (payload) => {
-      console.log('Stream change detected:', payload.eventType);
-      
-      // Immediately remove ended/archived streams from UI
-      if (payload.eventType === 'UPDATE' && payload.new) {
-        const updatedStream = payload.new as any;
-        if (updatedStream.status === 'ended' || updatedStream.status === 'archived') {
-          setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
-        }
+      // Handle DELETE - always remove from UI
+      if (payload.eventType === 'DELETE' && payload.old) {
+        setLiveStreams(prev => prev.filter(s => s.id !== (payload.old as any).id));
+        return;
       }
       
-      // Refetch to ensure we have the latest live streams
-      fetchLiveStreams();
+      // Handle UPDATE - optimize state updates
+      if (payload.eventType === 'UPDATE' && payload.new) {
+        const updatedStream = payload.new as any;
+        
+        // If stream ended/archived, remove immediately without refetch
+        if (updatedStream.status === 'ended' || updatedStream.status === 'archived') {
+          setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
+          return;
+        }
+        
+        // If stream is now live, add/update optimistically
+        if (updatedStream.status === 'live') {
+          setLiveStreams(prev => {
+            const exists = prev.find(s => s.id === updatedStream.id);
+            if (exists) {
+              // Update existing stream
+              return prev.map(s => s.id === updatedStream.id ? { ...s, current_viewers: updatedStream.current_viewers, total_likes: updatedStream.total_likes } : s);
+            }
+            // Don't auto-add, let the debounced refetch handle it
+            return prev;
+          });
+        }
+        
+        // Only trigger debounced refetch for meaningful updates
+        // (avoid refetch on minor updates like viewer count changes)
+        const oldStream = payload.old as any;
+        if (oldStream && oldStream.status !== updatedStream.status) {
+          debouncedRefetch();
+        }
+        return;
+      }
+      
+      // Handle INSERT - new stream created, refetch
+      if (payload.eventType === 'INSERT') {
+        debouncedRefetch();
+      }
     }).subscribe();
+    
     return () => {
+      if (refetchTimeout) clearTimeout(refetchTimeout);
       supabase.removeChannel(channel);
     };
   }, []);
