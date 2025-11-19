@@ -585,17 +585,39 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // Replace entire stream to avoid track mixing issues
+      // Smart track management: only stop tracks being replaced
       if (streamRef.current) {
-        // Stop old tracks
-        streamRef.current.getTracks().forEach(track => track.stop());
+        if (requestVideo) {
+          // Stop old video tracks if requesting new video
+          streamRef.current.getVideoTracks().forEach(track => {
+            console.log('🛑 Stopping old video track');
+            track.stop();
+            streamRef.current?.removeTrack(track);
+          });
+        }
+        
+        if (requestAudio) {
+          // Stop old audio tracks if requesting new audio
+          streamRef.current.getAudioTracks().forEach(track => {
+            console.log('🛑 Stopping old audio track');
+            track.stop();
+            streamRef.current?.removeTrack(track);
+          });
+        }
+        
+        // Add new tracks to existing stream
+        newStream.getTracks().forEach(track => {
+          console.log(`➕ Adding ${track.kind} track to stream`);
+          streamRef.current?.addTrack(track);
+        });
+      } else {
+        // No existing stream, use new one
+        streamRef.current = newStream;
       }
       
-      streamRef.current = newStream;
-      
       // Log all tracks for debugging
-      console.log('📹 Initialized media with tracks:');
-      streamRef.current.getTracks().forEach(track => {
+      console.log('📹 Current media stream tracks:');
+      streamRef.current?.getTracks().forEach(track => {
         console.log(`  ${track.kind}: enabled=${track.enabled}, state=${track.readyState}, label="${track.label}"`);
       });
 
