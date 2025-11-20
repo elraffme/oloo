@@ -222,6 +222,13 @@ export class ViewerConnection {
           // Start DB fallback proactively for better reliability
           this.setupDbSignalingFallback(supabase);
           
+          // Send viewer-joined immediately after subscribe
+          if (!this.viewerJoinedSent) {
+            this.addSignalingLog('Sending viewer-joined immediately after subscribe');
+            this.sendViewerJoined();
+            this.startRequestOfferCycle();
+          }
+          
           this.broadcasterReadyTimeout = setTimeout(() => {
             if (!this.broadcasterReadyReceived && !this.viewerJoinedSent) {
               this.addDebugLog('⏰ No broadcaster-ready after 2s, sending viewer-joined anyway');
@@ -235,6 +242,7 @@ export class ViewerConnection {
             if (!this.offerReceived) {
               this.addSignalingLog('Offer timeout', 'No offer received from broadcaster');
               this.setState('timeout');
+              this.startRequestOfferCycle();
               this.setupDbSignalingFallback(supabase);
               this.tryTURNOnly(supabase);
             }
@@ -648,18 +656,67 @@ export class ViewerConnection {
   }
 
   async hardReconnect(supabase: any) {
-    this.addDebugLog('🔄 Hard reconnect initiated');
-    this.disconnect();
+    this.addDebugLog('♻️ Hard reconnect starting');
     
-    this.retryCount = 0;
-    this.viewerJoinedSent = false;
-    this.viewerAcked = false;
+    // Close peer connection
+    if (this.peerConnection) {
+      try {
+        this.peerConnection.close();
+      } catch (e) {
+        console.warn('Error closing PC during hardReconnect:', e);
+      }
+      this.peerConnection = null;
+    }
+
+    // Clear signaling state
     this.offerReceived = false;
+    this.viewerAcked = false;
     this.broadcasterReadyReceived = false;
+    this.viewerJoinedSent = false;
     this.requestOfferCount = 0;
-    
+    this.retryCount = 0;
+
+    // Clear timers
+    if (this.offerTimeout) {
+      clearTimeout(this.offerTimeout);
+      this.offerTimeout = null;
+    }
+    if (this.broadcasterReadyTimeout) {
+      clearTimeout(this.broadcasterReadyTimeout);
+      this.broadcasterReadyTimeout = null;
+    }
+    if (this.requestOfferTimer) {
+      clearTimeout(this.requestOfferTimer);
+      this.requestOfferTimer = null;
+    }
+    if (this.viewerJoinInterval) {
+      clearInterval(this.viewerJoinInterval);
+      this.viewerJoinInterval = null;
+    }
+
+    // Close existing channels
+    if (this.channel) {
+      try {
+        await this.channel.unsubscribe();
+      } catch (e) {
+        console.warn('Error unsubscribing channel during hardReconnect:', e);
+      }
+      this.channel = null;
+    }
+    if (this.dbSignalingChannel) {
+      try {
+        await this.dbSignalingChannel.unsubscribe();
+      } catch (e) {
+        console.warn('Error unsubscribing DB channel during hardReconnect:', e);
+      }
+      this.dbSignalingChannel = null;
+    }
+
+    // Wait a moment before reconnecting
     await new Promise(resolve => setTimeout(resolve, 1000));
-    await this.connect(supabase);
+    
+    // Resubscribe / re-establish connection
+    await this.establishConnection(supabase);
   }
 
   private attemptReconnection(supabase: any) {

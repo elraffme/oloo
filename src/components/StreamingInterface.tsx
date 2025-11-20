@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -1312,6 +1312,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             <Radio className="w-3 h-3 mr-2" />
                             Reannounce Ready
                           </Button>
+                          {isStreaming && activeStreamId && (
+                            <Button
+                              onClick={async () => {
+                                if (!broadcastManagerRef.current) return;
+                                await broadcastManagerRef.current.resetStream(supabase);
+                                toast({
+                                  title: "Livestream reset",
+                                  description: "Connections have been reset. Viewers can retry joining."
+                                });
+                              }}
+                              variant="destructive"
+                              size="sm"
+                              className="w-full mt-2"
+                            >
+                              <RefreshCw className="w-3 h-3 mr-2" />
+                              Reset Livestream
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>}

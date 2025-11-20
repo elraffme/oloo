@@ -623,6 +623,55 @@ export class BroadcastManager {
     this.connectionQuality.clear();
   }
 
+  async resetStream(supabase: any) {
+    console.log('♻️ Resetting broadcast for stream', this.streamId);
+
+    // 1. Close all peer connections
+    this.peerConnections.forEach((pc, sessionToken) => {
+      try {
+        pc.close();
+      } catch (e) {
+        console.warn('Error closing PC for', sessionToken, e);
+      }
+    });
+    this.peerConnections.clear();
+    this.viewerMetadata.clear();
+    this.retryAttempts.clear();
+    this.answerReceived.clear();
+    this.offerAcked.clear();
+    this.connectionQuality.clear();
+
+    // 2. Close realtime and DB signaling channels
+    if (this.channel) {
+      await this.channel.unsubscribe();
+      this.channel = null;
+    }
+    if (this.dbSignalingChannel) {
+      await this.dbSignalingChannel.unsubscribe();
+      this.dbSignalingChannel = null;
+    }
+
+    // 3. Clear signaling rows and viewer sessions in DB for this stream
+    try {
+      await supabase
+        .from('webrtc_signals')
+        .delete()
+        .eq('stream_id', this.streamId);
+
+      await supabase
+        .from('stream_viewer_sessions')
+        .delete()
+        .eq('stream_id', this.streamId);
+
+      console.log('✓ Cleared signaling and viewer sessions for stream', this.streamId);
+    } catch (err) {
+      console.error('❌ Error clearing stream state:', err);
+    }
+
+    // 4. Re-initialize channel so new viewers can join cleanly
+    await this.initializeChannel(supabase);
+  }
+
   getViewerCount(): number {
     return Array.from(this.peerConnections.values()).filter(
       pc => pc.connectionState === 'connected'
