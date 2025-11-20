@@ -203,7 +203,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         videoRef.current,
         displayName,
         !user,
-        (state) => setConnectionState(state),
+        (state) => {
+          setConnectionState(state);
+          // Set peer connection when connected or streaming
+          if (viewerConnectionRef.current && (state === 'connected' || state === 'streaming')) {
+            setPeerConnection(viewerConnectionRef.current.getPeerConnection());
+          }
+        },
         (type) => setICEType(type)
       );
 
@@ -269,6 +275,37 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         setTotalLikes(sessionData.total_likes || 0);
       }
     };
+
+    const hardResetViewerConnection = async () => {
+      console.log('♻️ Hard resetting viewer connection');
+
+      const token = sessionToken;
+      if (viewerConnectionRef.current) {
+        viewerConnectionRef.current.disconnect();
+        viewerConnectionRef.current = null;
+      }
+
+      if (token) {
+        try {
+          await supabase.rpc('leave_stream_viewer', { p_session_token: token });
+          console.log('✓ Left stream as part of hard reset');
+        } catch (err) {
+          console.error('❌ Error leaving stream during hard reset:', err);
+        }
+      }
+
+      setSessionToken(null);
+      setConnectionState('disconnected');
+      setHasVideo(false);
+      setIsConnected(false);
+      setPeerConnection(null);
+
+      // Re-run the join flow
+      await initViewer();
+    };
+
+    // Expose reset function globally for testing
+    (window as any).hardResetViewerConnection = hardResetViewerConnection;
 
     initViewer();
     
@@ -387,18 +424,34 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   const handleLike = async () => {
     if (!user) {
-  const handleHardReconnect = async () => {
-    if (!viewerConnectionRef.current) return;
-    
-    try {
-      setConnectionState('checking_broadcaster');
-      await viewerConnectionRef.current.hardReconnect(supabase);
-      toast.info('Reconnecting with fresh connection...');
-    } catch (error) {
-      console.error('Hard reconnect failed:', error);
-      toast.error('Reconnection failed');
+      toast.error('Please sign in to like');
+      return;
     }
-  };
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from('stream_likes')
+          .delete()
+          .eq('stream_id', streamId)
+          .eq('user_id', user.id);
+        
+        setIsLiked(false);
+        setTotalLikes(prev => Math.max(0, prev - 1));
+      } else {
+        await supabase
+          .from('stream_likes')
+          .insert({ stream_id: streamId, user_id: user.id });
+        
+        setIsLiked(true);
+        setTotalLikes(prev => prev + 1);
+        setShowLikeAnimation(true);
+        setLikeAnimationTrigger(prev => prev + 1);
+        
+        setTimeout(() => setShowLikeAnimation(false), 2000);
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
       toast.error('Failed to like stream');
     }
   };
@@ -628,10 +681,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                         <span className="text-muted-foreground">Video:</span>
                         <span className="font-medium">{hasVideo ? 'Yes' : 'No'} | {isMuted ? 'Muted' : 'Unmuted'}</span>
                       </div>
-                      <div className="flex justify-between">
+                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Session:</span>
                         <span className="font-mono text-[10px]">{sessionToken?.slice(0, 8)}...</span>
                       </div>
+                      {(connectionState as string) === 'awaiting_offer' || (connectionState as string) === 'timeout' ? (
+                        <div className="mt-2 text-xs text-amber-400 border-t border-border/20 pt-2">
+                          💡 Tip: If stuck, use the Reset Connection button below
+                        </div>
+                      ) : null}
                     </div>
                     {showConnectionControls && (
                       <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
@@ -662,6 +720,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                           <RefreshCw className="w-3 h-3 mr-1" />
                           Reconnect
                         </Button>
+                        {((connectionState as string) === 'failed' || (connectionState as string) === 'timeout') && (
+                          <Button
+                            onClick={() => (window as any).hardResetViewerConnection?.()}
+                            variant="destructive"
+                            size="sm"
+                            className="w-full justify-start h-7 text-xs"
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            Reset Connection
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
