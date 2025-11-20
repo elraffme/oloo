@@ -53,6 +53,8 @@ export class ViewerConnection {
   private offerReceived = false;
   private dbFallbackTimeout: NodeJS.Timeout | null = null;
   private usingDbFallback = false;
+  private heartbeatFailures = 0;
+  private maxHeartbeatFailures = 3;
 
   constructor(
     streamId: string, 
@@ -113,6 +115,10 @@ export class ViewerConnection {
 
   getICEType(): string {
     return this.iceType;
+  }
+
+  getPeerConnection(): RTCPeerConnection | null {
+    return this.peerConnection;
   }
 
   private async fetchIceServers(supabase: any): Promise<ICEServerConfig> {
@@ -213,6 +219,9 @@ export class ViewerConnection {
         if (status === 'SUBSCRIBED') {
           this.addDebugLog('✓ Channel subscribed');
           
+          // Start DB fallback proactively for better reliability
+          this.setupDbSignalingFallback(supabase);
+          
           this.broadcasterReadyTimeout = setTimeout(() => {
             if (!this.broadcasterReadyReceived && !this.viewerJoinedSent) {
               this.addDebugLog('⏰ No broadcaster-ready after 2s, sending viewer-joined anyway');
@@ -220,10 +229,18 @@ export class ViewerConnection {
               this.startRequestOfferCycle();
             }
           }, 2000);
+          
+          // Set offer timeout to 15s
+          this.offerTimeout = setTimeout(() => {
+            if (!this.offerReceived) {
+              this.addSignalingLog('Offer timeout', 'No offer received from broadcaster');
+              this.setState('timeout');
+              this.setupDbSignalingFallback(supabase);
+              this.tryTURNOnly(supabase);
+            }
+          }, 15000);
         }
       });
-
-    this.setupDbSignalingFallback(supabase);
 
     const pcConfig: RTCConfiguration = {
       iceServers: this.useRelayOnly && iceConfig.hasTURN
@@ -574,11 +591,38 @@ export class ViewerConnection {
   private startHeartbeat(supabase: any) {
     this.heartbeatInterval = setInterval(async () => {
       try {
-        await supabase.rpc('update_viewer_heartbeat', {
+        const { data, error } = await supabase.rpc('update_viewer_heartbeat', {
           p_session_token: this.sessionToken
         });
+
+        if (error) {
+          console.error('Heartbeat error:', error);
+          this.heartbeatFailures++;
+          this.addDebugLog(`⚠️ Heartbeat failed (${this.heartbeatFailures}/${this.maxHeartbeatFailures})`);
+        } else if (!data) {
+          // Function returned false → session invalid
+          console.warn('Heartbeat failed: session invalid');
+          this.heartbeatFailures++;
+          this.addDebugLog(`⚠️ Session invalid (${this.heartbeatFailures}/${this.maxHeartbeatFailures})`);
+        } else {
+          // Heartbeat successful, reset counter
+          this.heartbeatFailures = 0;
+        }
+
+        if (this.heartbeatFailures >= this.maxHeartbeatFailures) {
+          this.addDebugLog('❌ Multiple heartbeat failures – attempting reconnection');
+          this.heartbeatFailures = 0;
+          await this.hardReconnect(supabase);
+        }
       } catch (error) {
-        console.error('Heartbeat failed:', error);
+        console.error('Heartbeat exception:', error);
+        this.heartbeatFailures++;
+        
+        if (this.heartbeatFailures >= this.maxHeartbeatFailures) {
+          this.addDebugLog('❌ Multiple heartbeat failures – attempting reconnection');
+          this.heartbeatFailures = 0;
+          await this.hardReconnect(supabase);
+        }
       }
     }, 15000);
   }

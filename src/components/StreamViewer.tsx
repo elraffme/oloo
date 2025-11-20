@@ -12,6 +12,7 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
 import { LikeAnimation } from '@/components/LikeAnimation';
+import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,6 +55,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [iceType, setICEType] = useState<string>('unknown');
   const [showDebugInfo, setShowDebugInfo] = useState(true); // Show by default for debugging
+  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
   const getConnectionMessage = (state: ConnectionState): string => {
@@ -619,6 +621,14 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                         <span className="font-medium">{iceType}</span>
                       </div>
                       <div className="flex justify-between">
+                        <span className="text-muted-foreground">Viewers:</span>
+                        <span className="font-medium">{viewers.length}{viewersLoading ? ' (loading...)' : ''}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Video:</span>
+                        <span className="font-medium">{hasVideo ? 'Yes' : 'No'} | {isMuted ? 'Muted' : 'Unmuted'}</span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Session:</span>
                         <span className="font-mono text-[10px]">{sessionToken?.slice(0, 8)}...</span>
                       </div>
@@ -654,6 +664,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                         </Button>
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Connection Status Indicator */}
+                  <div className="absolute top-[280px] left-2 md:top-[300px] md:left-4 max-w-xs">
+                    <ConnectionStatusIndicator
+                      peerConnection={peerConnection}
+                      isConnected={connectionState === 'streaming' || connectionState === 'connected'}
+                      compact={false}
+                    />
                   </div>
                 </>
               )}
