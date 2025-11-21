@@ -60,17 +60,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   const getConnectionMessage = (state: ConnectionState): string => {
     switch (state) {
-      case 'checking_broadcaster': return 'Checking if broadcaster is online...';
-      case 'joining': return 'Joining stream...';
-      case 'awaiting_offer': return 'Waiting for connection...';
-      case 'processing_offer': return 'Processing connection...';
-      case 'awaiting_ice': return 'Establishing connection...';
-      case 'connected': return 'Connected! Loading video...';
-      case 'streaming': return 'Streaming';
-      case 'awaiting_user_interaction': return 'Click to play';
-      case 'failed': return 'Connection failed - Auto-reconnecting...';
-      case 'timeout': return 'Connection timed out - Retrying...';
-      default: return 'Connecting...';
+      case 'checking_broadcaster': return 'Verifying broadcaster online...';
+      case 'joining': return 'Joining stream via database...';
+      case 'awaiting_offer': return 'Requesting WebRTC connection...';
+      case 'processing_offer': return 'Establishing peer connection...';
+      case 'awaiting_ice': return 'Negotiating optimal route...';
+      case 'connected': return 'Connected! Loading video stream...';
+      case 'streaming': return 'Live';
+      case 'awaiting_user_interaction': return 'Click to unmute and play';
+      case 'failed': return 'Connection lost - Reconnecting automatically...';
+      case 'timeout': return 'Connection timeout - Trying alternate route...';
+      default: return 'Initializing...';
     }
   };
 
@@ -498,6 +498,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   };
 
   // Monitor connection state changes and show user feedback
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      toast.success('Connected to stream!');
+    } else if (connectionState === 'failed') {
+      toast.error('Connection lost - Auto-reconnecting...');
+    } else if (connectionState === 'timeout') {
+      toast.warning('Connection timeout - Retrying...');
+    } else if (connectionState === 'streaming') {
+      toast.success('Stream playing!');
+    }
+  }, [connectionState]);
   useEffect(() => {
     if (connectionState === 'timeout' || connectionState === 'failed') {
       toast.error('Connection lost - Auto-reconnecting...', { duration: 3000 });

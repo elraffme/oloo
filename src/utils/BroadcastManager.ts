@@ -29,6 +29,8 @@ export class BroadcastManager {
   private onChannelStatusChange?: (status: 'connecting' | 'connected' | 'error' | 'closed') => void;
   private qualityMonitoringInterval: NodeJS.Timeout | null = null;
   private connectionQuality: Map<string, ConnectionQuality> = new Map();
+  private dbPollingInterval: NodeJS.Timeout | null = null;
+  private lastProcessedSignalId: string | null = null;
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -204,6 +206,9 @@ export class BroadcastManager {
     this.onChannelStatusChange?.('connecting');
     await this.fetchIceServers(supabase);
     
+    // Start database polling FIRST as primary signaling mechanism
+    this.startDbPolling(supabase);
+    
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`, {
         config: {
@@ -223,37 +228,90 @@ export class BroadcastManager {
         if (status === 'SUBSCRIBED') {
           console.log('✓ Broadcaster channel ready, broadcasting ready signal');
           this.onChannelStatusChange?.('connected');
-          await new Promise(resolve => setTimeout(resolve, 500));
           
+          // Write broadcaster-ready to database immediately
+          await this.sendSignalViaDb(supabase, 'broadcaster', 'broadcaster_ready', { streamId: this.streamId });
+          
+          // Also broadcast via realtime as backup
           const result = await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           if (result !== 'ok') {
-            console.warn('⚠️ broadcaster-ready send failed');
+            console.warn('⚠️ broadcaster-ready broadcast failed (DB already sent)');
           }
           
+          // Periodically write to database for reliability
           this.broadcasterReadyInterval = setInterval(async () => {
+            await this.sendSignalViaDb(supabase, 'broadcaster', 'broadcaster_ready', { streamId: this.streamId });
             await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
-          }, 2000);
+          }, 3000);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn(`⚠️ Channel status: ${status}, attempting reconnect...`);
+          console.warn(`⚠️ Channel status: ${status}, DB polling continues...`);
           this.onChannelStatusChange?.('error');
-          if (this.broadcasterReadyInterval) {
-            clearInterval(this.broadcasterReadyInterval);
-            this.broadcasterReadyInterval = null;
-          }
         } else if (status === 'CLOSED') {
-          console.warn(`⚠️ Channel closed`);
+          console.warn(`⚠️ Channel closed, DB polling continues...`);
           this.onChannelStatusChange?.('closed');
-          if (this.broadcasterReadyInterval) {
-            clearInterval(this.broadcasterReadyInterval);
-            this.broadcasterReadyInterval = null;
-          }
         }
       });
 
     this.setupDbSignalingFallback(supabase);
   }
 
+  private startDbPolling(supabase: any) {
+    console.log('🔄 Starting database polling for viewer signals (every 2s)');
+    
+    const pollDatabase = async () => {
+      try {
+        // Query for new viewer signals
+        const query = supabase
+          .from('webrtc_signals')
+          .select('*')
+          .eq('stream_id', this.streamId)
+          .eq('role', 'viewer')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (this.lastProcessedSignalId) {
+          query.gt('created_at', this.lastProcessedSignalId);
+        }
+        
+        const { data: signals, error } = await query;
+        
+        if (error) {
+          console.error('DB poll error:', error);
+          return;
+        }
+        
+        if (signals && signals.length > 0) {
+          console.log(`📨 DB poll found ${signals.length} new viewer signal(s)`);
+          
+          for (const signal of signals.reverse()) {
+            if (signal.type === 'viewer_joined') {
+              console.log('📨 DB: viewer joined', signal.session_token?.substring(0, 8));
+              await this.handleViewerJoined({ payload: signal.payload }, supabase);
+            } else if (signal.type === 'request_offer') {
+              console.log('📨 DB: offer requested', signal.session_token?.substring(0, 8));
+              await this.handleRequestOffer({ payload: signal.payload }, supabase);
+            } else if (signal.type === 'answer') {
+              console.log('📨 DB: answer received', signal.session_token?.substring(0, 8));
+              await this.handleAnswer({ payload: signal.payload });
+            } else if (signal.type === 'ice') {
+              await this.handleICECandidate({ payload: signal.payload });
+            }
+            
+            this.lastProcessedSignalId = signal.created_at;
+          }
+        }
+      } catch (err) {
+        console.error('DB polling error:', err);
+      }
+    };
+    
+    // Poll immediately, then every 2 seconds
+    pollDatabase();
+    this.dbPollingInterval = setInterval(pollDatabase, 2000);
+  }
+
   private setupDbSignalingFallback(supabase: any) {
+    // Keep realtime as backup for instant notifications
     this.dbSignalingChannel = supabase
       .channel('db-signaling-broadcaster')
       .on(
@@ -267,14 +325,15 @@ export class BroadcastManager {
         async (payload: any) => {
           const signal = payload.new;
           
+          // Only process if DB polling hasn't already handled it
           if (signal.type === 'viewer_joined' && signal.role === 'viewer') {
-            console.log('📨 DB fallback: viewer joined', signal.session_token);
+            console.log('📨 Realtime: viewer joined', signal.session_token);
             await this.handleViewerJoined({ payload: signal.payload }, supabase);
           } else if (signal.type === 'request_offer' && signal.role === 'viewer') {
-            console.log('📨 DB fallback: offer requested', signal.session_token);
+            console.log('📨 Realtime: offer requested', signal.session_token);
             await this.handleRequestOffer({ payload: signal.payload }, supabase);
           } else if (signal.type === 'answer' && signal.role === 'viewer') {
-            console.log('📨 DB fallback: answer received', signal.session_token);
+            console.log('📨 Realtime: answer received', signal.session_token);
             await this.handleAnswer({ payload: signal.payload });
           } else if (signal.type === 'ice' && signal.role === 'viewer') {
             await this.handleICECandidate({ payload: signal.payload });
@@ -596,6 +655,12 @@ export class BroadcastManager {
     if (this.broadcasterReadyInterval) {
       clearInterval(this.broadcasterReadyInterval);
       this.broadcasterReadyInterval = null;
+    }
+    
+    // Clear database polling
+    if (this.dbPollingInterval) {
+      clearInterval(this.dbPollingInterval);
+      this.dbPollingInterval = null;
     }
 
     this.offerRetryTimers.forEach(timer => clearTimeout(timer));
