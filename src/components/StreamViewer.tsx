@@ -151,23 +151,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, []);
 
-  // Initialize viewer and load like status
+  // Initialize viewer and load like status - AUTO-CONNECT immediately
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
       
-      // Prevent multiple simultaneous initializations
-      if (viewerConnectionRef.current) {
-        console.log('⚠️ Connection already exists, skipping re-init');
-        return;
-      }
-      
-      // Ensure video element is properly configured
+      // Ensure video element is properly configured for immediate playback
       const videoEl = videoRef.current;
       videoEl.autoplay = true;
       videoEl.playsInline = true;
       videoEl.muted = true;
-      console.log('📹 Video element configured: autoplay, playsInline, muted');
+      console.log('📹 Video element configured for auto-connection: autoplay, playsInline, muted');
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
