@@ -58,6 +58,10 @@ export class ViewerConnection {
   private maxHeartbeatFailures = 8;
   private autoReconnectEnabled = true;
   private autoReconnectTimer: NodeJS.Timeout | null = null;
+  private dbPollingInterval: NodeJS.Timeout | null = null;
+  private lastPolledSignalTime: string | null = null;
+  private connectionTimeout: NodeJS.Timeout | null = null;
+  private connectionStartTime: number = 0;
 
   constructor(
     streamId: string, 
@@ -175,9 +179,24 @@ export class ViewerConnection {
 
   async connect(supabase: any) {
     this.supabaseClient = supabase;
+    this.connectionStartTime = Date.now();
     console.log('🎬 ViewerConnection.connect() called for stream:', this.streamId);
     console.log('  Session token:', this.sessionToken?.substring(0, 8) + '...');
     console.log('  Display name:', this.displayName);
+    
+    // Set overall connection timeout (30 seconds)
+    this.connectionTimeout = setTimeout(() => {
+      if (this.connectionState !== 'connected' && this.connectionState !== 'streaming') {
+        const elapsed = ((Date.now() - this.connectionStartTime) / 1000).toFixed(1);
+        this.addDebugLog(`⏰ Connection timeout after ${elapsed}s`);
+        this.setState('timeout');
+        
+        // Trigger auto-reconnect
+        if (this.autoReconnectEnabled) {
+          this.scheduleAutoReconnect();
+        }
+      }
+    }, 30000);
     
     try {
       this.addDebugLog('🔌 Starting connection process');
@@ -202,6 +221,8 @@ export class ViewerConnection {
         this.retryCount++;
         this.addDebugLog(`⚠️ Retry ${this.retryCount}/${this.maxRetries} in 2s`);
         setTimeout(() => this.connect(supabase), 2000);
+      } else if (this.autoReconnectEnabled) {
+        this.scheduleAutoReconnect();
       }
     }
   }
@@ -422,7 +443,64 @@ export class ViewerConnection {
     };
   }
 
+  private startDbPolling(supabase: any) {
+    console.log('🔄 Starting database polling for broadcaster signals (every 2s)');
+    
+    const pollDatabase = async () => {
+      try {
+        const query = supabase
+          .from('webrtc_signals')
+          .select('*')
+          .eq('session_token', this.sessionToken)
+          .eq('role', 'broadcaster')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (this.lastPolledSignalTime) {
+          query.gt('created_at', this.lastPolledSignalTime);
+        }
+        
+        const { data: signals, error } = await query;
+        
+        if (error) {
+          console.error('DB poll error:', error);
+          return;
+        }
+        
+        if (signals && signals.length > 0) {
+          console.log(`📨 DB poll found ${signals.length} new broadcaster signal(s)`);
+          
+          for (const signal of signals.reverse()) {
+            if (signal.type === 'offer') {
+              console.log('📨 DB: offer received');
+              this.handleOffer({ payload: signal.payload });
+              this.usingDbFallback = true;
+            } else if (signal.type === 'ice') {
+              console.log('📨 DB: ICE candidate received');
+              this.handleICECandidate({ payload: signal.payload });
+            } else if (signal.type === 'broadcaster_ready') {
+              console.log('📨 DB: broadcaster ready');
+              this.handleBroadcasterReady();
+            }
+            
+            this.lastPolledSignalTime = signal.created_at;
+          }
+        }
+      } catch (err) {
+        console.error('DB polling error:', err);
+      }
+    };
+    
+    // Poll immediately, then every 2 seconds
+    pollDatabase();
+    this.dbPollingInterval = setInterval(pollDatabase, 2000);
+  }
+
   private setupDbSignalingFallback(supabase: any) {
+    // Start database polling as PRIMARY mechanism
+    this.startDbPolling(supabase);
+    
+    // Keep realtime as backup for instant notifications
     this.dbSignalingChannel = supabase
       .channel('db-signaling-viewer')
       .on(
@@ -435,11 +513,10 @@ export class ViewerConnection {
         },
         (payload: any) => {
           const signal = payload.new;
-          this.addSignalingLog('DB fallback received', signal.type);
+          this.addSignalingLog('Realtime received', signal.type);
           
           if (signal.type === 'offer' && signal.role === 'broadcaster') {
             this.handleOffer({ payload: signal.payload });
-            this.usingDbFallback = true;
           } else if (signal.type === 'ice' && signal.role === 'broadcaster') {
             this.handleICECandidate({ payload: signal.payload });
           }
@@ -478,17 +555,32 @@ export class ViewerConnection {
     }
   };
 
-  private sendViewerJoined() {
+  private async sendViewerJoined() {
     if (this.viewerJoinedSent) return;
-    
-    if (!this.channel) {
-      console.error('❌ Cannot send viewer-joined: channel is null');
-      return;
-    }
     
     this.addSignalingLog('Sending viewer-joined');
     this.viewerJoinedSent = true;
     this.setState('awaiting_offer');
+    
+    // Send via DATABASE FIRST for reliability
+    if (this.supabaseClient) {
+      try {
+        await this.sendSignalViaDb(this.supabaseClient, 'viewer_joined', {
+          sessionToken: this.sessionToken,
+          displayName: this.displayName,
+          isGuest: this.isGuest
+        });
+        console.log('✓ Sent viewer-joined via DATABASE');
+      } catch (err) {
+        console.error('❌ Failed to send viewer-joined via DB:', err);
+      }
+    }
+    
+    // Also send via realtime as backup
+    if (!this.channel) {
+      console.error('❌ Cannot send viewer-joined via realtime: channel is null');
+      return;
+    }
     
     try {
       const sendPromise = this.channel.send({
@@ -780,6 +872,18 @@ export class ViewerConnection {
       clearInterval(this.viewerJoinInterval);
       this.viewerJoinInterval = null;
     }
+    
+    // Clear database polling
+    if (this.dbPollingInterval) {
+      clearInterval(this.dbPollingInterval);
+      this.dbPollingInterval = null;
+    }
+    
+    // Clear connection timeout
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
 
     // Close existing channels
     if (this.channel) {
@@ -890,6 +994,14 @@ export class ViewerConnection {
     if (this.autoReconnectTimer) {
       clearTimeout(this.autoReconnectTimer);
       this.autoReconnectTimer = null;
+    }
+    if (this.dbPollingInterval) {
+      clearInterval(this.dbPollingInterval);
+      this.dbPollingInterval = null;
+    }
+    if (this.connectionTimeout) {
+      clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
     }
   }
 
