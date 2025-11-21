@@ -68,8 +68,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       case 'connected': return 'Connected! Loading video...';
       case 'streaming': return 'Streaming';
       case 'awaiting_user_interaction': return 'Click to play';
-      case 'failed': return 'Connection failed';
-      case 'timeout': return 'Connection timed out';
+      case 'failed': return 'Connection failed - Auto-reconnecting...';
+      case 'timeout': return 'Connection timed out - Retrying...';
       default: return 'Connecting...';
     }
   };
@@ -379,6 +379,23 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId]);
 
+  // Connection watchdog - monitors and auto-reconnects if needed
+  useEffect(() => {
+    if (!viewerConnectionRef.current) return;
+
+    const watchdogInterval = setInterval(() => {
+      // Auto-reconnect if stuck in failed or disconnected state for too long
+      if (connectionState === 'disconnected' || connectionState === 'failed') {
+        console.log('🔍 Watchdog: Detected disconnected/failed state, triggering reconnection');
+        handleHardReconnect();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => {
+      clearInterval(watchdogInterval);
+    };
+  }, [connectionState]);
+
   const toggleMute = async () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
@@ -480,6 +497,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
+  // Monitor connection state changes and show user feedback
+  useEffect(() => {
+    if (connectionState === 'timeout' || connectionState === 'failed') {
+      toast.error('Connection lost - Auto-reconnecting...', { duration: 3000 });
+    } else if (connectionState === 'streaming') {
+      toast.success('Connected successfully!', { duration: 2000 });
+    }
+  }, [connectionState]);
+
   const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
 
   return (
@@ -544,6 +570,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               
               {(connectionState === 'failed' || connectionState === 'timeout') && (
                 <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
+                  <p className="text-white/70 text-sm text-center mb-2">
+                    Auto-reconnecting... or try manually:
+                  </p>
                   <Button
                     onClick={handleRequestOfferAgain}
                     variant="outline"

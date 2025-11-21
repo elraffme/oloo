@@ -56,6 +56,8 @@ export class ViewerConnection {
   private usingDbFallback = false;
   private heartbeatFailures = 0;
   private maxHeartbeatFailures = 8;
+  private autoReconnectEnabled = true;
+  private autoReconnectTimer: NodeJS.Timeout | null = null;
 
   constructor(
     streamId: string, 
@@ -254,7 +256,11 @@ export class ViewerConnection {
               this.setState('timeout');
               this.startRequestOfferCycle();
               this.setupDbSignalingFallback(supabase);
-              this.tryTURNOnly(supabase);
+              
+              // Schedule auto-reconnect after timeout
+              if (this.autoReconnectEnabled) {
+                this.scheduleAutoReconnect();
+              }
             }
           }, 15000);
         } else if (status === 'CHANNEL_ERROR') {
@@ -304,8 +310,14 @@ export class ViewerConnection {
           this.attemptReconnection(this.supabaseClient);
         }
       } else if (state === 'disconnected') {
-        // Don't immediately reconnect on disconnect - monitor connection health
-        this.addDebugLog('⚠️ Connection disconnected, monitoring...');
+        // Schedule auto-reconnect after a delay if still disconnected
+        this.addDebugLog('⚠️ Connection disconnected, will auto-reconnect if not recovered');
+        setTimeout(() => {
+          if (this.peerConnection?.connectionState === 'disconnected' && this.autoReconnectEnabled && this.supabaseClient) {
+            this.addDebugLog('🔄 Still disconnected, triggering auto-reconnect');
+            this.scheduleAutoReconnect();
+          }
+        }, 5000); // Give 5s for recovery
       }
     };
 
@@ -318,6 +330,10 @@ export class ViewerConnection {
         this.clearAllTimers();
       } else if (iceState === 'failed') {
         this.setState('failed');
+        // Trigger auto-reconnect on ICE failure
+        if (this.autoReconnectEnabled && this.supabaseClient) {
+          this.scheduleAutoReconnect();
+        }
       }
     };
 
@@ -723,6 +739,12 @@ export class ViewerConnection {
   async hardReconnect(supabase: any) {
     this.addDebugLog('♻️ Hard reconnect starting');
     
+    // Clear any scheduled auto-reconnect
+    if (this.autoReconnectTimer) {
+      clearTimeout(this.autoReconnectTimer);
+      this.autoReconnectTimer = null;
+    }
+    
     // Close peer connection
     if (this.peerConnection) {
       try {
@@ -784,10 +806,31 @@ export class ViewerConnection {
     await this.establishConnection(supabase);
   }
 
+  private scheduleAutoReconnect() {
+    if (this.autoReconnectTimer) {
+      clearTimeout(this.autoReconnectTimer);
+    }
+
+    const delay = Math.min(3000 * Math.pow(2, this.reconnectAttempt), 30000); // Max 30s
+    this.addDebugLog(`🔄 Auto-reconnecting in ${delay}ms (attempt ${this.reconnectAttempt + 1})`);
+
+    this.autoReconnectTimer = setTimeout(async () => {
+      if (this.supabaseClient && this.autoReconnectEnabled) {
+        this.addDebugLog('🔄 Auto-reconnect triggered');
+        await this.hardReconnect(this.supabaseClient);
+      }
+    }, delay);
+  }
+
   private attemptReconnection(supabase: any) {
     if (this.reconnectAttempt >= this.maxReconnectAttempts) {
       this.addDebugLog(`❌ Max reconnection attempts (${this.maxReconnectAttempts}) reached`);
       this.setState('failed');
+      
+      // Schedule auto-reconnect even after max attempts
+      if (this.autoReconnectEnabled) {
+        this.scheduleAutoReconnect();
+      }
       return;
     }
 
@@ -809,6 +852,14 @@ export class ViewerConnection {
       
       await this.connect(supabase);
     }, delay);
+  }
+
+  public setAutoReconnect(enabled: boolean) {
+    this.autoReconnectEnabled = enabled;
+    if (!enabled && this.autoReconnectTimer) {
+      clearTimeout(this.autoReconnectTimer);
+      this.autoReconnectTimer = null;
+    }
   }
 
   private clearAllTimers() {
@@ -835,6 +886,10 @@ export class ViewerConnection {
     if (this.dbFallbackTimeout) {
       clearTimeout(this.dbFallbackTimeout);
       this.dbFallbackTimeout = null;
+    }
+    if (this.autoReconnectTimer) {
+      clearTimeout(this.autoReconnectTimer);
+      this.autoReconnectTimer = null;
     }
   }
 
