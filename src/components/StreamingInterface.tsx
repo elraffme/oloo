@@ -1102,6 +1102,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             {/* Live Streams Grid */}
             {/* Phase 5: Filter out obviously stale streams client-side */}
             {liveStreams.filter(stream => {
+              // Always exclude ended/archived streams
+              if (stream.status !== 'live') return false;
+              
               // If started_at is null and created more than 1 hour ago, it's stale
               if (!stream.started_at && stream.created_at) {
                 const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
@@ -1124,6 +1127,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             }).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {liveStreams.filter(stream => {
+                  // Always exclude ended/archived streams
+                  if (stream.status !== 'live') return false;
+                  
                   // Apply same health check filter
                   if (!stream.started_at && stream.created_at) {
                     const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
