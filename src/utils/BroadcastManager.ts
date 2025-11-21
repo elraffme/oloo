@@ -449,10 +449,8 @@ export class BroadcastManager {
       this.answerReceived.set(sessionToken, false);
       this.offerAcked.set(sessionToken, false);
 
-      const offer = await pc.createOffer({
-        offerToReceiveAudio: false,
-        offerToReceiveVideo: false
-      });
+      // Create offer - let WebRTC infer media from addTrack() calls
+      const offer = await pc.createOffer();
       
       await pc.setLocalDescription(offer);
 
