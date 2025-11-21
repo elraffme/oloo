@@ -980,6 +980,51 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsLoading(false);
     }
   };
+  const forceEndStream = async (streamId: string, streamTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('streaming_sessions')
+        .update({
+          status: 'archived',
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
+        })
+        .eq('id', streamId);
+
+      if (error) {
+        console.error('Error force ending stream:', error);
+        toast({
+          title: "Error ending stream",
+          description: "Failed to force end the stream.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Refresh live streams list
+      const { data: updatedStreams } = await supabase
+        .from('streaming_sessions')
+        .select('*')
+        .eq('status', 'live');
+      
+      if (updatedStreams) {
+        setLiveStreams(updatedStreams as StreamData[]);
+      }
+
+      toast({
+        title: "Stream ended",
+        description: `"${streamTitle}" has been forcefully ended.`
+      });
+    } catch (error) {
+      console.error('Error force ending stream:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const joinStream = (stream: StreamData) => {
     setViewingStreamId(stream.id);
     setViewingStreamData(stream);
@@ -1090,7 +1135,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   }
                   return true;
                 }).map((stream) => (
-                  <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow cursor-pointer" onClick={() => joinStream(stream)}>
+                  <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="space-y-3">
                         {/* Stream Status Badge */}
@@ -1099,9 +1144,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                             LIVE
                           </Badge>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Users className="w-4 h-4 mr-1" />
-                            {stream.current_viewers || 0}
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center text-sm text-muted-foreground">
+                              <Users className="w-4 h-4 mr-1" />
+                              {stream.current_viewers || 0}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-7 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Force end "${stream.title}"?`)) {
+                                  forceEndStream(stream.id, stream.title);
+                                }
+                              }}
+                            >
+                              End
+                            </Button>
                           </div>
                         </div>
 
@@ -1130,7 +1190,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </div>
 
                         {/* Join Button */}
-                        <Button className="w-full" variant="default">
+                        <Button className="w-full" variant="default" onClick={() => joinStream(stream)}>
                           <Play className="w-4 h-4 mr-2" />
                           Watch Stream
                         </Button>
