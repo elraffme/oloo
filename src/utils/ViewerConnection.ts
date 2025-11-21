@@ -599,7 +599,10 @@ export class ViewerConnection {
         new RTCSessionDescription(payload.offer)
       );
       
-      const answer = await this.peerConnection.createAnswer();
+      const answer = await this.peerConnection.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await this.peerConnection.setLocalDescription(answer);
 
       this.addSignalingLog('Sending answer');
