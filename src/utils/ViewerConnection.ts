@@ -171,11 +171,16 @@ export class ViewerConnection {
   }
 
   async connect(supabase: any) {
+    console.log('🎬 ViewerConnection.connect() called for stream:', this.streamId);
+    console.log('  Session token:', this.sessionToken?.substring(0, 8) + '...');
+    console.log('  Display name:', this.displayName);
+    
     try {
       this.addDebugLog('🔌 Starting connection process');
       this.setState('checking_broadcaster');
 
       const iceConfig = await this.fetchIceServers(supabase);
+      console.log('✅ Fetched ICE servers:', iceConfig.hasTURN ? 'with TURN' : 'STUN only');
       
       if (this.shouldUseTURNEarly() && iceConfig.hasTURN) {
         this.addDebugLog('📱 Using TURN relay from start due to network conditions');
@@ -186,7 +191,7 @@ export class ViewerConnection {
       this.startHeartbeat(supabase);
 
     } catch (error) {
-      console.error('Connection failed:', error);
+      console.error('❌ Connection failed with error:', error);
       this.setState('failed');
       
       if (this.retryCount < this.maxRetries) {
@@ -214,16 +219,19 @@ export class ViewerConnection {
       .on('broadcast', { event: 'offer' }, this.handleOffer)
       .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
       .subscribe(async (status: string) => {
+        console.log(`📡 Channel subscription status: ${status}`);
         this.addSignalingLog('Channel status', status);
 
         if (status === 'SUBSCRIBED') {
           this.addDebugLog('✓ Channel subscribed');
+          console.log('✅ Realtime channel SUBSCRIBED, channel object:', this.channel ? 'exists' : 'NULL');
           
           // Start DB fallback proactively for better reliability
           this.setupDbSignalingFallback(supabase);
           
           // Send viewer-joined immediately after subscribe
           if (!this.viewerJoinedSent) {
+            console.log('🚀 Attempting to send viewer-joined immediately after SUBSCRIBED');
             this.addSignalingLog('Sending viewer-joined immediately after subscribe');
             this.sendViewerJoined();
             this.startRequestOfferCycle();
@@ -247,6 +255,14 @@ export class ViewerConnection {
               this.tryTURNOnly(supabase);
             }
           }, 15000);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel subscription ERROR');
+          this.addDebugLog('❌ Channel subscription error');
+          this.setState('failed');
+        } else if (status === 'TIMED_OUT') {
+          console.error('❌ Channel subscription TIMED OUT');
+          this.addDebugLog('❌ Channel subscription timed out');
+          this.setState('timeout');
         }
       });
 
@@ -445,33 +461,55 @@ export class ViewerConnection {
   private sendViewerJoined() {
     if (this.viewerJoinedSent) return;
     
+    if (!this.channel) {
+      console.error('❌ Cannot send viewer-joined: channel is null');
+      return;
+    }
+    
     this.addSignalingLog('Sending viewer-joined');
     this.viewerJoinedSent = true;
     this.setState('awaiting_offer');
     
-    this.channel.send({
-      type: 'broadcast',
-      event: 'viewer-joined',
-      payload: {
-        sessionToken: this.sessionToken,
-        displayName: this.displayName,
-        isGuest: this.isGuest
+    try {
+      const sendPromise = this.channel.send({
+        type: 'broadcast',
+        event: 'viewer-joined',
+        payload: {
+          sessionToken: this.sessionToken,
+          displayName: this.displayName,
+          isGuest: this.isGuest
+        }
+      });
+      
+      // Log send result
+      if (sendPromise && typeof sendPromise.then === 'function') {
+        sendPromise.then((result: any) => {
+          console.log('✅ viewer-joined broadcast sent:', result);
+        }).catch((err: any) => {
+          console.error('❌ viewer-joined broadcast failed:', err);
+        });
       }
-    });
+    } catch (err) {
+      console.error('❌ Exception sending viewer-joined:', err);
+    }
 
     this.viewerJoinInterval = setInterval(() => {
-      if (!this.viewerAcked) {
+      if (!this.viewerAcked && this.channel) {
         this.addDebugLog('🔁 Resending viewer-joined (no ack yet)');
-        this.channel.send({
-          type: 'broadcast',
-          event: 'viewer-joined',
-          payload: {
-            sessionToken: this.sessionToken,
-            displayName: this.displayName,
-            isGuest: this.isGuest
-          }
-        });
-      } else {
+        try {
+          this.channel.send({
+            type: 'broadcast',
+            event: 'viewer-joined',
+            payload: {
+              sessionToken: this.sessionToken,
+              displayName: this.displayName,
+              isGuest: this.isGuest
+            }
+          });
+        } catch (err) {
+          console.error('❌ Exception resending viewer-joined:', err);
+        }
+      } else if (this.viewerAcked) {
         if (this.viewerJoinInterval) {
           clearInterval(this.viewerJoinInterval);
           this.viewerJoinInterval = null;
@@ -486,11 +524,21 @@ export class ViewerConnection {
         this.requestOfferCount++;
         this.addDebugLog(`🔔 Requesting offer (attempt ${this.requestOfferCount}/${this.maxRequestOfferRetries})`);
         
-        this.channel.send({
-          type: 'broadcast',
-          event: 'request-offer',
-          payload: { sessionToken: this.sessionToken }
-        });
+        if (!this.channel) {
+          console.error('❌ Cannot request offer: channel is null');
+          this.setState('failed');
+          return;
+        }
+        
+        try {
+          this.channel.send({
+            type: 'broadcast',
+            event: 'request-offer',
+            payload: { sessionToken: this.sessionToken }
+          });
+        } catch (err) {
+          console.error('❌ Exception requesting offer:', err);
+        }
 
         if (this.requestOfferCount > 2 && !this.usingDbFallback) {
           this.addDebugLog('⚠️ Broadcast unreliable, activating DB fallback');
