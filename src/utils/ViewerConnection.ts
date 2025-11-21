@@ -21,6 +21,7 @@ export class ViewerConnection {
   private peerConnection: RTCPeerConnection | null = null;
   private channel: any = null;
   private dbSignalingChannel: any = null;
+  private supabaseClient: any = null;
   private streamId: string;
   private sessionToken: string;
   private remoteVideoRef: HTMLVideoElement | null = null;
@@ -29,7 +30,7 @@ export class ViewerConnection {
   private retryCount = 0;
   private maxRetries = 4;
   private reconnectAttempt = 0;
-  private maxReconnectAttempts = 4;
+  private maxReconnectAttempts = 3;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private connectionState: ConnectionState = 'disconnected';
   private broadcasterReadyTimeout: NodeJS.Timeout | null = null;
@@ -54,7 +55,7 @@ export class ViewerConnection {
   private dbFallbackTimeout: NodeJS.Timeout | null = null;
   private usingDbFallback = false;
   private heartbeatFailures = 0;
-  private maxHeartbeatFailures = 3;
+  private maxHeartbeatFailures = 8;
 
   constructor(
     streamId: string, 
@@ -171,6 +172,7 @@ export class ViewerConnection {
   }
 
   async connect(supabase: any) {
+    this.supabaseClient = supabase;
     console.log('🎬 ViewerConnection.connect() called for stream:', this.streamId);
     console.log('  Session token:', this.sessionToken?.substring(0, 8) + '...');
     console.log('  Display name:', this.displayName);
@@ -296,14 +298,14 @@ export class ViewerConnection {
           this.addDebugLog('🔄 Retrying with TURN relay only');
           this.useRelayOnly = true;
           this.disconnect();
-          setTimeout(() => this.connect(supabase), 1000);
-        } else {
+          setTimeout(() => this.connect(this.supabaseClient), 1000);
+        } else if (this.supabaseClient) {
           // Attempt reconnection with exponential backoff
-          this.attemptReconnection(supabase);
+          this.attemptReconnection(this.supabaseClient);
         }
       } else if (state === 'disconnected') {
-        this.addDebugLog('⚠️ Connection disconnected, attempting reconnection');
-        this.attemptReconnection(supabase);
+        // Don't immediately reconnect on disconnect - monitor connection health
+        this.addDebugLog('⚠️ Connection disconnected, monitoring...');
       }
     };
 
@@ -390,13 +392,15 @@ export class ViewerConnection {
             }
           });
           
-          if (result !== 'ok') {
+          if (result !== 'ok' && this.supabaseClient) {
             this.addDebugLog('⚠️ ICE send failed, using DB fallback');
-            await this.sendSignalViaDb(supabase, 'ice', { candidate: event.candidate });
+            await this.sendSignalViaDb(this.supabaseClient, 'ice', { candidate: event.candidate });
           }
         } catch (err) {
           this.addDebugLog('❌ ICE broadcast error, using DB');
-          await this.sendSignalViaDb(supabase, 'ice', { candidate: event.candidate });
+          if (this.supabaseClient) {
+            await this.sendSignalViaDb(this.supabaseClient, 'ice', { candidate: event.candidate });
+          }
         }
       }
     };
@@ -540,10 +544,10 @@ export class ViewerConnection {
           console.error('❌ Exception requesting offer:', err);
         }
 
-        if (this.requestOfferCount > 2 && !this.usingDbFallback) {
+        if (this.requestOfferCount > 2 && !this.usingDbFallback && this.supabaseClient) {
           this.addDebugLog('⚠️ Broadcast unreliable, activating DB fallback');
           this.sendSignalViaDb(
-            (this.channel as any).socket.supabaseClient,
+            this.supabaseClient,
             'request_offer',
             { sessionToken: this.sessionToken }
           );
@@ -617,10 +621,10 @@ export class ViewerConnection {
         }
       });
 
-      if (result !== 'ok') {
+      if (result !== 'ok' && this.supabaseClient) {
         this.addDebugLog('⚠️ Answer send failed, using DB');
         await this.sendSignalViaDb(
-          (this.channel as any).socket.supabaseClient,
+          this.supabaseClient,
           'answer',
           { answer, sessionToken: this.sessionToken }
         );
@@ -669,18 +673,28 @@ export class ViewerConnection {
         }
 
         if (this.heartbeatFailures >= this.maxHeartbeatFailures) {
-          this.addDebugLog('❌ Multiple heartbeat failures – attempting reconnection');
+          this.addDebugLog('❌ Multiple heartbeat failures – reconnecting');
           this.heartbeatFailures = 0;
-          await this.hardReconnect(supabase);
+          // Only reconnect if not already connected
+          if (this.peerConnection?.connectionState !== 'connected') {
+            await this.hardReconnect(supabase);
+          } else {
+            this.addDebugLog('✓ WebRTC still connected, ignoring heartbeat failures');
+          }
         }
       } catch (error) {
         console.error('Heartbeat exception:', error);
         this.heartbeatFailures++;
         
         if (this.heartbeatFailures >= this.maxHeartbeatFailures) {
-          this.addDebugLog('❌ Multiple heartbeat failures – attempting reconnection');
+          this.addDebugLog('❌ Multiple heartbeat failures – reconnecting');
           this.heartbeatFailures = 0;
-          await this.hardReconnect(supabase);
+          // Only reconnect if not already connected
+          if (this.peerConnection?.connectionState !== 'connected') {
+            await this.hardReconnect(supabase);
+          } else {
+            this.addDebugLog('✓ WebRTC still connected, ignoring heartbeat failures');
+          }
         }
       }
     }, 15000);
