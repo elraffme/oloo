@@ -110,6 +110,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     const handlePlaying = () => {
       console.log('📹 Video is playing!');
       setHasVideo(true);
+      setConnectionState('streaming');
     };
     
     const handlePlay = () => {
