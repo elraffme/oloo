@@ -1569,7 +1569,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         )}
                       </>
                     ) : (
-                      <Button onClick={endStream} disabled={isLoading} variant="destructive" className="w-full" size="lg">
+                      <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
                         {isLoading ? 'Ending...' : 'End Stream'}
                       </Button>
                     )}
