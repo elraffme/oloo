@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BroadcastManager } from '@/utils/BroadcastManager';
 import StreamViewer from '@/components/StreamViewer';
+import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CoinShop } from '@/components/CoinShop';
@@ -21,6 +22,7 @@ import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
+import { useStreamQueue } from '@/hooks/useStreamQueue';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -98,6 +100,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [hasTURN, setHasTURN] = useState(false);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
+  const [isTikTokMode, setIsTikTokMode] = useState(false);
+  
+  // Initialize stream queue with live streams
+  const streamQueueData = liveStreams.map(stream => ({
+    id: stream.id,
+    title: stream.title,
+    host_name: stream.host_name || 'Unknown',
+    host_user_id: stream.host_user_id,
+    current_viewers: stream.current_viewers,
+    total_likes: stream.total_likes || 0,
+    thumbnail: stream.thumbnail,
+    category: stream.category
+  }));
+  
+  const {
+    currentStream,
+    nextStream,
+    previousStream,
+    hasNext,
+    hasPrevious,
+    goToNext,
+    goToPrevious
+  } = useStreamQueue(streamQueueData);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
@@ -911,13 +936,51 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-  const joinStream = (stream: StreamData) => {
+  const joinStream = (stream: StreamData, useTikTokMode: boolean = isTikTokMode) => {
     setViewingStreamId(stream.id);
     setViewingStreamData(stream);
+    setIsTikTokMode(useTikTokMode);
   };
   const closeStreamViewer = () => {
     setViewingStreamId(null);
     setViewingStreamData(null);
+    setIsTikTokMode(false);
+  };
+  
+  const handleTikTokNext = () => {
+    goToNext();
+    if (currentStream) {
+      setViewingStreamId(currentStream.id);
+      setViewingStreamData({
+        id: currentStream.id,
+        title: currentStream.title,
+        description: '',
+        host_user_id: currentStream.host_user_id,
+        host_name: currentStream.host_name,
+        current_viewers: currentStream.current_viewers,
+        status: 'live',
+        created_at: new Date().toISOString(),
+        total_likes: currentStream.total_likes
+      });
+    }
+  };
+  
+  const handleTikTokPrevious = () => {
+    goToPrevious();
+    if (currentStream) {
+      setViewingStreamId(currentStream.id);
+      setViewingStreamData({
+        id: currentStream.id,
+        title: currentStream.title,
+        description: '',
+        host_user_id: currentStream.host_user_id,
+        host_name: currentStream.host_name,
+        current_viewers: currentStream.current_viewers,
+        status: 'live',
+        created_at: new Date().toISOString(),
+        total_likes: currentStream.total_likes
+      });
+    }
   };
   const handleManageStream = () => {
     navigate('/app/streaming/go-live');
@@ -966,9 +1029,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               <p className="text-muted-foreground mb-3">
                 Connect with your community through live cultural content
               </p>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                ✨ Real-time Streaming
-              </Badge>
+              <div className="flex items-center justify-center gap-3">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  ✨ Real-time Streaming
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (liveStreams.length > 0) {
+                      joinStream(liveStreams[0], true);
+                    } else {
+                      toast({
+                        title: "No live streams",
+                        description: "There are no live streams available right now",
+                      });
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <Play className="w-4 h-4" />
+                  TikTok Mode
+                </Button>
+              </div>
             </div>
 
 
@@ -1366,7 +1449,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         </Tabs>
       </div>
 
-      {viewingStreamId && viewingStreamData && <StreamViewer streamId={viewingStreamId} streamTitle={viewingStreamData.title} hostName={viewingStreamData.host_name || 'Anonymous'} hostUserId={viewingStreamData.host_user_id} onClose={closeStreamViewer} />}
+      {/* Conditional viewer rendering based on mode */}
+      {viewingStreamId && viewingStreamData && (
+        isTikTokMode ? (
+          <TikTokStreamViewer
+            streamId={viewingStreamId}
+            streamTitle={viewingStreamData.title}
+            hostName={viewingStreamData.host_name || 'Anonymous'}
+            hostUserId={viewingStreamData.host_user_id}
+            currentViewers={viewingStreamData.current_viewers}
+            totalLikes={viewingStreamData.total_likes || 0}
+            onClose={closeStreamViewer}
+            onNext={hasNext ? handleTikTokNext : undefined}
+            onPrevious={hasPrevious ? handleTikTokPrevious : undefined}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
+          />
+        ) : (
+          <StreamViewer
+            streamId={viewingStreamId}
+            streamTitle={viewingStreamData.title}
+            hostName={viewingStreamData.host_name || 'Anonymous'}
+            hostUserId={viewingStreamData.host_user_id}
+            onClose={closeStreamViewer}
+          />
+        )
+      )}
 
       <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
 
