@@ -21,7 +21,6 @@ import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
-
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -54,7 +53,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const {
     toast
   } = useToast();
-  
+
   // Determine active tab from URL - default to discover
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -90,7 +89,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     giftName: string;
     giftEmoji: string;
   }>>([]);
-  const { balance } = useCurrency();
+  const {
+    balance
+  } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
@@ -109,21 +110,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   useEffect(() => {
     const fetchMyActiveStream = async () => {
       if (!user) return;
-      
-      const { data, error } = await supabase
-        .from('streaming_sessions')
-        .select('*')
-        .eq('host_user_id', user.id)
-        .eq('status', 'live')
-        .maybeSingle();
-      
+      const {
+        data,
+        error
+      } = await supabase.from('streaming_sessions').select('*').eq('host_user_id', user.id).eq('status', 'live').maybeSingle();
       if (!error && data) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('user_id', data.host_user_id)
-          .single();
-        
+        const {
+          data: profileData
+        } = await supabase.from('profiles').select('display_name').eq('user_id', data.host_user_id).single();
         setMyActiveStream({
           id: data.id,
           title: data.title,
@@ -132,13 +126,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           host_name: profileData?.display_name || 'You',
           current_viewers: data.current_viewers || 0,
           status: data.status as 'live' | 'ended' | 'pending',
-          created_at: data.created_at,
+          created_at: data.created_at
         });
       } else {
         setMyActiveStream(null);
       }
     };
-
     if (user && activeTab === 'discover') {
       fetchMyActiveStream();
     }
@@ -147,47 +140,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Real-time subscription for user's stream updates
   useEffect(() => {
     if (!user) return;
-    
-    const channel = supabase
-      .channel('my_stream_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'streaming_sessions',
-          filter: `host_user_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-            const streamData = payload.new as any;
-            if (streamData.status === 'live') {
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('display_name')
-                .eq('user_id', streamData.host_user_id)
-                .single();
-              
-              setMyActiveStream({
-                id: streamData.id,
-                title: streamData.title,
-                description: streamData.description || '',
-                host_user_id: streamData.host_user_id,
-                host_name: profileData?.display_name || 'You',
-                current_viewers: streamData.current_viewers || 0,
-                status: streamData.status as 'live' | 'ended' | 'pending',
-                created_at: streamData.created_at,
-              });
-            } else {
-              setMyActiveStream(null);
-            }
-          } else if (payload.eventType === 'DELETE') {
-            setMyActiveStream(null);
-          }
+    const channel = supabase.channel('my_stream_updates').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'streaming_sessions',
+      filter: `host_user_id=eq.${user.id}`
+    }, async payload => {
+      if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+        const streamData = payload.new as any;
+        if (streamData.status === 'live') {
+          const {
+            data: profileData
+          } = await supabase.from('profiles').select('display_name').eq('user_id', streamData.host_user_id).single();
+          setMyActiveStream({
+            id: streamData.id,
+            title: streamData.title,
+            description: streamData.description || '',
+            host_user_id: streamData.host_user_id,
+            host_name: profileData?.display_name || 'You',
+            current_viewers: streamData.current_viewers || 0,
+            status: streamData.status as 'live' | 'ended' | 'pending',
+            created_at: streamData.created_at
+          });
+        } else {
+          setMyActiveStream(null);
         }
-      )
-      .subscribe();
-    
+      } else if (payload.eventType === 'DELETE') {
+        setMyActiveStream(null);
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -196,35 +177,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Subscribe to likes for user's stream
   useEffect(() => {
     if (!myActiveStream) return;
-    
-    const channel = supabase
-      .channel(`my_stream_likes_${myActiveStream.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'stream_likes',
-          filter: `stream_id=eq.${myActiveStream.id}`,
-        },
-        async () => {
-          // Refresh stream data to get updated like count
-          const { data } = await supabase
-            .from('streaming_sessions')
-            .select('total_likes, current_viewers')
-            .eq('id', myActiveStream.id)
-            .single();
-          
-          if (data && myActiveStream) {
-            setMyActiveStream({
-              ...myActiveStream,
-              current_viewers: data.current_viewers || 0,
-            });
-          }
-        }
-      )
-      .subscribe();
-    
+    const channel = supabase.channel(`my_stream_likes_${myActiveStream.id}`).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'stream_likes',
+      filter: `stream_id=eq.${myActiveStream.id}`
+    }, async () => {
+      // Refresh stream data to get updated like count
+      const {
+        data
+      } = await supabase.from('streaming_sessions').select('total_likes, current_viewers').eq('id', myActiveStream.id).single();
+      if (data && myActiveStream) {
+        setMyActiveStream({
+          ...myActiveStream,
+          current_viewers: data.current_viewers || 0
+        });
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -233,58 +202,41 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Subscribe to gift transactions when streaming
   useEffect(() => {
     if (!activeStreamId || !user) return;
+    const channel = supabase.channel(`gifts_${activeStreamId}`).on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'gift_transactions',
+      filter: `receiver_id=eq.${user.id}`
+    }, async payload => {
+      const giftTransaction = payload.new;
 
-    const channel = supabase
-      .channel(`gifts_${activeStreamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'gift_transactions',
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        async (payload) => {
-          const giftTransaction = payload.new;
-          
-          // Fetch gift and sender details
-          const { data: giftData } = await supabase
-            .from('gifts')
-            .select('name, asset_url')
-            .eq('id', giftTransaction.gift_id)
-            .single();
+      // Fetch gift and sender details
+      const {
+        data: giftData
+      } = await supabase.from('gifts').select('name, asset_url').eq('id', giftTransaction.gift_id).single();
+      const {
+        data: senderData
+      } = await supabase.from('profiles').select('display_name').eq('user_id', giftTransaction.sender_id).single();
+      if (giftData && senderData) {
+        const notification = {
+          id: giftTransaction.id,
+          senderName: senderData.display_name,
+          giftName: giftData.name,
+          giftEmoji: giftData.asset_url || '🎁'
+        };
+        setGiftNotifications(prev => [...prev, notification]);
+        setTotalGifts(prev => prev + 1);
 
-          const { data: senderData } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('user_id', giftTransaction.sender_id)
-            .single();
-
-          if (giftData && senderData) {
-            const notification = {
-              id: giftTransaction.id,
-              senderName: senderData.display_name,
-              giftName: giftData.name,
-              giftEmoji: giftData.asset_url || '🎁',
-            };
-
-            setGiftNotifications(prev => [...prev, notification]);
-            setTotalGifts(prev => prev + 1);
-
-            // Remove notification after 5 seconds
-            setTimeout(() => {
-              setGiftNotifications(prev => prev.filter(n => n.id !== notification.id));
-            }, 5000);
-
-            toast({
-              title: `${senderData.display_name} sent ${giftData.name}!`,
-              description: `You earned gold from this gift 🪙`,
-            });
-          }
-        }
-      )
-      .subscribe();
-
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+          setGiftNotifications(prev => prev.filter(n => n.id !== notification.id));
+        }, 5000);
+        toast({
+          title: `${senderData.display_name} sent ${giftData.name}!`,
+          description: `You earned gold from this gift 🪙`
+        });
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -293,28 +245,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Subscribe to likes for the streamer's active stream
   useEffect(() => {
     if (!activeStreamId) return;
-    
-    const channel = supabase
-      .channel(`broadcaster_likes_${activeStreamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'stream_likes',
-          filter: `stream_id=eq.${activeStreamId}`,
-        },
-        () => {
-          // Trigger the heart animation
-          setShowLikeAnimation(true);
-          setLikeAnimationTrigger(prev => prev + 1);
-          
-          // Update total likes count
-          setTotalLikes(prev => prev + 1);
-        }
-      )
-      .subscribe();
-    
+    const channel = supabase.channel(`broadcaster_likes_${activeStreamId}`).on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'stream_likes',
+      filter: `stream_id=eq.${activeStreamId}`
+    }, () => {
+      // Trigger the heart animation
+      setShowLikeAnimation(true);
+      setLikeAnimationTrigger(prev => prev + 1);
+
+      // Update total likes count
+      setTotalLikes(prev => prev + 1);
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -338,13 +281,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     const fetchLiveStreams = async () => {
       try {
         // Fetch only live streaming sessions - ended/archived sessions are hidden
-        const { data: streamsData, error: streamsError } = await supabase
-          .from('streaming_sessions')
-          .select('*')
-          .eq('status', 'live')
-          .eq('is_private', false)
-          .order('created_at', { ascending: false });
-        
+        const {
+          data: streamsData,
+          error: streamsError
+        } = await supabase.from('streaming_sessions').select('*').eq('status', 'live').eq('is_private', false).order('created_at', {
+          ascending: false
+        });
         if (streamsError) throw streamsError;
         if (!streamsData || streamsData.length === 0) {
           setLiveStreams([]);
@@ -353,18 +295,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
         // Fetch profiles for all hosts in one query
         const hostIds = [...new Set(streamsData.map(s => s.host_user_id))];
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', hostIds);
-        
+        const {
+          data: profilesData,
+          error: profilesError
+        } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', hostIds);
         if (profilesError) console.warn('Error fetching profiles:', profilesError);
 
         // Create a map of user_id to profile for quick lookup
-        const profilesMap = new Map(
-          profilesData?.map(p => [p.user_id, p]) || []
-        );
-
+        const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
         const formattedStreams: StreamData[] = streamsData.map((stream: any) => {
           const profile = profilesMap.get(stream.host_user_id);
           return {
@@ -381,7 +319,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
           };
         });
-        
         setLiveStreams(formattedStreams);
       } catch (error) {
         console.error('Error fetching live streams:', error);
@@ -420,22 +357,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         // Call the database function
         await supabase.rpc('cleanup_stale_live_streams');
         console.log('✅ Stale streams cleanup completed');
-        
+
         // Additionally, immediately archive any streams that are clearly stale
         // (This provides instant cleanup without waiting for the function)
         const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
         const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
-        
-        const { error: immediateCleanupError } = await supabase
-          .from('streaming_sessions')
-          .update({
-            status: 'archived',
-            ended_at: new Date().toISOString(),
-            current_viewers: 0
-          })
-          .eq('status', 'live')
-          .or(`started_at.lt.${sixHoursAgo},and(started_at.is.null,created_at.lt.${oneHourAgo})`);
-        
+        const {
+          error: immediateCleanupError
+        } = await supabase.from('streaming_sessions').update({
+          status: 'archived',
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
+        }).eq('status', 'live').or(`started_at.lt.${sixHoursAgo},and(started_at.is.null,created_at.lt.${oneHourAgo})`);
         if (immediateCleanupError) {
           console.warn('Failed immediate cleanup:', immediateCleanupError);
         } else {
@@ -455,42 +388,45 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         fetchLiveStreams();
       }, 500); // Only refetch once every 500ms max
     };
-
     const channel = supabase.channel('streaming_sessions_changes').on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'streaming_sessions',
       filter: 'is_private=eq.false'
-    }, (payload) => {
+    }, payload => {
       // Handle DELETE - always remove from UI
       if (payload.eventType === 'DELETE' && payload.old) {
         setLiveStreams(prev => prev.filter(s => s.id !== (payload.old as any).id));
         return;
       }
-      
+
       // Handle UPDATE - optimize state updates
       if (payload.eventType === 'UPDATE' && payload.new) {
         const updatedStream = payload.new as any;
-        
+
         // If stream ended/archived, remove immediately without refetch
         if (updatedStream.status === 'ended' || updatedStream.status === 'archived') {
           setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
           return;
         }
-        
+
         // If stream is now live, add/update optimistically
         if (updatedStream.status === 'live') {
           setLiveStreams(prev => {
             const exists = prev.find(s => s.id === updatedStream.id);
             if (exists) {
               // Update existing stream
-              return prev.map(s => s.id === updatedStream.id ? { ...s, current_viewers: updatedStream.current_viewers, total_likes: updatedStream.total_likes } : s);
+              return prev.map(s => s.id === updatedStream.id ? {
+                ...s,
+                current_viewers: updatedStream.current_viewers,
+                total_likes: updatedStream.total_likes
+              } : s);
             }
             // Don't auto-add, let the debounced refetch handle it
             return prev;
           });
         }
-        
+
         // Only trigger debounced refetch for meaningful updates
         // (avoid refetch on minor updates like viewer count changes)
         const oldStream = payload.old as any;
@@ -499,13 +435,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
         return;
       }
-      
+
       // Handle INSERT - new stream created, refetch
       if (payload.eventType === 'INSERT') {
         debouncedRefetch();
       }
     }).subscribe();
-    
     return () => {
       if (refetchTimeout) clearTimeout(refetchTimeout);
       supabase.removeChannel(channel);
@@ -517,9 +452,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     return () => {
       if (isCleaningUpRef.current) return;
       isCleaningUpRef.current = true;
-
       console.log('Component unmounting, cleaning up...');
-      
+
       // 1. Stop media tracks first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
@@ -533,13 +467,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setHasMicPermission(false);
       setIsCameraOn(false);
       setIsMicOn(false);
-      
+
       // 2. Cleanup broadcast manager
       if (broadcastManagerRef.current) {
         console.log('Cleaning up broadcast manager');
         broadcastManagerRef.current.cleanup();
       }
-      
+
       // 3. Clear intervals
       if (viewerCountIntervalRef.current) {
         clearInterval(viewerCountIntervalRef.current);
@@ -548,33 +482,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // 4. Update database if streaming (use ref for current value) - Archive immediately
       if (activeStreamIdRef.current) {
         console.log('Archiving stream on unmount');
-        supabase
-          .from('streaming_sessions')
-          .update({
-            status: 'archived',
-            ended_at: new Date().toISOString(),
-            current_viewers: 0
-          })
-          .eq('id', activeStreamIdRef.current)
-          .then(() => console.log('Stream archived on unmount'));
+        supabase.from('streaming_sessions').update({
+          status: 'archived',
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
+        }).eq('id', activeStreamIdRef.current).then(() => console.log('Stream archived on unmount'));
       }
     };
   }, []);
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
-    
     try {
       const constraints: MediaStreamConstraints = {};
-      
       if (requestVideo) {
         constraints.video = {
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
+          width: {
+            ideal: 720
+          },
+          height: {
+            ideal: 1280
+          },
           facingMode: 'user'
         };
       }
-      
       if (requestAudio) {
         constraints.audio = {
           echoCancellation: true,
@@ -582,7 +513,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           autoGainControl: true
         };
       }
-
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
 
       // Smart track management: only stop tracks being replaced
@@ -595,7 +525,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             streamRef.current?.removeTrack(track);
           });
         }
-        
         if (requestAudio) {
           // Stop old audio tracks if requesting new audio
           streamRef.current.getAudioTracks().forEach(track => {
@@ -604,7 +533,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             streamRef.current?.removeTrack(track);
           });
         }
-        
+
         // Add new tracks to existing stream
         newStream.getTracks().forEach(track => {
           console.log(`➕ Adding ${track.kind} track to stream`);
@@ -614,7 +543,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         // No existing stream, use new one
         streamRef.current = newStream;
       }
-      
+
       // Log all tracks for debugging
       console.log('📹 Current media stream tracks:');
       streamRef.current?.getTracks().forEach(track => {
@@ -626,7 +555,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         videoRef.current.srcObject = streamRef.current;
         await videoRef.current.play();
       }
-
       if (requestVideo) {
         setHasCameraPermission(true);
         setIsCameraOn(true);
@@ -635,21 +563,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         setHasMicPermission(true);
         setIsMicOn(true);
       }
-
       const mediaTypes = [];
       if (requestVideo) mediaTypes.push('Camera');
       if (requestAudio) mediaTypes.push('Microphone');
-
       toast({
         title: "Media enabled ✓",
         description: `${mediaTypes.join(' and ')} ready to stream.`
       });
-
     } catch (error: any) {
       console.error('Error accessing media:', error);
       if (requestVideo) setHasCameraPermission(false);
       if (requestAudio) setHasMicPermission(false);
-      
       let errorMessage = "Please enable permissions.";
       if (error.name === 'NotAllowedError') {
         errorMessage = "Permission denied. Please click 'Allow' to grant access.";
@@ -658,7 +582,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       } else if (error.name === 'NotReadableError') {
         errorMessage = "Device is already in use. Please close other apps.";
       }
-      
       toast({
         title: "Media access failed",
         description: errorMessage,
@@ -696,7 +619,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     if (!streamTitle.trim()) {
       toast({
         title: "Missing title",
@@ -705,7 +627,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     if (!streamRef.current) {
       toast({
         title: "Camera not ready",
@@ -718,7 +639,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     // Verify camera is actually capturing (Phase 7)
     const videoTracks = streamRef.current.getVideoTracks();
     const audioTracks = streamRef.current.getAudioTracks();
-    
     if (videoTracks.length === 0) {
       toast({
         title: "No video source",
@@ -732,7 +652,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     const videoTrack = videoTracks[0];
     const settings = videoTrack.getSettings();
     console.log('📹 Camera settings:', settings);
-    
     if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
       toast({
         title: "Camera not active",
@@ -741,7 +660,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-    
     if (settings.width === 0 || settings.height === 0) {
       toast({
         title: "Camera error",
@@ -750,13 +668,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-
     console.log(`✅ Verified: ${videoTracks.length} video tracks, ${audioTracks.length} audio tracks`);
     console.log(`📹 Video: ${settings.width}x${settings.height}, enabled: ${videoTrack.enabled}, state: ${videoTrack.readyState}`);
-
     setIsLoading(true);
     setStreamLifecycle('preparing');
-
     try {
       console.log("🎬 Starting stream...");
       console.log("Stream payload:", {
@@ -767,44 +682,35 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
 
       // Phase 7: Check for existing active stream and archive it
-      const { data: existingStream } = await supabase
-        .from('streaming_sessions')
-        .select('id')
-        .eq('host_user_id', user.id)
-        .eq('status', 'live')
-        .maybeSingle();
-
+      const {
+        data: existingStream
+      } = await supabase.from('streaming_sessions').select('id').eq('host_user_id', user.id).eq('status', 'live').maybeSingle();
       if (existingStream) {
         console.log('Found existing active stream, archiving it first...');
         // Auto-archive the old stream
-        await supabase
-          .from('streaming_sessions')
-          .update({
-            status: 'archived',
-            ended_at: new Date().toISOString(),
-            current_viewers: 0
-          })
-          .eq('id', existingStream.id);
+        await supabase.from('streaming_sessions').update({
+          status: 'archived',
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
+        }).eq('id', existingStream.id);
       }
-
-      const { data, error } = await supabase
-        .from('streaming_sessions')
-        .insert({
-          title: streamTitle,
-          description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
-          host_user_id: user.id,
-          status: 'waiting',
-          is_private: false,
-          ar_space_data: { category: streamCategory || 'General' }
-        })
-        .select()
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('streaming_sessions').insert({
+        title: streamTitle,
+        description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
+        host_user_id: user.id,
+        status: 'waiting',
+        is_private: false,
+        ar_space_data: {
+          category: streamCategory || 'General'
+        }
+      }).select().single();
       if (error) {
         console.error("Supabase insert error:", error);
         throw error;
       }
-
       console.log("Stream created:", data);
       setActiveStreamId(data.id);
       activeStreamIdRef.current = data.id;
@@ -813,25 +719,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // Initialize broadcast manager with current stream
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
-      
+
       // Set up status handler
-      broadcastManagerRef.current.setChannelStatusHandler(async (status) => {
+      broadcastManagerRef.current.setChannelStatusHandler(async status => {
         console.log('Channel status changed:', status);
-        
         if (status === 'connecting') {
           setChannelStatus('connecting');
         } else if (status === 'connected') {
           setChannelStatus('connected');
-          
+
           // Update stream to live once channel is ready
-          const { error: updateError } = await supabase
-            .from('streaming_sessions')
-            .update({ 
-              status: 'live', 
-              started_at: new Date().toISOString() 
-            })
-            .eq('id', data.id);
-          
+          const {
+            error: updateError
+          } = await supabase.from('streaming_sessions').update({
+            status: 'live',
+            started_at: new Date().toISOString()
+          }).eq('id', data.id);
           if (updateError) {
             console.error('Error updating stream to live:', updateError);
           } else {
@@ -845,12 +748,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           setChannelStatus('disconnected');
         }
       });
-      
       await broadcastManagerRef.current.initializeChannel(supabase);
 
       // Fetch ICE servers to check TURN availability
       try {
-        const { data: iceData } = await supabase.functions.invoke('get-ice-servers');
+        const {
+          data: iceData
+        } = await supabase.functions.invoke('get-ice-servers');
         if (iceData) {
           setHasTURN(iceData.hasTURN);
         }
@@ -862,42 +766,34 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       viewerCountIntervalRef.current = setInterval(async () => {
         const count = broadcastManagerRef.current?.getViewerCount() || 0;
         setCurrentViewers(count);
-        
-        await supabase
-          .from('streaming_sessions')
-          .update({ current_viewers: count })
-          .eq('id', data.id);
+        await supabase.from('streaming_sessions').update({
+          current_viewers: count
+        }).eq('id', data.id);
       }, 3000);
-
       console.log('✅ Broadcast setup initiated');
       setIsLoading(false);
-
       toast({
         title: "🎥 Stream Starting...",
         description: "Establishing broadcast connection"
       });
     } catch (error: any) {
       console.error('Error starting stream:', error);
-      
+
       // Enhanced error messages
       let errorTitle = "Failed to start stream";
       let errorDescription = error.message || "Unknown error";
-      
       if (error.code) {
         errorDescription = `Error ${error.code}: ${error.message}`;
       }
-      
       if (error.hint) {
         errorDescription += `\nHint: ${error.hint}`;
       }
-      
       toast({
         title: errorTitle,
         description: errorDescription,
         variant: "destructive",
         duration: 10000
       });
-      
       setStreamLifecycle('idle');
       setChannelStatus('disconnected');
       setIsStreaming(false);
@@ -906,7 +802,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const endStream = async () => {
     if (!activeStreamId) return;
-
     setStreamLifecycle('ending');
     setIsLoading(true);
     try {
@@ -943,19 +838,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsMicOn(false);
 
       // Update database - Archive immediately
-      const { error } = await supabase
-        .from('streaming_sessions')
-        .update({
-          status: 'archived',
-          ended_at: new Date().toISOString(),
-          current_viewers: 0
-        })
-        .eq('id', activeStreamId);
-
+      const {
+        error
+      } = await supabase.from('streaming_sessions').update({
+        status: 'archived',
+        ended_at: new Date().toISOString(),
+        current_viewers: 0
+      }).eq('id', activeStreamId);
       if (error) {
         console.error('Error archiving stream:', error);
       }
-
       setIsStreaming(false);
       setActiveStreamId(null);
       setCurrentViewers(0);
@@ -963,7 +855,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setTotalGifts(0);
       setStreamLifecycle('ended');
       setChannelStatus('disconnected');
-      
+
       // Phase 6: Enhanced visual feedback
       toast({
         title: "🎬 Stream ended and archived",
@@ -982,15 +874,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const forceEndStream = async (streamId: string, streamTitle: string) => {
     try {
-      const { error } = await supabase
-        .from('streaming_sessions')
-        .update({
-          status: 'archived',
-          ended_at: new Date().toISOString(),
-          current_viewers: 0
-        })
-        .eq('id', streamId);
-
+      const {
+        error
+      } = await supabase.from('streaming_sessions').update({
+        status: 'archived',
+        ended_at: new Date().toISOString(),
+        current_viewers: 0
+      }).eq('id', streamId);
       if (error) {
         console.error('Error force ending stream:', error);
         toast({
@@ -1002,15 +892,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
 
       // Refresh live streams list
-      const { data: updatedStreams } = await supabase
-        .from('streaming_sessions')
-        .select('*')
-        .eq('status', 'live');
-      
+      const {
+        data: updatedStreams
+      } = await supabase.from('streaming_sessions').select('*').eq('status', 'live');
       if (updatedStreams) {
         setLiveStreams(updatedStreams as StreamData[]);
       }
-
       toast({
         title: "Stream ended",
         description: `"${streamTitle}" has been forcefully ended.`
@@ -1024,21 +911,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-
   const joinStream = (stream: StreamData) => {
     setViewingStreamId(stream.id);
     setViewingStreamData(stream);
   };
-
   const closeStreamViewer = () => {
     setViewingStreamId(null);
     setViewingStreamData(null);
   };
-
   const handleManageStream = () => {
     navigate('/app/streaming/go-live');
   };
-
   const handleViewAsViewer = () => {
     if (myActiveStream) {
       setViewingStreamId(myActiveStream.id);
@@ -1050,7 +933,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         host_name: user?.user_metadata?.display_name || 'You',
         current_viewers: myActiveStream.current_viewers,
         status: myActiveStream.status as 'live' | 'ended' | 'pending',
-        created_at: myActiveStream.created_at,
+        created_at: myActiveStream.created_at
       });
     }
   };
@@ -1067,7 +950,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => navigate(`/app/streaming/${value}`)} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={value => navigate(`/app/streaming/${value}`)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="discover">Discover Streams</TabsTrigger>
             <TabsTrigger value="go-live">Go Live</TabsTrigger>
@@ -1076,17 +959,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-6">
             {/* My Active Stream Banner */}
-            {myActiveStream && (
-              <MyActiveStreamBanner
-                streamId={myActiveStream.id}
-                title={myActiveStream.title}
-                startedAt={myActiveStream.created_at}
-                currentViewers={myActiveStream.current_viewers || 0}
-                totalLikes={totalLikes}
-                onManageStream={handleManageStream}
-                onViewAsViewer={handleViewAsViewer}
-              />
-            )}
+            {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={myActiveStream.current_viewers || 0} totalLikes={totalLikes} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
 
             <div className="text-center mb-8">
               <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
@@ -1102,111 +975,46 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             {/* Live Streams Grid */}
             {/* Phase 5: Filter out obviously stale streams client-side */}
             {liveStreams.filter(stream => {
+            // Always exclude ended/archived streams
+            if (stream.status !== 'live') return false;
+
+            // If started_at is null and created more than 1 hour ago, it's stale
+            if (!stream.started_at && stream.created_at) {
+              const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
+              if (ageHours > 1) {
+                console.warn('Filtering out stale stream:', stream.title);
+                return false;
+              }
+            }
+
+            // If started more than 6 hours ago, it's stale
+            if (stream.started_at) {
+              const ageHours = (Date.now() - new Date(stream.started_at).getTime()) / (1000 * 60 * 60);
+              if (ageHours > 6) {
+                console.warn('Filtering out long-running stream:', stream.title);
+                return false;
+              }
+            }
+            return true;
+          }).length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveStreams.filter(stream => {
               // Always exclude ended/archived streams
               if (stream.status !== 'live') return false;
-              
-              // If started_at is null and created more than 1 hour ago, it's stale
+
+              // Apply same health check filter
               if (!stream.started_at && stream.created_at) {
                 const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
-                if (ageHours > 1) {
-                  console.warn('Filtering out stale stream:', stream.title);
-                  return false;
-                }
+                if (ageHours > 1) return false;
               }
-              
-              // If started more than 6 hours ago, it's stale
               if (stream.started_at) {
                 const ageHours = (Date.now() - new Date(stream.started_at).getTime()) / (1000 * 60 * 60);
-                if (ageHours > 6) {
-                  console.warn('Filtering out long-running stream:', stream.title);
-                  return false;
-                }
+                if (ageHours > 6) return false;
               }
-              
               return true;
-            }).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {liveStreams.filter(stream => {
-                  // Always exclude ended/archived streams
-                  if (stream.status !== 'live') return false;
-                  
-                  // Apply same health check filter
-                  if (!stream.started_at && stream.created_at) {
-                    const ageHours = (Date.now() - new Date(stream.created_at).getTime()) / (1000 * 60 * 60);
-                    if (ageHours > 1) return false;
-                  }
-                  if (stream.started_at) {
-                    const ageHours = (Date.now() - new Date(stream.started_at).getTime()) / (1000 * 60 * 60);
-                    if (ageHours > 6) return false;
-                  }
-                  return true;
-                }).map((stream) => (
-                  <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        {/* Stream Status Badge */}
-                        <div className="flex items-center justify-between">
-                          <Badge className="bg-red-500 text-white">
-                            <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                            LIVE
-                          </Badge>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center text-sm text-muted-foreground">
-                              <Users className="w-4 h-4 mr-1" />
-                              {stream.current_viewers || 0}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-7 px-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`Force end "${stream.title}"?`)) {
-                                  forceEndStream(stream.id, stream.title);
-                                }
-                              }}
-                            >
-                              End
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Host Name */}
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <User className="w-4 h-4 mr-1" />
-                          <span className="font-medium">{stream.host_name}</span>
-                        </div>
-
-                        {/* Stream Title */}
-                        <h3 className="font-semibold text-lg line-clamp-2">
-                          {stream.title}
-                        </h3>
-
-                        {/* Stream Info */}
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {stream.category || 'General'}
-                          </span>
-                          {stream.total_likes > 0 && (
-                            <div className="flex items-center text-pink-500">
-                              <Heart className="w-4 h-4 mr-1 fill-current" />
-                              {stream.total_likes}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Join Button */}
-                        <Button className="w-full" variant="default" onClick={() => joinStream(stream)}>
-                          <Play className="w-4 h-4 mr-2" />
-                          Watch Stream
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card className="p-12 text-center">
+            }).map(stream => <Card key={stream.id} className="cultural-card hover:shadow-lg transition-shadow">
+                    
+                  </Card>)}
+              </div> : <Card className="p-12 text-center">
                 <div className="space-y-3">
                   <Video className="w-12 h-12 mx-auto text-muted-foreground" />
                   <h3 className="text-lg font-semibold">No Live Streams</h3>
@@ -1214,8 +1022,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     Be the first to go live! Switch to the "Go Live" tab to start streaming.
                   </p>
                 </div>
-              </Card>
-            )}
+              </Card>}
 
             {/* Premium Live Events */}
             <Card className="premium-gradient p-6 text-center mt-6">
@@ -1296,51 +1103,33 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           {totalGifts}
                         </Badge>
                       </div>
-                      {balance && balance.gold_balance > 0 && (
-                        <div className="flex items-center justify-between">
+                      {balance && balance.gold_balance > 0 && <div className="flex items-center justify-between">
                           <span className="text-sm">Gold Earned:</span>
                           <Badge variant="outline" className="gap-1 bg-amber-500/10 border-amber-500/30">
                             <Sparkles className="w-3 h-3 text-amber-500" />
                             <span className="text-amber-500">{balance.gold_balance}</span>
                           </Badge>
-                        </div>
-                      )}
+                        </div>}
                       
                       {/* Broadcaster Diagnostics Toggle */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowBroadcasterDiagnostics(!showBroadcasterDiagnostics)}
-                        className="w-full justify-start"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setShowBroadcasterDiagnostics(!showBroadcasterDiagnostics)} className="w-full justify-start">
                         <Activity className="w-4 h-4 mr-2" />
                         {showBroadcasterDiagnostics ? 'Hide' : 'Show'} Diagnostics
                       </Button>
 
                       {/* Connection Quality Monitor */}
-                      {isStreaming && broadcastManagerRef.current && broadcastManagerRef.current.getViewerCount() > 0 && (
-                        <div className="space-y-2">
+                      {isStreaming && broadcastManagerRef.current && broadcastManagerRef.current.getViewerCount() > 0 && <div className="space-y-2">
                           <div className="text-xs font-semibold text-primary">Broadcast Quality</div>
-                          <ConnectionStatusIndicator
-                            peerConnection={(Array.from((broadcastManagerRef.current as any).peerConnections?.values() || [])[0] as RTCPeerConnection) || null}
-                            isConnected={true}
-                            compact={true}
-                          />
-                        </div>
-                      )}
+                          <ConnectionStatusIndicator peerConnection={Array.from((broadcastManagerRef.current as any).peerConnections?.values() || [])[0] as RTCPeerConnection || null} isConnected={true} compact={true} />
+                        </div>}
 
                       {/* Diagnostics Panel */}
-                      {showBroadcasterDiagnostics && (
-                        <div className="p-3 bg-background border border-border rounded-lg space-y-2">
+                      {showBroadcasterDiagnostics && <div className="p-3 bg-background border border-border rounded-lg space-y-2">
                           <div className="text-xs font-semibold text-primary mb-2">Connection Diagnostics</div>
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-muted-foreground">Channel Status:</span>
                             <Badge variant={channelStatus === 'connected' ? 'default' : 'secondary'} className="text-[10px]">
-                              {channelStatus === 'connected' ? (
-                                <><CheckCircle2 className="w-3 h-3 mr-1" />Connected</>
-                              ) : (
-                                <><XCircle className="w-3 h-3 mr-1" />Disconnected</>
-                              )}
+                              {channelStatus === 'connected' ? <><CheckCircle2 className="w-3 h-3 mr-1" />Connected</> : <><XCircle className="w-3 h-3 mr-1" />Disconnected</>}
                             </Badge>
                           </div>
                           <div className="flex items-center justify-between text-xs">
@@ -1361,43 +1150,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                               {isBroadcastReady ? 'Yes' : 'No'}
                             </Badge>
                           </div>
-                          <Button
-                            onClick={async () => {
-                              if (broadcastManagerRef.current) {
-                                await broadcastManagerRef.current.manuallyAnnounceReady();
-                                toast({
-                                  title: 'Signal Sent',
-                                  description: 'Reannounced ready signal to viewers',
-                                });
-                              }
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="w-full mt-2"
-                          >
+                          <Button onClick={async () => {
+                      if (broadcastManagerRef.current) {
+                        await broadcastManagerRef.current.manuallyAnnounceReady();
+                        toast({
+                          title: 'Signal Sent',
+                          description: 'Reannounced ready signal to viewers'
+                        });
+                      }
+                    }} variant="outline" size="sm" className="w-full mt-2">
                             <Radio className="w-3 h-3 mr-2" />
                             Reannounce Ready
                           </Button>
-                          {isStreaming && activeStreamId && (
-                            <Button
-                              onClick={async () => {
-                                if (!broadcastManagerRef.current) return;
-                                await broadcastManagerRef.current.resetStream(supabase);
-                                toast({
-                                  title: "Livestream reset",
-                                  description: "Connections have been reset. Viewers can retry joining."
-                                });
-                              }}
-                              variant="destructive"
-                              size="sm"
-                              className="w-full mt-2"
-                            >
+                          {isStreaming && activeStreamId && <Button onClick={async () => {
+                      if (!broadcastManagerRef.current) return;
+                      await broadcastManagerRef.current.resetStream(supabase);
+                      toast({
+                        title: "Livestream reset",
+                        description: "Connections have been reset. Viewers can retry joining."
+                      });
+                    }} variant="destructive" size="sm" className="w-full mt-2">
                               <RefreshCw className="w-3 h-3 mr-2" />
                               Reset Livestream
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                            </Button>}
+                        </div>}
                     </div>}
                 </CardContent>
               </Card>
@@ -1407,11 +1183,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Preview</span>
-                    {isStreaming && (
-                      <Badge variant="secondary" className="text-xs">
+                    {isStreaming && <Badge variant="secondary" className="text-xs">
                         🔴 Broadcasting to {currentViewers} viewers
-                      </Badge>
-                    )}
+                      </Badge>}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1426,93 +1200,54 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </Badge>}
 
                     {/* Like Animation Overlay */}
-                    {isStreaming && (
-                      <LikeAnimation 
-                        key={likeAnimationTrigger}
-                        show={showLikeAnimation} 
-                        onComplete={() => setShowLikeAnimation(false)} 
-                      />
-                    )}
+                    {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
 
                     {/* Gift Notifications Overlay */}
-                    {isStreaming && giftNotifications.length > 0 && (
-                      <div className="absolute top-16 right-4 space-y-2 z-10">
-                        {giftNotifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3"
-                          >
+                    {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
+                        {giftNotifications.map(notification => <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
                             <span className="text-3xl">{notification.giftEmoji}</span>
                             <div>
                               <p className="font-semibold text-sm">{notification.senderName}</p>
                               <p className="text-xs text-gray-300">sent {notification.giftName}</p>
                             </div>
                             <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          </div>)}
+                      </div>}
                   </div>
 
                   {/* Controls */}
                   <div className="mt-4 space-y-3">
                     {/* Permission Buttons - Always Visible */}
                     <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        onClick={() => {
-                          if (!hasCameraPermission) {
-                            initializeMedia(true, false);
-                          } else {
-                            toggleCamera();
-                          }
-                        }} 
-                        disabled={isRequestingCamera} 
-                        variant="outline" 
-                        size="sm"
-                      >
+                      <Button onClick={() => {
+                      if (!hasCameraPermission) {
+                        initializeMedia(true, false);
+                      } else {
+                        toggleCamera();
+                      }
+                    }} disabled={isRequestingCamera} variant="outline" size="sm">
                         {isCameraOn ? <Video className="w-4 h-4 mr-2" /> : <VideoOff className="w-4 h-4 mr-2" />}
-                        {isRequestingCamera ? 'Requesting...' : 
-                         !hasCameraPermission ? 'Enable Camera' :
-                         isCameraOn ? 'Turn Off Camera' :
-                         'Turn On Camera'}
+                        {isRequestingCamera ? 'Requesting...' : !hasCameraPermission ? 'Enable Camera' : isCameraOn ? 'Turn Off Camera' : 'Turn On Camera'}
                       </Button>
-                      <Button 
-                        onClick={() => {
-                          if (!hasMicPermission) {
-                            initializeMedia(false, true);
-                          } else {
-                            toggleMicrophone();
-                          }
-                        }} 
-                        disabled={isRequestingMic} 
-                        variant="outline" 
-                        size="sm"
-                      >
+                      <Button onClick={() => {
+                      if (!hasMicPermission) {
+                        initializeMedia(false, true);
+                      } else {
+                        toggleMicrophone();
+                      }
+                    }} disabled={isRequestingMic} variant="outline" size="sm">
                         {isMicOn ? <Mic className="w-4 h-4 mr-2" /> : <MicOff className="w-4 h-4 mr-2" />}
-                        {isRequestingMic ? 'Requesting...' : 
-                         !hasMicPermission ? 'Enable Mic' :
-                         isMicOn ? 'Turn Off Mic' :
-                         'Turn On Mic'}
+                        {isRequestingMic ? 'Requesting...' : !hasMicPermission ? 'Enable Mic' : isMicOn ? 'Turn Off Mic' : 'Turn On Mic'}
                       </Button>
                     </div>
                     
                     {/* Toggle Controls - Always Visible */}
                     <div className="flex items-center justify-center space-x-4">
-                      <Button 
-                        variant={isCameraOn ? "default" : "secondary"} 
-                        size="sm" 
-                        onClick={toggleCamera} 
-                        disabled={!hasCameraPermission}
-                      >
+                      <Button variant={isCameraOn ? "default" : "secondary"} size="sm" onClick={toggleCamera} disabled={!hasCameraPermission}>
                         {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
                       </Button>
                       
-                      <Button 
-                        variant={isMicOn ? "default" : "secondary"} 
-                        size="sm" 
-                        onClick={toggleMicrophone} 
-                        disabled={!hasMicPermission}
-                      >
+                      <Button variant={isMicOn ? "default" : "secondary"} size="sm" onClick={toggleMicrophone} disabled={!hasMicPermission}>
                         {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
                       </Button>
                       
@@ -1523,56 +1258,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     
                     {/* Helper Text */}
                     <p className="text-xs text-muted-foreground text-center">
-                      {!hasCameraPermission || !hasMicPermission
-                        ? 'Grant camera and mic permissions to go live'
-                        : 'Camera and mic are ready'}
+                      {!hasCameraPermission || !hasMicPermission ? 'Grant camera and mic permissions to go live' : 'Camera and mic are ready'}
                     </p>
                   </div>
 
                   {/* Diagnostics Panel - Show when streaming */}
-                  {isStreaming && activeStreamId && (
-                    <div className="mt-4">
-                      <StreamDiagnostics 
-                        data={{
-                          streamId: activeStreamId,
-                          lifecycle: streamLifecycle,
-                          channelStatus: channelStatus,
-                          viewerCount: currentViewers,
-                          videoTracks: streamRef.current?.getVideoTracks().length || 0,
-                          audioTracks: streamRef.current?.getAudioTracks().length || 0,
-                          videoEnabled: streamRef.current?.getVideoTracks()[0]?.enabled || false,
-                          audioEnabled: streamRef.current?.getAudioTracks()[0]?.enabled || false,
-                          hasTURN: hasTURN,
-                          broadcastReady: isBroadcastReady
-                        }}
-                      />
-                    </div>
-                  )}
+                  {isStreaming && activeStreamId && <div className="mt-4">
+                      <StreamDiagnostics data={{
+                    streamId: activeStreamId,
+                    lifecycle: streamLifecycle,
+                    channelStatus: channelStatus,
+                    viewerCount: currentViewers,
+                    videoTracks: streamRef.current?.getVideoTracks().length || 0,
+                    audioTracks: streamRef.current?.getAudioTracks().length || 0,
+                    videoEnabled: streamRef.current?.getVideoTracks()[0]?.enabled || false,
+                    audioEnabled: streamRef.current?.getAudioTracks()[0]?.enabled || false,
+                    hasTURN: hasTURN,
+                    broadcastReady: isBroadcastReady
+                  }} />
+                    </div>}
 
                   {/* Go Live Button */}
                   <div className="mt-6 space-y-2">
-                    {!isStreaming ? (
-                      <>
-                        <Button onClick={startStream} disabled={
-                          !streamTitle.trim() || 
-                          isLoading || 
-                          !streamRef.current ||
-                          !streamRef.current.getVideoTracks()[0]?.enabled ||
-                          streamRef.current.getVideoTracks()[0]?.readyState !== 'live'
-                        } className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                    {!isStreaming ? <>
+                        <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button>
-                        {hasCameraPermission && (
-                          <p className="text-xs text-muted-foreground text-center">
+                        {hasCameraPermission && <p className="text-xs text-muted-foreground text-center">
                             Viewers will connect to your stream in real-time via peer-to-peer connection
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
+                          </p>}
+                      </> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
                         {isLoading ? 'Ending...' : 'End Stream'}
-                      </Button>
-                    )}
+                      </Button>}
                     {!hasCameraPermission && <p className="text-sm text-muted-foreground text-center mt-2">
                       Enable camera to start broadcasting
                     </p>}
@@ -1581,50 +1298,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </Card>
 
               {/* Live Chat (only when streaming) */}
-              {isStreaming && activeStreamId && (
-                <Card className="cultural-card flex flex-col h-[800px] lg:row-span-2">
+              {isStreaming && activeStreamId && <Card className="cultural-card flex flex-col h-[800px] lg:row-span-2">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle className="text-base">Live Chat</CardTitle>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => setShowStreamerChat(!showStreamerChat)}
-                      className="h-8 w-8 p-0"
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => setShowStreamerChat(!showStreamerChat)} className="h-8 w-8 p-0">
                       {showStreamerChat ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </Button>
                   </CardHeader>
                   <CardContent className="flex-1 p-0 overflow-hidden">
-                    {showStreamerChat && (
-                      <LiveStreamChat 
-                        streamId={activeStreamId}
-                        isMobile={false}
-                      />
-                    )}
+                    {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {viewingStreamId && viewingStreamData && (
-        <StreamViewer
-          streamId={viewingStreamId}
-          streamTitle={viewingStreamData.title}
-          hostName={viewingStreamData.host_name || 'Anonymous'}
-          hostUserId={viewingStreamData.host_user_id}
-          onClose={closeStreamViewer}
-        />
-      )}
+      {viewingStreamId && viewingStreamData && <StreamViewer streamId={viewingStreamId} streamTitle={viewingStreamData.title} hostName={viewingStreamData.host_name || 'Anonymous'} hostUserId={viewingStreamData.host_user_id} onClose={closeStreamViewer} />}
 
       <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
 
-      <CameraTroubleshootingWizard
-        open={showTroubleshooting}
-        onOpenChange={setShowTroubleshooting}
-      />
+      <CameraTroubleshootingWizard open={showTroubleshooting} onOpenChange={setShowTroubleshooting} />
     </div>;
 };
 export default StreamingInterface;
