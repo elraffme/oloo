@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
+import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -53,6 +54,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
+  
+  // Viewer camera states
+  const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
+  const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
+  const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
+  const [isCameraRequesting, setIsCameraRequesting] = useState(false);
 
   const getConnectionMessage = (state: ConnectionState): string => {
     switch (state) {
@@ -509,6 +516,74 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
+  const toggleViewerCamera = async () => {
+    if (viewerCameraEnabled) {
+      // Disable camera
+      if (viewerBroadcastRef.current) {
+        viewerBroadcastRef.current.cleanup();
+        viewerBroadcastRef.current = null;
+      }
+      if (viewerStream) {
+        viewerStream.getTracks().forEach(track => track.stop());
+        setViewerStream(null);
+      }
+      setViewerCameraEnabled(false);
+      toast.success('Camera disabled');
+    } else {
+      // Enable camera
+      setIsCameraRequesting(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 },
+          audio: false
+        });
+        
+        setViewerStream(stream);
+        
+        if (sessionToken) {
+          const broadcast = new ViewerToHostBroadcast(
+            streamId,
+            sessionToken,
+            stream,
+            (state) => {
+              console.log('Viewer camera connection state:', state);
+            }
+          );
+          
+          await broadcast.initialize();
+          await broadcast.updateCameraStatus(true);
+          viewerBroadcastRef.current = broadcast;
+          
+          setViewerCameraEnabled(true);
+          toast.success('Camera enabled! Host can now see you');
+        }
+      } catch (error: any) {
+        console.error('Error enabling camera:', error);
+        if (error.name === 'NotAllowedError') {
+          toast.error('Camera permission denied');
+        } else if (error.name === 'NotFoundError') {
+          toast.error('No camera found');
+        } else {
+          toast.error('Failed to enable camera');
+        }
+      } finally {
+        setIsCameraRequesting(false);
+      }
+    }
+  };
+
+  // Cleanup viewer camera on unmount
+  useEffect(() => {
+    return () => {
+      if (viewerBroadcastRef.current) {
+        viewerBroadcastRef.current.cleanup();
+      }
+      if (viewerStream) {
+        viewerStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
   // Monitor connection state changes and show user feedback
   useEffect(() => {
     if (connectionState === 'connected') {
@@ -542,6 +617,24 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          {/* Camera Toggle Button */}
+          <Button
+            variant={viewerCameraEnabled ? "default" : "ghost"}
+            size="sm"
+            onClick={toggleViewerCamera}
+            disabled={isCameraRequesting}
+            className={viewerCameraEnabled ? "gap-2 bg-primary hover:bg-primary/90" : "gap-2 text-white hover:bg-white/20"}
+          >
+            {isCameraRequesting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : viewerCameraEnabled ? (
+              <Video className="w-4 h-4" />
+            ) : (
+              <VideoOff className="w-4 h-4" />
+            )}
+            <span className="hidden md:inline">Camera</span>
+          </Button>
+          
           {/* Desktop Message Button */}
           <Button
             variant="ghost"

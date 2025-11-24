@@ -1311,6 +1311,8 @@ export type Database = {
       }
       stream_viewer_sessions: {
         Row: {
+          camera_enabled: boolean | null
+          camera_stream_active: boolean | null
           id: string
           is_guest: boolean
           joined_at: string
@@ -1322,6 +1324,8 @@ export type Database = {
           viewer_id: string | null
         }
         Insert: {
+          camera_enabled?: boolean | null
+          camera_stream_active?: boolean | null
           id?: string
           is_guest?: boolean
           joined_at?: string
@@ -1333,6 +1337,8 @@ export type Database = {
           viewer_id?: string | null
         }
         Update: {
+          camera_enabled?: boolean | null
+          camera_stream_active?: boolean | null
           id?: string
           is_guest?: boolean
           joined_at?: string
@@ -1896,6 +1902,41 @@ export type Database = {
         }
         Relationships: []
       }
+      viewer_webrtc_signals: {
+        Row: {
+          created_at: string | null
+          id: string
+          signal_data: Json
+          signal_type: string
+          stream_id: string
+          viewer_session_token: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          signal_data: Json
+          signal_type: string
+          stream_id: string
+          viewer_session_token: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          signal_data?: Json
+          signal_type?: string
+          stream_id?: string
+          viewer_session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "viewer_webrtc_signals_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streaming_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webrtc_signals: {
         Row: {
           created_at: string
@@ -2046,6 +2087,7 @@ export type Database = {
       }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
       cleanup_old_streaming_sessions: { Args: never; Returns: undefined }
+      cleanup_old_viewer_webrtc_signals: { Args: never; Returns: undefined }
       cleanup_old_webrtc_signals: { Args: never; Returns: undefined }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
