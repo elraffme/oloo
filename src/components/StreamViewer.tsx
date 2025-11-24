@@ -12,7 +12,6 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
 import { LikeAnimation } from '@/components/LikeAnimation';
-import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -53,9 +52,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
-  const [iceType, setICEType] = useState<string>('unknown');
-  const [showDebugInfo, setShowDebugInfo] = useState(false); // Hidden by default
-  const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
   const getConnectionMessage = (state: ConnectionState): string => {
@@ -198,14 +194,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         videoRef.current,
         displayName,
         !user,
-        (state) => {
-          setConnectionState(state);
-          // Set peer connection when connected or streaming
-          if (viewerConnectionRef.current && (state === 'connected' || state === 'streaming')) {
-            setPeerConnection(viewerConnectionRef.current.getPeerConnection());
-          }
-        },
-        (type) => setICEType(type)
+        (state) => setConnectionState(state)
       );
 
       // Listen for video tracks to confirm we're receiving video
@@ -293,7 +282,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       setConnectionState('disconnected');
       setHasVideo(false);
       setIsConnected(false);
-      setPeerConnection(null);
 
       // Re-run the join flow
       await initViewer();
