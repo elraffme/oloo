@@ -361,7 +361,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'streaming_sessions',
           filter: `id=eq.${streamId}`
@@ -369,6 +369,30 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         (payload) => {
           if (payload.new && 'total_likes' in payload.new) {
             setTotalLikes(payload.new.total_likes || 0);
+          }
+          
+          // Monitor stream status - if host ends stream, close viewer automatically
+          if (payload.new && 'status' in payload.new) {
+            const newStatus = (payload.new as any).status;
+            if (newStatus === 'ended' || newStatus === 'archived') {
+              console.log('🔴 Stream has ended by host, cleaning up viewer...');
+              
+              // Cleanup connection
+              if (viewerConnectionRef.current) {
+                viewerConnectionRef.current.disconnect();
+                viewerConnectionRef.current = null;
+              }
+              
+              // Stop video
+              if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.srcObject = null;
+              }
+              
+              // Show notification and close
+              toast.error('Stream has ended');
+              setTimeout(() => onClose(), 500);
+            }
           }
         }
       )

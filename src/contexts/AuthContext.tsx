@@ -141,16 +141,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Log signout using secure audit function
+      // Check for active streams and end them before logout
       if (user) {
         try {
+          const { data: activeStreams } = await supabase
+            .from('streaming_sessions')
+            .select('id')
+            .eq('host_user_id', user.id)
+            .eq('status', 'live')
+            .limit(1);
+          
+          if (activeStreams && activeStreams.length > 0) {
+            const streamId = activeStreams[0].id;
+            
+            // End the stream
+            await supabase
+              .from('streaming_sessions')
+              .update({
+                status: 'archived',
+                ended_at: new Date().toISOString(),
+                current_viewers: 0
+              })
+              .eq('id', streamId);
+            
+            console.log('✓ Active stream ended before logout');
+            
+            toast({
+              title: "Stream Ended",
+              description: "Your active stream has been ended",
+            });
+          }
+          
+          // Log signout using secure audit function
           await supabase.rpc('log_security_event', {
             p_action: 'logout',
             p_resource_type: 'auth',
             p_details: { timestamp: new Date().toISOString() }
           });
         } catch (error) {
-          console.error('Failed to log security event:', error);
+          console.error('Failed to end stream or log security event:', error);
         }
       }
       
