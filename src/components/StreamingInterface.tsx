@@ -1174,40 +1174,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               return true;
             }).map(stream => <Card key={stream.id} className="cultural-card hover:shadow-lg transition-all cursor-pointer group" onClick={() => joinStream(stream)}>
                     <div className="relative">
-                      {/* Thumbnail */}
-                      <div className="aspect-video relative overflow-hidden bg-muted">
-                        {stream.thumbnail ? (
-                          <img 
-                            src={stream.thumbnail} 
-                            alt={stream.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Video className="w-12 h-12 text-muted-foreground" />
-                          </div>
-                        )}
-                        
-                        {/* Live Badge */}
-                        <div className="absolute top-3 left-3 bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 animate-pulse">
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
-                          LIVE
-                        </div>
-
-                        {/* Viewers Count */}
-                        <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm text-foreground px-2 py-1 rounded-full text-xs flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          {stream.current_viewers || 0}
-                        </div>
-
-                        {/* Play Overlay */}
-                        <div className="absolute inset-0 bg-background/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <div className="w-16 h-16 bg-background/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                            <Play className="w-6 h-6 text-foreground ml-1" />
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Stream Info */}
                       <div className="p-4">
                         <h3 className="font-semibold text-lg mb-1 truncate">{stream.host_name || 'Unknown'}</h3>
