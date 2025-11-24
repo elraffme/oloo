@@ -168,7 +168,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
                     })}
                   </span>
                 </div>
-                <p className="text-xs md:text-sm text-primary-foreground font-medium break-words">{msg.message}</p>
+                <p className="text-xs md:text-sm text-white font-medium break-words">{msg.message}</p>
               </div>
             ))
           )}
