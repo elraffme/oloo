@@ -522,6 +522,45 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     };
   }, []);
+
+  // Browser close/refresh handler - end stream before page unloads
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (activeStreamId && isStreaming) {
+        console.log('🚪 Browser closing/refreshing - ending stream synchronously');
+        
+        // Synchronously update the database before page closes
+        const xhr = new XMLHttpRequest();
+        xhr.open('PATCH', `https://kdvnxzniqyomdeicmycs.supabase.co/rest/v1/streaming_sessions?id=eq.${activeStreamId}`, false);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXaGx_INpWPGPXY6Z6oJEb5E');
+        xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXaGx_INpWPGPXY6Z6oJEb5E');
+        xhr.setRequestHeader('Prefer', 'return=minimal');
+        
+        try {
+          xhr.send(JSON.stringify({
+            status: 'archived',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          }));
+        } catch (error) {
+          console.error('Failed to end stream on unload:', error);
+        }
+        
+        // Show confirmation dialog
+        e.preventDefault();
+        e.returnValue = 'You are currently streaming. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [activeStreamId, isStreaming]);
+  
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
