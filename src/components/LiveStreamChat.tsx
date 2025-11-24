@@ -147,7 +147,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   };
 
   return (
-    <div className={`flex flex-col h-full bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
+    <div className={`flex flex-col h-64 bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
       <div className="p-3 md:p-4 border-b border-border">
         <h3 className="font-semibold text-foreground text-sm md:text-base">Live Chat</h3>
         <p className="text-xs text-muted-foreground">{messages.length} messages</p>
