@@ -1174,23 +1174,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               return true;
             }).map(stream => <Card key={stream.id} className="cultural-card hover:shadow-lg transition-all cursor-pointer group" onClick={() => joinStream(stream)}>
                     <div className="relative">
-                      {/* Stream Info */}
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-1 truncate">{stream.host_name || 'Unknown'}</h3>
-                        <p className="text-muted-foreground text-sm mb-3 truncate">{stream.title}</p>
-                        
-                        <div className="flex items-center justify-between text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Heart className="w-4 h-4 text-destructive" />
-                            {stream.total_likes || 0}
-                          </div>
-                          {stream.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {stream.category}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </Card>)}
               </div> : <Card className="p-12 text-center">
