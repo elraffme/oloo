@@ -21,7 +21,6 @@ import { LikeAnimation } from '@/components/LikeAnimation';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
-import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
 import { useStreamQueue } from '@/hooks/useStreamQueue';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
