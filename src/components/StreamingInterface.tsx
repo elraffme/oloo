@@ -1412,35 +1412,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </p>
                   </div>
 
-                  {/* Diagnostics Panel - Show when streaming */}
-                  {isStreaming && activeStreamId && <div className="mt-4 space-y-3">
-                      <StreamDiagnostics data={{
-                    streamId: activeStreamId,
-                    lifecycle: streamLifecycle,
-                    channelStatus: channelStatus,
-                    viewerCount: currentViewers,
-                    videoTracks: streamRef.current?.getVideoTracks().length || 0,
-                    audioTracks: streamRef.current?.getAudioTracks().length || 0,
-                    videoEnabled: streamRef.current?.getVideoTracks()[0]?.enabled || false,
-                    audioEnabled: streamRef.current?.getAudioTracks()[0]?.enabled || false,
-                    hasTURN: hasTURN,
-                    broadcastReady: isBroadcastReady
-                  }} />
-                      
-                      {/* Host Reconnection Button */}
-                      <Button 
-                        onClick={handleHostReconnect}
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reset Connection
-                      </Button>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Use if viewers can't connect or stream quality is poor
-                      </p>
-                    </div>}
+                  {/* Diagnostics Panel - Hidden in production */}
+
 
                   {/* Go Live Button */}
                   <div className="mt-6 space-y-2">
