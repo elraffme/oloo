@@ -832,6 +832,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       setIsLoading(false);
     }
   };
+  const handleHostReconnect = async () => {
+    if (!broadcastManagerRef.current) {
+      toast({
+        title: "Not broadcasting",
+        description: "You must be live to reconnect.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Reconnecting...",
+        description: "Resetting broadcast connection. Viewers will reconnect automatically."
+      });
+      
+      await broadcastManagerRef.current.resetStream(supabase);
+      
+      toast({
+        title: "Reconnection complete",
+        description: "Broadcast has been reset successfully."
+      });
+    } catch (error) {
+      console.error('Host reconnection failed:', error);
+      toast({
+        title: "Reconnection failed",
+        description: "Could not reset broadcast. Try ending and restarting the stream.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const endStream = async () => {
     if (!activeStreamId) return;
     setStreamLifecycle('ending');
@@ -1342,7 +1374,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Diagnostics Panel - Show when streaming */}
-                  {isStreaming && activeStreamId && <div className="mt-4">
+                  {isStreaming && activeStreamId && <div className="mt-4 space-y-3">
                       <StreamDiagnostics data={{
                     streamId: activeStreamId,
                     lifecycle: streamLifecycle,
@@ -1355,6 +1387,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     hasTURN: hasTURN,
                     broadcastReady: isBroadcastReady
                   }} />
+                      
+                      {/* Host Reconnection Button */}
+                      <Button 
+                        onClick={handleHostReconnect}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Reset Connection
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Use if viewers can't connect or stream quality is poor
+                      </p>
                     </div>}
 
                   {/* Go Live Button */}
