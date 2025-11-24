@@ -652,7 +652,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
         {/* Chat Below Video - Desktop Only */}
         {showChat && !isMobile && (
-          <div className="h-[300px] md:h-[350px] border-t border-border bg-background">
+          <div className="h-48 border-t border-border bg-background">
             <LiveStreamChat streamId={streamId} isMobile={false} />
           </div>
         )}
