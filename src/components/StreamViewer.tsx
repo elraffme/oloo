@@ -634,152 +634,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                 </div>
               )}
               
-              {/* Enhanced Debug Panel */}
-              <div className="absolute bottom-4 left-4 right-4 p-4 bg-black/90 rounded-lg text-left max-h-64 overflow-y-auto">
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div>
-                    <p className="text-xs text-gray-400">Connection State</p>
-                    <p className="text-sm text-white font-semibold">{connectionState}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">ICE Type</p>
-                    <p className="text-sm text-white font-semibold">{iceType}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Session Token</p>
-                    <p className="text-sm text-white font-mono">{sessionToken?.substring(0, 12)}...</p>
-                  </div>
-                  {videoRef.current && (
-                    <div>
-                      <p className="text-xs text-gray-400">Video Resolution</p>
-                      <p className="text-sm text-white">{videoRef.current.videoWidth}x{videoRef.current.videoHeight}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {viewerConnectionRef.current && (
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-400 mb-1">Signaling Log (last 10):</p>
-                    <div className="space-y-1">
-                      {viewerConnectionRef.current.getDebugLog().slice(-10).map((log, i) => (
-                        <p key={i} className="text-xs text-gray-300 font-mono leading-tight">{log}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <Button 
-                  onClick={handleHardReconnect}
-                  size="sm"
-                  variant="secondary"
-                  className="mt-3 w-full"
-                >
-                  Force Reconnect
-                </Button>
-              </div>
             </div>
           )}
           
           {connectionState === 'streaming' && (
             <>
               <Badge 
-                className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs cursor-pointer"
-                onClick={() => setShowDebugInfo(!showDebugInfo)}
+                className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs"
               >
                 <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                <span className="hidden md:inline">Live via WebRTC</span>
+                <span className="hidden md:inline">LIVE</span>
                 <span className="md:hidden">LIVE</span>
               </Badge>
-              {showDebugInfo && (
-                <>
-                  {iceType !== 'unknown' && (
-                    <Badge className="absolute top-10 left-2 md:top-14 md:left-4 bg-blue-500/80 text-white text-xs">
-                      ICE: {iceType}
-                    </Badge>
-                  )}
-                  <div className="absolute top-20 left-2 md:top-24 md:left-4 bg-black/90 text-white text-xs p-3 rounded-lg max-w-xs border border-border/20">
-                    <div className="font-semibold mb-2 text-primary">Connection Info</div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">State:</span>
-                        <span className="font-medium">{connectionState}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">ICE Type:</span>
-                        <span className="font-medium">{iceType}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Viewers:</span>
-                        <span className="font-medium">{viewers.length}{viewersLoading ? ' (loading...)' : ''}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Video:</span>
-                        <span className="font-medium">{hasVideo ? 'Yes' : 'No'} | {isMuted ? 'Muted' : 'Unmuted'}</span>
-                      </div>
-                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Session:</span>
-                        <span className="font-mono text-[10px]">{sessionToken?.slice(0, 8)}...</span>
-                      </div>
-                      {(connectionState as string) === 'awaiting_offer' || (connectionState as string) === 'timeout' ? (
-                        <div className="mt-2 text-xs text-amber-400 border-t border-border/20 pt-2">
-                          💡 Tip: If stuck, use the Reset Connection button below
-                        </div>
-                      ) : null}
-                    </div>
-                    {showConnectionControls && (
-                      <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
-                        <Button
-                          onClick={handleRequestOfferAgain}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start h-7 text-xs"
-                        >
-                          <Router className="w-3 h-3 mr-1" />
-                          Request Offer
-                        </Button>
-                        <Button
-                          onClick={handleTryTURNOnly}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start h-7 text-xs"
-                        >
-                          <Zap className="w-3 h-3 mr-1" />
-                          Force TURN
-                        </Button>
-                        <Button
-                          onClick={handleHardReconnect}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start h-7 text-xs"
-                        >
-                          <RefreshCw className="w-3 h-3 mr-1" />
-                          Reconnect
-                        </Button>
-                        {((connectionState as string) === 'failed' || (connectionState as string) === 'timeout') && (
-                          <Button
-                            onClick={() => (window as any).hardResetViewerConnection?.()}
-                            variant="destructive"
-                            size="sm"
-                            className="w-full justify-start h-7 text-xs"
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1" />
-                            Reset Connection
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Connection Status Indicator */}
-                  <div className="absolute top-[280px] left-2 md:top-[300px] md:left-4 max-w-xs">
-                    <ConnectionStatusIndicator
-                      peerConnection={peerConnection}
-                      isConnected={connectionState === 'streaming' || connectionState === 'connected'}
-                      compact={false}
-                    />
-                  </div>
-                </>
-              )}
             </>
           )}
         </div>
