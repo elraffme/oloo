@@ -54,7 +54,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [iceType, setICEType] = useState<string>('unknown');
-  const [showDebugInfo, setShowDebugInfo] = useState(true); // Show by default for debugging
+  const [showDebugInfo, setShowDebugInfo] = useState(false); // Hidden by default
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection | null>(null);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
 
