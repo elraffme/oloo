@@ -1253,69 +1253,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           </Badge>
                         </div>}
                       
-                      {/* Broadcaster Diagnostics Toggle */}
-                      <Button variant="ghost" size="sm" onClick={() => setShowBroadcasterDiagnostics(!showBroadcasterDiagnostics)} className="w-full justify-start">
-                        <Activity className="w-4 h-4 mr-2" />
-                        {showBroadcasterDiagnostics ? 'Hide' : 'Show'} Diagnostics
-                      </Button>
-
-                      {/* Connection Quality Monitor */}
-                      {isStreaming && broadcastManagerRef.current && broadcastManagerRef.current.getViewerCount() > 0 && <div className="space-y-2">
-                          <div className="text-xs font-semibold text-primary">Broadcast Quality</div>
-                          <ConnectionStatusIndicator peerConnection={Array.from((broadcastManagerRef.current as any).peerConnections?.values() || [])[0] as RTCPeerConnection || null} isConnected={true} compact={true} />
-                        </div>}
-
-                      {/* Diagnostics Panel */}
-                      {showBroadcasterDiagnostics && <div className="p-3 bg-background border border-border rounded-lg space-y-2">
-                          <div className="text-xs font-semibold text-primary mb-2">Connection Diagnostics</div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Channel Status:</span>
-                            <Badge variant={channelStatus === 'connected' ? 'default' : 'secondary'} className="text-[10px]">
-                              {channelStatus === 'connected' ? <><CheckCircle2 className="w-3 h-3 mr-1" />Connected</> : <><XCircle className="w-3 h-3 mr-1" />Disconnected</>}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">TURN Server:</span>
-                            <Badge variant={hasTURN ? 'default' : 'destructive'} className="text-[10px]">
-                              {hasTURN ? 'Available' : 'Not Available'}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Active Peers:</span>
-                            <Badge variant="secondary" className="text-[10px]">
-                              {broadcastManagerRef.current?.getViewerCount() || 0}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Broadcast Ready:</span>
-                            <Badge variant={isBroadcastReady ? 'default' : 'secondary'} className="text-[10px]">
-                              {isBroadcastReady ? 'Yes' : 'No'}
-                            </Badge>
-                          </div>
-                          <Button onClick={async () => {
-                      if (broadcastManagerRef.current) {
-                        await broadcastManagerRef.current.manuallyAnnounceReady();
-                        toast({
-                          title: 'Signal Sent',
-                          description: 'Reannounced ready signal to viewers'
-                        });
-                      }
-                    }} variant="outline" size="sm" className="w-full mt-2">
-                            <Radio className="w-3 h-3 mr-2" />
-                            Reannounce Ready
-                          </Button>
-                          {isStreaming && activeStreamId && <Button onClick={async () => {
-                      if (!broadcastManagerRef.current) return;
-                      await broadcastManagerRef.current.resetStream(supabase);
-                      toast({
-                        title: "Livestream reset",
-                        description: "Connections have been reset. Viewers can retry joining."
-                      });
-                    }} variant="destructive" size="sm" className="w-full mt-2">
-                              <RefreshCw className="w-3 h-3 mr-2" />
-                              Reset Livestream
-                            </Button>}
-                        </div>}
                     </div>}
                 </CardContent>
               </Card>
