@@ -23,6 +23,10 @@ import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizar
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 import { ConnectionStatusIndicator } from '@/components/ConnectionStatusIndicator';
 import { useStreamQueue } from '@/hooks/useStreamQueue';
+import { useStreamViewers } from '@/hooks/useStreamViewers';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -125,6 +129,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } = useStreamQueue(streamQueueData);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
+  
+  // Get active stream viewers
+  const { viewers: activeViewers, isLoading: viewersLoading } = useStreamViewers(activeStreamId || '');
 
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
@@ -1432,18 +1439,66 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Live Chat (only when streaming) */}
-              {isStreaming && activeStreamId && <Card className="cultural-card flex flex-col h-[800px] lg:row-span-2">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                    <CardTitle className="text-base">Live Chat</CardTitle>
-                    <Button size="sm" variant="ghost" onClick={() => setShowStreamerChat(!showStreamerChat)} className="h-8 w-8 p-0">
-                      {showStreamerChat ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                    </Button>
-                  </CardHeader>
-                  <CardContent className="flex-1 p-0 overflow-hidden">
-                    {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
-                  </CardContent>
-                </Card>}
+              {/* Live Chat & Viewers (only when streaming) */}
+              {isStreaming && activeStreamId && (
+                <div className="space-y-4 lg:row-span-2">
+                  {/* Active Viewers Card */}
+                  <Card className="cultural-card">
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Active Viewers ({activeViewers.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[200px]">
+                        {viewersLoading ? (
+                          <p className="text-sm text-muted-foreground">Loading viewers...</p>
+                        ) : activeViewers.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No viewers yet</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {activeViewers.map((viewer) => (
+                              <div 
+                                key={viewer.session_id} 
+                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
+                              >
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage src={viewer.avatar_url || '/placeholder.svg'} />
+                                  <AvatarFallback>
+                                    {viewer.viewer_display_name[0]?.toUpperCase() || 'G'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
+                                    {viewer.viewer_display_name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {viewer.is_guest ? 'Guest' : 'Member'}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+
+                  {/* Live Chat Card */}
+                  <Card className="cultural-card flex flex-col h-[500px]">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                      <CardTitle className="text-base">Live Chat</CardTitle>
+                      <Button size="sm" variant="ghost" onClick={() => setShowStreamerChat(!showStreamerChat)} className="h-8 w-8 p-0">
+                        {showStreamerChat ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 p-0 overflow-hidden">
+                      {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
