@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BroadcastManager } from '@/utils/BroadcastManager';
+import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
 import StreamViewer from '@/components/StreamViewer';
 import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -21,6 +22,7 @@ import { LikeAnimation } from '@/components/LikeAnimation';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
+import { ViewerCameraThumbnails } from '@/components/ViewerCameraThumbnails';
 import { useStreamQueue } from '@/hooks/useStreamQueue';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -98,6 +100,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     balance
   } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
+  
+  // Viewer camera receiver
+  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
+  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
@@ -820,6 +826,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       await broadcastManagerRef.current.initializeChannel(supabase);
 
+      // Initialize viewer camera receiver
+      viewerCameraReceiverRef.current = new ViewerCameraReceiver(
+        data.id,
+        (cameras) => {
+          setViewerCameras(new Map(cameras));
+        }
+      );
+      await viewerCameraReceiverRef.current.initialize();
+      console.log('✅ Viewer camera receiver initialized');
+
       // Fetch ICE servers to check TURN availability
       try {
         const {
@@ -918,6 +934,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         broadcastManagerRef.current.cleanup();
         broadcastManagerRef.current = null;
       }
+      
+      // Cleanup viewer camera receiver
+      if (viewerCameraReceiverRef.current) {
+        viewerCameraReceiverRef.current.cleanup();
+        viewerCameraReceiverRef.current = null;
+      }
+      setViewerCameras(new Map());
+      
       setChannelStatus('disconnected');
 
       // Phase 1: Stop all media tracks
@@ -1385,6 +1409,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               {/* Live Chat & Viewers (only when streaming) */}
               {isStreaming && activeStreamId && (
                 <div className="space-y-4 lg:row-span-2">
+                  {/* Viewer Cameras Card */}
+                  <ViewerCameraThumbnails 
+                    viewerCameras={viewerCameras}
+                    className="max-h-[400px]"
+                  />
+                  
                   {/* Active Viewers Card */}
                   <Card className="cultural-card">
                     <CardHeader>
