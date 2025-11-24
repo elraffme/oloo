@@ -147,13 +147,8 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   };
 
   return (
-    <div className={`flex flex-col h-64 bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
-      <div className="p-3 md:p-4 border-b border-border">
-        <h3 className="font-semibold text-foreground text-sm md:text-base">Live Chat</h3>
-        <p className="text-xs text-muted-foreground">{messages.length} messages</p>
-      </div>
-
-      <ScrollArea className="flex-1 p-3 md:p-4" ref={scrollRef}>
+    <div className={`flex flex-col h-48 bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
+      <ScrollArea className="flex-1 p-2 md:p-3" ref={scrollRef}>
         <div className="space-y-2 md:space-y-3">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground text-xs md:text-sm py-6 md:py-8">
@@ -178,11 +173,16 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
             ))
           )}
         </div>
-        </ScrollArea>
+      </ScrollArea>
 
-        {/* Message input or guest notice */}
-        {isGuest ? (
-          <div className="bg-muted/50 rounded-lg p-4 mx-3 mb-3 md:mx-4 md:mb-4 text-center space-y-2 border-t border-border">
+      <div className="p-2 md:p-3 border-t border-b border-border">
+        <h3 className="font-semibold text-foreground text-xs md:text-sm">Live Chat</h3>
+        <p className="text-[10px] md:text-xs text-muted-foreground">{messages.length} messages</p>
+      </div>
+
+      {/* Message input or guest notice */}
+      {isGuest ? (
+        <div className="bg-muted/50 rounded-lg p-2 mx-2 mb-2 md:mx-3 md:mb-3 text-center space-y-1.5">
             <p className="text-sm text-muted-foreground">
               Sign in to join the conversation
             </p>
@@ -193,9 +193,9 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
             >
               Sign In to Chat
             </Button>
-          </div>
-        ) : (
-          <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-border">
+        </div>
+      ) : (
+        <form onSubmit={handleSendMessage} className="p-2 md:p-3">
             <div className="flex items-center gap-2">
               <Input
                 value={newMessage}
@@ -218,8 +218,8 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
                 <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </Button>
             </div>
-          </form>
-        )}
-      </div>
+        </form>
+      )}
+    </div>
     );
   };
