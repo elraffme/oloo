@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DailyLoginRewards } from '@/components/DailyLoginRewards';
+import { EmotePicker } from '@/components/EmotePicker';
 import { 
   Heart, 
   MessageCircle, 
@@ -537,10 +538,10 @@ const Feed = () => {
                 className="min-h-[80px] resize-none"
               />
               <div className="flex items-center justify-between">
-                <Button variant="ghost" size="sm">
-                  <Smile className="w-4 h-4 mr-2" />
-                  Add Emoji
-                </Button>
+                <EmotePicker 
+                  onEmoteSelect={(emote) => setStatusContent(prev => prev + emote)}
+                  disabled={posting}
+                />
                 <Button 
                   onClick={handlePostStatus} 
                   disabled={!statusContent.trim() || posting}
