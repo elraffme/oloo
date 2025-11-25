@@ -14,7 +14,7 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
 import { LikeAnimation } from '@/components/LikeAnimation';
-import { ViewerCameraThumbnails } from '@/components/ViewerCameraThumbnails';
+import { VideoCallGrid } from '@/components/VideoCallGrid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -39,7 +39,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const viewerVideoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -459,26 +458,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [connectionState]);
 
-  // Connect viewer's own camera stream to self-view video element
-  useEffect(() => {
-    const videoEl = viewerVideoRef.current;
-    if (!videoEl || !viewerStream) return;
-
-    console.log('📹 Connecting viewer stream to self-view video element');
-    videoEl.srcObject = viewerStream;
-    
-    // Ensure video plays
-    videoEl.play().catch(err => {
-      console.warn('⚠️ Self-view video autoplay failed:', err);
-    });
-
-    return () => {
-      if (videoEl) {
-        videoEl.srcObject = null;
-      }
-    };
-  }, [viewerStream]);
-
   const toggleMute = async () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
@@ -718,17 +697,19 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
-        <div className="flex-1 relative flex items-center justify-center">
+        <div className="flex-1 relative">
+          {/* Hidden Video Element for Host Stream */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
-            muted
-            className="w-full h-full object-contain md:max-w-md md:mx-auto"
+            muted={isMuted}
+            className="hidden"
           />
           
+          {/* Connection Status Overlay */}
           {connectionState !== 'streaming' && (
-            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black p-4">
+            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
               {connectionState === 'awaiting_user_interaction' ? (
                 <div className="flex flex-col items-center gap-4">
                   <Button
@@ -802,50 +783,36 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                   </Button>
                 </div>
               )}
-              
             </div>
           )}
           
+          {/* LIVE Badge */}
           {connectionState === 'streaming' && (
-            <>
-              <Badge 
-                className="absolute top-2 left-2 md:top-4 md:left-4 bg-green-500 text-white text-xs"
-              >
-                <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                <span className="hidden md:inline">LIVE</span>
-                <span className="md:hidden">LIVE</span>
-              </Badge>
-            </>
+            <Badge 
+              variant="destructive"
+              className="absolute top-4 left-4 z-30 animate-pulse"
+            >
+              <div className="w-2 h-2 bg-white rounded-full mr-2" />
+              LIVE
+            </Badge>
           )}
 
-          {/* Self-View Camera Preview */}
-          {viewerCameraEnabled && viewerStream && (
-            <div className="absolute bottom-4 left-4 w-32 h-24 md:w-40 md:h-30 rounded-lg overflow-hidden border-2 border-primary shadow-lg bg-black">
-              <video
-                ref={viewerVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover scale-x-[-1]"
-              />
-              <div className="absolute top-1 left-1 bg-black/70 px-2 py-0.5 rounded text-white text-xs font-medium">
-                You
-              </div>
-            </div>
-          )}
+          {/* Video Call Grid */}
+          <VideoCallGrid
+            hostVideoRef={videoRef}
+            hostName={hostName}
+            viewerCameras={viewerCameras}
+            viewerStream={viewerStream}
+            viewerCameraEnabled={viewerCameraEnabled}
+            viewerName={user?.email?.split('@')[0] || 'You'}
+            isMuted={isMuted}
+          />
         </div>
 
         {/* Chat Below Video - Desktop Only */}
         {showChat && !isMobile && (
           <div className="h-48 border-t border-border bg-background">
             <LiveStreamChat streamId={streamId} isMobile={false} />
-          </div>
-        )}
-        
-        {/* Viewer Cameras Thumbnails */}
-        {viewerCameras.size > 0 && (
-          <div className="border-t border-border bg-background p-4">
-            <ViewerCameraThumbnails viewerCameras={viewerCameras} />
           </div>
         )}
       </div>
