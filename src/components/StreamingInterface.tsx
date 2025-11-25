@@ -23,6 +23,7 @@ import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 import { ViewerCameraThumbnails } from '@/components/ViewerCameraThumbnails';
+import { VideoCallGrid } from '@/components/VideoCallGrid';
 import { useStreamQueue } from '@/hooks/useStreamQueue';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1316,11 +1317,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-md mx-auto">
-                    {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white">
-                        <VideoOff className="w-12 h-12" />
-                      </div>}
+                    {isStreaming ? (
+                      // Use VideoCallGrid when streaming to show host + viewers
+                      <VideoCallGrid
+                        hostStream={streamRef.current}
+                        hostName="You (Host)"
+                        viewerCameras={viewerCameras}
+                        viewerStream={undefined}
+                        viewerCameraEnabled={false}
+                      />
+                    ) : (
+                      // Show preview before streaming
+                      <>
+                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-white">
+                            <VideoOff className="w-12 h-12" />
+                          </div>}
+                      </>
+                    )}
                     
-                    {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white">
+                    {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
                         <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                         LIVE
                       </Badge>}
