@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
 import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
+import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
 import { LikeAnimation } from '@/components/LikeAnimation';
+import { ViewerCameraThumbnails } from '@/components/ViewerCameraThumbnails';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -60,6 +62,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
   const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
+  
+  // Viewer camera receiver (for seeing other viewers' cameras)
+  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
+  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
 
   const getConnectionMessage = (state: ConnectionState): string => {
     switch (state) {
@@ -312,6 +318,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         viewerConnectionRef.current = null;
       }
       
+      // Cleanup viewer camera receiver
+      if (viewerCameraReceiverRef.current) {
+        viewerCameraReceiverRef.current.cleanup();
+        viewerCameraReceiverRef.current = null;
+      }
+      
       // Leave stream - only if we successfully joined
       (async () => {
         if (sessionToken && hasActiveConnection) {
@@ -333,6 +345,37 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       }
     };
   }, [streamId, user, hostUserId]);
+
+  // Initialize viewer camera receiver to see other viewers' cameras
+  useEffect(() => {
+    const initViewerCameraReceiver = async () => {
+      if (!streamId) return;
+      
+      console.log('📹 Initializing viewer camera receiver for stream', streamId);
+      
+      const receiver = new ViewerCameraReceiver(streamId, (cameras) => {
+        console.log('📹 Viewer cameras updated, count:', cameras.size);
+        setViewerCameras(new Map(cameras));
+      });
+      
+      try {
+        await receiver.initialize();
+        viewerCameraReceiverRef.current = receiver;
+        console.log('✅ Viewer camera receiver initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize viewer camera receiver:', error);
+      }
+    };
+    
+    initViewerCameraReceiver();
+    
+    return () => {
+      if (viewerCameraReceiverRef.current) {
+        viewerCameraReceiverRef.current.cleanup();
+        viewerCameraReceiverRef.current = null;
+      }
+    };
+  }, [streamId]);
 
   // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {
@@ -759,6 +802,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         {showChat && !isMobile && (
           <div className="h-48 border-t border-border bg-background">
             <LiveStreamChat streamId={streamId} isMobile={false} />
+          </div>
+        )}
+        
+        {/* Viewer Cameras Thumbnails */}
+        {viewerCameras.size > 0 && (
+          <div className="border-t border-border bg-background p-4">
+            <ViewerCameraThumbnails viewerCameras={viewerCameras} />
           </div>
         )}
       </div>
