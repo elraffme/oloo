@@ -1260,6 +1260,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
                         <SelectItem value="art">Art & Creativity</SelectItem>
                         <SelectItem value="business">Business & Finance</SelectItem>
+                        <SelectItem value="tvshow">TV Show</SelectItem>
+                        <SelectItem value="politics">Politics</SelectItem>
+                        <SelectItem value="history">History</SelectItem>
+                        <SelectItem value="religion">Religion</SelectItem>
                         <SelectItem value="general">General</SelectItem>
                       </SelectContent>
                     </Select>
