@@ -13,7 +13,7 @@ interface VideoTile {
 }
 
 interface VideoCallGridProps {
-  hostVideoRef: React.RefObject<HTMLVideoElement>;
+  hostStream: MediaStream | null;
   hostName: string;
   viewerCameras: Map<string, { stream: MediaStream; displayName: string; avatarUrl?: string }>;
   viewerStream?: MediaStream;
@@ -31,7 +31,7 @@ const getGridClass = (count: number): string => {
 };
 
 export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
-  hostVideoRef,
+  hostStream,
   hostName,
   viewerCameras,
   viewerStream,
@@ -45,7 +45,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
   tiles.push({
     id: 'host',
     displayName: hostName,
-    videoRef: hostVideoRef,
+    stream: hostStream,
     isHost: true,
   });
 

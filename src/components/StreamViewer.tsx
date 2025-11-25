@@ -66,6 +66,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Viewer camera receiver (for seeing other viewers' cameras)
   const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
   const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
+  
+  // Host stream state
+  const [hostStream, setHostStream] = useState<MediaStream | null>(null);
 
   const getConnectionMessage = (state: ConnectionState): string => {
     switch (state) {
@@ -109,6 +112,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         const hasAudio = stream.getAudioTracks().length > 0;
         const hasVideo = stream.getVideoTracks().length > 0;
         console.log(`✓ Stream has: ${hasVideo ? '✅ Video' : '❌ Video'} ${hasAudio ? '✅ Audio' : '❌ Audio'}`);
+        
+        // Capture the host's stream for the VideoCallGrid
+        setHostStream(stream);
       }
     };
     
@@ -799,7 +805,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
           {/* Video Call Grid */}
           <VideoCallGrid
-            hostVideoRef={videoRef}
+            hostStream={hostStream}
             hostName={hostName}
             viewerCameras={viewerCameras}
             viewerStream={viewerStream}
