@@ -39,6 +39,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const viewerVideoRef = useRef<HTMLVideoElement>(null);
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -458,6 +459,26 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [connectionState]);
 
+  // Connect viewer's own camera stream to self-view video element
+  useEffect(() => {
+    const videoEl = viewerVideoRef.current;
+    if (!videoEl || !viewerStream) return;
+
+    console.log('📹 Connecting viewer stream to self-view video element');
+    videoEl.srcObject = viewerStream;
+    
+    // Ensure video plays
+    videoEl.play().catch(err => {
+      console.warn('⚠️ Self-view video autoplay failed:', err);
+    });
+
+    return () => {
+      if (videoEl) {
+        videoEl.srcObject = null;
+      }
+    };
+  }, [viewerStream]);
+
   const toggleMute = async () => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
@@ -795,6 +816,22 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                 <span className="md:hidden">LIVE</span>
               </Badge>
             </>
+          )}
+
+          {/* Self-View Camera Preview */}
+          {viewerCameraEnabled && viewerStream && (
+            <div className="absolute bottom-4 left-4 w-32 h-24 md:w-40 md:h-30 rounded-lg overflow-hidden border-2 border-primary shadow-lg bg-black">
+              <video
+                ref={viewerVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+              <div className="absolute top-1 left-1 bg-black/70 px-2 py-0.5 rounded text-white text-xs font-medium">
+                You
+              </div>
+            </div>
           )}
         </div>
 
