@@ -818,7 +818,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         } else if (status === 'connected') {
           setChannelStatus('connected');
 
-          // Update stream to live once channel is ready
+          // Wait a moment for initial DB poll and catch-up to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Update stream to live once channel is ready and polling is active
           const {
             error: updateError
           } = await supabase.from('streaming_sessions').update({
@@ -828,7 +831,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           if (updateError) {
             console.error('Error updating stream to live:', updateError);
           } else {
-            console.log('✅ Stream is now live');
+            console.log('✅ Stream is now live and ready for viewers');
             setStreamLifecycle('live');
             setIsBroadcastReady(true);
           }
@@ -838,7 +841,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           setChannelStatus('disconnected');
         }
       });
+      
+      console.log('🔧 Initializing BroadcastManager channel...');
       await broadcastManagerRef.current.initializeChannel(supabase);
+      console.log('✅ BroadcastManager initialization complete');
 
       // Initialize viewer camera receiver
       viewerCameraReceiverRef.current = new ViewerCameraReceiver(
