@@ -142,7 +142,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           autoPlay
           playsInline
           muted={tile.isYou || tile.isHost}
-          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+          className={`w-full h-full object-cover ${tile.isYou || tile.isHost ? 'scale-x-[-1]' : ''}`}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-muted">
