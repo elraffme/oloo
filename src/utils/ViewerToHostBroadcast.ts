@@ -14,6 +14,9 @@ export class ViewerToHostBroadcast {
   private cleanupFunctions: (() => void)[] = [];
   private signalCleanupTimer: NodeJS.Timeout | null = null;
   private onConnectionStateChange?: (state: RTCPeerConnectionState) => void;
+  private answerReceived: boolean = false;
+  private answerTimeout: NodeJS.Timeout | null = null;
+  private iceCandidateBuffer: RTCIceCandidate[] = [];
 
   constructor(
     streamId: string,
@@ -201,6 +204,14 @@ export class ViewerToHostBroadcast {
       sdp: offer.sdp,
       type: offer.type 
     });
+
+    // Set answer timeout with retry
+    this.answerTimeout = setTimeout(async () => {
+      if (!this.answerReceived) {
+        console.warn('⚠️ Answer not received within 10s, retrying offer...');
+        await this.createAndSendOffer();
+      }
+    }, 10000);
   }
 
   private async sendSignal(type: string, data: any) {
@@ -244,6 +255,23 @@ export class ViewerToHostBroadcast {
       if (this.peerConnection.signalingState === 'have-local-offer') {
         await this.peerConnection.setRemoteDescription(answer);
         console.log('✅ Remote description set from host answer');
+        
+        this.answerReceived = true;
+        if (this.answerTimeout) {
+          clearTimeout(this.answerTimeout);
+          this.answerTimeout = null;
+        }
+
+        // Process buffered ICE candidates
+        console.log(`📋 Processing ${this.iceCandidateBuffer.length} buffered ICE candidates`);
+        for (const candidate of this.iceCandidateBuffer) {
+          try {
+            await this.peerConnection.addIceCandidate(candidate);
+          } catch (error) {
+            console.error('❌ Error adding buffered ICE candidate:', error);
+          }
+        }
+        this.iceCandidateBuffer = [];
       }
     } catch (error) {
       console.error('❌ Error handling answer:', error);
@@ -255,6 +283,14 @@ export class ViewerToHostBroadcast {
 
     try {
       const candidate = new RTCIceCandidate(payload.candidate);
+      
+      // Buffer ICE candidates if we haven't set remote description yet
+      if (!this.peerConnection.remoteDescription) {
+        console.log('📋 Buffering ICE candidate (no remote description yet)');
+        this.iceCandidateBuffer.push(candidate);
+        return;
+      }
+      
       await this.peerConnection.addIceCandidate(candidate);
       console.log('✅ Added ICE candidate from host');
     } catch (error) {
@@ -278,6 +314,12 @@ export class ViewerToHostBroadcast {
 
   cleanup() {
     console.log('🧹 Cleaning up viewer camera broadcast');
+    
+    // Clear timeouts
+    if (this.answerTimeout) {
+      clearTimeout(this.answerTimeout);
+      this.answerTimeout = null;
+    }
     
     // Stop all tracks
     this.localStream.getTracks().forEach(track => {

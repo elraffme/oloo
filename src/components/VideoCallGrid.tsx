@@ -41,13 +41,15 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
 }) => {
   const tiles: VideoTile[] = [];
 
-  // Add host tile
-  tiles.push({
-    id: 'host',
-    displayName: hostName,
-    stream: hostStream,
-    isHost: true,
-  });
+  // Add host tile only if host stream is available
+  if (hostStream) {
+    tiles.push({
+      id: 'host',
+      displayName: hostName,
+      stream: hostStream,
+      isHost: true,
+    });
+  }
 
   // Add other viewers' cameras
   viewerCameras.forEach((camera, sessionToken) => {
@@ -111,15 +113,29 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
     };
   }, [tile.stream, tile.displayName]);
 
+  // Show placeholder if no stream
+  const hasStream = tile.stream && tile.stream.getTracks().length > 0;
+
   return (
     <div className="relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-black border border-border shadow-lg">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={tile.isYou || tile.isHost}
-        className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
-      />
+      {hasStream ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={tile.isYou || tile.isHost}
+          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-muted">
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <span className="text-2xl text-primary">{tile.displayName[0]}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Connecting...</p>
+          </div>
+        </div>
+      )}
       
       {/* Name Label and Badges */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
