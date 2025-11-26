@@ -8,6 +8,8 @@ interface StreamViewer {
   is_guest: boolean;
   joined_at: string;
   avatar_url: string;
+  camera_enabled: boolean | null;
+  camera_stream_active: boolean | null;
 }
 
 export const useStreamViewers = (streamId: string) => {
@@ -20,14 +22,40 @@ export const useStreamViewers = (streamId: string) => {
     const loadViewers = async () => {
       try {
         const { data, error } = await supabase
-          .rpc('get_active_stream_viewers', { p_stream_id: streamId });
+          .from('stream_viewer_sessions')
+          .select(`
+            id,
+            session_token,
+            viewer_id,
+            viewer_display_name,
+            is_guest,
+            joined_at,
+            camera_enabled,
+            camera_stream_active,
+            left_at
+          `)
+          .eq('stream_id', streamId)
+          .is('left_at', null)
+          .order('joined_at', { ascending: false });
 
         if (error) {
           console.error('Error loading viewers:', error);
           return;
         }
 
-        setViewers(data || []);
+        // Transform to match StreamViewer interface
+        const transformedViewers = (data || []).map(viewer => ({
+          session_id: viewer.id,
+          viewer_id: viewer.viewer_id,
+          viewer_display_name: viewer.viewer_display_name,
+          is_guest: viewer.is_guest,
+          joined_at: viewer.joined_at,
+          avatar_url: '', // Will be fetched if needed
+          camera_enabled: viewer.camera_enabled,
+          camera_stream_active: viewer.camera_stream_active,
+        }));
+
+        setViewers(transformedViewers);
       } catch (error) {
         console.error('Error loading viewers:', error);
       } finally {
