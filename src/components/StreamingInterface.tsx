@@ -118,6 +118,74 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.log('  - Viewer camera:', camera.displayName, 'token:', token);
     });
   }, [viewerCameras]);
+
+  // Real-time stream state monitoring while streaming
+  useEffect(() => {
+    if (!isStreaming || !streamRef.current) return;
+
+    const monitorInterval = setInterval(() => {
+      if (!streamRef.current) {
+        console.warn('⚠️ Stream ref lost during monitoring');
+        return;
+      }
+
+      const videoTracks = streamRef.current.getVideoTracks();
+      if (videoTracks.length === 0) {
+        console.error('❌ No video tracks during streaming!');
+        toast({
+          title: "Camera disconnected",
+          description: "Video track was lost. Please check your camera.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const videoTrack = videoTracks[0];
+      
+      // Check if track became disabled or ended
+      if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
+        console.error('❌ Video track issue:', {
+          enabled: videoTrack.enabled,
+          readyState: videoTrack.readyState
+        });
+
+        // Try to re-enable if just disabled
+        if (videoTrack.readyState === 'live' && !videoTrack.enabled) {
+          console.log('🔧 Attempting to re-enable video track...');
+          videoTrack.enabled = true;
+        }
+      }
+
+      // Log track state periodically
+      console.log('📊 Stream monitor:', {
+        enabled: videoTrack.enabled,
+        readyState: videoTrack.readyState,
+        streamId: streamRef.current.id
+      });
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(monitorInterval);
+  }, [isStreaming, toast]);
+
+  // Debug: Log hostStream state changes for VideoCallGrid
+  useEffect(() => {
+    if (isStreaming) {
+      console.log('🎥 hostStream state for VideoCallGrid:', {
+        hasStream: !!hostStream,
+        streamId: hostStream?.id,
+        videoTracks: hostStream?.getVideoTracks().map(t => ({
+          kind: t.kind,
+          enabled: t.enabled,
+          readyState: t.readyState
+        })),
+        audioTracks: hostStream?.getAudioTracks().map(t => ({
+          kind: t.kind,
+          enabled: t.enabled,
+          readyState: t.readyState
+        }))
+      });
+    }
+  }, [hostStream, isStreaming]);
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
@@ -704,6 +772,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     }
   };
+  // Helper function to validate MediaStream
+  const validateMediaStream = (stream: MediaStream | null): boolean => {
+    if (!stream) {
+      console.warn('⚠️ Stream is null');
+      return false;
+    }
+    
+    const videoTracks = stream.getVideoTracks();
+    if (videoTracks.length === 0) {
+      console.warn('⚠️ No video tracks in stream');
+      return false;
+    }
+    
+    const videoTrack = videoTracks[0];
+    if (!videoTrack.enabled) {
+      console.warn('⚠️ Video track is disabled');
+      return false;
+    }
+    
+    if (videoTrack.readyState !== 'live') {
+      console.warn('⚠️ Video track is not live, state:', videoTrack.readyState);
+      return false;
+    }
+    
+    console.log('✅ Stream is valid:', {
+      trackCount: videoTracks.length,
+      enabled: videoTrack.enabled,
+      readyState: videoTrack.readyState
+    });
+    return true;
+  };
+
   const startStream = async () => {
     if (!user) {
       toast({
@@ -810,6 +910,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       activeStreamIdRef.current = data.id;
       setIsStreaming(true);
       setStreamLifecycle('waiting');
+
+      // Re-synchronize hostStream state before broadcasting
+      console.log('🔄 Re-synchronizing hostStream state...');
+      if (validateMediaStream(streamRef.current)) {
+        setHostStream(streamRef.current);
+        console.log('✅ hostStream state updated:', streamRef.current.id);
+      } else {
+        console.error('❌ Stream validation failed before broadcast');
+        throw new Error('Stream validation failed');
+      }
 
       // Initialize broadcast manager with current stream
       broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
