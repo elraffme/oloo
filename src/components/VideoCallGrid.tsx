@@ -85,9 +85,18 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
   const videoRef = tile.videoRef || localVideoRef;
 
   useEffect(() => {
-    if (!tile.stream || !videoRef.current) return;
+    if (!tile.stream || !videoRef.current) {
+      console.log(`⚠️ VideoTile: Missing stream or ref for ${tile.displayName}`);
+      return;
+    }
 
-    console.log(`📹 Connecting stream for ${tile.displayName}`);
+    console.log(`📹 VideoTile: Attaching stream for ${tile.displayName}`, {
+      streamId: tile.stream.id,
+      tracks: tile.stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })),
+      isHost: tile.isHost,
+      isYou: tile.isYou
+    });
+    
     videoRef.current.srcObject = tile.stream;
     
     videoRef.current.play().catch(err => {
@@ -96,6 +105,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
 
     return () => {
       if (videoRef.current) {
+        console.log(`🧹 VideoTile: Cleaning up stream for ${tile.displayName}`);
         videoRef.current.srcObject = null;
       }
     };

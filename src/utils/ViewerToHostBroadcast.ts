@@ -99,6 +99,15 @@ export class ViewerToHostBroadcast {
       const state = this.peerConnection?.connectionState;
       console.log('🔄 Viewer camera connection state:', state);
       this.onConnectionStateChange?.(state!);
+      
+      // Update camera_stream_active status when connected
+      if (state === 'connected') {
+        console.log('✅ Viewer camera connected, updating database status');
+        this.updateCameraStatus(true);
+      } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+        console.log('⚠️ Viewer camera disconnected, updating database status');
+        this.updateCameraStatus(false);
+      }
     };
 
     // Handle ICE candidates
