@@ -1209,8 +1209,74 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 if (ageHours > 6) return false;
               }
               return true;
-            }).map(stream => <Card key={stream.id} className="cultural-card hover:shadow-lg transition-all cursor-pointer group" onClick={() => joinStream(stream)}>
+            }).map(stream => <Card key={stream.id} className="cultural-card hover:shadow-lg transition-all cursor-pointer group overflow-hidden" onClick={() => joinStream(stream)}>
                     <div className="relative">
+                      {/* Stream Thumbnail */}
+                      <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20">
+                        {stream.thumbnail ? (
+                          <img 
+                            src={stream.thumbnail} 
+                            alt={stream.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Video className="w-12 h-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Live Badge */}
+                        <div className="absolute top-3 left-3 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 animate-pulse">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                          LIVE
+                        </div>
+
+                        {/* Viewer Count */}
+                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs flex items-center gap-1.5">
+                          <Eye className="w-3.5 h-3.5" />
+                          {stream.current_viewers}
+                        </div>
+
+                        {/* Play Overlay */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                            <Play className="w-7 h-7 text-white ml-1" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stream Info */}
+                      <div className="p-4 space-y-2">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="w-10 h-10 border-2 border-primary/20">
+                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${stream.host_user_id}`} />
+                            <AvatarFallback>{stream.host_name?.[0] || 'U'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base line-clamp-1">{stream.title}</h3>
+                            <p className="text-sm text-muted-foreground">{stream.host_name}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Category Badge */}
+                        {stream.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {stream.category}
+                          </Badge>
+                        )}
+                        
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
+                          <div className="flex items-center gap-1">
+                            <Heart className="w-4 h-4 text-destructive" />
+                            {stream.total_likes || 0}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Eye className="w-4 h-4" />
+                            {stream.current_viewers} watching
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </Card>)}
               </div> : <Card className="p-12 text-center">
