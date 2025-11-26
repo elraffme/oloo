@@ -20,13 +20,16 @@ export class ViewerCameraReceiver {
   private cleanupFunctions: (() => void)[] = [];
   private onViewerCamerasUpdate?: (cameras: Map<string, ViewerCameraStream>) => void;
   private processedSignals: Set<string> = new Set(); // Track processed offers
+  private onNewViewerCamera?: (viewerInfo: ViewerCameraStream) => void;
 
   constructor(
     streamId: string,
-    onViewerCamerasUpdate?: (cameras: Map<string, ViewerCameraStream>) => void
+    onViewerCamerasUpdate?: (cameras: Map<string, ViewerCameraStream>) => void,
+    onNewViewerCamera?: (viewerInfo: ViewerCameraStream) => void
   ) {
     this.streamId = streamId;
     this.onViewerCamerasUpdate = onViewerCamerasUpdate;
+    this.onNewViewerCamera = onNewViewerCamera;
   }
 
   async initialize() {
@@ -189,6 +192,9 @@ export class ViewerCameraReceiver {
           this.notifyUpdate();
           console.log('✅ Added viewer camera stream (placeholder):', sessionToken);
 
+          // Notify relay system about new viewer camera
+          this.onNewViewerCamera?.(viewerCamera);
+
           // Update viewer info asynchronously
           this.getViewerInfo(sessionToken).then(viewerInfo => {
             const updatedCamera = this.viewerCameras.get(sessionToken);
@@ -196,6 +202,10 @@ export class ViewerCameraReceiver {
               updatedCamera.displayName = viewerInfo.displayName;
               updatedCamera.avatarUrl = viewerInfo.avatarUrl;
               this.notifyUpdate();
+              
+              // Notify relay system with updated info
+              this.onNewViewerCamera?.(updatedCamera);
+              
               console.log('✅ Updated viewer camera info:', sessionToken, viewerInfo.displayName);
             }
           }).catch(err => {

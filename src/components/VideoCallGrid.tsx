@@ -20,6 +20,7 @@ interface VideoCallGridProps {
   viewerCameraEnabled: boolean;
   viewerName?: string;
   isMuted?: boolean;
+  relayedViewerCameras?: Map<string, { stream: MediaStream; displayName: string; avatarUrl?: string }>;
 }
 
 const getGridClass = (count: number): string => {
@@ -38,8 +39,10 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
   viewerCameraEnabled,
   viewerName = 'You',
   isMuted = false,
+  relayedViewerCameras,
 }) => {
   const tiles: VideoTile[] = [];
+  const seenSessionTokens = new Set<string>();
 
   // Add host tile only if host stream is available
   if (hostStream) {
@@ -51,13 +54,28 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
     });
   }
 
-  // Add other viewers' cameras
+  // Add other viewers' cameras (direct connections)
   viewerCameras.forEach((camera, sessionToken) => {
-    tiles.push({
-      id: sessionToken,
-      displayName: camera.displayName,
-      stream: camera.stream,
-    });
+    if (!seenSessionTokens.has(sessionToken)) {
+      seenSessionTokens.add(sessionToken);
+      tiles.push({
+        id: sessionToken,
+        displayName: camera.displayName,
+        stream: camera.stream,
+      });
+    }
+  });
+
+  // Add relayed viewer cameras (forwarded by host)
+  relayedViewerCameras?.forEach((camera, sessionToken) => {
+    if (!seenSessionTokens.has(sessionToken)) {
+      seenSessionTokens.add(sessionToken);
+      tiles.push({
+        id: `relay-${sessionToken}`,
+        displayName: camera.displayName,
+        stream: camera.stream,
+      });
+    }
   });
 
   // Add local viewer's camera if enabled

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BroadcastManager } from '@/utils/BroadcastManager';
 import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
+import { ViewerStreamRelay } from '@/utils/ViewerStreamRelay';
 import StreamViewer from '@/components/StreamViewer';
 import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -106,6 +107,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Viewer camera receiver
   const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
   const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
+  
+  // Viewer stream relay (host forwards viewer cameras to other viewers)
+  const viewerStreamRelayRef = useRef<ViewerStreamRelay | null>(null);
   
   // Debug: Log viewer cameras updates
   useEffect(() => {
@@ -851,10 +855,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         data.id,
         (cameras) => {
           setViewerCameras(new Map(cameras));
+        },
+        async (viewerInfo) => {
+          // Notify relay system about new viewer camera
+          if (viewerStreamRelayRef.current) {
+            await viewerStreamRelayRef.current.onNewViewerCamera(viewerInfo);
+          }
         }
       );
       await viewerCameraReceiverRef.current.initialize();
       console.log('✅ Viewer camera receiver initialized');
+
+      // Initialize viewer stream relay to forward cameras to other viewers
+      viewerStreamRelayRef.current = new ViewerStreamRelay(data.id);
+      await viewerStreamRelayRef.current.initialize();
+      console.log('✅ Viewer stream relay initialized');
 
       // Fetch ICE servers to check TURN availability
       try {
@@ -960,6 +975,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         viewerCameraReceiverRef.current.cleanup();
         viewerCameraReceiverRef.current = null;
       }
+      
+      // Cleanup viewer stream relay
+      if (viewerStreamRelayRef.current) {
+        viewerStreamRelayRef.current.cleanup();
+        viewerStreamRelayRef.current = null;
+      }
+      
       setViewerCameras(new Map());
       
       setChannelStatus('disconnected');
