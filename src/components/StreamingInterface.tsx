@@ -106,6 +106,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Viewer camera receiver
   const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
   const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
+  
+  // Debug: Log viewer cameras updates
+  useEffect(() => {
+    console.log('🎥 Host: Viewer cameras updated, count:', viewerCameras.size);
+    viewerCameras.forEach((camera, token) => {
+      console.log('  - Viewer camera:', camera.displayName, 'token:', token);
+    });
+  }, [viewerCameras]);
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
@@ -1460,18 +1468,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                                 key={viewer.session_id} 
                                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
                               >
-                                <Avatar className="w-8 h-8">
+                                <Avatar className="w-8 h-8 relative">
                                   <AvatarImage src={viewer.avatar_url || '/placeholder.svg'} />
                                   <AvatarFallback>
                                     {viewer.viewer_display_name[0]?.toUpperCase() || 'G'}
                                   </AvatarFallback>
+                                  {viewer.camera_stream_active && (
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                      <Video className="w-2.5 h-2.5 text-primary-foreground" />
+                                    </div>
+                                  )}
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate">
+                                  <p className="text-sm font-medium truncate flex items-center gap-1">
                                     {viewer.viewer_display_name}
+                                    {viewer.camera_enabled && (
+                                      <Video className="w-3 h-3 text-primary" />
+                                    )}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
                                     {viewer.is_guest ? 'Guest' : 'Member'}
+                                    {viewer.camera_stream_active && ' • Camera active'}
                                   </p>
                                 </div>
                               </div>
