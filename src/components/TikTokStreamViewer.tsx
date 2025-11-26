@@ -1,17 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
+import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
+import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
-  Eye, Volume2, VolumeX, UserPlus, ArrowLeft
+  Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { VideoCallGrid } from '@/components/VideoCallGrid';
 
 interface ChatMessage {
   id: string;
@@ -66,6 +69,19 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showFullChat, setShowFullChat] = useState(false);
+
+  // Viewer camera states
+  const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
+  const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
+  const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
+  const [isCameraRequesting, setIsCameraRequesting] = useState(false);
+  
+  // Viewer camera receiver (for seeing other viewers' cameras)
+  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
+  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
+  
+  // Host stream state
+  const [hostStream, setHostStream] = useState<MediaStream | null>(null);
 
   // Swipe gesture handling
   const swipeRef = useSwipeGesture({
@@ -134,6 +150,13 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       await viewerConnectionRef.current.connect(supabase);
       setIsConnected(true);
 
+      // Capture host stream for VideoCallGrid
+      videoEl.onloadedmetadata = () => {
+        if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
+          setHostStream(videoEl.srcObject as MediaStream);
+        }
+      };
+
       // Load like status
       if (user) {
         const { data: likeData } = await supabase
@@ -150,13 +173,37 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     initViewer();
     
     return () => {
-      if (viewerConnectionRef.current) {
-        viewerConnectionRef.current.disconnect();
+      // Cleanup viewer camera
+      if (viewerBroadcastRef.current) {
+        viewerBroadcastRef.current.cleanup();
+        viewerBroadcastRef.current = null;
+      }
+      if (viewerStream) {
+        viewerStream.getTracks().forEach(track => track.stop());
       }
       
-      if (sessionToken) {
-        supabase.rpc('leave_stream_viewer', { p_session_token: sessionToken });
+      if (viewerConnectionRef.current) {
+        viewerConnectionRef.current.disconnect();
+        viewerConnectionRef.current = null;
       }
+      
+      // Cleanup viewer camera receiver
+      if (viewerCameraReceiverRef.current) {
+        viewerCameraReceiverRef.current.cleanup();
+        viewerCameraReceiverRef.current = null;
+      }
+      
+      (async () => {
+        if (sessionToken) {
+          try {
+            await supabase.rpc('leave_stream_viewer', {
+              p_session_token: sessionToken
+            });
+          } catch (err) {
+            console.error('Error leaving stream:', err);
+          }
+        }
+      })();
       
       if (videoRef.current) {
         videoRef.current.pause();
@@ -164,6 +211,37 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       }
     };
   }, [streamId, user]);
+
+  // Initialize viewer camera receiver to see other viewers' cameras
+  useEffect(() => {
+    const initViewerCameraReceiver = async () => {
+      if (!streamId) return;
+      
+      console.log('📹 Initializing viewer camera receiver for stream', streamId);
+      
+      const receiver = new ViewerCameraReceiver(streamId, (cameras) => {
+        console.log('📹 Viewer cameras updated, count:', cameras.size);
+        setViewerCameras(new Map(cameras));
+      });
+      
+      try {
+        await receiver.initialize();
+        viewerCameraReceiverRef.current = receiver;
+        console.log('✅ Viewer camera receiver initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize viewer camera receiver:', error);
+      }
+    };
+    
+    initViewerCameraReceiver();
+    
+    return () => {
+      if (viewerCameraReceiverRef.current) {
+        viewerCameraReceiverRef.current.cleanup();
+        viewerCameraReceiverRef.current = null;
+      }
+    };
+  }, [streamId]);
 
   // Subscribe to floating chat messages
   useEffect(() => {
@@ -298,21 +376,86 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     toast.success(isFollowing ? 'Unfollowed' : 'Following!');
   };
 
+  const toggleViewerCamera = async () => {
+    if (!sessionToken) {
+      toast.error('Not connected to stream');
+      return;
+    }
+
+    if (viewerCameraEnabled) {
+      // Turn off camera
+      if (viewerBroadcastRef.current) {
+        viewerBroadcastRef.current.cleanup();
+        viewerBroadcastRef.current = null;
+      }
+      if (viewerStream) {
+        viewerStream.getTracks().forEach(track => track.stop());
+        setViewerStream(null);
+      }
+      setViewerCameraEnabled(false);
+      toast.success('Camera disabled');
+    } else {
+      // Turn on camera
+      try {
+        setIsCameraRequesting(true);
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 },
+          audio: false 
+        });
+        
+        setViewerStream(stream);
+        
+        // Create viewer-to-host broadcast
+        const broadcast = new ViewerToHostBroadcast(
+          streamId,
+          sessionToken,
+          stream,
+          (state) => {
+            console.log('Viewer camera connection state:', state);
+          }
+        );
+        
+        await broadcast.initialize();
+        viewerBroadcastRef.current = broadcast;
+        
+        setViewerCameraEnabled(true);
+        toast.success('Camera enabled! Host can now see you.');
+      } catch (error) {
+        console.error('Error enabling camera:', error);
+        toast.error('Failed to enable camera. Please check permissions.');
+      } finally {
+        setIsCameraRequesting(false);
+      }
+    }
+  };
+
   return (
     <div 
       ref={swipeRef}
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       onClick={() => setShowUI(true)}
     >
-      {/* Video Container */}
+      {/* Video Container - Hidden host video, show VideoCallGrid instead */}
       <div id="video-container" className="absolute inset-0 flex items-center justify-center">
         <video
           ref={videoRef}
-          className="w-full h-full object-cover"
+          className="hidden"
           playsInline
           autoPlay
           muted={isMuted}
         />
+        
+        {/* VideoCallGrid - Show host and all viewers with cameras */}
+        {hostStream && (
+          <VideoCallGrid
+            hostStream={hostStream}
+            hostName={hostName}
+            viewerStream={viewerStream || undefined}
+            viewerCameraEnabled={viewerCameraEnabled}
+            viewerName={user?.email?.split('@')[0] || 'You'}
+            viewerCameras={viewerCameras}
+          />
+        )}
       </div>
 
       {/* Overlay UI */}
@@ -441,6 +584,31 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
               <Share2 className="w-7 h-7 text-white" />
             </div>
+          </button>
+
+          {/* Camera Toggle Button */}
+          <button
+            onClick={toggleViewerCamera}
+            disabled={isCameraRequesting}
+            className="flex flex-col items-center gap-1"
+          >
+            <div className={cn(
+              "w-12 h-12 rounded-full flex items-center justify-center",
+              viewerCameraEnabled 
+                ? "bg-primary backdrop-blur-sm" 
+                : "bg-black/40 backdrop-blur-sm"
+            )}>
+              {isCameraRequesting ? (
+                <Loader2 className="w-7 h-7 text-white animate-spin" />
+              ) : viewerCameraEnabled ? (
+                <Video className="w-7 h-7 text-white" />
+              ) : (
+                <VideoOff className="w-7 h-7 text-white" />
+              )}
+            </div>
+            <span className="text-white text-xs font-medium">
+              {viewerCameraEnabled ? 'On' : 'Off'}
+            </span>
           </button>
 
           {/* More Options */}
