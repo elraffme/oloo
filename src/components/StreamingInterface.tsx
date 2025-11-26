@@ -66,6 +66,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [hostStream, setHostStream] = useState<MediaStream | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(true);
@@ -631,6 +632,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (videoRef.current && streamRef.current) {
         videoRef.current.srcObject = streamRef.current;
         await videoRef.current.play();
+        
+        // Update host stream state for VideoCallGrid
+        console.log('✅ Setting host stream state for VideoCallGrid');
+        setHostStream(streamRef.current);
       }
       if (requestVideo) {
         setHasCameraPermission(true);
@@ -1320,7 +1325,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {isStreaming ? (
                       // Use VideoCallGrid when streaming to show host + viewers
                       <VideoCallGrid
-                        hostStream={streamRef.current}
+                        hostStream={hostStream}
                         hostName="You (Host)"
                         viewerCameras={viewerCameras}
                         viewerStream={undefined}
