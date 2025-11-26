@@ -19,6 +19,7 @@ export class ViewerCameraReceiver {
   private channel: any = null;
   private cleanupFunctions: (() => void)[] = [];
   private onViewerCamerasUpdate?: (cameras: Map<string, ViewerCameraStream>) => void;
+  private processedSignals: Set<string> = new Set(); // Track processed offers
 
   constructor(
     streamId: string,
@@ -148,6 +149,14 @@ export class ViewerCameraReceiver {
       return;
     }
 
+    // Track this signal to prevent duplicate processing
+    const signalKey = `${sessionToken}-${payload.sdp?.substring(0, 50)}`;
+    if (this.processedSignals.has(signalKey)) {
+      console.log('⚠️ Already processed this offer for viewer:', sessionToken);
+      return;
+    }
+    this.processedSignals.add(signalKey);
+
     try {
       console.log('🔗 Creating peer connection for viewer camera:', sessionToken);
       
@@ -162,23 +171,35 @@ export class ViewerCameraReceiver {
 
       // Handle incoming tracks (viewer's camera)
       peerConnection.ontrack = (event) => {
-        console.log('📹 Received track from viewer:', event.track.kind);
+        console.log('📹 Received track from viewer:', event.track.kind, 'sessionToken:', sessionToken);
         
         const stream = event.streams[0];
         if (stream) {
-          // Get viewer info
-          this.getViewerInfo(sessionToken).then(viewerInfo => {
-            const viewerCamera: ViewerCameraStream = {
-              sessionToken,
-              stream,
-              displayName: viewerInfo.displayName,
-              avatarUrl: viewerInfo.avatarUrl,
-              peerConnection
-            };
+          console.log('✅ Got viewer stream, adding immediately to map');
+          
+          // Store viewer camera immediately with placeholder name
+          const viewerCamera: ViewerCameraStream = {
+            sessionToken,
+            stream,
+            displayName: 'Loading...',
+            peerConnection
+          };
 
-            this.viewerCameras.set(sessionToken, viewerCamera);
-            this.notifyUpdate();
-            console.log('✅ Added viewer camera stream:', sessionToken);
+          this.viewerCameras.set(sessionToken, viewerCamera);
+          this.notifyUpdate();
+          console.log('✅ Added viewer camera stream (placeholder):', sessionToken);
+
+          // Update viewer info asynchronously
+          this.getViewerInfo(sessionToken).then(viewerInfo => {
+            const updatedCamera = this.viewerCameras.get(sessionToken);
+            if (updatedCamera) {
+              updatedCamera.displayName = viewerInfo.displayName;
+              updatedCamera.avatarUrl = viewerInfo.avatarUrl;
+              this.notifyUpdate();
+              console.log('✅ Updated viewer camera info:', sessionToken, viewerInfo.displayName);
+            }
+          }).catch(err => {
+            console.error('Error fetching viewer info:', err);
           });
         }
       };
