@@ -31,6 +31,9 @@ export class BroadcastManager {
   private connectionQuality: Map<string, ConnectionQuality> = new Map();
   private dbPollingInterval: NodeJS.Timeout | null = null;
   private lastProcessedSignalId: string | null = null;
+  private processedSignalIds: Set<string> = new Set();
+  private isInitialPollComplete: boolean = false;
+  private fullScanInterval: NodeJS.Timeout | null = null;
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -229,6 +232,10 @@ export class BroadcastManager {
           console.log('✓ Broadcaster channel ready, broadcasting ready signal');
           this.onChannelStatusChange?.('connected');
           
+          // Immediate catch-up query for any missed viewer signals
+          console.log('🔍 Running catch-up query for missed viewer signals...');
+          await this.runCatchUpQuery(supabase);
+          
           // Write broadcaster-ready to database immediately
           await this.sendSignalViaDb(supabase, 'broadcaster', 'broadcaster_ready', { streamId: this.streamId });
           
@@ -243,6 +250,12 @@ export class BroadcastManager {
             await this.sendSignalViaDb(supabase, 'broadcaster', 'broadcaster_ready', { streamId: this.streamId });
             await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
           }, 3000);
+          
+          // Start periodic full scan every 30s to catch any missed signals
+          this.fullScanInterval = setInterval(() => {
+            console.log('🔍 Running periodic full scan...');
+            this.runFullScan(supabase);
+          }, 30000);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.warn(`⚠️ Channel status: ${status}, DB polling continues...`);
           this.onChannelStatusChange?.('error');
@@ -260,54 +273,175 @@ export class BroadcastManager {
     
     const pollDatabase = async () => {
       try {
-        // Query for new viewer signals
+        // On initial poll, get ALL signals (no timestamp filter)
+        // After that, only get new ones
         const query = supabase
           .from('webrtc_signals')
           .select('*')
           .eq('stream_id', this.streamId)
           .eq('role', 'viewer')
-          .order('created_at', { ascending: false })
-          .limit(10);
+          .order('created_at', { ascending: true })
+          .limit(50);
         
-        if (this.lastProcessedSignalId) {
+        // Only filter by timestamp after initial poll is complete
+        if (this.isInitialPollComplete && this.lastProcessedSignalId) {
           query.gt('created_at', this.lastProcessedSignalId);
         }
         
         const { data: signals, error } = await query;
         
         if (error) {
-          console.error('DB poll error:', error);
+          console.error('❌ DB poll error:', error);
           return;
         }
         
+        const pollType = this.isInitialPollComplete ? 'incremental' : 'initial';
+        console.log(`📊 DB poll (${pollType}): found ${signals?.length || 0} signals`);
+        
         if (signals && signals.length > 0) {
-          console.log(`📨 DB poll found ${signals.length} new viewer signal(s)`);
+          console.log(`📨 Processing ${signals.length} viewer signal(s)`);
           
-          for (const signal of signals.reverse()) {
-            if (signal.type === 'viewer_joined') {
-              console.log('📨 DB: viewer joined', signal.session_token?.substring(0, 8));
-              await this.handleViewerJoined({ payload: signal.payload }, supabase);
-            } else if (signal.type === 'request_offer') {
-              console.log('📨 DB: offer requested', signal.session_token?.substring(0, 8));
-              await this.handleRequestOffer({ payload: signal.payload }, supabase);
-            } else if (signal.type === 'answer') {
-              console.log('📨 DB: answer received', signal.session_token?.substring(0, 8));
-              await this.handleAnswer({ payload: signal.payload });
-            } else if (signal.type === 'ice') {
-              await this.handleICECandidate({ payload: signal.payload });
+          let processedCount = 0;
+          for (const signal of signals) {
+            // Skip if already processed (deduplication)
+            if (this.processedSignalIds.has(signal.id)) {
+              continue;
             }
             
-            this.lastProcessedSignalId = signal.created_at;
+            try {
+              // Process signal based on type
+              if (signal.type === 'viewer_joined') {
+                console.log('📨 DB: viewer joined', signal.session_token?.substring(0, 8));
+                await this.handleViewerJoined({ payload: signal.payload }, supabase);
+                processedCount++;
+              } else if (signal.type === 'request_offer') {
+                console.log('📨 DB: offer requested', signal.session_token?.substring(0, 8));
+                await this.handleRequestOffer({ payload: signal.payload }, supabase);
+                processedCount++;
+              } else if (signal.type === 'answer') {
+                console.log('📨 DB: answer received', signal.session_token?.substring(0, 8));
+                await this.handleAnswer({ payload: signal.payload });
+                processedCount++;
+              } else if (signal.type === 'ice') {
+                await this.handleICECandidate({ payload: signal.payload });
+                processedCount++;
+              }
+              
+              // Mark as processed
+              this.processedSignalIds.add(signal.id);
+              this.lastProcessedSignalId = signal.created_at;
+            } catch (signalError) {
+              console.error(`❌ Error processing signal ${signal.id}:`, signalError);
+              // Continue processing other signals even if one fails
+            }
+          }
+          
+          if (processedCount > 0) {
+            console.log(`✅ Successfully processed ${processedCount}/${signals.length} signals`);
           }
         }
+        
+        // Mark initial poll as complete after first run
+        if (!this.isInitialPollComplete) {
+          this.isInitialPollComplete = true;
+          console.log('✅ Initial DB poll complete, switching to incremental mode');
+        }
       } catch (err) {
-        console.error('DB polling error:', err);
+        console.error('❌ DB polling error:', err);
       }
     };
     
     // Poll immediately, then every 2 seconds
     pollDatabase();
     this.dbPollingInterval = setInterval(pollDatabase, 2000);
+  }
+
+  private async runCatchUpQuery(supabase: any) {
+    try {
+      const { data: signals, error } = await supabase
+        .from('webrtc_signals')
+        .select('*')
+        .eq('stream_id', this.streamId)
+        .eq('role', 'viewer')
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (error) {
+        console.error('❌ Catch-up query error:', error);
+        return;
+      }
+      
+      console.log(`📊 Catch-up found ${signals?.length || 0} total signals`);
+      
+      if (signals && signals.length > 0) {
+        let caughtUp = 0;
+        for (const signal of signals) {
+          if (!this.processedSignalIds.has(signal.id)) {
+            try {
+              if (signal.type === 'viewer_joined') {
+                await this.handleViewerJoined({ payload: signal.payload }, supabase);
+                caughtUp++;
+              } else if (signal.type === 'request_offer') {
+                await this.handleRequestOffer({ payload: signal.payload }, supabase);
+                caughtUp++;
+              }
+              this.processedSignalIds.add(signal.id);
+            } catch (err) {
+              console.error(`❌ Error in catch-up processing:`, err);
+            }
+          }
+        }
+        if (caughtUp > 0) {
+          console.log(`✅ Caught up with ${caughtUp} missed signals`);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Catch-up query failed:', err);
+    }
+  }
+
+  private async runFullScan(supabase: any) {
+    try {
+      const { data: signals, error } = await supabase
+        .from('webrtc_signals')
+        .select('*')
+        .eq('stream_id', this.streamId)
+        .eq('role', 'viewer')
+        .in('type', ['viewer_joined', 'request_offer'])
+        .order('created_at', { ascending: true })
+        .limit(100);
+      
+      if (error) {
+        console.error('❌ Full scan error:', error);
+        return;
+      }
+      
+      let newSignals = 0;
+      if (signals && signals.length > 0) {
+        for (const signal of signals) {
+          if (!this.processedSignalIds.has(signal.id)) {
+            try {
+              if (signal.type === 'viewer_joined') {
+                await this.handleViewerJoined({ payload: signal.payload }, supabase);
+                newSignals++;
+              } else if (signal.type === 'request_offer') {
+                await this.handleRequestOffer({ payload: signal.payload }, supabase);
+                newSignals++;
+              }
+              this.processedSignalIds.add(signal.id);
+            } catch (err) {
+              console.error(`❌ Error in full scan processing:`, err);
+            }
+          }
+        }
+      }
+      
+      if (newSignals > 0) {
+        console.log(`✅ Full scan found ${newSignals} new signals`);
+      }
+    } catch (err) {
+      console.error('❌ Full scan failed:', err);
+    }
   }
 
   private setupDbSignalingFallback(supabase: any) {
@@ -661,6 +795,12 @@ export class BroadcastManager {
     if (this.dbPollingInterval) {
       clearInterval(this.dbPollingInterval);
       this.dbPollingInterval = null;
+    }
+    
+    // Clear full scan interval
+    if (this.fullScanInterval) {
+      clearInterval(this.fullScanInterval);
+      this.fullScanInterval = null;
     }
 
     this.offerRetryTimers.forEach(timer => clearTimeout(timer));
