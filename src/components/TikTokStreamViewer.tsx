@@ -155,12 +155,19 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       await viewerConnectionRef.current.connect(supabase);
       setIsConnected(true);
 
-      // Capture host stream for VideoCallGrid
-      videoEl.onloadedmetadata = () => {
+      // Capture host stream for VideoCallGrid - set immediately when connection receives track
+      const checkHostStream = () => {
         if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
+          console.log('📹 Setting host stream from video element');
           setHostStream(videoEl.srcObject as MediaStream);
         }
       };
+      
+      videoEl.onloadedmetadata = checkHostStream;
+      
+      // Also check immediately in case track arrives before we set listener
+      setTimeout(checkHostStream, 500);
+      setTimeout(checkHostStream, 1000);
 
       // Load like status
       if (user) {
@@ -518,16 +525,14 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         />
         
         {/* VideoCallGrid - Show host and all viewers with cameras */}
-        {hostStream && (
-          <VideoCallGrid
-            hostStream={hostStream}
-            hostName={hostName}
-            viewerStream={viewerStream || undefined}
-            viewerCameraEnabled={viewerCameraEnabled}
-            viewerName={user?.email?.split('@')[0] || 'You'}
-            viewerCameras={viewerCameras}
-          />
-        )}
+        <VideoCallGrid
+          hostStream={hostStream}
+          hostName={hostName}
+          viewerStream={viewerStream || undefined}
+          viewerCameraEnabled={viewerCameraEnabled}
+          viewerName={user?.email?.split('@')[0] || 'You'}
+          viewerCameras={viewerCameras}
+        />
       </div>
 
       {/* Overlay UI */}
