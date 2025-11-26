@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
-  Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2
+  Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
+  Mic, MicOff
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -75,6 +76,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
   const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
+  
+  // Viewer mic states
+  const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
+  const [isMicRequesting, setIsMicRequesting] = useState(false);
   
   // Viewer camera receiver (for seeing other viewers' cameras)
   const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
@@ -400,7 +405,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         setIsCameraRequesting(true);
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { width: 640, height: 480 },
-          audio: false 
+          audio: viewerMicEnabled 
         });
         
         setViewerStream(stream);
@@ -425,6 +430,73 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         toast.error('Failed to enable camera. Please check permissions.');
       } finally {
         setIsCameraRequesting(false);
+      }
+    }
+  };
+
+  const toggleViewerMic = async () => {
+    if (!sessionToken) {
+      toast.error('Not connected to stream');
+      return;
+    }
+
+    if (viewerMicEnabled) {
+      // Turn off mic
+      if (viewerStream) {
+        viewerStream.getAudioTracks().forEach(track => track.stop());
+      }
+      setViewerMicEnabled(false);
+      toast.success('Microphone disabled');
+    } else {
+      // Turn on mic
+      try {
+        setIsMicRequesting(true);
+        
+        if (viewerCameraEnabled && viewerStream) {
+          // Add audio track to existing stream
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const audioTrack = audioStream.getAudioTracks()[0];
+          viewerStream.addTrack(audioTrack);
+          
+          // Update the broadcast with new stream
+          if (viewerBroadcastRef.current) {
+            viewerBroadcastRef.current.cleanup();
+            const broadcast = new ViewerToHostBroadcast(
+              streamId,
+              sessionToken,
+              viewerStream,
+              (state) => {
+                console.log('Viewer camera connection state:', state);
+              }
+            );
+            await broadcast.initialize();
+            viewerBroadcastRef.current = broadcast;
+          }
+        } else {
+          // Create audio-only stream
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          setViewerStream(stream);
+          
+          const broadcast = new ViewerToHostBroadcast(
+            streamId,
+            sessionToken,
+            stream,
+            (state) => {
+              console.log('Viewer mic connection state:', state);
+            }
+          );
+          
+          await broadcast.initialize();
+          viewerBroadcastRef.current = broadcast;
+        }
+        
+        setViewerMicEnabled(true);
+        toast.success('Microphone enabled! Host can hear you.');
+      } catch (error) {
+        console.error('Error enabling microphone:', error);
+        toast.error('Failed to enable microphone. Please check permissions.');
+      } finally {
+        setIsMicRequesting(false);
       }
     }
   };
@@ -482,9 +554,46 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
               LIVE
             </Badge>
 
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-              <Eye className="w-4 h-4 text-white" />
-              <span className="text-white text-sm font-medium">{viewers}</span>
+            <div className="flex items-center gap-2">
+              {/* Camera Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={toggleViewerCamera}
+                disabled={isCameraRequesting}
+              >
+                {isCameraRequesting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : viewerCameraEnabled ? (
+                  <Video className="w-5 h-5" />
+                ) : (
+                  <VideoOff className="w-5 h-5" />
+                )}
+              </Button>
+
+              {/* Mic Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={toggleViewerMic}
+                disabled={isMicRequesting}
+              >
+                {isMicRequesting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : viewerMicEnabled ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <MicOff className="w-5 h-5" />
+                )}
+              </Button>
+
+              {/* Viewer Count */}
+              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
+                <Eye className="w-4 h-4 text-white" />
+                <span className="text-white text-sm font-medium">{viewers}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -584,31 +693,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
               <Share2 className="w-7 h-7 text-white" />
             </div>
-          </button>
-
-          {/* Camera Toggle Button */}
-          <button
-            onClick={toggleViewerCamera}
-            disabled={isCameraRequesting}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center",
-              viewerCameraEnabled 
-                ? "bg-primary backdrop-blur-sm" 
-                : "bg-black/40 backdrop-blur-sm"
-            )}>
-              {isCameraRequesting ? (
-                <Loader2 className="w-7 h-7 text-white animate-spin" />
-              ) : viewerCameraEnabled ? (
-                <Video className="w-7 h-7 text-white" />
-              ) : (
-                <VideoOff className="w-7 h-7 text-white" />
-              )}
-            </div>
-            <span className="text-white text-xs font-medium">
-              {viewerCameraEnabled ? 'On' : 'Off'}
-            </span>
           </button>
 
           {/* More Options */}
