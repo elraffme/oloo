@@ -118,14 +118,18 @@ export class ViewerToHostBroadcast {
   private async setupSignaling() {
     console.log('📡 Setting up viewer camera signaling');
     
-    // Realtime channel for fast signaling
-    this.channel = supabase.channel(`viewer_camera_${this.streamId}_${this.sessionToken}`)
+    // Use shared channel that host is listening on
+    this.channel = supabase.channel(`viewer_cameras_${this.streamId}`)
       .on('broadcast', { event: 'answer' }, async ({ payload }) => {
-        console.log('📥 Received answer from host');
-        await this.handleAnswer(payload);
+        // Only handle answers meant for this viewer
+        if (payload.sessionToken === this.sessionToken) {
+          console.log('📥 Received answer from host');
+          await this.handleAnswer(payload);
+        }
       })
       .on('broadcast', { event: 'ice' }, async ({ payload }) => {
-        if (payload.role === 'host') {
+        // Only handle ICE candidates meant for this viewer
+        if (payload.role === 'host' && payload.sessionToken === this.sessionToken) {
           console.log('📥 Received ICE candidate from host');
           await this.handleICECandidate(payload);
         }
