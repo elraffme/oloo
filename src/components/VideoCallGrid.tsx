@@ -155,27 +155,27 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
         </div>
       )}
       
-      {/* Name Label and Badges */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+      {/* Name Label and Badges - Always Visible */}
+      <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-medium truncate">
+          <span className="text-white text-sm font-semibold truncate drop-shadow-lg">
             {tile.displayName}
           </span>
           
           {tile.isHost && (
-            <Badge variant="destructive" className="text-xs px-2 py-0">
+            <Badge variant="destructive" className="text-xs px-2 py-0 shadow-lg">
               Host
             </Badge>
           )}
           
           {tile.isYou && (
-            <Badge variant="secondary" className="text-xs px-2 py-0">
+            <Badge variant="secondary" className="text-xs px-2 py-0 shadow-lg">
               You
             </Badge>
           )}
           
           {tile.isMuted && (
-            <MicOff className="w-3 h-3 text-white" />
+            <MicOff className="w-3 h-3 text-white drop-shadow-lg" />
           )}
         </div>
       </div>
