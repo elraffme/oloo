@@ -318,6 +318,56 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [myActiveStream]);
 
+  // Subscribe to viewer session changes to track all viewers
+  useEffect(() => {
+    if (!isStreaming || !activeStreamId || !viewerStreamRelayRef.current) return;
+
+    console.log('📡 Setting up viewer session tracking for stream:', activeStreamId);
+
+    const channel = supabase
+      .channel(`host_viewer_tracking_${activeStreamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'stream_viewer_sessions',
+          filter: `stream_id=eq.${activeStreamId}`
+        },
+        (payload) => {
+          const session = payload.new as any;
+          if (session?.session_token && session?.viewer_display_name) {
+            console.log('🆕 New viewer joined, notifying relay:', session.viewer_display_name);
+            viewerStreamRelayRef.current?.notifyViewerJoined(
+              session.session_token,
+              session.viewer_display_name
+            );
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'stream_viewer_sessions',
+          filter: `stream_id=eq.${activeStreamId}`
+        },
+        (payload) => {
+          const session = payload.new as any;
+          if (session?.left_at && session?.session_token) {
+            console.log('👋 Viewer left, cleaning up relay:', session.session_token);
+            viewerStreamRelayRef.current?.onViewerLeft(session.session_token);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isStreaming, activeStreamId]);
+
   // Subscribe to gift transactions when streaming
   useEffect(() => {
     if (!activeStreamId || !user) return;
@@ -976,10 +1026,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       await viewerCameraReceiverRef.current.initialize();
       console.log('✅ Viewer camera receiver initialized');
 
-      // Initialize viewer stream relay to forward cameras to other viewers
+  // Initialize viewer stream relay to forward cameras to other viewers
       viewerStreamRelayRef.current = new ViewerStreamRelay(data.id);
       await viewerStreamRelayRef.current.initialize();
       console.log('✅ Viewer stream relay initialized');
+
+      // Load and register existing viewers with the relay
+      const { data: existingViewers } = await supabase
+        .from('stream_viewer_sessions')
+        .select('session_token, viewer_display_name')
+        .eq('stream_id', data.id)
+        .is('left_at', null);
+
+      if (existingViewers && existingViewers.length > 0) {
+        console.log(`📡 Registering ${existingViewers.length} existing viewers with relay`);
+        for (const viewer of existingViewers) {
+          viewerStreamRelayRef.current.notifyViewerJoined(
+            viewer.session_token,
+            viewer.viewer_display_name || 'Viewer'
+          );
+        }
+      }
 
       // Fetch ICE servers to check TURN availability
       try {
