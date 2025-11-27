@@ -20,6 +20,7 @@ export class ViewerStreamRelay {
   private cleanupFunctions: (() => void)[] = [];
   private viewerStreams: Map<string, MediaStream> = new Map();
   private allViewerTokens: Set<string> = new Set();
+  private viewerDisplayNames: Map<string, string> = new Map();
 
   constructor(streamId: string) {
     this.streamId = streamId;
@@ -54,8 +55,9 @@ export class ViewerStreamRelay {
   async onNewViewerCamera(viewerInfo: ViewerCameraInfo) {
     console.log('🔄 New viewer camera to relay:', viewerInfo.sessionToken);
     
-    // Store this viewer's stream
+    // Store this viewer's stream and display name
     this.viewerStreams.set(viewerInfo.sessionToken, viewerInfo.stream);
+    this.viewerDisplayNames.set(viewerInfo.sessionToken, viewerInfo.displayName);
     this.allViewerTokens.add(viewerInfo.sessionToken);
 
     // Forward this stream to all OTHER viewers (not to the viewer themselves)
@@ -74,16 +76,15 @@ export class ViewerStreamRelay {
     console.log('🔄 Viewer left, cleaning up relays:', sessionToken);
     
     this.viewerStreams.delete(sessionToken);
+    this.viewerDisplayNames.delete(sessionToken);
     this.allViewerTokens.delete(sessionToken);
     
-    // Close relay connections for this viewer
-    const relayKey = (source: string, target: string) => `${source}->${target}`;
-    
-    // Close connections where this viewer is the source
+    // Close relay connections where this viewer is the source or target
     for (const [key, connection] of this.relayConnections) {
-      if (key.startsWith(`${sessionToken}->`)) {
+      if (key.startsWith(`${sessionToken}->`) || key.endsWith(`->${sessionToken}`)) {
         connection.peerConnection.close();
         this.relayConnections.delete(key);
+        console.log('⏹️ Closed relay connection:', key);
       }
     }
   }
@@ -234,16 +235,24 @@ export class ViewerStreamRelay {
     }
   }
 
-  notifyViewerJoined(sessionToken: string) {
+  notifyViewerJoined(sessionToken: string, displayName?: string) {
+    console.log(`📡 Viewer joined relay system: ${displayName || sessionToken}`);
+    
     this.allViewerTokens.add(sessionToken);
+    
+    // Store display name if provided
+    if (displayName) {
+      this.viewerDisplayNames.set(sessionToken, displayName);
+    }
     
     // Send all existing viewer streams to this new viewer
     for (const [sourceToken, stream] of this.viewerStreams) {
       if (sourceToken !== sessionToken) {
+        const sourceDisplayName = this.viewerDisplayNames.get(sourceToken) || 'Viewer';
         const sourceViewer = {
           sessionToken: sourceToken,
           stream,
-          displayName: 'Viewer', // Will be updated by component
+          displayName: sourceDisplayName,
         };
         this.createRelayConnection(sourceViewer, sessionToken);
       }
@@ -260,6 +269,7 @@ export class ViewerStreamRelay {
 
     this.relayConnections.clear();
     this.viewerStreams.clear();
+    this.viewerDisplayNames.clear();
     this.allViewerTokens.clear();
 
     this.cleanupFunctions.forEach(fn => fn());
