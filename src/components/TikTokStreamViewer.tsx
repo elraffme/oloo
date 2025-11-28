@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
   Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
-  Mic, MicOff
+  Mic, MicOff, LogOut
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -819,6 +819,17 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             ) : (
               <Volume2 className="w-7 h-7 text-white" />
             )}
+          </button>
+
+          {/* Leave Stream Button */}
+          <button
+            onClick={onClose}
+            className="flex flex-col items-center gap-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-destructive/80 backdrop-blur-sm flex items-center justify-center">
+              <LogOut className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-white text-xs font-medium">Leave</span>
           </button>
         </div>
 
