@@ -201,13 +201,21 @@ export class ViewerCameraReceiver {
       peerConnection.ontrack = (event) => {
         console.log('📹 Received track from viewer:', event.track.kind, 'sessionToken:', sessionToken);
         
-        // Log audio tracks specifically
+        // Enhanced audio track logging
         if (event.track.kind === 'audio') {
           console.log('🎤 Received AUDIO track from viewer:', sessionToken);
+          console.log('   Audio track enabled:', event.track.enabled);
+          console.log('   Audio track readyState:', event.track.readyState);
+          console.log('   Audio track muted:', event.track.muted);
         }
         
         const stream = event.streams[0];
         if (stream) {
+          // Log all tracks in the stream
+          console.log('📊 Stream tracks summary for viewer:', sessionToken);
+          stream.getTracks().forEach(track => {
+            console.log(`   ${track.kind}: enabled=${track.enabled}, state=${track.readyState}, muted=${track.muted}`);
+          });
           console.log('✅ Got viewer stream, adding immediately to map');
           
           // Store viewer camera immediately with placeholder name

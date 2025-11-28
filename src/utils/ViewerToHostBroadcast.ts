@@ -333,6 +333,15 @@ export class ViewerToHostBroadcast {
     
     console.log('🎤 Adding audio track and renegotiating');
     
+    // CRITICAL FIX: Reset answer received flag for renegotiation
+    this.answerReceived = false;
+    
+    // Clear any existing answer timeout
+    if (this.answerTimeout) {
+      clearTimeout(this.answerTimeout);
+      this.answerTimeout = null;
+    }
+    
     // Add the audio track to the peer connection
     this.peerConnection.addTrack(audioTrack, this.localStream);
     
