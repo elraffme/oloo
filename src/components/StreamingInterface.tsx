@@ -388,10 +388,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const {
         data: senderData
       } = await supabase.from('profiles').select('display_name').eq('user_id', giftTransaction.sender_id).single();
-      if (giftData && senderData) {
+      if (giftData) {
+        const senderName = senderData?.display_name || `User-${giftTransaction.sender_id.slice(0, 8)}`;
         const notification = {
           id: giftTransaction.id,
-          senderName: senderData.display_name,
+          senderName: senderName,
           giftName: giftData.name,
           giftEmoji: giftData.asset_url || '🎁'
         };
@@ -403,7 +404,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           setGiftNotifications(prev => prev.filter(n => n.id !== notification.id));
         }, 5000);
         toast({
-          title: `${senderData.display_name} sent ${giftData.name}!`,
+          title: `${senderName} sent ${giftData.name}!`,
           description: `You earned gold from this gift 🪙`
         });
       }

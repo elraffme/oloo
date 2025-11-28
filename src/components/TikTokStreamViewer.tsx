@@ -327,12 +327,13 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             .eq('user_id', transaction.sender_id)
             .single();
 
-          if (gift && sender) {
+          if (gift) {
+            const senderName = sender?.display_name || `User-${transaction.sender_id.slice(0, 8)}`;
             const newAnimation: GiftAnimation = {
               id: transaction.id,
               giftEmoji: gift.asset_url || '🎁',
               giftName: gift.name,
-              senderName: sender.display_name,
+              senderName: senderName,
               timestamp: Date.now()
             };
 
