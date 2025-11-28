@@ -88,6 +88,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isBroadcastReady, setIsBroadcastReady] = useState(false);
   const [streamLifecycle, setStreamLifecycle] = useState<'idle' | 'preparing' | 'waiting' | 'live' | 'ending' | 'ended'>('idle');
   const [channelStatus, setChannelStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<{ isHealthy: boolean; details: any } | null>(null);
   const broadcastManagerRef = useRef<BroadcastManager | null>(null);
   const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isCleaningUpRef = useRef(false);
@@ -697,6 +699,53 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [activeStreamId, isStreaming]);
+
+  // Handle browser visibility changes - check and restore connection when tab becomes visible
+  useEffect(() => {
+    if (!isStreaming || !broadcastManagerRef.current) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('📱 Tab hidden - connection may throttle');
+      } else {
+        console.log('📱 Tab visible - checking connection health');
+        
+        // Check connection health when tab becomes visible
+        const health = broadcastManagerRef.current?.checkChannelHealth();
+        setConnectionHealth(health || null);
+        
+        if (health && !health.isHealthy) {
+          console.warn('⚠️ Connection unhealthy after tab switch, may auto-reconnect');
+          setIsReconnecting(true);
+          
+          // Clear reconnecting flag after a few seconds
+          setTimeout(() => setIsReconnecting(false), 5000);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isStreaming]);
+
+  // Monitor connection health periodically while streaming
+  useEffect(() => {
+    if (!isStreaming || !broadcastManagerRef.current) return;
+
+    const healthCheckInterval = setInterval(() => {
+      const health = broadcastManagerRef.current?.checkChannelHealth();
+      setConnectionHealth(health || null);
+      
+      if (health && !health.isHealthy) {
+        console.warn('⚠️ Connection health check failed:', health.details);
+      }
+    }, 15000); // Check every 15 seconds
+
+    return () => clearInterval(healthCheckInterval);
+  }, [isStreaming]);
   
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
@@ -1562,6 +1611,40 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           Live via WebRTC
                         </Badge>
                       </div>
+                      
+                      {/* Connection Status Indicator */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Connection:</span>
+                        {channelStatus === 'connected' && !isReconnecting ? (
+                          <Badge variant="outline" className="bg-green-500/10 border-green-500/30 text-green-700">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Connected
+                          </Badge>
+                        ) : channelStatus === 'connecting' || isReconnecting ? (
+                          <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-700">
+                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                            {isReconnecting ? 'Reconnecting...' : 'Connecting...'}
+                          </Badge>
+                        ) : channelStatus === 'error' ? (
+                          <Badge variant="outline" className="bg-red-500/10 border-red-500/30 text-red-700">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Connection Error
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-500/10 border-gray-500/30">
+                            <Activity className="w-3 h-3 mr-1" />
+                            Disconnected
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {connectionHealth && !connectionHealth.isHealthy && (
+                        <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
+                          <Activity className="w-3 h-3" />
+                          Connection quality degraded - auto-reconnecting
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connected Viewers:</span>
                         <Badge variant="secondary">{currentViewers} watching</Badge>

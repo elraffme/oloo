@@ -34,6 +34,12 @@ export class BroadcastManager {
   private processedSignalIds: Set<string> = new Set();
   private isInitialPollComplete: boolean = false;
   private fullScanInterval: NodeJS.Timeout | null = null;
+  private supabaseClient: any = null;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private lastHealthyTimestamp: number = Date.now();
   
   constructor(streamId: string, localStream: MediaStream) {
     this.streamId = streamId;
@@ -206,8 +212,12 @@ export class BroadcastManager {
   }
 
   async initializeChannel(supabase: any) {
+    this.supabaseClient = supabase;
     this.onChannelStatusChange?.('connecting');
     await this.fetchIceServers(supabase);
+    
+    // Start health check monitoring
+    this.startHealthCheckMonitoring();
     
     // Start database polling FIRST as primary signaling mechanism
     this.startDbPolling(supabase);
@@ -257,11 +267,13 @@ export class BroadcastManager {
             this.runFullScan(supabase);
           }, 30000);
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn(`⚠️ Channel status: ${status}, DB polling continues...`);
+          console.warn(`⚠️ Channel status: ${status}, attempting reconnection...`);
           this.onChannelStatusChange?.('error');
+          this.attemptReconnect(supabase);
         } else if (status === 'CLOSED') {
-          console.warn(`⚠️ Channel closed, DB polling continues...`);
+          console.warn(`⚠️ Channel closed, attempting reconnection...`);
           this.onChannelStatusChange?.('closed');
+          this.attemptReconnect(supabase);
         }
       });
 
@@ -777,6 +789,126 @@ export class BroadcastManager {
     this.offerAcked.delete(sessionToken);
   }
 
+  private startHealthCheckMonitoring() {
+    console.log('💓 Starting health check monitoring');
+    
+    this.healthCheckInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceHealthy = now - this.lastHealthyTimestamp;
+      
+      // Check if channel is still subscribed
+      const isChannelHealthy = this.channel?.state === 'joined';
+      
+      if (isChannelHealthy) {
+        this.lastHealthyTimestamp = now;
+        this.reconnectAttempts = 0; // Reset on successful health check
+      } else if (timeSinceHealthy > 15000) { // 15 seconds without healthy connection
+        console.warn('⚠️ Channel unhealthy for 15s, triggering reconnect');
+        if (this.supabaseClient) {
+          this.attemptReconnect(this.supabaseClient);
+        }
+      }
+      
+      // Log health status
+      console.log('💓 Health check:', {
+        channelState: this.channel?.state,
+        timeSinceHealthy: `${(timeSinceHealthy / 1000).toFixed(1)}s`,
+        reconnectAttempts: this.reconnectAttempts,
+        peerConnections: this.peerConnections.size
+      });
+    }, 10000); // Check every 10 seconds
+  }
+
+  private attemptReconnect(supabase: any) {
+    // Prevent multiple simultaneous reconnection attempts
+    if (this.reconnectTimeout) {
+      console.log('⏳ Reconnect already in progress');
+      return;
+    }
+    
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.error('❌ Max reconnection attempts reached');
+      this.onChannelStatusChange?.('error');
+      return;
+    }
+    
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 30000); // Exponential backoff, max 30s
+    
+    console.log(`🔄 Scheduling reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+    
+    this.reconnectTimeout = setTimeout(async () => {
+      this.reconnectTimeout = null;
+      await this.reconnectChannel(supabase);
+    }, delay);
+  }
+
+  private async reconnectChannel(supabase: any) {
+    console.log('🔄 Reconnecting channel...');
+    this.onChannelStatusChange?.('connecting');
+    
+    try {
+      // Unsubscribe old channel
+      if (this.channel) {
+        await supabase.removeChannel(this.channel);
+        this.channel = null;
+      }
+      
+      // Recreate channel with same configuration
+      this.channel = supabase
+        .channel(`live_stream_${this.streamId}`, {
+          config: {
+            broadcast: { ack: true },
+            presence: { key: `broadcaster:${this.streamId}` }
+          }
+        })
+        .on('broadcast', { event: 'viewer-joined' }, (payload: any) => this.handleViewerJoined(payload, supabase))
+        .on('broadcast', { event: 'offer-received' }, this.handleOfferReceived)
+        .on('broadcast', { event: 'request-offer' }, (payload: any) => this.handleRequestOffer(payload, supabase))
+        .on('broadcast', { event: 'answer' }, this.handleAnswer)
+        .on('broadcast', { event: 'ice-candidate' }, this.handleICECandidate)
+        .on('broadcast', { event: 'viewer-left' }, this.handleViewerLeft)
+        .subscribe(async (status: string) => {
+          this.logSignalingEvent(`Reconnect: ${status}`);
+          
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Channel reconnected successfully');
+            this.onChannelStatusChange?.('connected');
+            this.lastHealthyTimestamp = Date.now();
+            this.reconnectAttempts = 0;
+            
+            // Re-announce broadcaster ready
+            await this.sendSignalViaDb(supabase, 'broadcaster', 'broadcaster_ready', { streamId: this.streamId });
+            await this.sendSignal('broadcaster-ready', { streamId: this.streamId });
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn(`⚠️ Reconnect failed: ${status}`);
+            this.attemptReconnect(supabase);
+          }
+        });
+      
+    } catch (error) {
+      console.error('❌ Reconnection error:', error);
+      this.onChannelStatusChange?.('error');
+      this.attemptReconnect(supabase);
+    }
+  }
+
+  checkChannelHealth(): { isHealthy: boolean; details: any } {
+    const isChannelHealthy = this.channel?.state === 'joined';
+    const timeSinceHealthy = Date.now() - this.lastHealthyTimestamp;
+    
+    return {
+      isHealthy: isChannelHealthy && timeSinceHealthy < 20000,
+      details: {
+        channelState: this.channel?.state,
+        timeSinceHealthyMs: timeSinceHealthy,
+        reconnectAttempts: this.reconnectAttempts,
+        peerConnections: this.peerConnections.size,
+        hasSupabaseClient: !!this.supabaseClient
+      }
+    };
+  }
+
   cleanup() {
     console.log('🧹 Cleaning up broadcast manager');
     
@@ -801,6 +933,17 @@ export class BroadcastManager {
     if (this.fullScanInterval) {
       clearInterval(this.fullScanInterval);
       this.fullScanInterval = null;
+    }
+
+    // Clear health check and reconnection
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
 
     this.offerRetryTimers.forEach(timer => clearTimeout(timer));
