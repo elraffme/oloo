@@ -551,26 +551,32 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       try {
         setIsMicRequesting(true);
         
-        if (viewerCameraEnabled && viewerStream) {
-          // Add audio track to existing stream
-          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (viewerCameraEnabled && viewerStream && viewerBroadcastRef.current) {
+          // Add audio track to existing stream with mobile-optimized constraints
+          const audioStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000
+            }
+          });
           const audioTrack = audioStream.getAudioTracks()[0];
+          
+          // Ensure track is enabled (required on some mobile browsers)
+          audioTrack.enabled = true;
+          
+          console.log('🎤 Mobile audio captured:', {
+            enabled: audioTrack.enabled,
+            readyState: audioTrack.readyState,
+            muted: audioTrack.muted
+          });
+          
           viewerStream.addTrack(audioTrack);
           
-          // Cleanup old broadcast WITHOUT stopping tracks
-          if (viewerBroadcastRef.current) {
-            viewerBroadcastRef.current.cleanup(false);
-          }
-          
-          // Create new broadcast with combined stream
-          const broadcast = new ViewerToHostBroadcast(
-            streamId,
-            sessionToken,
-            viewerStream,
-            (state) => console.log('Viewer camera+mic connection state:', state)
-          );
-          await broadcast.initialize();
-          viewerBroadcastRef.current = broadcast;
+          // Use renegotiation instead of recreating broadcast
+          await viewerBroadcastRef.current.addAudioTrackAndRenegotiate(audioTrack);
+          await viewerBroadcastRef.current.updateMicStatus(true);
         } else {
           // Cleanup any existing broadcast first
           if (viewerBroadcastRef.current) {
@@ -578,8 +584,20 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             viewerBroadcastRef.current = null;
           }
           
-          // Create audio-only stream
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          // Create audio-only stream with mobile-optimized constraints
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000
+            }
+          });
+          
+          const audioTrack = stream.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.enabled = true;
+          }
           setViewerStream(stream);
           
           const broadcast = new ViewerToHostBroadcast(

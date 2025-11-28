@@ -332,6 +332,16 @@ export class ViewerToHostBroadcast {
     }
     
     console.log('🎤 Adding audio track and renegotiating');
+    console.log('   Track state before add:', {
+      enabled: audioTrack.enabled,
+      readyState: audioTrack.readyState,
+      muted: audioTrack.muted
+    });
+    
+    // Monitor track state changes
+    audioTrack.onended = () => console.log('⚠️ Audio track ended for viewer');
+    audioTrack.onmute = () => console.log('🔇 Audio track muted by system');
+    audioTrack.onunmute = () => console.log('🔊 Audio track unmuted');
     
     // CRITICAL FIX: Reset answer received flag for renegotiation
     this.answerReceived = false;
