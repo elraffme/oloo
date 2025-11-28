@@ -42,6 +42,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const viewerConnectionRef = useRef<ViewerConnection | null>(null);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const isLeavingRef = useRef(false);
   const [isConnected, setIsConnected] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
@@ -531,6 +532,68 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     navigate('/app/messages', { state: { selectedUser: hostUserId } });
   };
 
+  const handleLeaveStream = async () => {
+    if (isLeavingRef.current) return;
+    isLeavingRef.current = true;
+
+    console.log('🚪 User manually leaving stream...');
+    toast.info('Leaving stream...');
+
+    try {
+      // Stop viewer camera/mic if active
+      if (viewerBroadcastRef.current) {
+        viewerBroadcastRef.current.cleanup();
+        viewerBroadcastRef.current = null;
+      }
+
+      // Stop viewer stream tracks
+      if (viewerStream) {
+        viewerStream.getTracks().forEach(track => track.stop());
+        setViewerStream(null);
+      }
+
+      // Cleanup viewer relay receiver
+      if (viewerRelayReceiverRef.current) {
+        viewerRelayReceiverRef.current.cleanup();
+        viewerRelayReceiverRef.current = null;
+      }
+
+      // Disconnect viewer connection
+      if (viewerConnectionRef.current) {
+        viewerConnectionRef.current.disconnect();
+        viewerConnectionRef.current = null;
+      }
+
+      // Leave stream in database
+      if (sessionToken) {
+        await supabase.rpc('leave_stream_viewer', {
+          p_session_token: sessionToken
+        });
+        console.log('✓ Left stream successfully');
+      }
+
+      // Stop video playback
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+
+      // Reset states
+      setViewerCameraEnabled(false);
+      setViewerMicEnabled(false);
+      setIsConnected(false);
+      setHasVideo(false);
+
+      toast.success('Left stream successfully');
+    } catch (error) {
+      console.error('❌ Error leaving stream:', error);
+      toast.error('Failed to leave stream properly');
+    } finally {
+      // Always call onClose to return to stream list
+      onClose();
+    }
+  };
+
   const handleLike = async () => {
     if (!user) {
       toast.error('Please sign in to like');
@@ -823,7 +886,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             Message
           </Button>
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
-          <Button variant="ghost" size="icon" onClick={onClose} className="flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={handleLeaveStream} className="flex-shrink-0">
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -885,18 +948,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             <Button
               variant="destructive"
               size="sm"
-              onClick={onClose}
+              onClick={handleLeaveStream}
               className="absolute top-4 right-4 z-30 gap-2 hidden md:flex"
             >
               <LogOut className="w-4 h-4" />
-              Leave
+              Leave Stream
             </Button>
           )}
 
           {/* Leave Stream Button - Mobile Floating */}
           {connectionState === 'streaming' && (
             <button
-              onClick={onClose}
+              onClick={handleLeaveStream}
               className="absolute bottom-24 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
             >
               <div className="w-12 h-12 rounded-full bg-destructive/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
