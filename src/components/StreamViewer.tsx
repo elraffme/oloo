@@ -673,8 +673,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // Enable microphone
       setIsMicRequesting(true);
       try {
-        if (viewerCameraEnabled && viewerStream) {
-          // Camera is already on, just add audio track to existing stream
+        if (viewerCameraEnabled && viewerStream && viewerBroadcastRef.current) {
+          // Camera is already on, add audio track and renegotiate
           const audioStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: false
@@ -683,25 +683,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           const audioTrack = audioStream.getAudioTracks()[0];
           viewerStream.addTrack(audioTrack);
           
-          // Recreate broadcast with audio
-          if (viewerBroadcastRef.current) {
-            viewerBroadcastRef.current.cleanup(false); // Don't stop tracks
-          }
-          
-          if (sessionToken) {
-            const broadcast = new ViewerToHostBroadcast(
-              streamId,
-              sessionToken,
-              viewerStream,
-              (state) => {
-                console.log('Viewer camera+mic connection state:', state);
-              }
-            );
-            
-            await broadcast.initialize();
-            await broadcast.updateMicStatus(true);
-            viewerBroadcastRef.current = broadcast;
-          }
+          // Add track to existing peer connection and renegotiate
+          await viewerBroadcastRef.current.addAudioTrackAndRenegotiate(audioTrack);
+          await viewerBroadcastRef.current.updateMicStatus(true);
           
           setViewerMicEnabled(true);
           toast.success('Microphone enabled! Host can now hear you');

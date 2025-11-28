@@ -146,10 +146,35 @@ export class ViewerCameraReceiver {
   private async handleViewerOffer(payload: any) {
     const sessionToken = payload.sessionToken;
     
-    // Don't create duplicate connections
-    if (this.viewerCameras.has(sessionToken)) {
-      console.log('⚠️ Already have connection for viewer:', sessionToken);
-      return;
+    // Check if we already have a connection - handle renegotiation
+    const existingCamera = this.viewerCameras.get(sessionToken);
+    if (existingCamera) {
+      console.log('🔄 Renegotiating connection for viewer:', sessionToken);
+      try {
+        // Set new remote description (renegotiation)
+        const offer = new RTCSessionDescription({
+          type: 'offer',
+          sdp: payload.sdp
+        });
+        await existingCamera.peerConnection.setRemoteDescription(offer);
+        
+        // Create and send new answer
+        const answer = await existingCamera.peerConnection.createAnswer();
+        await existingCamera.peerConnection.setLocalDescription(answer);
+        
+        await this.sendSignalToViewer(sessionToken, 'answer', {
+          sdp: answer.sdp,
+          type: answer.type
+        });
+        
+        console.log('✅ Renegotiation complete for viewer:', sessionToken);
+        return;
+      } catch (error) {
+        console.error('❌ Renegotiation failed, creating new connection:', error);
+        // Close old connection and create new one
+        existingCamera.peerConnection.close();
+        this.viewerCameras.delete(sessionToken);
+      }
     }
 
     // Track this signal to prevent duplicate processing
@@ -172,9 +197,14 @@ export class ViewerCameraReceiver {
         iceCandidatePoolSize: 10
       });
 
-      // Handle incoming tracks (viewer's camera)
+      // Handle incoming tracks (viewer's camera and audio)
       peerConnection.ontrack = (event) => {
         console.log('📹 Received track from viewer:', event.track.kind, 'sessionToken:', sessionToken);
+        
+        // Log audio tracks specifically
+        if (event.track.kind === 'audio') {
+          console.log('🎤 Received AUDIO track from viewer:', sessionToken);
+        }
         
         const stream = event.streams[0];
         if (stream) {

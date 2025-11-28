@@ -325,6 +325,36 @@ export class ViewerToHostBroadcast {
     }
   }
 
+  async addAudioTrackAndRenegotiate(audioTrack: MediaStreamTrack) {
+    if (!this.peerConnection) {
+      console.error('❌ Cannot renegotiate: no peer connection');
+      return;
+    }
+    
+    console.log('🎤 Adding audio track and renegotiating');
+    
+    // Add the audio track to the peer connection
+    this.peerConnection.addTrack(audioTrack, this.localStream);
+    
+    // Renegotiate by creating a new offer
+    const offer = await this.peerConnection.createOffer();
+    await this.peerConnection.setLocalDescription(offer);
+    
+    console.log('📤 Sending renegotiation offer with audio');
+    await this.sendSignal('offer', {
+      sdp: offer.sdp,
+      type: offer.type
+    });
+    
+    // Set answer timeout for renegotiation
+    this.answerTimeout = setTimeout(async () => {
+      if (!this.answerReceived) {
+        console.warn('⚠️ Renegotiation answer not received, retrying...');
+        await this.addAudioTrackAndRenegotiate(audioTrack);
+      }
+    }, 10000);
+  }
+
   cleanup(stopTracks: boolean = true) {
     console.log('🧹 Cleaning up viewer camera broadcast', { stopTracks });
     
