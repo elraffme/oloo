@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -775,6 +775,32 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               <div className="w-2 h-2 bg-white rounded-full mr-2" />
               LIVE
             </Badge>
+          )}
+
+          {/* Leave Stream Button - Desktop */}
+          {connectionState === 'streaming' && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onClose}
+              className="absolute top-4 right-4 z-30 gap-2 hidden md:flex"
+            >
+              <LogOut className="w-4 h-4" />
+              Leave
+            </Button>
+          )}
+
+          {/* Leave Stream Button - Mobile Floating */}
+          {connectionState === 'streaming' && (
+            <button
+              onClick={onClose}
+              className="absolute bottom-24 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
+            >
+              <div className="w-12 h-12 rounded-full bg-destructive/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <LogOut className="w-6 h-6 text-white" />
+              </div>
+              <span className="text-white text-xs font-medium drop-shadow-md">Leave</span>
+            </button>
           )}
 
           {/* Video Call Grid */}
