@@ -70,6 +70,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
 
+  // Floating chat messages for viewer
+  const [floatingMessages, setFloatingMessages] = useState<Array<{
+    id: string;
+    username: string;
+    message: string;
+  }>>([]);
+
   const getConnectionMessage = (state: ConnectionState): string => {
     switch (state) {
       case 'checking_broadcaster': return 'Verifying broadcaster online...';
@@ -447,6 +454,30 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId]);
 
+  // Subscribe to chat messages for floating display
+  useEffect(() => {
+    const channel = supabase
+      .channel(`viewer_chat_${streamId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'stream_chat_messages',
+        filter: `stream_id=eq.${streamId}`
+      }, (payload) => {
+        const newMsg = payload.new as any;
+        setFloatingMessages(prev => [...prev.slice(-4), newMsg]);
+        
+        setTimeout(() => {
+          setFloatingMessages(prev => prev.filter(m => m.id !== newMsg.id));
+        }, 5000);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [streamId]);
+
   // Connection watchdog - monitors and auto-reconnects if needed
   useEffect(() => {
     if (!viewerConnectionRef.current) return;
@@ -762,6 +793,19 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             viewerName={user?.email?.split('@')[0] || 'You'}
             isMuted={isMuted}
           />
+
+          {/* Floating Chat Messages */}
+          <div className="absolute bottom-20 left-4 right-16 space-y-2 z-20 pointer-events-none">
+            {floatingMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
+              >
+                <span className="text-white font-semibold text-sm">{msg.username}: </span>
+                <span className="text-white text-sm">{msg.message}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Chat Below Video - Desktop Only */}

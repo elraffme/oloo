@@ -222,6 +222,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Get active stream viewers
   const { viewers: activeViewers, isLoading: viewersLoading } = useStreamViewers(activeStreamId || '');
 
+  // Floating chat messages for host
+  const [floatingChatMessages, setFloatingChatMessages] = useState<Array<{
+    id: string;
+    username: string;
+    message: string;
+    created_at: string;
+  }>>([]);
+
   // Sync activeStreamId to ref for cleanup
   useEffect(() => {
     activeStreamIdRef.current = activeStreamId;
@@ -434,6 +442,33 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       supabase.removeChannel(channel);
     };
   }, [activeStreamId]);
+
+  // Subscribe to chat messages for floating display
+  useEffect(() => {
+    if (!activeStreamId || !isStreaming) return;
+
+    const channel = supabase
+      .channel(`host_chat_${activeStreamId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'stream_chat_messages',
+        filter: `stream_id=eq.${activeStreamId}`
+      }, (payload) => {
+        const newMsg = payload.new as any;
+        setFloatingChatMessages(prev => [...prev.slice(-4), newMsg]);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          setFloatingChatMessages(prev => prev.filter(m => m.id !== newMsg.id));
+        }, 5000);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeStreamId, isStreaming]);
 
   // Ensure video element srcObject is connected when camera turns on
   useEffect(() => {
@@ -1710,6 +1745,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                     {/* Like Animation Overlay */}
                     {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
+
+                    {/* Floating Chat Messages Overlay */}
+                    {isStreaming && (
+                      <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                        {floatingChatMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
+                          >
+                            <span className="text-white font-semibold text-sm">{msg.username}: </span>
+                            <span className="text-white text-sm">{msg.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Gift Notifications Overlay */}
                     {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
