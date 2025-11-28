@@ -17,6 +17,8 @@ import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
+import LivestreamGiftSelector from './LivestreamGiftSelector';
+import LivestreamGiftAnimation, { GiftAnimation } from './LivestreamGiftAnimation';
 
 interface ChatMessage {
   id: string;
@@ -71,6 +73,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showFullChat, setShowFullChat] = useState(false);
+  
+  // Gift states
+  const [showGiftSelector, setShowGiftSelector] = useState(false);
+  const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
 
   // Viewer camera states
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
@@ -290,6 +296,61 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       }
     };
   }, [streamId, sessionToken]);
+
+  // Subscribe to gift transactions for this stream
+  useEffect(() => {
+    if (!streamId || !hostUserId) return;
+
+    const channel = supabase
+      .channel(`stream_gifts_${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'gift_transactions',
+          filter: `receiver_id=eq.${hostUserId}`
+        },
+        async (payload) => {
+          const transaction = payload.new;
+          
+          // Fetch gift details and sender profile
+          const { data: gift } = await supabase
+            .from('gifts')
+            .select('name, asset_url')
+            .eq('id', transaction.gift_id)
+            .single();
+
+          const { data: sender } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', transaction.sender_id)
+            .single();
+
+          if (gift && sender) {
+            const newAnimation: GiftAnimation = {
+              id: transaction.id,
+              giftEmoji: gift.asset_url || '🎁',
+              giftName: gift.name,
+              senderName: sender.display_name,
+              timestamp: Date.now()
+            };
+
+            setGiftAnimations(prev => [...prev, newAnimation]);
+
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+              setGiftAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
+            }, 3000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [streamId, hostUserId]);
 
   // Subscribe to floating chat messages
   useEffect(() => {
@@ -723,7 +784,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           </button>
 
           {/* Gift Button */}
-          <button className="flex flex-col items-center gap-1">
+          <button 
+            onClick={() => setShowGiftSelector(true)}
+            className="flex flex-col items-center gap-1"
+          >
             <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
               <Gift className="w-7 h-7 text-white" />
             </div>
@@ -758,6 +822,21 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         </div>
 
       </div>
+
+      {/* Gift Animations */}
+      <LivestreamGiftAnimation animations={giftAnimations} />
+
+      {/* Gift Selector */}
+      <LivestreamGiftSelector
+        open={showGiftSelector}
+        onOpenChange={setShowGiftSelector}
+        hostUserId={hostUserId}
+        hostName={hostName}
+        streamId={streamId}
+        onGiftSent={(gift) => {
+          console.log('Gift sent:', gift);
+        }}
+      />
 
       {/* CSS for animations */}
       <style>{`
