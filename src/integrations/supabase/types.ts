@@ -1411,6 +1411,7 @@ export type Database = {
           host_user_id: string | null
           id: string
           is_private: boolean | null
+          last_activity_at: string | null
           max_viewers: number | null
           started_at: string | null
           status: string
@@ -1428,6 +1429,7 @@ export type Database = {
           host_user_id?: string | null
           id?: string
           is_private?: boolean | null
+          last_activity_at?: string | null
           max_viewers?: number | null
           started_at?: string | null
           status?: string
@@ -1445,6 +1447,7 @@ export type Database = {
           host_user_id?: string | null
           id?: string
           is_private?: boolean | null
+          last_activity_at?: string | null
           max_viewers?: number | null
           started_at?: string | null
           status?: string
