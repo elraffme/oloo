@@ -737,13 +737,31 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       setIsMicRequesting(true);
       try {
         if (viewerCameraEnabled && viewerStream && viewerBroadcastRef.current) {
-          // Camera is already on, add audio track and renegotiate
+          // Camera is already on, add audio track and renegotiate with mobile-optimized constraints
           const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000
+            },
             video: false
           });
           
           const audioTrack = audioStream.getAudioTracks()[0];
+          
+          // Ensure track is enabled (required on some mobile browsers)
+          audioTrack.enabled = true;
+          
+          // Enhanced mobile debugging
+          console.log('🎤 Mobile audio capture:', {
+            trackEnabled: audioTrack.enabled,
+            trackReadyState: audioTrack.readyState,
+            trackMuted: audioTrack.muted,
+            trackSettings: audioTrack.getSettings(),
+            trackConstraints: audioTrack.getConstraints()
+          });
+          
           viewerStream.addTrack(audioTrack);
           
           // Add track to existing peer connection and renegotiate
@@ -753,11 +771,21 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           setViewerMicEnabled(true);
           toast.success('Microphone enabled! Host can now hear you');
         } else {
-          // Camera is off, enable mic only
+          // Camera is off, enable mic only with mobile-optimized constraints
           const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 48000
+            },
             video: false
           });
+          
+          const audioTrack = audioStream.getAudioTracks()[0];
+          if (audioTrack) {
+            audioTrack.enabled = true;
+          }
           
           setViewerStream(audioStream);
           

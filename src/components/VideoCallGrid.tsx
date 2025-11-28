@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Volume2 } from 'lucide-react';
 
 interface VideoTile {
   id: string;
@@ -104,6 +104,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
 const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = tile.videoRef || localVideoRef;
+  const [playbackBlocked, setPlaybackBlocked] = useState(false);
 
   useEffect(() => {
     if (!tile.stream || !videoRef.current) {
@@ -120,9 +121,21 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
     
     videoRef.current.srcObject = tile.stream;
     
-    videoRef.current.play().catch(err => {
-      console.warn(`⚠️ Video autoplay failed for ${tile.displayName}:`, err);
-    });
+    // Mobile-friendly play with retry and user interaction prompt
+    const playWithRetry = async () => {
+      try {
+        await videoRef.current?.play();
+        setPlaybackBlocked(false);
+      } catch (err) {
+        console.warn(`⚠️ Video autoplay failed for ${tile.displayName}:`, err);
+        // On mobile, mark as blocked so user can tap to play
+        if (!tile.isYou) {
+          setPlaybackBlocked(true);
+        }
+      }
+    };
+    
+    playWithRetry();
 
     return () => {
       if (videoRef.current) {
@@ -130,7 +143,20 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
         videoRef.current.srcObject = null;
       }
     };
-  }, [tile.stream, tile.displayName]);
+  }, [tile.stream, tile.displayName, tile.isYou]);
+  
+  const handleTapToPlay = async () => {
+    if (videoRef.current) {
+      try {
+        videoRef.current.muted = false; // Unmute on user tap
+        await videoRef.current.play();
+        setPlaybackBlocked(false);
+        console.log(`✅ Audio playback started after user tap for ${tile.displayName}`);
+      } catch (err) {
+        console.error('Play failed after tap:', err);
+      }
+    }
+  };
 
   // Show placeholder if no stream
   const hasStream = tile.stream && tile.stream.getTracks().length > 0;
@@ -145,6 +171,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           ref={videoRef}
           autoPlay
           playsInline
+          webkit-playsinline="true"
           muted={tile.isYou}
           className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
         />
@@ -155,6 +182,19 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
               <span className="text-2xl text-primary">{tile.displayName[0]}</span>
             </div>
             <p className="text-sm text-muted-foreground">Connecting...</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Show tap to play overlay on mobile if blocked */}
+      {playbackBlocked && !tile.isYou && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer z-10"
+          onClick={handleTapToPlay}
+        >
+          <div className="text-center">
+            <Volume2 className="w-8 h-8 mx-auto mb-2 text-white" />
+            <span className="text-sm text-white font-medium">Tap to hear audio</span>
           </div>
         </div>
       )}
