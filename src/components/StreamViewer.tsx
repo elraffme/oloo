@@ -735,60 +735,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                 </>
               )}
               
-              {(connectionState === 'failed' || connectionState === 'timeout') && (
-                <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
-                  <p className="text-white/70 text-sm text-center mb-2">
-                    Auto-reconnecting... or try manually:
-                  </p>
-                  <Button
-                    onClick={handleRequestOfferAgain}
-                    variant="outline"
-                    className="text-white border-white hover:bg-white hover:text-black w-full"
-                  >
-                    <Router className="w-4 h-4 mr-2" />
-                    Request Connection
-                  </Button>
-                  <Button
-                    onClick={handleTryTURNOnly}
-                    variant="outline"
-                    className="text-white border-white hover:bg-white hover:text-black w-full"
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Try TURN Relay
-                  </Button>
-                  <Button
-                    onClick={handleHardReconnect}
-                    variant="default"
-                    className="w-full"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Full Reconnect
-                  </Button>
-                </div>
-              )}
+              {/* Connection timeout modal hidden - auto-reconnection runs in background */}
 
-              {showConnectionControls && connectionState !== 'failed' && connectionState !== 'timeout' && (
-                <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
-                  <Button
-                    onClick={handleRequestOfferAgain}
-                    variant="outline"
-                    size="sm"
-                    className="text-white border-white/50 hover:bg-white/10 w-full"
-                  >
-                    <Router className="w-4 h-4 mr-2" />
-                    Request Connection
-                  </Button>
-                  <Button
-                    onClick={handleTryTURNOnly}
-                    variant="outline"
-                    size="sm"
-                    className="text-white border-white/50 hover:bg-white/10 w-full"
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Try TURN Relay
-                  </Button>
-                </div>
-              )}
+              {/* Manual connection controls hidden - auto-reconnection runs in background */}
             </div>
           )}
           
