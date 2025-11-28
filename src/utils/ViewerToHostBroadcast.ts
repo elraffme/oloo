@@ -312,8 +312,8 @@ export class ViewerToHostBroadcast {
     }
   }
 
-  cleanup() {
-    console.log('🧹 Cleaning up viewer camera broadcast');
+  cleanup(stopTracks: boolean = true) {
+    console.log('🧹 Cleaning up viewer camera broadcast', { stopTracks });
     
     // Clear timeouts
     if (this.answerTimeout) {
@@ -321,11 +321,13 @@ export class ViewerToHostBroadcast {
       this.answerTimeout = null;
     }
     
-    // Stop all tracks
-    this.localStream.getTracks().forEach(track => {
-      track.stop();
-      console.log(`⏹️ Stopped ${track.kind} track`);
-    });
+    // Only stop tracks if explicitly requested
+    if (stopTracks) {
+      this.localStream.getTracks().forEach(track => {
+        track.stop();
+        console.log(`⏹️ Stopped ${track.kind} track`);
+      });
+    }
 
     // Close peer connection
     if (this.peerConnection) {

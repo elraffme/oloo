@@ -555,10 +555,37 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
 
     if (viewerMicEnabled) {
-      // Turn off mic
+      // Turn off mic - only stop audio tracks
       if (viewerStream) {
-        viewerStream.getAudioTracks().forEach(track => track.stop());
+        viewerStream.getAudioTracks().forEach(track => {
+          track.stop();
+          viewerStream.removeTrack(track);
+        });
       }
+      
+      // If camera is still enabled, recreate broadcast with video only
+      if (viewerCameraEnabled && viewerStream && viewerStream.getVideoTracks().length > 0) {
+        if (viewerBroadcastRef.current) {
+          viewerBroadcastRef.current.cleanup(false); // Don't stop video tracks
+        }
+        
+        const broadcast = new ViewerToHostBroadcast(
+          streamId,
+          sessionToken,
+          viewerStream,
+          (state) => console.log('Viewer camera connection state:', state)
+        );
+        await broadcast.initialize();
+        viewerBroadcastRef.current = broadcast;
+      } else {
+        // No camera, clean up everything
+        if (viewerBroadcastRef.current) {
+          viewerBroadcastRef.current.cleanup(true);
+          viewerBroadcastRef.current = null;
+        }
+        setViewerStream(null);
+      }
+      
       setViewerMicEnabled(false);
       toast.success('Microphone disabled');
     } else {
@@ -572,21 +599,27 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           const audioTrack = audioStream.getAudioTracks()[0];
           viewerStream.addTrack(audioTrack);
           
-          // Update the broadcast with new stream
+          // Cleanup old broadcast WITHOUT stopping tracks
           if (viewerBroadcastRef.current) {
-            viewerBroadcastRef.current.cleanup();
-            const broadcast = new ViewerToHostBroadcast(
-              streamId,
-              sessionToken,
-              viewerStream,
-              (state) => {
-                console.log('Viewer camera connection state:', state);
-              }
-            );
-            await broadcast.initialize();
-            viewerBroadcastRef.current = broadcast;
+            viewerBroadcastRef.current.cleanup(false);
           }
+          
+          // Create new broadcast with combined stream
+          const broadcast = new ViewerToHostBroadcast(
+            streamId,
+            sessionToken,
+            viewerStream,
+            (state) => console.log('Viewer camera+mic connection state:', state)
+          );
+          await broadcast.initialize();
+          viewerBroadcastRef.current = broadcast;
         } else {
+          // Cleanup any existing broadcast first
+          if (viewerBroadcastRef.current) {
+            viewerBroadcastRef.current.cleanup(true);
+            viewerBroadcastRef.current = null;
+          }
+          
           // Create audio-only stream
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           setViewerStream(stream);
@@ -595,9 +628,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             streamId,
             sessionToken,
             stream,
-            (state) => {
-              console.log('Viewer mic connection state:', state);
-            }
+            (state) => console.log('Viewer mic connection state:', state)
           );
           
           await broadcast.initialize();
