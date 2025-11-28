@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
   Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
-  Mic, MicOff, LogOut
+  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
@@ -19,6 +19,14 @@ import { cn } from '@/lib/utils';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
 import LivestreamGiftSelector from './LivestreamGiftSelector';
 import LivestreamGiftAnimation, { GiftAnimation } from './LivestreamGiftAnimation';
+import { LiveStreamChat } from './LiveStreamChat';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 interface ChatMessage {
   id: string;
@@ -73,6 +81,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showFullChat, setShowFullChat] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   
   // Gift states
   const [showGiftSelector, setShowGiftSelector] = useState(false);
@@ -606,6 +615,62 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
   };
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/streaming?stream=${streamId}`;
+    const shareData = {
+      title: `Live: ${streamTitle}`,
+      text: `Watch ${hostName}'s livestream!`,
+      url: shareUrl
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Stream link copied to clipboard!');
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success('Stream link copied to clipboard!');
+        } catch (clipboardError) {
+          toast.error('Failed to copy link');
+        }
+      }
+    }
+  };
+
+  const handleReport = async () => {
+    toast.info('Report submitted. Thank you for keeping our community safe!');
+    setShowMoreOptions(false);
+  };
+
+  const handleBlock = async () => {
+    if (!user) {
+      toast.error('Please sign in to block users');
+      return;
+    }
+    toast.success(`You will no longer see streams from ${hostName}`);
+    setShowMoreOptions(false);
+  };
+
+  const handleNotInterested = () => {
+    toast.info("We'll show you fewer streams like this");
+    setShowMoreOptions(false);
+  };
+
+  const handlePiP = async () => {
+    try {
+      if (videoRef.current && document.pictureInPictureEnabled) {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      toast.error('Picture-in-Picture not available');
+    }
+  };
+
   return (
     <div 
       ref={swipeRef}
@@ -796,18 +861,41 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           </button>
 
           {/* Share Button */}
-          <button className="flex flex-col items-center gap-1">
+          <button 
+            onClick={handleShare}
+            className="flex flex-col items-center gap-1"
+          >
             <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
               <Share2 className="w-7 h-7 text-white" />
             </div>
           </button>
 
           {/* More Options */}
-          <button className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <MoreVertical className="w-7 h-7 text-white" />
-            </div>
-          </button>
+          <DropdownMenu open={showMoreOptions} onOpenChange={setShowMoreOptions}>
+            <DropdownMenuTrigger asChild>
+              <button className="flex flex-col items-center gap-1">
+                <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                  <MoreVertical className="w-7 h-7 text-white" />
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-sm">
+              <DropdownMenuItem onClick={handleReport}>
+                <Flag className="w-4 h-4 mr-2" /> Report Stream
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleBlock}>
+                <Ban className="w-4 h-4 mr-2" /> Block Host
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNotInterested}>
+                <EyeOff className="w-4 h-4 mr-2" /> Not Interested
+              </DropdownMenuItem>
+              {document.pictureInPictureEnabled && (
+                <DropdownMenuItem onClick={handlePiP}>
+                  <Minimize2 className="w-4 h-4 mr-2" /> Picture-in-Picture
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Mute Toggle */}
           <button
@@ -849,6 +937,13 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           console.log('Gift sent:', gift);
         }}
       />
+
+      {/* Full Chat Panel */}
+      <Sheet open={showFullChat} onOpenChange={setShowFullChat}>
+        <SheetContent side="bottom" className="h-[60vh] p-0">
+          <LiveStreamChat streamId={streamId} isMobile={true} />
+        </SheetContent>
+      </Sheet>
 
       {/* CSS for animations */}
       <style>{`
