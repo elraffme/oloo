@@ -818,13 +818,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       toast.success('Stream playing!');
     }
   }, [connectionState]);
-  useEffect(() => {
-    if (connectionState === 'timeout' || connectionState === 'failed') {
-      toast.error('Connection lost - Auto-reconnecting...', { duration: 3000 });
-    } else if (connectionState === 'streaming') {
-      toast.success('Connected successfully!', { duration: 2000 });
-    }
-  }, [connectionState]);
 
   const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
 

@@ -10,6 +10,7 @@ interface VideoTile {
   isHost?: boolean;
   isYou?: boolean;
   isMuted?: boolean;
+  hasMic?: boolean;
 }
 
 interface VideoCallGridProps {
@@ -133,6 +134,9 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
 
   // Show placeholder if no stream
   const hasStream = tile.stream && tile.stream.getTracks().length > 0;
+  
+  // Check if stream has active audio track
+  const hasAudioTrack = tile.stream?.getAudioTracks().some(t => t.enabled) || false;
 
   return (
     <div className="relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-black border border-border shadow-lg">
@@ -141,8 +145,8 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           ref={videoRef}
           autoPlay
           playsInline
-          muted={tile.isYou || tile.isHost}
-          className={`w-full h-full object-cover ${tile.isYou || tile.isHost ? 'scale-x-[-1]' : ''}`}
+          muted={tile.isYou}
+          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -161,6 +165,11 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           <span className="text-white text-sm font-semibold truncate drop-shadow-lg">
             {tile.displayName}
           </span>
+          
+          {/* Show mic icon when viewer has active audio */}
+          {hasAudioTrack && !tile.isYou && !tile.isHost && (
+            <Mic className="w-3 h-3 text-green-400 drop-shadow-lg" />
+          )}
           
           {tile.isHost && (
             <Badge variant="destructive" className="text-xs px-2 py-0 shadow-lg">
