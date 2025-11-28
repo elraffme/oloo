@@ -113,7 +113,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('display_name')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (profileError) {
