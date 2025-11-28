@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
 import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
-import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
+import { ViewerRelayReceiver } from '@/utils/ViewerRelayReceiver';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,9 +63,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
   
-  // Viewer camera receiver (for seeing other viewers' cameras)
-  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
-  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
+  // Viewer relay receiver (for seeing relayed viewer cameras from host)
+  const viewerRelayReceiverRef = useRef<ViewerRelayReceiver | null>(null);
+  const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
   
   // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
@@ -331,12 +331,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         viewerConnectionRef.current = null;
       }
       
-      // Cleanup viewer camera receiver
-      if (viewerCameraReceiverRef.current) {
-        viewerCameraReceiverRef.current.cleanup();
-        viewerCameraReceiverRef.current = null;
-      }
-      
       // Leave stream - only if we successfully joined
       (async () => {
         if (sessionToken && hasActiveConnection) {
@@ -359,36 +353,36 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId, user, hostUserId]);
 
-  // Initialize viewer camera receiver to see other viewers' cameras
+  // Initialize viewer relay receiver to see relayed viewer cameras
   useEffect(() => {
-    const initViewerCameraReceiver = async () => {
-      if (!streamId) return;
+    const initViewerRelayReceiver = async () => {
+      if (!streamId || !sessionToken) return;
       
-      console.log('📹 Initializing viewer camera receiver for stream', streamId);
+      console.log('🔄 Initializing viewer relay receiver for stream', streamId);
       
-      const receiver = new ViewerCameraReceiver(streamId, (cameras) => {
-        console.log('📹 Viewer cameras updated, count:', cameras.size);
-        setViewerCameras(new Map(cameras));
+      const relayReceiver = new ViewerRelayReceiver(streamId, sessionToken, (relayedStreams) => {
+        console.log('🔄 Relayed viewer cameras updated, count:', relayedStreams.size);
+        setRelayedViewerCameras(new Map(relayedStreams));
       });
       
       try {
-        await receiver.initialize();
-        viewerCameraReceiverRef.current = receiver;
-        console.log('✅ Viewer camera receiver initialized');
+        await relayReceiver.initialize();
+        viewerRelayReceiverRef.current = relayReceiver;
+        console.log('✅ Viewer relay receiver initialized');
       } catch (error) {
-        console.error('❌ Failed to initialize viewer camera receiver:', error);
+        console.error('❌ Failed to initialize viewer relay receiver:', error);
       }
     };
     
-    initViewerCameraReceiver();
+    initViewerRelayReceiver();
     
     return () => {
-      if (viewerCameraReceiverRef.current) {
-        viewerCameraReceiverRef.current.cleanup();
-        viewerCameraReceiverRef.current = null;
+      if (viewerRelayReceiverRef.current) {
+        viewerRelayReceiverRef.current.cleanup();
+        viewerRelayReceiverRef.current = null;
       }
     };
-  }, [streamId]);
+  }, [streamId, sessionToken]);
 
   // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {
@@ -787,7 +781,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           <VideoCallGrid
             hostStream={hostStream}
             hostName={hostName}
-            viewerCameras={viewerCameras}
+            viewerCameras={new Map()}
+            relayedViewerCameras={relayedViewerCameras}
             viewerStream={viewerStream}
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}

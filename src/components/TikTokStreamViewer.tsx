@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
 import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
-import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
 import { ViewerRelayReceiver } from '@/utils/ViewerRelayReceiver';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -97,11 +96,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
   const [isMicRequesting, setIsMicRequesting] = useState(false);
   
-  // Viewer camera receiver (for seeing other viewers' cameras)
-  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
-  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
-  
-  // Viewer relay receiver (for seeing relayed viewer cameras)
+  // Viewer relay receiver (for seeing relayed viewer cameras from host)
   const viewerRelayReceiverRef = useRef<ViewerRelayReceiver | null>(null);
   const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
   
@@ -219,12 +214,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         viewerConnectionRef.current = null;
       }
       
-      // Cleanup viewer camera receiver
-      if (viewerCameraReceiverRef.current) {
-        viewerCameraReceiverRef.current.cleanup();
-        viewerCameraReceiverRef.current = null;
-      }
-      
       (async () => {
         if (sessionToken) {
           try {
@@ -243,37 +232,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       }
     };
   }, [streamId, user]);
-
-  // Initialize viewer camera receiver to see other viewers' cameras
-  useEffect(() => {
-    const initViewerCameraReceiver = async () => {
-      if (!streamId) return;
-      
-      console.log('📹 Initializing viewer camera receiver for stream', streamId);
-      
-      const receiver = new ViewerCameraReceiver(streamId, (cameras) => {
-        console.log('📹 Viewer cameras updated, count:', cameras.size);
-        setViewerCameras(new Map(cameras));
-      });
-      
-      try {
-        await receiver.initialize();
-        viewerCameraReceiverRef.current = receiver;
-        console.log('✅ Viewer camera receiver initialized');
-      } catch (error) {
-        console.error('❌ Failed to initialize viewer camera receiver:', error);
-      }
-    };
-    
-    initViewerCameraReceiver();
-    
-    return () => {
-      if (viewerCameraReceiverRef.current) {
-        viewerCameraReceiverRef.current.cleanup();
-        viewerCameraReceiverRef.current = null;
-      }
-    };
-  }, [streamId]);
 
   // Initialize viewer relay receiver to see relayed viewer cameras
   useEffect(() => {
@@ -725,7 +683,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           viewerStream={viewerStream || undefined}
           viewerCameraEnabled={viewerCameraEnabled}
           viewerName={user?.email?.split('@')[0] || 'You'}
-          viewerCameras={viewerCameras}
+          viewerCameras={new Map()}
           relayedViewerCameras={relayedViewerCameras}
         />
       </div>
