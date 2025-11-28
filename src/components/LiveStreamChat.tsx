@@ -120,7 +120,10 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
         console.error('Error fetching profile:', profileError);
       }
 
-      const username = profile?.display_name || 'Anonymous';
+      // Use display_name, fallback to email username, or user ID
+      const username = profile?.display_name || 
+                      user.email?.split('@')[0] || 
+                      `User-${user.id.slice(0, 8)}`;
 
       const { error: insertError } = await supabase
         .from('stream_chat_messages')
