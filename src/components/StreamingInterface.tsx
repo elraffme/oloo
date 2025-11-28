@@ -470,6 +470,68 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [activeStreamId, isStreaming]);
 
+  // Monitor stream inactivity and auto-end after 5 minutes
+  useEffect(() => {
+    if (!isStreaming || !activeStreamId) return;
+
+    console.log('⏱️ Starting inactivity monitor for stream:', activeStreamId);
+
+    const inactivityCheckInterval = setInterval(async () => {
+      try {
+        // Query the stream's last_activity_at timestamp
+        const { data: streamData, error } = await supabase
+          .from('streaming_sessions')
+          .select('last_activity_at, status')
+          .eq('id', activeStreamId)
+          .single();
+
+        if (error) {
+          console.error('❌ Error checking stream activity:', error);
+          return;
+        }
+
+        if (!streamData || streamData.status !== 'live') {
+          console.log('⚠️ Stream no longer live, stopping inactivity monitor');
+          return;
+        }
+
+        const lastActivityTime = new Date(streamData.last_activity_at).getTime();
+        const currentTime = Date.now();
+        const inactiveSeconds = (currentTime - lastActivityTime) / 1000;
+
+        console.log('⏱️ Inactivity check:', {
+          lastActivity: streamData.last_activity_at,
+          inactiveSeconds: Math.floor(inactiveSeconds),
+          threshold: 300
+        });
+
+        // Auto-end if inactive for 5+ minutes (300 seconds)
+        if (inactiveSeconds >= 300) {
+          console.log('🔴 Stream inactive for 5+ minutes, auto-ending stream');
+          clearInterval(inactivityCheckInterval);
+          
+          toast({
+            title: "Stream ended due to inactivity",
+            description: "Your stream was automatically ended after 5 minutes of no activity.",
+            variant: "destructive"
+          });
+          
+          await endStream();
+        } else {
+          const remainingMinutes = Math.ceil((300 - inactiveSeconds) / 60);
+          console.log(`✅ Stream active, ${remainingMinutes} minutes until auto-end`);
+        }
+      } catch (err) {
+        console.error('❌ Error in inactivity check:', err);
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => {
+      console.log('🛑 Stopping inactivity monitor');
+      clearInterval(inactivityCheckInterval);
+    };
+  }, [isStreaming, activeStreamId, toast]);
+
   // Ensure video element srcObject is connected when camera turns on
   useEffect(() => {
     if (isCameraOn && videoRef.current && streamRef.current) {
