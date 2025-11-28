@@ -1318,6 +1318,7 @@ export type Database = {
           joined_at: string
           last_heartbeat: string
           left_at: string | null
+          mic_enabled: boolean | null
           session_token: string
           stream_id: string
           viewer_display_name: string
@@ -1331,6 +1332,7 @@ export type Database = {
           joined_at?: string
           last_heartbeat?: string
           left_at?: string | null
+          mic_enabled?: boolean | null
           session_token: string
           stream_id: string
           viewer_display_name: string
@@ -1344,6 +1346,7 @@ export type Database = {
           joined_at?: string
           last_heartbeat?: string
           left_at?: string | null
+          mic_enabled?: boolean | null
           session_token?: string
           stream_id?: string
           viewer_display_name?: string

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff } from 'lucide-react';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -62,6 +62,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
   const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
+  
+  // Viewer microphone states
+  const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
+  const [isMicRequesting, setIsMicRequesting] = useState(false);
   
   // Viewer relay receiver (for seeing relayed viewer cameras from host)
   const viewerRelayReceiverRef = useRef<ViewerRelayReceiver | null>(null);
@@ -609,7 +613,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480 },
-          audio: false
+          audio: viewerMicEnabled // Include audio if mic is enabled
         });
         
         setViewerStream(stream);
@@ -642,6 +646,103 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         }
       } finally {
         setIsCameraRequesting(false);
+      }
+    }
+  };
+
+  // Toggle viewer microphone
+  const toggleViewerMic = async () => {
+    if (viewerMicEnabled) {
+      // Disable microphone
+      if (viewerStream) {
+        const audioTracks = viewerStream.getAudioTracks();
+        audioTracks.forEach(track => {
+          track.stop();
+          viewerStream.removeTrack(track);
+        });
+      }
+      
+      // Update database
+      if (viewerBroadcastRef.current) {
+        await viewerBroadcastRef.current.updateMicStatus(false);
+      }
+      
+      setViewerMicEnabled(false);
+      toast.success('Microphone disabled');
+    } else {
+      // Enable microphone
+      setIsMicRequesting(true);
+      try {
+        if (viewerCameraEnabled && viewerStream) {
+          // Camera is already on, just add audio track to existing stream
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false
+          });
+          
+          const audioTrack = audioStream.getAudioTracks()[0];
+          viewerStream.addTrack(audioTrack);
+          
+          // Recreate broadcast with audio
+          if (viewerBroadcastRef.current) {
+            viewerBroadcastRef.current.cleanup(false); // Don't stop tracks
+          }
+          
+          if (sessionToken) {
+            const broadcast = new ViewerToHostBroadcast(
+              streamId,
+              sessionToken,
+              viewerStream,
+              (state) => {
+                console.log('Viewer camera+mic connection state:', state);
+              }
+            );
+            
+            await broadcast.initialize();
+            await broadcast.updateMicStatus(true);
+            viewerBroadcastRef.current = broadcast;
+          }
+          
+          setViewerMicEnabled(true);
+          toast.success('Microphone enabled! Host can now hear you');
+        } else {
+          // Camera is off, enable mic only
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false
+          });
+          
+          setViewerStream(audioStream);
+          
+          if (sessionToken) {
+            const broadcast = new ViewerToHostBroadcast(
+              streamId,
+              sessionToken,
+              audioStream,
+              (state) => {
+                console.log('Viewer mic connection state:', state);
+              }
+            );
+            
+            await broadcast.initialize();
+            await broadcast.updateMicStatus(true);
+            viewerBroadcastRef.current = broadcast;
+            
+            setViewerMicEnabled(true);
+            toast.success('Microphone enabled! Host can now hear you');
+          }
+        }
+      } catch (error: any) {
+        console.error('Error enabling microphone:', error);
+        if (error.name === 'NotAllowedError') {
+          toast.error('Microphone permission denied');
+        } else if (error.name === 'NotFoundError') {
+          toast.error('No microphone found');
+        } else {
+          toast.error('Failed to enable microphone');
+        }
+      } finally {
+        setIsMicRequesting(false);
       }
     }
   };
@@ -691,6 +792,24 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          {/* Microphone Toggle Button */}
+          <Button
+            variant={viewerMicEnabled ? "default" : "ghost"}
+            size="sm"
+            onClick={toggleViewerMic}
+            disabled={isMicRequesting}
+            className={viewerMicEnabled ? "gap-2 bg-primary hover:bg-primary/90" : "gap-2 text-white hover:bg-white/20"}
+          >
+            {isMicRequesting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : viewerMicEnabled ? (
+              <Mic className="w-4 h-4" />
+            ) : (
+              <MicOff className="w-4 h-4" />
+            )}
+            <span className="hidden md:inline">Mic</span>
+          </Button>
+
           {/* Camera Toggle Button */}
           <Button
             variant={viewerCameraEnabled ? "default" : "ghost"}
@@ -802,6 +921,42 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               <span className="text-white text-xs font-medium drop-shadow-md">Leave</span>
             </button>
           )}
+
+          {/* Mobile Microphone Toggle - Floating */}
+          <button
+            onClick={toggleViewerMic}
+            disabled={isMicRequesting}
+            className="absolute bottom-40 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
+          >
+            <div className={`w-12 h-12 rounded-full ${viewerMicEnabled ? 'bg-primary' : 'bg-white/20'} backdrop-blur-sm flex items-center justify-center shadow-lg`}>
+              {isMicRequesting ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : viewerMicEnabled ? (
+                <Mic className="w-6 h-6 text-white" />
+              ) : (
+                <MicOff className="w-6 h-6 text-white" />
+              )}
+            </div>
+            <span className="text-white text-xs font-medium drop-shadow-md">Mic</span>
+          </button>
+
+          {/* Mobile Camera Toggle - Floating */}
+          <button
+            onClick={toggleViewerCamera}
+            disabled={isCameraRequesting}
+            className="absolute bottom-56 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
+          >
+            <div className={`w-12 h-12 rounded-full ${viewerCameraEnabled ? 'bg-primary' : 'bg-white/20'} backdrop-blur-sm flex items-center justify-center shadow-lg`}>
+              {isCameraRequesting ? (
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              ) : viewerCameraEnabled ? (
+                <Video className="w-6 h-6 text-white" />
+              ) : (
+                <VideoOff className="w-6 h-6 text-white" />
+              )}
+            </div>
+            <span className="text-white text-xs font-medium drop-shadow-md">Camera</span>
+          </button>
 
           {/* Video Call Grid */}
           <VideoCallGrid

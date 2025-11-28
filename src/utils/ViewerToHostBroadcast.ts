@@ -312,6 +312,19 @@ export class ViewerToHostBroadcast {
     }
   }
 
+  async updateMicStatus(enabled: boolean) {
+    try {
+      await supabase
+        .from('stream_viewer_sessions')
+        .update({
+          mic_enabled: enabled
+        })
+        .eq('session_token', this.sessionToken);
+    } catch (error) {
+      console.error('Error updating mic status:', error);
+    }
+  }
+
   cleanup(stopTracks: boolean = true) {
     console.log('🧹 Cleaning up viewer camera broadcast', { stopTracks });
     
