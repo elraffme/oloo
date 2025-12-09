@@ -2505,7 +2505,7 @@ export type Database = {
       submit_trivia_answer: {
         Args: {
           p_question_id: string
-          p_time_taken_seconds: number
+          p_time_taken_seconds?: number
           p_user_answer: string
           p_user_id: string
         }
