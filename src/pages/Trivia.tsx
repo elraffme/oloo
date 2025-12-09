@@ -195,13 +195,6 @@ export default function Trivia() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 pb-24">
-      {/* Coin Reward Animation */}
-      {showCoinAnimation && coinsToAnimate > 0 && (
-        <CoinRewardAnimation 
-          coinsEarned={coinsToAnimate} 
-          onComplete={handleCoinAnimationComplete} 
-        />
-      )}
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -291,6 +284,13 @@ export default function Trivia() {
               <CardTitle className="text-xl mt-4">{question.question}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Coin Reward Animation */}
+              {showCoinAnimation && coinsToAnimate > 0 && (
+                <CoinRewardAnimation 
+                  coinsEarned={coinsToAnimate} 
+                  onComplete={handleCoinAnimationComplete} 
+                />
+              )}
               {/* Options */}
               <div className="space-y-3">
                 {question.options.map((option, index) => {
