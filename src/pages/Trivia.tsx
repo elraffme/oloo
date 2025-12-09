@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,7 @@ import { Loader2, Brain, Coins, Flame, Trophy, ArrowLeft, CheckCircle2, XCircle 
 import { toast } from 'sonner';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useUserLevel } from '@/hooks/useUserLevel';
+import CoinRewardAnimation from '@/components/CoinRewardAnimation';
 
 interface TriviaQuestion {
   id: string;
@@ -72,6 +73,8 @@ export default function Trivia() {
   const [result, setResult] = useState<TriviaResult | null>(null);
   const [stats, setStats] = useState<TriviaStats | null>(null);
   const [startTime, setStartTime] = useState<number>(Date.now());
+  const [showCoinAnimation, setShowCoinAnimation] = useState(false);
+  const [coinsToAnimate, setCoinsToAnimate] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -147,6 +150,10 @@ export default function Trivia() {
         const xpResult = typedResult.xp_result as any;
         const xpAwarded = xpResult?.xp_awarded || 0;
         
+        // Trigger coin animation
+        setCoinsToAnimate(typedResult.coins_earned);
+        setShowCoinAnimation(true);
+        
         toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
           description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
           duration: 5000,
@@ -173,6 +180,11 @@ export default function Trivia() {
     return Math.round((stats.correct_answers / stats.total_questions_answered) * 100);
   };
 
+  const handleCoinAnimationComplete = useCallback(() => {
+    setShowCoinAnimation(false);
+    setCoinsToAnimate(0);
+  }, []);
+
   if (loading && !question) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,6 +195,13 @@ export default function Trivia() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 pb-24">
+      {/* Coin Reward Animation */}
+      {showCoinAnimation && coinsToAnimate > 0 && (
+        <CoinRewardAnimation 
+          coinsEarned={coinsToAnimate} 
+          onComplete={handleCoinAnimationComplete} 
+        />
+      )}
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

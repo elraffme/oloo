@@ -132,6 +132,21 @@ export default {
 				'premium-shine': {
 					'0%': { backgroundPosition: '-200% center' },
 					'100%': { backgroundPosition: '200% center' }
+				},
+				// Coin reward animations
+				'coin-float': {
+					'0%': { transform: 'translateY(0) rotate(0deg)', opacity: '1' },
+					'100%': { transform: 'translateY(-150px) rotate(360deg)', opacity: '0' }
+				},
+				'coin-burst': {
+					'0%': { transform: 'scale(0) rotate(-180deg)' },
+					'50%': { transform: 'scale(1.2) rotate(10deg)' },
+					'100%': { transform: 'scale(1) rotate(0deg)' }
+				},
+				'coin-shine': {
+					'0%': { opacity: '0', transform: 'translateY(20px)' },
+					'50%': { opacity: '1', transform: 'translateY(-5px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				}
 			},
 			animation: {
@@ -141,7 +156,10 @@ export default {
 				'swipe-left': 'swipe-left 0.6s ease-in-out forwards',
 				'float-hearts': 'float-hearts 3s ease-in-out infinite',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
-				'premium-shine': 'premium-shine 2s ease-in-out infinite'
+				'premium-shine': 'premium-shine 2s ease-in-out infinite',
+				'coin-float': 'coin-float 1.5s ease-out forwards',
+				'coin-burst': 'coin-burst 0.5s ease-out forwards',
+				'coin-shine': 'coin-shine 0.6s ease-out 0.3s forwards'
 			}
 		}
 	},
