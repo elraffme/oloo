@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (data: any) => Promise<{ error: any }>;
   requestPasswordReset: (email: string) => Promise<{ error: any }>;
@@ -325,12 +326,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "Google Sign In Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Google Sign In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     updateProfile,
     requestPasswordReset,

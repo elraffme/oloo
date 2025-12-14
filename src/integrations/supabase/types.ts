@@ -2440,18 +2440,18 @@ export type Database = {
       log_sensitive_info_access:
         | {
             Args: {
-              action_type: string
-              field_name: string
-              target_user_id: string
+              access_type: string
+              additional_metadata?: Json
+              field_accessed: string
+              user_uuid?: string
             }
             Returns: undefined
           }
         | {
             Args: {
-              access_type: string
-              additional_metadata?: Json
-              field_accessed: string
-              user_uuid?: string
+              action_type: string
+              field_name: string
+              target_user_id: string
             }
             Returns: undefined
           }
