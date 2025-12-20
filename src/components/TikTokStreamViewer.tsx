@@ -1,7 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
-import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
-import { ViewerRelayReceiver } from '@/utils/ViewerRelayReceiver';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +23,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { useStream } from '@/hooks/useStream';
 
 interface ChatMessage {
   id: string;
@@ -65,45 +63,35 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const viewerConnectionRef = useRef<ViewerConnection | null>(null);
+  
+  const { initialize, remoteStream, cleanup, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream, isMuted: isSFUMuted, peerId } = useStream();
+
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(totalLikes);
   const [viewers, setViewers] = useState(currentViewers);
   const [showUI, setShowUI] = useState(true);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   
-  // Floating chat messages
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showFullChat, setShowFullChat] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   
-  // Gift states
   const [showGiftSelector, setShowGiftSelector] = useState(false);
   const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
 
-  // Viewer camera states
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
-  const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
-  const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
   
-  // Viewer mic states
   const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
   const [isMicRequesting, setIsMicRequesting] = useState(false);
   
-  // Viewer relay receiver (for seeing relayed viewer cameras from host)
-  const viewerRelayReceiverRef = useRef<ViewerRelayReceiver | null>(null);
   const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
-  
-  // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
 
-  // Swipe gesture handling
   const swipeRef = useSwipeGesture({
     onSwipeUp: () => {
       if (hasNext && onNext) {
@@ -119,13 +107,11 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     velocityThreshold: 0.3
   });
 
-  // Auto-hide UI after 3 seconds of inactivity
   useEffect(() => {
     const timeout = setTimeout(() => setShowUI(false), 3000);
     return () => clearTimeout(timeout);
   }, [showUI]);
 
-  // Initialize viewer connection
   useEffect(() => {
     const initViewer = async () => {
       if (!videoRef.current) return;
@@ -157,34 +143,9 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       
       setSessionToken(token);
 
-      viewerConnectionRef.current = new ViewerConnection(
-        streamId,
-        token,
-        videoRef.current,
-        displayName,
-        !user,
-        (state) => setConnectionState(state),
-        () => {}
-      );
-
-      await viewerConnectionRef.current.connect(supabase);
+      await initialize('viewer', {}, streamId);
       setIsConnected(true);
 
-      // Capture host stream for VideoCallGrid - set immediately when connection receives track
-      const checkHostStream = () => {
-        if (videoEl.srcObject && videoEl.srcObject instanceof MediaStream) {
-          console.log('📹 Setting host stream from video element');
-          setHostStream(videoEl.srcObject as MediaStream);
-        }
-      };
-      
-      videoEl.onloadedmetadata = checkHostStream;
-      
-      // Also check immediately in case track arrives before we set listener
-      setTimeout(checkHostStream, 500);
-      setTimeout(checkHostStream, 1000);
-
-      // Load like status
       if (user) {
         const { data: likeData } = await supabase
           .from('stream_likes')
@@ -200,22 +161,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     initViewer();
     
     return () => {
-      // Cleanup viewer camera
-      if (viewerBroadcastRef.current) {
-        viewerBroadcastRef.current.cleanup();
-        viewerBroadcastRef.current = null;
-      }
-      if (viewerStream) {
-        viewerStream.getTracks().forEach(track => track.stop());
-      }
-      
-      if (viewerConnectionRef.current) {
-        viewerConnectionRef.current.disconnect();
-        viewerConnectionRef.current = null;
-      }
-      
-      (async () => {
-        if (sessionToken) {
+      if (sessionToken) {
+        (async () => {
           try {
             await supabase.rpc('leave_stream_viewer', {
               p_session_token: sessionToken
@@ -223,8 +170,9 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           } catch (err) {
             console.error('Error leaving stream:', err);
           }
-        }
-      })();
+        })();
+      }
+      // cleanup();
       
       if (videoRef.current) {
         videoRef.current.pause();
@@ -233,38 +181,29 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, [streamId, user]);
 
-  // Initialize viewer relay receiver to see relayed viewer cameras
   useEffect(() => {
-    const initViewerRelayReceiver = async () => {
-      if (!streamId || !sessionToken) return;
-      
-      console.log('🔄 Initializing viewer relay receiver for stream', streamId);
-      
-      const relayReceiver = new ViewerRelayReceiver(streamId, sessionToken, (relayedStreams) => {
-        console.log('🔄 Relayed viewer cameras updated, count:', relayedStreams.size);
-        setRelayedViewerCameras(new Map(relayedStreams));
-      });
-      
-      try {
-        await relayReceiver.initialize();
-        viewerRelayReceiverRef.current = relayReceiver;
-        console.log('✅ Viewer relay receiver initialized');
-      } catch (error) {
-        console.error('❌ Failed to initialize viewer relay receiver:', error);
-      }
-    };
-    
-    initViewerRelayReceiver();
-    
-    return () => {
-      if (viewerRelayReceiverRef.current) {
-        viewerRelayReceiverRef.current.cleanup();
-        viewerRelayReceiverRef.current = null;
-      }
-    };
-  }, [streamId, sessionToken]);
+     if (remoteStream) {
+        setHostStream(remoteStream);
+        if (videoRef.current) {
+           videoRef.current.srcObject = remoteStream;
+           if (!isMuted) {
+             videoRef.current.muted = false;
+             videoRef.current.play().catch(e => console.error(e));
+           }
+        }
+     }
+  }, [remoteStream, isMuted]);
 
-  // Subscribe to gift transactions for this stream
+  useEffect(() => {
+      const viewerMap = new Map<string, any>();
+      viewerStreams.forEach(v => {
+          if (v.id !== peerId) {
+             viewerMap.set(v.id, { stream: v.stream, displayName: 'Viewer' });
+          }
+      });
+      setRelayedViewerCameras(viewerMap);
+  }, [viewerStreams, peerId]);
+
   useEffect(() => {
     if (!streamId || !hostUserId) return;
 
@@ -281,7 +220,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         async (payload) => {
           const transaction = payload.new;
           
-          // Fetch gift details and sender profile
           const { data: gift } = await supabase
             .from('gifts')
             .select('name, asset_url')
@@ -306,7 +244,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
 
             setGiftAnimations(prev => [...prev, newAnimation]);
 
-            // Auto-remove after 3 seconds
             setTimeout(() => {
               setGiftAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
             }, 3000);
@@ -320,7 +257,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, [streamId, hostUserId]);
 
-  // Subscribe to floating chat messages
   useEffect(() => {
     const channel = supabase
       .channel(`tiktok_chat:${streamId}`)
@@ -336,7 +272,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           const newMsg = payload.new as ChatMessage;
           setFloatingMessages(prev => [...prev.slice(-4), newMsg]);
           
-          // Auto-remove after 5 seconds
           setTimeout(() => {
             setFloatingMessages(prev => prev.filter(m => m.id !== newMsg.id));
           }, 5000);
@@ -349,7 +284,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, [streamId]);
 
-  // Subscribe to likes
   useEffect(() => {
     const channel = supabase
       .channel(`tiktok_likes:${streamId}`)
@@ -399,7 +333,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         
         setIsLiked(true);
         
-        // Show heart animation
         const heartEl = document.createElement('div');
         heartEl.className = 'absolute animate-float-up';
         heartEl.style.left = `${Math.random() * 80 + 10}%`;
@@ -448,7 +381,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       return;
     }
 
-    // TODO: Implement follow functionality
     setIsFollowing(!isFollowing);
     toast.success(isFollowing ? 'Unfollowed' : 'Following!');
   };
@@ -460,42 +392,20 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
 
     if (viewerCameraEnabled) {
-      // Turn off camera
-      if (viewerBroadcastRef.current) {
-        viewerBroadcastRef.current.cleanup();
-        viewerBroadcastRef.current = null;
-      }
-      if (viewerStream) {
-        viewerStream.getTracks().forEach(track => track.stop());
-        setViewerStream(null);
-      }
+      toggleVideo();
       setViewerCameraEnabled(false);
       toast.success('Camera disabled');
     } else {
-      // Turn on camera
       try {
         setIsCameraRequesting(true);
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: 640, height: 480 },
-          audio: viewerMicEnabled 
-        });
-        
-        setViewerStream(stream);
-        
-        // Create viewer-to-host broadcast
-        const broadcast = new ViewerToHostBroadcast(
-          streamId,
-          sessionToken,
-          stream,
-          (state) => {
-            console.log('Viewer camera connection state:', state);
-          }
-        );
-        
-        await broadcast.initialize();
-        viewerBroadcastRef.current = broadcast;
+        if (localStream && localStream.getVideoTracks().length > 0) {
+            toggleVideo();
+        } else {
+            await publishStream('camera');
+        }
         
         setViewerCameraEnabled(true);
+        setViewerMicEnabled(true);
         toast.success('Camera enabled! Host can now see you.');
       } catch (error) {
         console.error('Error enabling camera:', error);
@@ -513,104 +423,21 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
 
     if (viewerMicEnabled) {
-      // Turn off mic - only stop audio tracks
-      if (viewerStream) {
-        viewerStream.getAudioTracks().forEach(track => {
-          track.stop();
-          viewerStream.removeTrack(track);
-        });
-      }
-      
-      // If camera is still enabled, recreate broadcast with video only
-      if (viewerCameraEnabled && viewerStream && viewerStream.getVideoTracks().length > 0) {
-        if (viewerBroadcastRef.current) {
-          viewerBroadcastRef.current.cleanup(false); // Don't stop video tracks
-        }
-        
-        const broadcast = new ViewerToHostBroadcast(
-          streamId,
-          sessionToken,
-          viewerStream,
-          (state) => console.log('Viewer camera connection state:', state)
-        );
-        await broadcast.initialize();
-        viewerBroadcastRef.current = broadcast;
+      if (viewerCameraEnabled) {
+         toggleSFUMute(); 
       } else {
-        // No camera, clean up everything
-        if (viewerBroadcastRef.current) {
-          viewerBroadcastRef.current.cleanup(true);
-          viewerBroadcastRef.current = null;
-        }
-        setViewerStream(null);
+         unpublishStream();
       }
-      
       setViewerMicEnabled(false);
       toast.success('Microphone disabled');
     } else {
-      // Turn on mic
       try {
         setIsMicRequesting(true);
-        
-        if (viewerCameraEnabled && viewerStream && viewerBroadcastRef.current) {
-          // Add audio track to existing stream with mobile-optimized constraints
-          const audioStream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
-            }
-          });
-          const audioTrack = audioStream.getAudioTracks()[0];
-          
-          // Ensure track is enabled (required on some mobile browsers)
-          audioTrack.enabled = true;
-          
-          console.log('🎤 Mobile audio captured:', {
-            enabled: audioTrack.enabled,
-            readyState: audioTrack.readyState,
-            muted: audioTrack.muted
-          });
-          
-          viewerStream.addTrack(audioTrack);
-          
-          // Use renegotiation instead of recreating broadcast
-          await viewerBroadcastRef.current.addAudioTrackAndRenegotiate(audioTrack);
-          await viewerBroadcastRef.current.updateMicStatus(true);
+        if (viewerCameraEnabled) {
+            toggleSFUMute();
         } else {
-          // Cleanup any existing broadcast first
-          if (viewerBroadcastRef.current) {
-            viewerBroadcastRef.current.cleanup(true);
-            viewerBroadcastRef.current = null;
-          }
-          
-          // Create audio-only stream with mobile-optimized constraints
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
-            }
-          });
-          
-          const audioTrack = stream.getAudioTracks()[0];
-          if (audioTrack) {
-            audioTrack.enabled = true;
-          }
-          setViewerStream(stream);
-          
-          const broadcast = new ViewerToHostBroadcast(
-            streamId,
-            sessionToken,
-            stream,
-            (state) => console.log('Viewer mic connection state:', state)
-          );
-          
-          await broadcast.initialize();
-          viewerBroadcastRef.current = broadcast;
+            await publishStream('mic');
         }
-        
         setViewerMicEnabled(true);
         toast.success('Microphone enabled! Host can hear you.');
       } catch (error) {
@@ -684,7 +511,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       onClick={() => setShowUI(true)}
     >
-      {/* Video Container - Hidden host video, show VideoCallGrid instead */}
       <div id="video-container" className="absolute inset-0 flex items-center justify-center">
         <video
           ref={videoRef}
@@ -694,26 +520,24 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           muted={isMuted}
         />
         
-        {/* VideoCallGrid - Show host and all viewers with cameras */}
         <VideoCallGrid
           hostStream={hostStream}
           hostName={hostName}
-          viewerStream={viewerStream || undefined}
+          viewerStream={localStream || undefined}
           viewerCameraEnabled={viewerCameraEnabled}
           viewerName={user?.email?.split('@')[0] || 'You'}
           viewerCameras={new Map()}
           relayedViewerCameras={relayedViewerCameras}
+          isHost={false}
         />
       </div>
 
-      {/* Overlay UI */}
       <div 
         className={cn(
           "absolute inset-0 transition-opacity duration-300",
           showUI ? "opacity-100" : "opacity-0"
         )}
       >
-        {/* Top Bar */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent">
           <div className="flex items-center justify-between">
             <Button
@@ -731,7 +555,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             </Badge>
 
             <div className="flex items-center gap-2">
-              {/* Camera Button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -748,7 +571,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                 )}
               </Button>
 
-              {/* Mic Button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -765,7 +587,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                 )}
               </Button>
 
-              {/* Viewer Count */}
               <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
                 <Eye className="w-4 h-4 text-white" />
                 <span className="text-white text-sm font-medium">{viewers}</span>
@@ -774,7 +595,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           </div>
         </div>
 
-        {/* Host Info - Bottom Left */}
         <div className="absolute bottom-20 left-4 right-20 space-y-3">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 border-2 border-white">
@@ -797,7 +617,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             </Button>
           </div>
 
-          {/* Floating Chat Messages */}
           <div className="space-y-2">
             {floatingMessages.map((msg) => (
               <div
@@ -812,7 +631,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             ))}
           </div>
 
-          {/* Message Input */}
           {user && (
             <div className="flex items-center gap-2">
               <input
@@ -827,9 +645,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           )}
         </div>
 
-        {/* Action Stack - Right Side */}
         <div className="absolute bottom-32 right-4 flex flex-col items-center gap-6">
-          {/* Like Button */}
           <button
             onClick={handleLike}
             className="flex flex-col items-center gap-1 transition-transform active:scale-90"
@@ -845,7 +661,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <span className="text-white text-xs font-medium">{likes}</span>
           </button>
 
-          {/* Comment Button */}
           <button
             onClick={() => setShowFullChat(!showFullChat)}
             className="flex flex-col items-center gap-1"
@@ -856,7 +671,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <span className="text-white text-xs font-medium">Chat</span>
           </button>
 
-          {/* Gift Button */}
           <button 
             onClick={() => setShowGiftSelector(true)}
             className="flex flex-col items-center gap-1"
@@ -867,7 +681,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <span className="text-white text-xs font-medium">Gift</span>
           </button>
 
-          {/* Share Button */}
           <button 
             onClick={handleShare}
             className="flex flex-col items-center gap-1"
@@ -877,7 +690,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             </div>
           </button>
 
-          {/* More Options */}
           <DropdownMenu open={showMoreOptions} onOpenChange={setShowMoreOptions}>
             <DropdownMenuTrigger asChild>
               <button className="flex flex-col items-center gap-1">
@@ -904,7 +716,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mute Toggle */}
           <button
             onClick={() => setIsMuted(!isMuted)}
             className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center"
@@ -916,7 +727,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             )}
           </button>
 
-          {/* Leave Stream Button */}
           <button
             onClick={onClose}
             className="flex flex-col items-center gap-1"
@@ -930,10 +740,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
 
       </div>
 
-      {/* Gift Animations */}
       <LivestreamGiftAnimation animations={giftAnimations} />
 
-      {/* Gift Selector */}
       <LivestreamGiftSelector
         open={showGiftSelector}
         onOpenChange={setShowGiftSelector}
@@ -945,14 +753,12 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         }}
       />
 
-      {/* Full Chat Panel */}
       <Sheet open={showFullChat} onOpenChange={setShowFullChat}>
         <SheetContent side="bottom" className="h-[60vh] p-0">
           <LiveStreamChat streamId={streamId} isMobile={true} />
         </SheetContent>
       </Sheet>
 
-      {/* CSS for animations */}
       <style>{`
         @keyframes float-up {
           0% {

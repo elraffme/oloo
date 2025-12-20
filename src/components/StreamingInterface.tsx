@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useStream } from '@/hooks/useStream';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,7 @@ import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { BroadcastManager } from '@/utils/BroadcastManager';
-import { ViewerCameraReceiver } from '@/utils/ViewerCameraReceiver';
-import { ViewerStreamRelay } from '@/utils/ViewerStreamRelay';
+
 import StreamViewer from '@/components/StreamViewer';
 import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -62,6 +61,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const {
     toast
   } = useToast();
+  const { initialize, cleanup, checkChannelHealth, viewerStreams } = useStream();
 
   // Determine active tab from URL - default to discover
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
@@ -73,7 +73,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isMicOn, setIsMicOn] = useState(true);
   const [streamTitle, setStreamTitle] = useState('');
   const [streamCategory, setStreamCategory] = useState('');
-  const [currentViewers, setCurrentViewers] = useState(0);
+
   const [totalLikes, setTotalLikes] = useState(0);
   const [totalGifts, setTotalGifts] = useState(0);
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
@@ -90,8 +90,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [channelStatus, setChannelStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [connectionHealth, setConnectionHealth] = useState<{ isHealthy: boolean; details: any } | null>(null);
-  const broadcastManagerRef = useRef<BroadcastManager | null>(null);
-  const viewerCountIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const isCleaningUpRef = useRef(false);
   const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
@@ -106,12 +105,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
   
-  // Viewer camera receiver
-  const viewerCameraReceiverRef = useRef<ViewerCameraReceiver | null>(null);
-  const [viewerCameras, setViewerCameras] = useState<Map<string, any>>(new Map());
   
-  // Viewer stream relay (host forwards viewer cameras to other viewers)
-  const viewerStreamRelayRef = useRef<ViewerStreamRelay | null>(null);
+  // Derived map for VideoCallGrid compatibility from SFU streams
+  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer' }]));
+  console.log(viewerCameras,'viewer cameras')
+
   
   // Debug: Log viewer cameras updates
   useEffect(() => {
@@ -122,52 +120,55 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }, [viewerCameras]);
 
   // Real-time stream state monitoring while streaming
-  useEffect(() => {
-    if (!isStreaming || !streamRef.current) return;
+  // useEffect(() => {
+  //   if (!isStreaming || !streamRef.current) return;
 
-    const monitorInterval = setInterval(() => {
-      if (!streamRef.current) {
-        console.warn('⚠️ Stream ref lost during monitoring');
-        return;
-      }
+  //   const monitorInterval = setInterval(() => {
+  //     if (!streamRef.current) {
+  //       console.warn('⚠️ Stream ref lost during monitoring');
+  //       return;
+  //     }
 
-      const videoTracks = streamRef.current.getVideoTracks();
-      if (videoTracks.length === 0) {
-        console.error('❌ No video tracks during streaming!');
-        toast({
-          title: "Camera disconnected",
-          description: "Video track was lost. Please check your camera.",
-          variant: "destructive"
-        });
-        return;
-      }
+  //     const videoTracks = streamRef.current.getVideoTracks();
+  //     if (videoTracks.length === 0) {
+  //       console.error('❌ No video tracks during streaming!');
+  //       toast({
+  //         title: "Camera disconnected",
+  //         description: "Video track was lost. Please check your camera.",
+  //         variant: "destructive"
+  //       });
+  //       return;
+  //     }
 
-      const videoTrack = videoTracks[0];
+  //     const videoTrack = videoTracks[0];
       
-      // Check if track became disabled or ended
-      if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
-        console.error('❌ Video track issue:', {
-          enabled: videoTrack.enabled,
-          readyState: videoTrack.readyState
-        });
+  //     // Check if track became disabled or ended
+  //     if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
+  //       console.error('❌ Video track issue:', {
+  //         enabled: videoTrack.enabled,
+  //         readyState: videoTrack.readyState
+  //       });
 
-        // Try to re-enable if just disabled
-        if (videoTrack.readyState === 'live' && !videoTrack.enabled) {
-          console.log('🔧 Attempting to re-enable video track...');
-          videoTrack.enabled = true;
-        }
-      }
+  //       // Try to re-enable if just disabled
+  //       if (videoTrack.readyState === 'live' && !videoTrack.enabled) {
+  //         console.log('🔧 Attempting to re-enable video track...');
+  //         videoTrack.enabled = true;
+  //       }
+  //     }
 
-      // Log track state periodically
-      console.log('📊 Stream monitor:', {
-        enabled: videoTrack.enabled,
-        readyState: videoTrack.readyState,
-        streamId: streamRef.current.id
-      });
-    }, 5000); // Check every 5 seconds
+  //     // Log track state periodically
+  //     console.log('📊 Stream monitor:', {
+  //       enabled: videoTrack.enabled,
+  //       readyState: videoTrack.readyState,
+  //       streamId: streamRef.current.id
+  //     });
+  //   }, 5000); // Check every 5 seconds
 
-    return () => clearInterval(monitorInterval);
-  }, [isStreaming, toast]);
+  //   return () => clearInterval(monitorInterval);
+  // }, [isStreaming, toast]);
+
+
+
 
   // Debug: Log hostStream state changes for VideoCallGrid
   useEffect(() => {
@@ -221,6 +222,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   
   // Get active stream viewers
   const { viewers: activeViewers, isLoading: viewersLoading } = useStreamViewers(activeStreamId || '');
+
+  // Sync viewer count to DB
+  useEffect(() => {
+    if (isStreaming && activeStreamId) {
+      const updateViewerCount = async () => {
+         await supabase.from('streaming_sessions').update({
+          current_viewers: activeViewers.length
+        }).eq('id', activeStreamId);
+      };
+      updateViewerCount();
+    }
+  }, [activeViewers.length, isStreaming, activeStreamId]);
 
   // Floating chat messages for host
   const [floatingChatMessages, setFloatingChatMessages] = useState<Array<{
@@ -328,55 +341,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [myActiveStream]);
 
-  // Subscribe to viewer session changes to track all viewers
-  useEffect(() => {
-    if (!isStreaming || !activeStreamId || !viewerStreamRelayRef.current) return;
 
-    console.log('📡 Setting up viewer session tracking for stream:', activeStreamId);
-
-    const channel = supabase
-      .channel(`host_viewer_tracking_${activeStreamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'stream_viewer_sessions',
-          filter: `stream_id=eq.${activeStreamId}`
-        },
-        (payload) => {
-          const session = payload.new as any;
-          if (session?.session_token && session?.viewer_display_name) {
-            console.log('🆕 New viewer joined, notifying relay:', session.viewer_display_name);
-            viewerStreamRelayRef.current?.notifyViewerJoined(
-              session.session_token,
-              session.viewer_display_name
-            );
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'stream_viewer_sessions',
-          filter: `stream_id=eq.${activeStreamId}`
-        },
-        (payload) => {
-          const session = payload.new as any;
-          if (session?.left_at && session?.session_token) {
-            console.log('👋 Viewer left, cleaning up relay:', session.session_token);
-            viewerStreamRelayRef.current?.onViewerLeft(session.session_token);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [isStreaming, activeStreamId]);
 
   // Subscribe to gift transactions when streaming
   useEffect(() => {
@@ -716,49 +681,60 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, []);
 
+  const cleanupStream = async () => {
+    // Stop all tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // Clear video src
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    // Cleanup SFU
+    cleanup();
+  };
+
   // Improved cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (isCleaningUpRef.current) return;
-      isCleaningUpRef.current = true;
-      console.log('Component unmounting, cleaning up...');
+  // useEffect(() => {
+  //   return () => {
+  //     if (isCleaningUpRef.current) return;
+  //     isCleaningUpRef.current = true;
+  //     console.log('Component unmounting, cleaning up...');
 
-      // 1. Stop media tracks first
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => {
-          track.stop();
-          console.log(`Stopped ${track.kind} track`);
-        });
-      }
+  //     // 1. Stop media tracks first
+  //     if (streamRef.current) {
+  //       streamRef.current.getTracks().forEach(track => {
+  //         track.stop();
+  //         console.log(`Stopped ${track.kind} track`);
+  //       });
+  //     }
 
-      // Phase 5: Reset permission states
-      setHasCameraPermission(false);
-      setHasMicPermission(false);
-      setIsCameraOn(false);
-      setIsMicOn(false);
+  //     // Phase 5: Reset permission states
+  //     setHasCameraPermission(false);
+  //     setHasMicPermission(false);
+  //     setIsCameraOn(false);
+  //     setIsMicOn(false);
 
-      // 2. Cleanup broadcast manager
-      if (broadcastManagerRef.current) {
-        console.log('Cleaning up broadcast manager');
-        broadcastManagerRef.current.cleanup();
-      }
+  //     // 2. Cleanup SFU
+  //     // cleanup();
 
-      // 3. Clear intervals
-      if (viewerCountIntervalRef.current) {
-        clearInterval(viewerCountIntervalRef.current);
-      }
+  //     // 3. Clear intervals
 
-      // 4. Update database if streaming (use ref for current value) - Archive immediately
-      if (activeStreamIdRef.current) {
-        console.log('Archiving stream on unmount');
-        supabase.from('streaming_sessions').update({
-          status: 'archived',
-          ended_at: new Date().toISOString(),
-          current_viewers: 0
-        }).eq('id', activeStreamIdRef.current).then(() => console.log('Stream archived on unmount'));
-      }
-    };
-  }, []);
+
+  //     // 4. Update database if streaming (use ref for current value) - Archive immediately
+  //     if (activeStreamIdRef.current) {
+  //       console.log('Archiving stream on unmount');
+  //       supabase.from('streaming_sessions').update({
+  //         status: 'archived',
+  //         ended_at: new Date().toISOString(),
+  //         current_viewers: 0
+  //       }).eq('id', activeStreamIdRef.current).then(() => console.log('Stream archived on unmount'));
+  //     }
+  //   };
+  // }, []);
 
   // Browser close/refresh handler - end stream before page unloads
   useEffect(() => {
@@ -770,8 +746,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         const xhr = new XMLHttpRequest();
         xhr.open('PATCH', `https://kdvnxzniqyomdeicmycs.supabase.co/rest/v1/streaming_sessions?id=eq.${activeStreamId}`, false);
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXaGx_INpWPGPXY6Z6oJEb5E');
-        xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXaGx_INpWPGPXY6Z6oJEb5E');
+        xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXwGx_INpWPGPXY6Z6oJEb5E');
+        xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXwGx_INpWPGPXY6Z6oJEb5E');
         xhr.setRequestHeader('Prefer', 'return=minimal');
         
         try {
@@ -800,7 +776,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
   // Handle browser visibility changes - check and restore connection when tab becomes visible
   useEffect(() => {
-    if (!isStreaming || !broadcastManagerRef.current) return;
+    if (!isStreaming) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -809,7 +785,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         console.log('📱 Tab visible - checking connection health');
         
         // Check connection health when tab becomes visible
-        const health = broadcastManagerRef.current?.checkChannelHealth();
+        const health = checkChannelHealth();
         setConnectionHealth(health || null);
         
         if (health && !health.isHealthy) {
@@ -827,14 +803,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isStreaming]);
+  }, [isStreaming, checkChannelHealth]);
 
   // Monitor connection health periodically while streaming
   useEffect(() => {
-    if (!isStreaming || !broadcastManagerRef.current) return;
+    if (!isStreaming) return;
 
     const healthCheckInterval = setInterval(() => {
-      const health = broadcastManagerRef.current?.checkChannelHealth();
+      const health = checkChannelHealth();
       setConnectionHealth(health || null);
       
       if (health && !health.isHealthy) {
@@ -843,7 +819,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }, 15000); // Check every 15 seconds
 
     return () => clearInterval(healthCheckInterval);
-  }, [isStreaming]);
+  }, [isStreaming, checkChannelHealth]);
   
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
@@ -1118,82 +1094,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Stream validation failed');
       }
 
-      // Initialize broadcast manager with current stream
-      broadcastManagerRef.current = new BroadcastManager(data.id, streamRef.current);
 
-      // Set up status handler
-      broadcastManagerRef.current.setChannelStatusHandler(async status => {
-        console.log('Channel status changed:', status);
-        if (status === 'connecting') {
-          setChannelStatus('connecting');
-        } else if (status === 'connected') {
-          setChannelStatus('connected');
 
-          // Wait a moment for initial DB poll and catch-up to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Update stream to live once channel is ready and polling is active
-          const {
-            error: updateError
-          } = await supabase.from('streaming_sessions').update({
-            status: 'live',
-            started_at: new Date().toISOString()
-          }).eq('id', data.id);
-          if (updateError) {
-            console.error('Error updating stream to live:', updateError);
-          } else {
-            console.log('✅ Stream is now live and ready for viewers');
-            setStreamLifecycle('live');
-            setIsBroadcastReady(true);
-          }
-        } else if (status === 'error') {
-          setChannelStatus('error');
-        } else if (status === 'closed') {
-          setChannelStatus('disconnected');
-        }
-      });
+      // Initialize SFU stream
+      console.log('🔧 Initializing SFU stream...');
+      await initialize('streamer', {}, data.id, streamRef.current);
+      console.log('✅ SFU stream initialized');
+
+      setChannelStatus('connected');
       
-      console.log('🔧 Initializing BroadcastManager channel...');
-      await broadcastManagerRef.current.initializeChannel(supabase);
-      console.log('✅ BroadcastManager initialization complete');
-
-      // Initialize viewer camera receiver
-      viewerCameraReceiverRef.current = new ViewerCameraReceiver(
-        data.id,
-        (cameras) => {
-          setViewerCameras(new Map(cameras));
-        },
-        async (viewerInfo) => {
-          // Notify relay system about new viewer camera
-          if (viewerStreamRelayRef.current) {
-            await viewerStreamRelayRef.current.onNewViewerCamera(viewerInfo);
-          }
-        }
-      );
-      await viewerCameraReceiverRef.current.initialize();
-      console.log('✅ Viewer camera receiver initialized');
-
-  // Initialize viewer stream relay to forward cameras to other viewers
-      viewerStreamRelayRef.current = new ViewerStreamRelay(data.id);
-      await viewerStreamRelayRef.current.initialize();
-      console.log('✅ Viewer stream relay initialized');
-
-      // Load and register existing viewers with the relay
-      const { data: existingViewers } = await supabase
-        .from('stream_viewer_sessions')
-        .select('session_token, viewer_display_name')
-        .eq('stream_id', data.id)
-        .is('left_at', null);
-
-      if (existingViewers && existingViewers.length > 0) {
-        console.log(`📡 Registering ${existingViewers.length} existing viewers with relay`);
-        for (const viewer of existingViewers) {
-          viewerStreamRelayRef.current.notifyViewerJoined(
-            viewer.session_token,
-            viewer.viewer_display_name || 'Viewer'
-          );
-        }
+      // Update stream to live immediately
+      const {
+        error: updateError
+      } = await supabase.from('streaming_sessions').update({
+        status: 'live',
+        started_at: new Date().toISOString()
+      }).eq('id', data.id);
+      
+      if (updateError) {
+        console.error('Error updating stream to live:', updateError);
+      } else {
+        console.log('✅ Stream is now live and ready for viewers');
+        setStreamLifecycle('live');
+        setIsBroadcastReady(true);
       }
+
+
 
       // Fetch ICE servers to check TURN availability
       try {
@@ -1207,16 +1133,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         console.error('Failed to fetch ICE servers:', err);
       }
 
-      // Update viewer count periodically
-      viewerCountIntervalRef.current = setInterval(async () => {
-        const count = broadcastManagerRef.current?.getViewerCount() || 0;
-        setCurrentViewers(count);
-        await supabase.from('streaming_sessions').update({
-          current_viewers: count
-        }).eq('id', data.id);
-      }, 3000);
       console.log('✅ Broadcast setup initiated');
       setIsLoading(false);
+
       toast({
         title: "🎥 Stream Starting...",
         description: "Establishing broadcast connection"
@@ -1246,35 +1165,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const handleHostReconnect = async () => {
-    if (!broadcastManagerRef.current) {
-      toast({
-        title: "Not broadcasting",
-        description: "You must be live to reconnect.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      toast({
-        title: "Reconnecting...",
-        description: "Resetting broadcast connection. Viewers will reconnect automatically."
-      });
-      
-      await broadcastManagerRef.current.resetStream(supabase);
-      
-      toast({
-        title: "Reconnection complete",
-        description: "Broadcast has been reset successfully."
-      });
-    } catch (error) {
-      console.error('Host reconnection failed:', error);
-      toast({
-        title: "Reconnection failed",
-        description: "Could not reset broadcast. Try ending and restarting the stream.",
-        variant: "destructive"
-      });
-    }
+      // Re-initialize SFU
+      if (activeStreamId && streamRef.current) {
+        cleanup();
+        await initialize('streamer', {}, activeStreamId, streamRef.current);
+        toast({
+          title: "Reconnected",
+          description: "Stream connection reset."
+        });
+      }
   };
 
   const endStream = async () => {
@@ -1282,31 +1181,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     setStreamLifecycle('ending');
     setIsLoading(true);
     try {
-      // Cleanup viewer count interval
-      if (viewerCountIntervalRef.current) {
-        clearInterval(viewerCountIntervalRef.current);
-        viewerCountIntervalRef.current = null;
-      }
 
-      // Cleanup broadcast manager
-      if (broadcastManagerRef.current) {
-        broadcastManagerRef.current.cleanup();
-        broadcastManagerRef.current = null;
-      }
+
+      // Cleanup SFU
+      cleanup();
       
-      // Cleanup viewer camera receiver
-      if (viewerCameraReceiverRef.current) {
-        viewerCameraReceiverRef.current.cleanup();
-        viewerCameraReceiverRef.current = null;
-      }
-      
-      // Cleanup viewer stream relay
-      if (viewerStreamRelayRef.current) {
-        viewerStreamRelayRef.current.cleanup();
-        viewerStreamRelayRef.current = null;
-      }
-      
-      setViewerCameras(new Map());
       
       setChannelStatus('disconnected');
 
@@ -1342,7 +1221,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
       setIsStreaming(false);
       setActiveStreamId(null);
-      setCurrentViewers(0);
+      setActiveStreamId(null);
       setTotalLikes(0);
       setTotalGifts(0);
       setStreamLifecycle('ended');
@@ -1351,7 +1230,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Phase 6: Enhanced visual feedback
       toast({
         title: "🎬 Stream ended and archived",
-        description: `Thanks for streaming! ${currentViewers} viewers watched. Stream archived.`
+        description: `Thanks for streaming! ${activeViewers.length} viewers watched. Stream archived.`
       });
     } catch (error: any) {
       console.error('Error ending stream:', error);
@@ -1745,7 +1624,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connected Viewers:</span>
-                        <Badge variant="secondary">{currentViewers} watching</Badge>
+                        <Badge variant="secondary">{activeViewers.length} watching</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Likes:</span>
@@ -1776,7 +1655,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle className="flex items-center justify-between">
                     <span>Preview</span>
                     {isStreaming && <Badge variant="secondary" className="text-xs">
-                        🔴 Broadcasting to {currentViewers} viewers
+                        🔴 Broadcasting to {activeViewers.length} viewers
                       </Badge>}
                   </CardTitle>
                 </CardHeader>
