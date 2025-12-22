@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Device } from "mediasoup-client";
 import { io } from "socket.io-client";
 
-const SERVER_URL = "http://localhost:5001";
+const SERVER_URL = "https://api.oloo.media";
 
 export const useStream = (navigation = null) => {
   const [socket, setSocket] = useState(null);
