@@ -44,16 +44,23 @@ export const useStreamViewers = (streamId: string) => {
         }
 
         // Transform to match StreamViewer interface
-        const transformedViewers = (data || []).map(viewer => ({
-          session_id: viewer.id,
-          viewer_id: viewer.viewer_id,
-          viewer_display_name: viewer.viewer_display_name,
-          is_guest: viewer.is_guest,
-          joined_at: viewer.joined_at,
-          avatar_url: '', // Will be fetched if needed
-          camera_enabled: viewer.camera_enabled,
-          camera_stream_active: viewer.camera_stream_active,
-        }));
+        const transformedViewers = (data || []).reduce<StreamViewer[]>((acc, viewer) => {
+          // Check if we already have this viewer_id (for non-guests)
+          const isDuplicate = viewer.viewer_id && acc.some(v => v.viewer_id === viewer.viewer_id);
+          if (isDuplicate) return acc;
+
+          acc.push({
+            session_id: viewer.id,
+            viewer_id: viewer.viewer_id,
+            viewer_display_name: viewer.viewer_display_name,
+            is_guest: viewer.is_guest,
+            joined_at: viewer.joined_at,
+            avatar_url: '', // Will be fetched if needed
+            camera_enabled: viewer.camera_enabled,
+            camera_stream_active: viewer.camera_stream_active,
+          });
+          return acc;
+        }, []);
 
         setViewers(transformedViewers);
       } catch (error) {
@@ -91,6 +98,10 @@ export const useStreamViewers = (streamId: string) => {
           setViewers(prev => {
             // Prevent duplicates by checking if session already exists
             if (prev.some(v => v.session_id === newViewer.session_id)) {
+              return prev;
+            }
+             // Deduplicate by viewer_id for logged in users
+            if (newViewer.viewer_id && prev.some(v => v.viewer_id === newViewer.viewer_id)) {
               return prev;
             }
             return [...prev, newViewer];

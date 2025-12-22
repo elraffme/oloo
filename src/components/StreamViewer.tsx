@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ViewerConnection, ConnectionState } from '@/utils/ViewerConnection';
-import { ViewerToHostBroadcast } from '@/utils/ViewerToHostBroadcast';
-import { ViewerRelayReceiver } from '@/utils/ViewerRelayReceiver';
+import { ConnectionState } from '@/utils/ViewerConnection';
+import { useStream } from '@/hooks/useStream';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const viewerConnectionRef = useRef<ViewerConnection | null>(null);
+  const { initialize, remoteStream, cleanup, isConnected: isSFUConnected, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream } = useStream();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isLeavingRef = useRef(false);
@@ -58,19 +58,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
   
+  
   // Viewer camera states
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
   const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
-  const viewerBroadcastRef = useRef<ViewerToHostBroadcast | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
   
   // Viewer microphone states
   const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
   const [isMicRequesting, setIsMicRequesting] = useState(false);
-  
-  // Viewer relay receiver (for seeing relayed viewer cameras from host)
-  const viewerRelayReceiverRef = useRef<ViewerRelayReceiver | null>(null);
-  const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
   
   // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
@@ -189,12 +185,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       videoEl.autoplay = true;
       videoEl.playsInline = true;
       videoEl.muted = true;
-      console.log('📹 Video element configured for auto-connection: autoplay, playsInline, muted');
 
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
-      
-      console.log('Attempting to join stream:', { streamId, displayName, isGuest: !user });
       
       const { data: joinData, error: joinError } = await supabase.rpc('join_stream_as_viewer', {
         p_stream_id: streamId,
@@ -208,64 +201,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         return;
       }
 
-      console.log('Join stream response:', joinData);
-
       const token = (joinData as any)?.session_token as string;
-      if (!token) {
-        console.error('No session token received from join stream');
-        toast.error('Failed to establish viewer session');
-        return;
-      }
+      if (!token) return;
       
       setSessionToken(token);
 
-      viewerConnectionRef.current = new ViewerConnection(
-        streamId,
-        token,
-        videoRef.current,
-        displayName,
-        !user,
-        (state) => setConnectionState(state)
-      );
+      // Initialize SFU connection
+      console.log('🔌 Connecting to SFU stream...');
+      await initialize('viewer', {}, streamId);
 
-      // Listen for video tracks to confirm we're receiving video
-      const video = videoRef.current;
-      video.onloadedmetadata = () => {
-        console.log('✓ Video metadata loaded:', {
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          duration: video.duration,
-          readyState: video.readyState
-        });
-        setHasVideo(true);
-      };
-      
-      video.oncanplay = () => {
-        console.log('✓ Video can play');
-      };
-
-      video.onplaying = () => {
-        console.log('✓ Video is playing');
-      };
-
-      video.onplay = () => {
-        console.log('✓ Video play event fired');
-        setHasVideo(true);
-      };
-
-      video.onerror = (e) => {
-        console.error('❌ Video element error:', video.error);
-      };
-
-      video.onstalled = () => {
-        console.warn('⚠️ Video playback stalled');
-      };
-
-      video.onwaiting = () => {
-        console.warn('⚠️ Video waiting for data');
-      };
-
-      await viewerConnectionRef.current.connect(supabase);
       setIsConnected(true);
 
       // Load initial like status and count
@@ -291,103 +235,39 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       }
     };
 
-    const hardResetViewerConnection = async () => {
-      console.log('♻️ Hard resetting viewer connection');
-
-      const token = sessionToken;
-      if (viewerConnectionRef.current) {
-        viewerConnectionRef.current.disconnect();
-        viewerConnectionRef.current = null;
-      }
-
-      if (token) {
-        try {
-          await supabase.rpc('leave_stream_viewer', { p_session_token: token });
-          console.log('✓ Left stream as part of hard reset');
-        } catch (err) {
-          console.error('❌ Error leaving stream during hard reset:', err);
-        }
-      }
-
-      setSessionToken(null);
-      setConnectionState('disconnected');
-      setHasVideo(false);
-      setIsConnected(false);
-
-      // Re-run the join flow
-      await initViewer();
-    };
-
-    // Expose reset function globally for testing
-    (window as any).hardResetViewerConnection = hardResetViewerConnection;
-
     initViewer();
     
     // Cleanup on unmount
     return () => {
-      console.log('🧹 StreamViewer unmounting, cleaning up...');
+      // cleanup();
       
-      // Only cleanup if we actually have a connection
-      const hasActiveConnection = viewerConnectionRef.current !== null;
-      
-      // Disconnect viewer connection
-      if (hasActiveConnection) {
-        viewerConnectionRef.current.disconnect();
-        viewerConnectionRef.current = null;
-      }
-      
-      // Leave stream - only if we successfully joined
-      (async () => {
-        if (sessionToken && hasActiveConnection) {
+      if (sessionToken) {
+        (async () => {
           try {
             await supabase.rpc('leave_stream_viewer', {
               p_session_token: sessionToken
             });
-            console.log('✓ Left stream successfully');
-          } catch (err) {
-            console.error('❌ Error leaving stream:', err);
+            console.log('Left stream');
+          } catch (error) {
+            console.error(error);
           }
-        }
-      })();
-      
-      // Stop video playback
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.srcObject = null;
+        })();
       }
     };
-  }, [streamId, user, hostUserId]);
+  }, [streamId, user]);
 
-  // Initialize viewer relay receiver to see relayed viewer cameras
+  // Handle remote stream updates
   useEffect(() => {
-    const initViewerRelayReceiver = async () => {
-      if (!streamId || !sessionToken) return;
-      
-      console.log('🔄 Initializing viewer relay receiver for stream', streamId);
-      
-      const relayReceiver = new ViewerRelayReceiver(streamId, sessionToken, (relayedStreams) => {
-        console.log('🔄 Relayed viewer cameras updated, count:', relayedStreams.size);
-        setRelayedViewerCameras(new Map(relayedStreams));
-      });
-      
-      try {
-        await relayReceiver.initialize();
-        viewerRelayReceiverRef.current = relayReceiver;
-        console.log('✅ Viewer relay receiver initialized');
-      } catch (error) {
-        console.error('❌ Failed to initialize viewer relay receiver:', error);
-      }
-    };
-    
-    initViewerRelayReceiver();
-    
-    return () => {
-      if (viewerRelayReceiverRef.current) {
-        viewerRelayReceiverRef.current.cleanup();
-        viewerRelayReceiverRef.current = null;
-      }
-    };
-  }, [streamId, sessionToken]);
+    if (videoRef.current && remoteStream) {
+      console.log('🎥 Setting remote stream', remoteStream.id);
+      videoRef.current.srcObject = remoteStream;
+      videoRef.current.play().catch(e => console.error('Error playing remote stream:', e));
+      setHasVideo(true);
+      setConnectionState('streaming');
+    }
+  }, [remoteStream]);
+
+
 
   // Real-time likes subscription - show animation when anyone likes
   useEffect(() => {
@@ -428,10 +308,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               console.log('🔴 Stream has ended by host, cleaning up viewer...');
               
               // Cleanup connection
-              if (viewerConnectionRef.current) {
-                viewerConnectionRef.current.disconnect();
-                viewerConnectionRef.current = null;
-              }
+              cleanup();
               
               // Stop video
               if (videoRef.current) {
@@ -479,20 +356,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   // Connection watchdog - monitors and auto-reconnects if needed
   useEffect(() => {
-    if (!viewerConnectionRef.current) return;
-
-    const watchdogInterval = setInterval(() => {
-      // Auto-reconnect if stuck in failed or disconnected state for too long
-      if (connectionState === 'disconnected' || connectionState === 'failed') {
-        console.log('🔍 Watchdog: Detected disconnected/failed state, triggering reconnection');
-        handleHardReconnect();
-      }
-    }, 10000); // Check every 10 seconds
-
-    return () => {
-      clearInterval(watchdogInterval);
-    };
-  }, [connectionState]);
+    // SFU normally handles reconnection internally via socket.io
+    // But we can monitor isSFUConnected state here if needed
+  }, [isSFUConnected]);
 
   const toggleMute = async () => {
     if (videoRef.current) {
@@ -540,11 +406,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     toast.info('Leaving stream...');
 
     try {
-      // Stop viewer camera/mic if active
-      if (viewerBroadcastRef.current) {
-        viewerBroadcastRef.current.cleanup();
-        viewerBroadcastRef.current = null;
-      }
+
 
       // Stop viewer stream tracks
       if (viewerStream) {
@@ -552,17 +414,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         setViewerStream(null);
       }
 
-      // Cleanup viewer relay receiver
-      if (viewerRelayReceiverRef.current) {
-        viewerRelayReceiverRef.current.cleanup();
-        viewerRelayReceiverRef.current = null;
-      }
+
 
       // Disconnect viewer connection
-      if (viewerConnectionRef.current) {
-        viewerConnectionRef.current.disconnect();
-        viewerConnectionRef.current = null;
-      }
+      cleanup();
 
       // Leave stream in database
       if (sessionToken) {
@@ -637,76 +492,43 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   };
 
   const handleHardReconnect = async () => {
-    if (viewerConnectionRef.current) {
-      await viewerConnectionRef.current.hardReconnect(supabase);
+      cleanup();
+      await initialize('viewer', {}, streamId);
       toast.info('Reconnecting to stream...');
-    }
   };
 
   const handleRequestOfferAgain = () => {
-    if (viewerConnectionRef.current) {
-      viewerConnectionRef.current.requestOfferManually();
-      toast.info('Requesting connection offer...');
-    }
+      toast.info('Connection is handled automatically.');
   };
 
   const handleTryTURNOnly = async () => {
-    if (viewerConnectionRef.current) {
-      await viewerConnectionRef.current.tryTURNOnly(supabase);
-      toast.info('Switching to TURN relay...');
-    }
+      toast.info('Connection is handled automatically.');
   };
 
   const toggleViewerCamera = async () => {
     if (viewerCameraEnabled) {
-      // Disable camera
-      if (viewerBroadcastRef.current) {
-        viewerBroadcastRef.current.cleanup();
-        viewerBroadcastRef.current = null;
-      }
-      if (viewerStream) {
-        viewerStream.getTracks().forEach(track => track.stop());
-        setViewerStream(null);
-      }
+      // Disable camera - just toggle the track
+      toggleVideo();
       setViewerCameraEnabled(false);
       toast.success('Camera disabled');
     } else {
       // Enable camera
       setIsCameraRequesting(true);
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-          audio: viewerMicEnabled // Include audio if mic is enabled
-        });
-        
-        setViewerStream(stream);
-        
-        if (sessionToken) {
-          const broadcast = new ViewerToHostBroadcast(
-            streamId,
-            sessionToken,
-            stream,
-            (state) => {
-              console.log('Viewer camera connection state:', state);
-            }
-          );
-          
-          await broadcast.initialize();
-          await broadcast.updateCameraStatus(true);
-          viewerBroadcastRef.current = broadcast;
-          
-          setViewerCameraEnabled(true);
-          toast.success('Camera enabled! Host can now see you');
-        }
+         if (localStream && localStream.getVideoTracks().length > 0) {
+            // Re-enable existing video track
+            toggleVideo();
+         } else {
+            // First time publishing or valid stream not present
+            await publishStream('camera');
+         }
+         
+         setViewerCameraEnabled(true);
+         setViewerMicEnabled(true); // Camera implies mic usually
+         toast.success('Camera enabled! Host can now see you');
       } catch (error: any) {
         console.error('Error enabling camera:', error);
-        if (error.name === 'NotAllowedError') {
-          toast.error('Camera permission denied');
-        } else if (error.name === 'NotFoundError') {
-          toast.error('No camera found');
-        } else {
-          toast.error('Failed to enable camera');
-        }
+        toast.error('Failed to enable camera');
       } finally {
         setIsCameraRequesting(false);
       }
@@ -716,118 +538,43 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Toggle viewer microphone
   const toggleViewerMic = async () => {
     if (viewerMicEnabled) {
-      // Disable microphone
-      if (viewerStream) {
-        const audioTracks = viewerStream.getAudioTracks();
-        audioTracks.forEach(track => {
-          track.stop();
-          viewerStream.removeTrack(track);
-        });
+      if (viewerCameraEnabled) {
+         // If camera is on, just mute audio tracks
+         toggleSFUMute(); 
+      } else {
+         // If only mic was on, stop fully
+         unpublishStream();
       }
-      
-      // Update database
-      if (viewerBroadcastRef.current) {
-        await viewerBroadcastRef.current.updateMicStatus(false);
-      }
-      
       setViewerMicEnabled(false);
       toast.success('Microphone disabled');
     } else {
-      // Enable microphone
-      setIsMicRequesting(true);
-      try {
-        if (viewerCameraEnabled && viewerStream && viewerBroadcastRef.current) {
-          // Camera is already on, add audio track and renegotiate with mobile-optimized constraints
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
-            },
-            video: false
-          });
-          
-          const audioTrack = audioStream.getAudioTracks()[0];
-          
-          // Ensure track is enabled (required on some mobile browsers)
-          audioTrack.enabled = true;
-          
-          // Enhanced mobile debugging
-          console.log('🎤 Mobile audio capture:', {
-            trackEnabled: audioTrack.enabled,
-            trackReadyState: audioTrack.readyState,
-            trackMuted: audioTrack.muted,
-            trackSettings: audioTrack.getSettings(),
-            trackConstraints: audioTrack.getConstraints()
-          });
-          
-          viewerStream.addTrack(audioTrack);
-          
-          // Add track to existing peer connection and renegotiate
-          await viewerBroadcastRef.current.addAudioTrackAndRenegotiate(audioTrack);
-          await viewerBroadcastRef.current.updateMicStatus(true);
-          
-          setViewerMicEnabled(true);
-          toast.success('Microphone enabled! Host can now hear you');
-        } else {
-          // Camera is off, enable mic only with mobile-optimized constraints
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
-            },
-            video: false
-          });
-          
-          const audioTrack = audioStream.getAudioTracks()[0];
-          if (audioTrack) {
-            audioTrack.enabled = true;
-          }
-          
-          setViewerStream(audioStream);
-          
-          if (sessionToken) {
-            const broadcast = new ViewerToHostBroadcast(
-              streamId,
-              sessionToken,
-              audioStream,
-              (state) => {
-                console.log('Viewer mic connection state:', state);
-              }
-            );
-            
-            await broadcast.initialize();
-            await broadcast.updateMicStatus(true);
-            viewerBroadcastRef.current = broadcast;
-            
-            setViewerMicEnabled(true);
-            toast.success('Microphone enabled! Host can now hear you');
-          }
-        }
-      } catch (error: any) {
-        console.error('Error enabling microphone:', error);
-        if (error.name === 'NotAllowedError') {
-          toast.error('Microphone permission denied');
-        } else if (error.name === 'NotFoundError') {
-          toast.error('No microphone found');
-        } else {
+       // Enable microphone
+       setIsMicRequesting(true);
+       try {
+         if (viewerCameraEnabled) {
+            // Unmute
+            toggleSFUMute();
+         } else {
+            // Start audio only
+            await publishStream('mic');
+         }
+         setViewerMicEnabled(true);
+         toast.success('Microphone enabled');
+       } catch (error) {
+          console.error('Error enabling mic:', error);
           toast.error('Failed to enable microphone');
-        }
-      } finally {
-        setIsMicRequesting(false);
-      }
+       } finally {
+          setIsMicRequesting(false);
+       }
     }
   };
 
   // Cleanup viewer camera on unmount
   useEffect(() => {
     return () => {
-      if (viewerBroadcastRef.current) {
-        viewerBroadcastRef.current.cleanup();
-      }
+      // if (viewerBroadcastRef.current) {
+      //   viewerBroadcastRef.current.cleanup();
+      // }
       if (viewerStream) {
         viewerStream.getTracks().forEach(track => track.stop());
       }
@@ -1031,7 +778,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             hostStream={hostStream}
             hostName={hostName}
             viewerCameras={new Map()}
-            relayedViewerCameras={relayedViewerCameras}
+            relayedViewerCameras={new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer' }]))}
             viewerStream={viewerStream}
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}

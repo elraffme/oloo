@@ -22,6 +22,7 @@ interface VideoCallGridProps {
   viewerName?: string;
   isMuted?: boolean;
   relayedViewerCameras?: Map<string, { stream: MediaStream; displayName: string; avatarUrl?: string }>;
+  isHost: boolean;
 }
 
 const getGridClass = (count: number): string => {
@@ -52,6 +53,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
       displayName: hostName,
       stream: hostStream,
       isHost: true,
+      isYou: hostName === 'You (Host)' ? true : false
     });
   }
 
