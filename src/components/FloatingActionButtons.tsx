@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Gift, MessageSquare } from 'lucide-react';
+import { Heart, Gift, MessageSquare, LogOut, Mic, MicOff, Video, VideoOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,13 @@ interface FloatingActionButtonsProps {
   onLike: () => void;
   onGift: () => void;
   onChat: () => void;
+  onLeave?: () => void;
+  onMic?: () => void;
+  onCamera?: () => void;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
+  isMicRequesting?: boolean;
+  isCameraRequesting?: boolean;
   className?: string;
 }
 
@@ -18,46 +25,29 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
   onLike,
   onGift,
   onChat,
+  onLeave,
+  onMic,
+  onCamera,
+  micEnabled = false,
+  cameraEnabled = false,
+  isMicRequesting = false,
+  isCameraRequesting = false,
   className
 }) => {
   return (
     <div className={cn(
-      "fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-40 md:hidden",
+      "fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-row items-center gap-3 z-40 md:hidden",
+      "bg-black/60 backdrop-blur-md rounded-full px-4 py-2",
       className
     )}>
-      {/* Like Button */}
-      <div className="flex flex-col items-center gap-1">
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onLike}
-          className={cn(
-            "h-12 w-12 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all duration-300",
-            isLiked && "text-red-500"
-          )}
-        >
-          <Heart 
-            className={cn(
-              "h-6 w-6 transition-all duration-300",
-              isLiked && "fill-current animate-pulse"
-            )} 
-          />
-        </Button>
-        {totalLikes > 0 && (
-          <span className="text-xs font-bold text-white drop-shadow-lg">
-            {totalLikes > 999 ? `${(totalLikes / 1000).toFixed(1)}K` : totalLikes}
-          </span>
-        )}
-      </div>
-
       {/* Gift Button */}
       <Button
         size="icon"
         variant="ghost"
         onClick={onGift}
-        className="h-12 w-12 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 hover:scale-110 transition-all duration-300"
+        className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
       >
-        <Gift className="h-6 w-6 text-white" />
+        <Gift className="h-5 w-5 text-white" />
       </Button>
 
       {/* Chat Button */}
@@ -65,10 +55,91 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
         size="icon"
         variant="ghost"
         onClick={onChat}
-        className="h-12 w-12 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 hover:scale-110 transition-all duration-300"
+        className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
       >
-        <MessageSquare className="h-6 w-6 text-white" />
+        <MessageSquare className="h-5 w-5 text-white" />
       </Button>
+
+      {/* Like Button */}
+      <div className="flex flex-col items-center">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onLike}
+          className={cn(
+            "h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300",
+            isLiked && "text-red-500"
+          )}
+        >
+          <Heart 
+            className={cn(
+              "h-5 w-5 transition-all duration-300",
+              isLiked ? "fill-current text-red-500" : "text-white"
+            )} 
+          />
+        </Button>
+        {totalLikes > 0 && (
+          <span className="text-[10px] font-bold text-white -mt-1">
+            {totalLikes > 999 ? `${(totalLikes / 1000).toFixed(1)}K` : totalLikes}
+          </span>
+        )}
+      </div>
+
+      {/* Camera Button */}
+      {onCamera && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onCamera}
+          disabled={isCameraRequesting}
+          className={cn(
+            "h-11 w-11 rounded-full transition-all duration-300",
+            cameraEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/20"
+          )}
+        >
+          {isCameraRequesting ? (
+            <Loader2 className="h-5 w-5 text-white animate-spin" />
+          ) : cameraEnabled ? (
+            <Video className="h-5 w-5 text-white" />
+          ) : (
+            <VideoOff className="h-5 w-5 text-white" />
+          )}
+        </Button>
+      )}
+
+      {/* Mic Button */}
+      {onMic && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onMic}
+          disabled={isMicRequesting}
+          className={cn(
+            "h-11 w-11 rounded-full transition-all duration-300",
+            micEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/20"
+          )}
+        >
+          {isMicRequesting ? (
+            <Loader2 className="h-5 w-5 text-white animate-spin" />
+          ) : micEnabled ? (
+            <Mic className="h-5 w-5 text-white" />
+          ) : (
+            <MicOff className="h-5 w-5 text-white" />
+          )}
+        </Button>
+      )}
+
+      {/* Leave Button */}
+      {onLeave && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onLeave}
+          className="h-11 w-11 rounded-full bg-destructive/80 hover:bg-destructive transition-all duration-300"
+        >
+          <LogOut className="h-5 w-5 text-white" />
+        </Button>
+      )}
     </div>
   );
 };

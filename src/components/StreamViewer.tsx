@@ -729,54 +729,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             </Button>
           )}
 
-          {/* Leave Stream Button - Mobile Floating */}
-          {connectionState === 'streaming' && (
-            <button
-              onClick={handleLeaveStream}
-              className="absolute bottom-24 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
-            >
-              <div className="w-12 h-12 rounded-full bg-destructive/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <LogOut className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-white text-xs font-medium drop-shadow-md">Leave</span>
-            </button>
-          )}
-
-          {/* Mobile Microphone Toggle - Floating */}
-          <button
-            onClick={toggleViewerMic}
-            disabled={isMicRequesting}
-            className="absolute bottom-40 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
-          >
-            <div className={`w-12 h-12 rounded-full ${viewerMicEnabled ? 'bg-primary' : 'bg-white/20'} backdrop-blur-sm flex items-center justify-center shadow-lg`}>
-              {isMicRequesting ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
-              ) : viewerMicEnabled ? (
-                <Mic className="w-6 h-6 text-white" />
-              ) : (
-                <MicOff className="w-6 h-6 text-white" />
-              )}
-            </div>
-            <span className="text-white text-xs font-medium drop-shadow-md">Mic</span>
-          </button>
-
-          {/* Mobile Camera Toggle - Floating */}
-          <button
-            onClick={toggleViewerCamera}
-            disabled={isCameraRequesting}
-            className="absolute bottom-56 right-4 z-30 flex flex-col items-center gap-1 md:hidden"
-          >
-            <div className={`w-12 h-12 rounded-full ${viewerCameraEnabled ? 'bg-primary' : 'bg-white/20'} backdrop-blur-sm flex items-center justify-center shadow-lg`}>
-              {isCameraRequesting ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
-              ) : viewerCameraEnabled ? (
-                <Video className="w-6 h-6 text-white" />
-              ) : (
-                <VideoOff className="w-6 h-6 text-white" />
-              )}
-            </div>
-            <span className="text-white text-xs font-medium drop-shadow-md">Camera</span>
-          </button>
+          {/* Mobile floating buttons moved to FloatingActionButtons component */}
 
           {/* Video Call Grid */}
           <VideoCallGrid
@@ -813,13 +766,20 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         )}
       </div>
 
-      {/* Mobile FABs */}
+      {/* Mobile FABs - Horizontal Bottom Bar */}
       <FloatingActionButtons
         isLiked={isLiked}
         totalLikes={totalLikes}
         onLike={handleLike}
         onGift={() => setShowGiftSelector(true)}
         onChat={handleChatToggle}
+        onLeave={handleLeaveStream}
+        onMic={toggleViewerMic}
+        onCamera={toggleViewerCamera}
+        micEnabled={viewerMicEnabled}
+        cameraEnabled={viewerCameraEnabled}
+        isMicRequesting={isMicRequesting}
+        isCameraRequesting={isCameraRequesting}
       />
 
       {/* Mobile Chat Sheet */}
