@@ -524,9 +524,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             // Re-enable existing video track
             toggleVideo();
          } else {
-            // First time publishing or valid stream not present
-            await publishStream('camera');
-         }
+             // First time publishing or valid stream not present
+             const displayName = user?.email?.split('@')[0] || 'Viewer';
+             await publishStream('camera', displayName);
+          }
          
          setViewerCameraEnabled(true);
          setViewerMicEnabled(true); // Camera implies mic usually
@@ -560,9 +561,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             // Unmute
             toggleSFUMute();
          } else {
-            // Start audio only
-            await publishStream('mic');
-         }
+             // Start audio only
+             const displayName = user?.email?.split('@')[0] || 'Viewer';
+             await publishStream('mic', displayName);
+          }
          setViewerMicEnabled(true);
          toast.success('Microphone enabled');
        } catch (error) {
@@ -736,7 +738,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             hostStream={hostStream}
             hostName={hostName}
             viewerCameras={new Map()}
-            relayedViewerCameras={new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer' }]))}
+            relayedViewerCameras={new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: vs.displayName || 'Viewer' }]))}
             viewerStream={viewerStream}
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}
