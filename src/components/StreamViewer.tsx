@@ -62,7 +62,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   
   // Viewer camera states
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
-  const [viewerStream, setViewerStream] = useState<MediaStream | null>(null);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
   
   // Viewer microphone states
@@ -413,11 +412,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     try {
 
 
-      // Stop viewer stream tracks
-      if (viewerStream) {
-        viewerStream.getTracks().forEach(track => track.stop());
-        setViewerStream(null);
-      }
+      // Stop viewer stream tracks (handled by cleanup())
 
 
 
@@ -577,16 +572,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   };
 
   // Cleanup viewer camera on unmount
-  useEffect(() => {
-    return () => {
-      // if (viewerBroadcastRef.current) {
-      //   viewerBroadcastRef.current.cleanup();
-      // }
-      if (viewerStream) {
-        viewerStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
+  // Viewer stream cleanup is now handled by useStream's cleanup()
 
   // Monitor connection state changes and show user feedback
   useEffect(() => {
@@ -739,7 +725,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             hostName={hostName}
             viewerCameras={new Map()}
             relayedViewerCameras={new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: vs.displayName || 'Viewer' }]))}
-            viewerStream={viewerStream}
+            viewerStream={localStream}
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}
             isMuted={isMuted}
