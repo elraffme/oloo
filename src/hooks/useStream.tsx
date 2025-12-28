@@ -428,7 +428,7 @@ export const useStream = (navigation = null) => {
 
 
 
-  async function publishStream(type = "camera", displayName = "Viewer") {
+  async function publishStream(type = "camera", displayName = "Viewer"): Promise<MediaStream | null> {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -467,8 +467,11 @@ export const useStream = (navigation = null) => {
           });
         }
       }
+      
+      return stream;
     } catch (error) {
       console.error("Error publishing stream:", error);
+      return null;
     }
   }
 

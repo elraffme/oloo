@@ -518,15 +518,23 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
          if (localStream && localStream.getVideoTracks().length > 0) {
             // Re-enable existing video track
             toggleVideo();
+            setViewerCameraEnabled(true);
+            setViewerMicEnabled(true);
+            toast.success('Camera enabled! Host can now see you');
          } else {
              // First time publishing or valid stream not present
              const displayName = user?.email?.split('@')[0] || 'Viewer';
-             await publishStream('camera', displayName);
+             const stream = await publishStream('camera', displayName);
+             
+             // Only enable camera state if stream was successfully created
+             if (stream && stream.getVideoTracks().length > 0) {
+               setViewerCameraEnabled(true);
+               setViewerMicEnabled(true); // Camera implies mic usually
+               toast.success('Camera enabled! Host can now see you');
+             } else {
+               toast.error('Failed to access camera');
+             }
           }
-         
-         setViewerCameraEnabled(true);
-         setViewerMicEnabled(true); // Camera implies mic usually
-         toast.success('Camera enabled! Host can now see you');
       } catch (error: any) {
         console.error('Error enabling camera:', error);
         toast.error('Failed to enable camera');
