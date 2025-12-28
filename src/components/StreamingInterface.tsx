@@ -1559,26 +1559,26 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="music">Music</SelectItem>
-                        <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="food">Food & Cooking</SelectItem>
-                        <SelectItem value="culture">Culture</SelectItem>
-                        <SelectItem value="travel">Travel</SelectItem>
-                        <SelectItem value="dating">Dating & Relationships</SelectItem>
-                        <SelectItem value="gaming">Gaming</SelectItem>
-                        <SelectItem value="fitness">Fitness & Health</SelectItem>
-                        <SelectItem value="beauty">Beauty & Fashion</SelectItem>
-                        <SelectItem value="education">Education</SelectItem>
-                        <SelectItem value="technology">Technology</SelectItem>
-                        <SelectItem value="sports">Sports</SelectItem>
-                        <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
                         <SelectItem value="art">Art & Creativity</SelectItem>
+                        <SelectItem value="beauty">Beauty & Fashion</SelectItem>
                         <SelectItem value="business">Business & Finance</SelectItem>
-                        <SelectItem value="tvshow">TV Show</SelectItem>
-                        <SelectItem value="politics">Politics</SelectItem>
-                        <SelectItem value="history">History</SelectItem>
-                        <SelectItem value="religion">Religion</SelectItem>
+                        <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
+                        <SelectItem value="culture">Culture</SelectItem>
+                        <SelectItem value="dating">Dating & Relationships</SelectItem>
+                        <SelectItem value="education">Education</SelectItem>
+                        <SelectItem value="fitness">Fitness & Health</SelectItem>
+                        <SelectItem value="food">Food & Cooking</SelectItem>
+                        <SelectItem value="gaming">Gaming</SelectItem>
                         <SelectItem value="general">General</SelectItem>
+                        <SelectItem value="history">History</SelectItem>
+                        <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                        <SelectItem value="music">Music</SelectItem>
+                        <SelectItem value="politics">Politics</SelectItem>
+                        <SelectItem value="religion">Religion</SelectItem>
+                        <SelectItem value="sports">Sports</SelectItem>
+                        <SelectItem value="technology">Technology</SelectItem>
+                        <SelectItem value="travel">Travel</SelectItem>
+                        <SelectItem value="tvshow">TV Show</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
