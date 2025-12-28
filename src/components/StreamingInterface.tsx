@@ -1744,7 +1744,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] max-w-md mx-auto">
+                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[3/4] max-w-lg mx-auto">
                     {isStreaming ? (
                       // Use VideoCallGrid when streaming to show host + viewers
                       <VideoCallGrid

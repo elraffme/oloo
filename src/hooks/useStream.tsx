@@ -265,10 +265,10 @@ export const useStream = (navigation = null) => {
             const stream = await navigator.mediaDevices.getUserMedia({
               audio: true,
               video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: 960 },
+                height: { ideal: 1280 },
                 facingMode: 'user',
-                aspectRatio: { ideal: 16/9 }
+                aspectRatio: { ideal: 3/4 }
               }
             });
 
