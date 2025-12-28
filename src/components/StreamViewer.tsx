@@ -63,6 +63,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Viewer camera states
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
+  const [confirmedViewerStream, setConfirmedViewerStream] = useState<MediaStream | null>(null);
   
   // Viewer microphone states
   const [viewerMicEnabled, setViewerMicEnabled] = useState(false);
@@ -510,6 +511,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // Disable camera - just toggle the track
       toggleVideo();
       setViewerCameraEnabled(false);
+      setConfirmedViewerStream(null);
       toast.success('Camera disabled');
     } else {
       // Enable camera
@@ -518,6 +520,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
          if (localStream && localStream.getVideoTracks().length > 0) {
             // Re-enable existing video track
             toggleVideo();
+            setConfirmedViewerStream(localStream);
             setViewerCameraEnabled(true);
             setViewerMicEnabled(true);
             toast.success('Camera enabled! Host can now see you');
@@ -528,8 +531,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
              
              // Only enable camera state if stream was successfully created
              if (stream && stream.getVideoTracks().length > 0) {
+               setConfirmedViewerStream(stream);
                setViewerCameraEnabled(true);
-               setViewerMicEnabled(true); // Camera implies mic usually
+               setViewerMicEnabled(true);
                toast.success('Camera enabled! Host can now see you');
              } else {
                toast.error('Failed to access camera');
@@ -733,7 +737,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             hostName={hostName}
             viewerCameras={new Map()}
             relayedViewerCameras={new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: vs.displayName || 'Viewer' }]))}
-            viewerStream={localStream}
+            viewerStream={confirmedViewerStream || localStream}
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}
             isMuted={isMuted}
