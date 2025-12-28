@@ -435,15 +435,50 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [activeStreamId, isStreaming]);
 
-  // Monitor stream inactivity and auto-end after 5 minutes
+  // Heartbeat to keep stream marked as active
+  useEffect(() => {
+    if (!isStreaming || !activeStreamId) return;
+
+    console.log('💓 Starting stream activity heartbeat for:', activeStreamId);
+
+    const updateActivity = async () => {
+      try {
+        const { error } = await supabase
+          .from('streaming_sessions')
+          .update({ last_activity_at: new Date().toISOString() })
+          .eq('id', activeStreamId);
+        
+        if (error) {
+          console.error('❌ Error updating stream activity:', error);
+        } else {
+          console.log('💓 Stream activity heartbeat sent');
+        }
+      } catch (err) {
+        console.error('❌ Heartbeat error:', err);
+      }
+    };
+
+    // Send heartbeat immediately
+    updateActivity();
+
+    // Then send every 60 seconds
+    const heartbeatInterval = setInterval(updateActivity, 60000);
+
+    return () => {
+      console.log('💔 Stopping stream activity heartbeat');
+      clearInterval(heartbeatInterval);
+    };
+  }, [isStreaming, activeStreamId]);
+
+  // Monitor stream inactivity and auto-end after 15 minutes
   useEffect(() => {
     if (!isStreaming || !activeStreamId) return;
 
     console.log('⏱️ Starting inactivity monitor for stream:', activeStreamId);
+    let hasWarnedUser = false;
 
     const inactivityCheckInterval = setInterval(async () => {
       try {
-        // Query the stream's last_activity_at timestamp
         const { data: streamData, error } = await supabase
           .from('streaming_sessions')
           .select('last_activity_at, status')
@@ -467,23 +502,33 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         console.log('⏱️ Inactivity check:', {
           lastActivity: streamData.last_activity_at,
           inactiveSeconds: Math.floor(inactiveSeconds),
-          threshold: 300
+          threshold: 900
         });
 
-        // Auto-end if inactive for 5+ minutes (300 seconds)
-        if (inactiveSeconds >= 300) {
-          console.log('🔴 Stream inactive for 5+ minutes, auto-ending stream');
+        // Warn at 12 minutes (720 seconds)
+        if (inactiveSeconds >= 720 && inactiveSeconds < 900 && !hasWarnedUser) {
+          hasWarnedUser = true;
+          toast({
+            title: "Stream may end soon",
+            description: "Your stream will auto-end in 3 minutes due to inactivity.",
+            variant: "default"
+          });
+        }
+
+        // Auto-end if inactive for 15+ minutes (900 seconds)
+        if (inactiveSeconds >= 900) {
+          console.log('🔴 Stream inactive for 15+ minutes, auto-ending stream');
           clearInterval(inactivityCheckInterval);
           
           toast({
             title: "Stream ended due to inactivity",
-            description: "Your stream was automatically ended after 5 minutes of no activity.",
+            description: "Your stream was automatically ended after 15 minutes of no activity.",
             variant: "destructive"
           });
           
           await endStream();
         } else {
-          const remainingMinutes = Math.ceil((300 - inactiveSeconds) / 60);
+          const remainingMinutes = Math.ceil((900 - inactiveSeconds) / 60);
           console.log(`✅ Stream active, ${remainingMinutes} minutes until auto-end`);
         }
       } catch (err) {
