@@ -107,45 +107,62 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = tile.videoRef || localVideoRef;
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   useEffect(() => {
     if (!tile.stream || !videoRef.current) {
       console.log(`⚠️ VideoTile: Missing stream or ref for ${tile.displayName}`);
+      setIsConnecting(true);
       return;
     }
 
     console.log(`📹 VideoTile: Attaching stream for ${tile.displayName}`, {
       streamId: tile.stream.id,
-      tracks: tile.stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled })),
+      tracks: tile.stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, readyState: t.readyState })),
       isHost: tile.isHost,
       isYou: tile.isYou
     });
     
     videoRef.current.srcObject = tile.stream;
+    setIsConnecting(false);
     
     // Mobile-friendly play with retry and user interaction prompt
-    const playWithRetry = async () => {
-      try {
-        await videoRef.current?.play();
-        setPlaybackBlocked(false);
-      } catch (err) {
-        console.warn(`⚠️ Video autoplay failed for ${tile.displayName}:`, err);
-        // On mobile, mark as blocked so user can tap to play
-        if (!tile.isYou) {
-          setPlaybackBlocked(true);
+    const playWithRetry = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          if (videoRef.current) {
+            await videoRef.current.play();
+            setPlaybackBlocked(false);
+            console.log(`✅ Video playback started for ${tile.displayName} on attempt ${i + 1}`);
+            return;
+          }
+        } catch (err) {
+          console.warn(`⚠️ Video autoplay attempt ${i + 1} failed for ${tile.displayName}:`, err);
+          if (i === retries - 1 && !tile.isYou) {
+            setPlaybackBlocked(true);
+          }
+          await new Promise(r => setTimeout(r, 200 * (i + 1)));
         }
       }
     };
     
     playWithRetry();
 
+    // Listen for track additions (for streams that add tracks later)
+    const handleTrackAdded = () => {
+      console.log(`🎬 VideoTile: Track added to stream for ${tile.displayName}`);
+      playWithRetry();
+    };
+    tile.stream.addEventListener('addtrack', handleTrackAdded);
+
     return () => {
+      tile.stream?.removeEventListener('addtrack', handleTrackAdded);
       if (videoRef.current) {
         console.log(`🧹 VideoTile: Cleaning up stream for ${tile.displayName}`);
         videoRef.current.srcObject = null;
       }
     };
-  }, [tile.stream, tile.displayName, tile.isYou]);
+  }, [tile.stream, tile.displayName, tile.isYou, tile.isHost]);
   
   const handleTapToPlay = async () => {
     if (videoRef.current) {
@@ -160,8 +177,9 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
     }
   };
 
-  // Show placeholder if no stream
-  const hasStream = tile.stream && tile.stream.getTracks().length > 0;
+  // Show placeholder if no stream or stream has no video tracks
+  const hasStream = tile.stream && tile.stream.getVideoTracks().length > 0;
+  const hasActiveVideoTrack = tile.stream?.getVideoTracks().some(t => t.enabled && t.readyState === 'live') || false;
   
   // Check if stream has active audio track
   const hasAudioTrack = tile.stream?.getAudioTracks().some(t => t.enabled) || false;
@@ -174,16 +192,24 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           autoPlay
           playsInline
           webkit-playsinline="true"
+          x-webkit-airplay="allow"
           muted={tile.isYou}
           className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+          onLoadedMetadata={() => {
+            console.log(`📺 VideoTile: Metadata loaded for ${tile.displayName}`);
+            videoRef.current?.play().catch(e => console.warn('Play after metadata failed:', e));
+          }}
+          onCanPlay={() => {
+            console.log(`▶️ VideoTile: Can play for ${tile.displayName}`);
+          }}
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-muted">
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+            <div className={`w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2 ${isConnecting ? 'animate-pulse' : ''}`}>
               <span className="text-2xl text-primary">{tile.displayName[0]}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Connecting...</p>
+            <p className="text-sm text-muted-foreground">{isConnecting ? 'Connecting...' : 'No video'}</p>
           </div>
         </div>
       )}
