@@ -585,28 +585,31 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
     fetchLiveStreams();
 
-    // Phase 4: Force immediate cleanup on page load
+    // Phase 4: Less aggressive cleanup - only cleanup very old streams (24+ hours)
+    // This prevents accidentally archiving active streams
     const cleanupStaleStreams = async () => {
       try {
-        // Call the database function
+        // Call the database function for standard cleanup
         await supabase.rpc('cleanup_stale_live_streams');
-        console.log('✅ Stale streams cleanup completed');
+        console.log('✅ Stale streams cleanup completed via RPC');
 
-        // Additionally, immediately archive any streams that are clearly stale
-        // (This provides instant cleanup without waiting for the function)
-        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-        const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString();
-        const {
-          error: immediateCleanupError
-        } = await supabase.from('streaming_sessions').update({
-          status: 'archived',
-          ended_at: new Date().toISOString(),
-          current_viewers: 0
-        }).eq('status', 'live').or(`started_at.lt.${sixHoursAgo},and(started_at.is.null,created_at.lt.${oneHourAgo})`);
+        // Only archive streams that are VERY old (24+ hours) to avoid killing active streams
+        // Reduced from 6 hours to 24 hours to be much safer
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { error: immediateCleanupError } = await supabase
+          .from('streaming_sessions')
+          .update({
+            status: 'archived',
+            ended_at: new Date().toISOString(),
+            current_viewers: 0
+          })
+          .eq('status', 'live')
+          .lt('started_at', twentyFourHoursAgo); // Only streams older than 24 hours
+          
         if (immediateCleanupError) {
           console.warn('Failed immediate cleanup:', immediateCleanupError);
         } else {
-          console.log('✅ Immediate cleanup completed');
+          console.log('✅ Old streams (24h+) cleanup completed');
         }
       } catch (err) {
         console.warn('Failed to cleanup stale streams:', err);

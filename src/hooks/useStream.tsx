@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Device } from "mediasoup-client";
 import { io } from "socket.io-client";
 
-const SERVER_URL = "https://api.oloo.media";
+// Configurable server URL - can be overridden via environment variable
+const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
 export const useStream = (navigation = null) => {
   const [socket, setSocket] = useState(null);
@@ -13,7 +14,7 @@ export const useStream = (navigation = null) => {
   const [cameraFace, setCameraFace] = useState("user");
   const [remoteStream, setRemoteStream] = useState(null);
   const [viewerStreams, setViewerStreams] = useState([]);
-
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const device = useRef(null);
   const produceTransport = useRef(null);
@@ -25,12 +26,18 @@ export const useStream = (navigation = null) => {
   const socketRef = useRef<any>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const remotePeerId = useRef("");
+  const hostPeerId = useRef<string | null>(null);
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 3;
 
   function cleanup() {
+    console.log('🧹 Cleaning up stream resources...');
     produceTransport.current?.close();
     consumeTransports.current.forEach((transport) => transport?.close());
     localStreamRef.current?.getTracks().forEach((track) => track?.stop());
     socketRef.current?.disconnect();
+    reconnectAttempts.current = 0;
+    hostPeerId.current = null;
   }
 
   async function loadDevice(routerRtpCapabilities) {
@@ -204,7 +211,7 @@ export const useStream = (navigation = null) => {
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
 
-    console.log("new consumer", consumer.kind);
+    console.log("new consumer", consumer.kind, "from", appData?.type);
 
     if (appData?.type === "viewer") {
       const viewerConsumers = Array.from(consumers.current.values()).filter(
@@ -224,6 +231,10 @@ export const useStream = (navigation = null) => {
         }))
       );
     } else {
+      // This is the host/streamer - track their peerId for disconnect detection
+      hostPeerId.current = remPeerId;
+      console.log('📺 Host connected, tracking peerId:', remPeerId);
+      
       const streamerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type !== "viewer"
       );
@@ -345,7 +356,10 @@ export const useStream = (navigation = null) => {
   useEffect(() => {
     if (!socket) return;
     socket.on("userLeft", (leftPeer) => {
+      console.log('👤 User left event:', leftPeer);
+      
       if (roleRef.current === "streamer") {
+        // Host: just remove the viewer's stream
         for (const [key, consumer] of consumers.current) {
           if (consumer.appData?.peerId === leftPeer?.peerId) {
              consumer.close();
@@ -353,11 +367,22 @@ export const useStream = (navigation = null) => {
           }
         }
         setViewerStreams(prev => prev.filter(v => v.id !== leftPeer?.peerId));
-      } else if (leftPeer?.peerId === remotePeerId.current) {
-        remotePeerId.current = null;
-        setRemoteStream(null);
-        cleanup();
-        if (navigation) navigation.navigate("Home");
+      } else {
+        // Viewer: only react if the HOST left, not just any peer
+        const isHostLeaving = leftPeer?.appData?.type === 'streamer' || 
+                              leftPeer?.peerId === hostPeerId.current ||
+                              leftPeer?.peerId === remotePeerId.current;
+        
+        if (isHostLeaving) {
+          console.log('🔴 Host left the stream, clearing remote stream');
+          remotePeerId.current = null;
+          hostPeerId.current = null;
+          setRemoteStream(null);
+          cleanup();
+          if (navigation) navigation.navigate("Home");
+        } else {
+          console.log('👤 Another viewer left, ignoring (not the host)');
+        }
       }
     });
     return () => {
@@ -462,6 +487,7 @@ export const useStream = (navigation = null) => {
     initialize,
     cleanup,
     isConnected,
+    isReconnecting,
     localStream,
     peers,
     toggleCamera,

@@ -40,7 +40,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { initialize, remoteStream, cleanup, isConnected: isSFUConnected, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream } = useStream();
+  const { initialize, remoteStream, cleanup, isConnected: isSFUConnected, isReconnecting, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream } = useStream();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isLeavingRef = useRef(false);
@@ -355,11 +355,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId]);
 
-  // Connection watchdog - monitors and auto-reconnects if needed
+  // Connection watchdog - monitors and shows reconnection status
   useEffect(() => {
-    // SFU normally handles reconnection internally via socket.io
-    // But we can monitor isSFUConnected state here if needed
-  }, [isSFUConnected]);
+    if (isReconnecting) {
+      setConnectionState('failed');
+      toast.info('Reconnecting to stream...');
+    } else if (isSFUConnected && remoteStream) {
+      setConnectionState('streaming');
+    }
+  }, [isSFUConnected, isReconnecting, remoteStream]);
 
   const toggleMute = async () => {
     if (videoRef.current) {
