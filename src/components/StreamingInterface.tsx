@@ -94,6 +94,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const isCleaningUpRef = useRef(false);
   const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
+  const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
   const [giftNotifications, setGiftNotifications] = useState<Array<{
     id: string;
     senderName: string;
@@ -435,23 +436,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [activeStreamId, isStreaming]);
 
-  // Heartbeat to keep stream marked as active
+  // Keep activeStreamIdRef in sync with state
+  useEffect(() => {
+    activeStreamIdRef.current = activeStreamId;
+  }, [activeStreamId]);
+
+  // Heartbeat to keep stream marked as active (using ref to avoid stale closures)
   useEffect(() => {
     if (!isStreaming || !activeStreamId) return;
 
     console.log('💓 Starting stream activity heartbeat for:', activeStreamId);
 
     const updateActivity = async () => {
+      const currentStreamId = activeStreamIdRef.current;
+      if (!currentStreamId) {
+        console.warn('⚠️ No active stream ID for heartbeat');
+        return;
+      }
+
       try {
-        const { error } = await supabase
+        console.log('💓 Sending heartbeat for stream:', currentStreamId);
+        const { error, data } = await supabase
           .from('streaming_sessions')
           .update({ last_activity_at: new Date().toISOString() })
-          .eq('id', activeStreamId);
+          .eq('id', currentStreamId)
+          .select('last_activity_at')
+          .single();
         
         if (error) {
           console.error('❌ Error updating stream activity:', error);
         } else {
-          console.log('💓 Stream activity heartbeat sent');
+          console.log('💓 Stream activity heartbeat sent successfully:', data?.last_activity_at);
+          setLastHeartbeat(new Date());
         }
       } catch (err) {
         console.error('❌ Heartbeat error:', err);
@@ -461,8 +477,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     // Send heartbeat immediately
     updateActivity();
 
-    // Then send every 60 seconds
-    const heartbeatInterval = setInterval(updateActivity, 60000);
+    // Then send every 30 seconds (more frequent than inactivity check)
+    const heartbeatInterval = setInterval(updateActivity, 30000);
 
     return () => {
       console.log('💔 Stopping stream activity heartbeat');
@@ -470,75 +486,85 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [isStreaming, activeStreamId]);
 
-  // Monitor stream inactivity and auto-end after 15 minutes
+  // Monitor stream inactivity and auto-end after 15 minutes (delayed start)
   useEffect(() => {
     if (!isStreaming || !activeStreamId) return;
 
-    console.log('⏱️ Starting inactivity monitor for stream:', activeStreamId);
+    console.log('⏱️ Inactivity monitor will start in 2 minutes for stream:', activeStreamId);
     let hasWarnedUser = false;
+    let inactivityCheckInterval: NodeJS.Timeout | null = null;
 
-    const inactivityCheckInterval = setInterval(async () => {
-      try {
-        const { data: streamData, error } = await supabase
-          .from('streaming_sessions')
-          .select('last_activity_at, status')
-          .eq('id', activeStreamId)
-          .single();
+    // Delay the first inactivity check by 2 minutes to let heartbeat establish
+    const startDelay = setTimeout(() => {
+      console.log('⏱️ Starting inactivity monitor now');
+      
+      inactivityCheckInterval = setInterval(async () => {
+        const currentStreamId = activeStreamIdRef.current;
+        if (!currentStreamId) return;
 
-        if (error) {
-          console.error('❌ Error checking stream activity:', error);
-          return;
-        }
+        try {
+          const { data: streamData, error } = await supabase
+            .from('streaming_sessions')
+            .select('last_activity_at, status')
+            .eq('id', currentStreamId)
+            .single();
 
-        if (!streamData || streamData.status !== 'live') {
-          console.log('⚠️ Stream no longer live, stopping inactivity monitor');
-          return;
-        }
+          if (error) {
+            console.error('❌ Error checking stream activity:', error);
+            return;
+          }
 
-        const lastActivityTime = new Date(streamData.last_activity_at).getTime();
-        const currentTime = Date.now();
-        const inactiveSeconds = (currentTime - lastActivityTime) / 1000;
+          if (!streamData || streamData.status !== 'live') {
+            console.log('⚠️ Stream no longer live, stopping inactivity monitor');
+            return;
+          }
 
-        console.log('⏱️ Inactivity check:', {
-          lastActivity: streamData.last_activity_at,
-          inactiveSeconds: Math.floor(inactiveSeconds),
-          threshold: 900
-        });
+          const lastActivityTime = new Date(streamData.last_activity_at).getTime();
+          const currentTime = Date.now();
+          const inactiveSeconds = (currentTime - lastActivityTime) / 1000;
 
-        // Warn at 12 minutes (720 seconds)
-        if (inactiveSeconds >= 720 && inactiveSeconds < 900 && !hasWarnedUser) {
-          hasWarnedUser = true;
-          toast({
-            title: "Stream may end soon",
-            description: "Your stream will auto-end in 3 minutes due to inactivity.",
-            variant: "default"
+          console.log('⏱️ Inactivity check:', {
+            lastActivity: streamData.last_activity_at,
+            inactiveSeconds: Math.floor(inactiveSeconds),
+            threshold: 900
           });
-        }
 
-        // Auto-end if inactive for 15+ minutes (900 seconds)
-        if (inactiveSeconds >= 900) {
-          console.log('🔴 Stream inactive for 15+ minutes, auto-ending stream');
-          clearInterval(inactivityCheckInterval);
-          
-          toast({
-            title: "Stream ended due to inactivity",
-            description: "Your stream was automatically ended after 15 minutes of no activity.",
-            variant: "destructive"
-          });
-          
-          await endStream();
-        } else {
-          const remainingMinutes = Math.ceil((900 - inactiveSeconds) / 60);
-          console.log(`✅ Stream active, ${remainingMinutes} minutes until auto-end`);
+          // Warn at 12 minutes (720 seconds)
+          if (inactiveSeconds >= 720 && inactiveSeconds < 900 && !hasWarnedUser) {
+            hasWarnedUser = true;
+            toast({
+              title: "Stream may end soon",
+              description: "Your stream will auto-end in 3 minutes due to inactivity.",
+              variant: "default"
+            });
+          }
+
+          // Auto-end if inactive for 15+ minutes (900 seconds)
+          if (inactiveSeconds >= 900) {
+            console.log('🔴 Stream inactive for 15+ minutes, auto-ending stream');
+            if (inactivityCheckInterval) clearInterval(inactivityCheckInterval);
+            
+            toast({
+              title: "Stream ended due to inactivity",
+              description: "Your stream was automatically ended after 15 minutes of no activity.",
+              variant: "destructive"
+            });
+            
+            await endStream();
+          } else {
+            const remainingMinutes = Math.ceil((900 - inactiveSeconds) / 60);
+            console.log(`✅ Stream active, ${remainingMinutes} minutes until auto-end`);
+          }
+        } catch (err) {
+          console.error('❌ Error in inactivity check:', err);
         }
-      } catch (err) {
-        console.error('❌ Error in inactivity check:', err);
-      }
-    }, 30000); // Check every 30 seconds
+      }, 60000); // Check every 60 seconds (heartbeat is every 30s)
+    }, 120000); // 2 minute delay before starting checks
 
     return () => {
       console.log('🛑 Stopping inactivity monitor');
-      clearInterval(inactivityCheckInterval);
+      clearTimeout(startDelay);
+      if (inactivityCheckInterval) clearInterval(inactivityCheckInterval);
     };
   }, [isStreaming, activeStreamId, toast]);
 
@@ -1151,12 +1177,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       setChannelStatus('connected');
       
-      // Update stream to live immediately
+      // Update stream to live immediately with activity timestamp
       const {
         error: updateError
       } = await supabase.from('streaming_sessions').update({
         status: 'live',
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString()
       }).eq('id', data.id);
       
       if (updateError) {
@@ -1692,6 +1719,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                             <span className="text-amber-500">{balance.gold_balance}</span>
                           </Badge>
                         </div>}
+                      
+                      {/* Heartbeat Debug Indicator */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Heartbeat:</span>
+                        <Badge variant="outline" className={`gap-1 ${lastHeartbeat ? 'bg-green-500/10 border-green-500/30 text-green-700' : 'bg-gray-500/10'}`}>
+                          <Activity className="w-3 h-3" />
+                          {lastHeartbeat ? lastHeartbeat.toLocaleTimeString() : 'Pending...'}
+                        </Badge>
+                      </div>
                       
                     </div>}
                 </CardContent>
