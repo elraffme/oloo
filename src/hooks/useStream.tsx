@@ -217,17 +217,20 @@ export const useStream = (navigation = null) => {
       const viewerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type === "viewer"
       );
-      const viewerStreamsMap = new Map();
+      const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string }>();
       viewerConsumers.forEach((c) => {
         const pId = c.appData?.peerId || "unknown";
-        if (!viewerStreamsMap.has(pId))
-          viewerStreamsMap.set(pId, new MediaStream());
-        viewerStreamsMap.get(pId).addTrack(c.track);
+        const displayName = c.appData?.displayName || "Viewer";
+        if (!viewerStreamsMap.has(pId)) {
+          viewerStreamsMap.set(pId, { stream: new MediaStream(), displayName });
+        }
+        viewerStreamsMap.get(pId)!.stream.addTrack(c.track);
       });
       setViewerStreams(
-        Array.from(viewerStreamsMap.entries()).map(([id, stream]) => ({
+        Array.from(viewerStreamsMap.entries()).map(([id, data]) => ({
           id,
-          stream,
+          stream: data.stream,
+          displayName: data.displayName,
         }))
       );
     } else {
@@ -425,7 +428,7 @@ export const useStream = (navigation = null) => {
 
 
 
-  async function publishStream(type = "camera") {
+  async function publishStream(type = "camera", displayName = "Viewer") {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -447,7 +450,7 @@ export const useStream = (navigation = null) => {
         if (audioTrack) {
           await produceTransport.current.produce({
             track: audioTrack,
-            appData: { type: roleRef.current, peerId: peerId.current },
+            appData: { type: roleRef.current, peerId: peerId.current, displayName },
           });
         }
         if (videoTrack) {
@@ -460,7 +463,7 @@ export const useStream = (navigation = null) => {
                 maxBitrate: 1000000,
               },
             ],
-            appData: { type: roleRef.current, peerId: peerId.current },
+            appData: { type: roleRef.current, peerId: peerId.current, displayName },
           });
         }
       }
