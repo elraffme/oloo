@@ -72,6 +72,34 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
 
+  // Debug logging for stream states
+  useEffect(() => {
+    console.log('👥 StreamViewer: viewerStreams changed', {
+      count: viewerStreams.length,
+      streams: viewerStreams.map(vs => ({
+        id: vs.id,
+        displayName: vs.displayName,
+        tracks: vs.stream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled }))
+      }))
+    });
+  }, [viewerStreams]);
+
+  useEffect(() => {
+    console.log('📹 StreamViewer: Local stream state', {
+      hasConfirmedStream: !!confirmedViewerStream,
+      hasLocalStream: !!localStream,
+      videoTracks: (confirmedViewerStream || localStream)?.getVideoTracks().length || 0,
+      viewerCameraEnabled
+    });
+  }, [confirmedViewerStream, localStream, viewerCameraEnabled]);
+
+  useEffect(() => {
+    console.log('🎬 StreamViewer: Host stream state', {
+      hasHostStream: !!hostStream,
+      tracks: hostStream?.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, readyState: t.readyState }))
+    });
+  }, [hostStream]);
+
   // Floating chat messages for viewer
   const [floatingMessages, setFloatingMessages] = useState<Array<{
     id: string;
