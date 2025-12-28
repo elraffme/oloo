@@ -26,8 +26,13 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const isGuest = !user;
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     // Load initial messages
@@ -90,10 +95,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
   }, [streamId]);
 
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -151,7 +153,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
 
   return (
     <div className={`flex flex-col h-48 bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
-      <ScrollArea className="flex-1 p-2 md:p-3" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-2 md:p-3">
         <div className="space-y-2 md:space-y-3">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground text-xs md:text-sm py-6 md:py-8">
@@ -171,10 +173,11 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({ streamId, isMobi
                     })}
                   </span>
                 </div>
-                <p className="text-xs md:text-sm text-white font-medium break-words">{msg.message}</p>
+                <p className="text-xs md:text-sm text-foreground font-medium break-words">{msg.message}</p>
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
