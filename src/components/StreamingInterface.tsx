@@ -1588,7 +1588,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <span className="text-sm font-medium">Broadcasting Status:</span>
                         <Badge className="bg-green-500 text-white">
                           <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                          Live via WebRTC
+                          Live
                         </Badge>
                       </div>
                       
