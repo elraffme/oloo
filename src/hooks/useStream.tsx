@@ -264,7 +264,12 @@ export const useStream = (navigation = null) => {
         } else {
             const stream = await navigator.mediaDevices.getUserMedia({
               audio: true,
-              video: true,
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user',
+                aspectRatio: { ideal: 16/9 }
+              }
             });
 
             setIsMuted(false);

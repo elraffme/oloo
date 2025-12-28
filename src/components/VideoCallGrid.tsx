@@ -194,7 +194,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           webkit-playsinline="true"
           x-webkit-airplay="allow"
           muted={tile.isYou}
-          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+          className={`w-full h-full object-contain ${tile.isYou ? 'scale-x-[-1]' : ''}`}
           onLoadedMetadata={() => {
             console.log(`📺 VideoTile: Metadata loaded for ${tile.displayName}`);
             videoRef.current?.play().catch(e => console.warn('Play after metadata failed:', e));
