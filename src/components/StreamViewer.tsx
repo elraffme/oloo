@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ConnectionState } from '@/utils/ViewerConnection';
 import { useStream } from '@/hooks/useStream';
+
+type ConnectionState = 'disconnected' | 'checking_broadcaster' | 'joining' | 'awaiting_offer' | 'processing_offer' | 'awaiting_ice' | 'connected' | 'streaming' | 'awaiting_user_interaction' | 'failed' | 'timeout';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -783,6 +784,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             viewerCameraEnabled={viewerCameraEnabled}
             viewerName={user?.email?.split('@')[0] || 'You'}
             isMuted={isMuted}
+            isHost={false}
           />
 
           {/* Floating Chat Messages */}

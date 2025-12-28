@@ -107,7 +107,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   
   
   // Derived map for VideoCallGrid compatibility from SFU streams
-  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer' }]));
+  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer', sessionToken: vs.id }]));
   console.log(viewerCameras,'viewer cameras')
 
   
@@ -1669,6 +1669,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         viewerCameras={viewerCameras}
                         viewerStream={undefined}
                         viewerCameraEnabled={false}
+                        isHost={true}
                       />
                     ) : (
                       // Show preview before streaming
