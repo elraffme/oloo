@@ -1808,34 +1808,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       ? 'fixed inset-0 z-50 rounded-none' 
                       : 'rounded-lg aspect-[9/16] max-h-[70vh] w-auto'
                   }`}>
-                    {isStreaming ? (
-                      // Use VideoCallGrid when streaming to show host + viewers
-                      <VideoCallGrid
-                        hostStream={hostStream}
-                        hostName="You (Host)"
-                        viewerCameras={viewerCameras}
-                        viewerStream={undefined}
-                        viewerCameraEnabled={false}
-                        isHost={true}
+                    {/* Host's own camera - always visible using videoRef */}
+                    {isCameraOn ? (
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover bg-black" 
+                        style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
                       />
                     ) : (
-                      // Show preview before streaming
-                      <>
-                        {isCameraOn ? (
-                          <video 
-                            ref={videoRef} 
-                            autoPlay 
-                            muted 
-                            playsInline 
-                            className="w-full h-full object-cover bg-black" 
-                            style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white">
-                            <VideoOff className="w-12 h-12" />
-                          </div>
-                        )}
-                      </>
+                      <div className="w-full h-full flex items-center justify-center text-white">
+                        <VideoOff className="w-12 h-12" />
+                      </div>
                     )}
                     
                     {/* Fullscreen Toggle Button - Mobile Only */}
