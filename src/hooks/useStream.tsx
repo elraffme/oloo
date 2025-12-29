@@ -262,11 +262,11 @@ export const useStream = (navigation = null) => {
            setIsMuted(false);
            setCameraFace("user");
         } else {
-            const stream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
               audio: true,
               video: {
-                width: { ideal: 720 },
-                height: { ideal: 1280 },
+                width: { ideal: 1080 },
+                height: { ideal: 1920 },
                 facingMode: 'user',
                 aspectRatio: { ideal: 9/16 }
               }
