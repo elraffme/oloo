@@ -169,7 +169,12 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
             <div className="flex items-center gap-2">
               <Input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." disabled={isSending} maxLength={500} className="flex-1 text-sm h-9 md:h-10 text-foreground" />
               <EmotePicker onEmoteSelect={emote => setNewMessage(prev => prev + emote)} disabled={isSending} />
-              <Button type="submit" size="icon" disabled={!newMessage.trim() || isSending} className="h-9 w-9 md:h-10 md:w-10">
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={!newMessage.trim() || isSending}
+                className="h-9 w-9 md:h-10 md:w-10 bg-primary hover:bg-primary/90"
+              >
                 <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </Button>
             </div>
