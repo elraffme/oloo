@@ -130,6 +130,11 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
     }
   };
   return <div className={`flex flex-col h-48 bg-background/95 backdrop-blur ${isMobile ? 'pt-6' : ''}`}>
+      <div className="p-2 md:p-3 border-b border-border">
+        <h3 className="font-semibold text-foreground text-xs md:text-sm">Live Chat</h3>
+        <p className="text-[10px] md:text-xs text-muted-foreground">{messages.length} messages</p>
+      </div>
+
       <ScrollArea className="flex-1 p-2 md:p-3">
         <div className="space-y-2 md:space-y-3">
           {messages.length === 0 ? <div className="text-center text-muted-foreground text-xs md:text-sm py-6 md:py-8">
@@ -151,11 +156,6 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-
-      <div className="p-2 md:p-3 border-t border-b border-border">
-        <h3 className="font-semibold text-foreground text-xs md:text-sm">Live Chat</h3>
-        <p className="text-[10px] md:text-xs text-muted-foreground">{messages.length} messages</p>
-      </div>
 
       {/* Message input or guest notice */}
       {isGuest ? <div className="bg-muted/50 rounded-lg p-2 mx-2 mb-2 md:mx-3 md:mb-3 text-center space-y-1.5">
