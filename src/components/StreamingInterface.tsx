@@ -11,7 +11,6 @@ import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
 import StreamViewer from '@/components/StreamViewer';
 import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -29,7 +28,6 @@ import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -62,7 +60,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const {
     toast
   } = useToast();
-  const { initialize, cleanup, checkChannelHealth, viewerStreams } = useStream();
+  const {
+    initialize,
+    cleanup,
+    checkChannelHealth,
+    viewerStreams
+  } = useStream();
 
   // Determine active tab from URL - default to discover
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
@@ -74,7 +77,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isMicOn, setIsMicOn] = useState(true);
   const [streamTitle, setStreamTitle] = useState('');
   const [streamCategory, setStreamCategory] = useState('');
-
   const [totalLikes, setTotalLikes] = useState(0);
   const [totalGifts, setTotalGifts] = useState(0);
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
@@ -90,8 +92,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [streamLifecycle, setStreamLifecycle] = useState<'idle' | 'preparing' | 'waiting' | 'live' | 'ending' | 'ended'>('idle');
   const [channelStatus, setChannelStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [connectionHealth, setConnectionHealth] = useState<{ isHealthy: boolean; details: any } | null>(null);
-
+  const [connectionHealth, setConnectionHealth] = useState<{
+    isHealthy: boolean;
+    details: any;
+  } | null>(null);
   const isCleaningUpRef = useRef(false);
   const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
@@ -109,23 +113,49 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isHostFullscreen, setIsHostFullscreen] = useState(false);
   const [cameraFacingMode, setCameraFacingMode] = useState<'user' | 'environment'>('user');
   const [activeFilter, setActiveFilter] = useState<string>('none');
-  
-  // Filter presets for TikTok-style effects
-  const filters = [
-    { id: 'none', name: 'Normal', style: '' },
-    { id: 'warm', name: 'Warm', style: 'sepia(20%) saturate(120%) brightness(105%)' },
-    { id: 'cool', name: 'Cool', style: 'hue-rotate(15deg) saturate(90%) brightness(105%)' },
-    { id: 'enhance', name: 'Enhance', style: 'contrast(110%) saturate(120%) brightness(105%)' },
-    { id: 'soft', name: 'Soft', style: 'brightness(105%) contrast(95%)' },
-    { id: 'vivid', name: 'Vivid', style: 'saturate(150%) contrast(110%)' },
-    { id: 'bw', name: 'B&W', style: 'grayscale(100%)' },
-    { id: 'vintage', name: 'Vintage', style: 'sepia(40%) contrast(90%) brightness(95%)' },
-  ];
-  // Derived map for VideoCallGrid compatibility from SFU streams
-  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer', sessionToken: vs.id }]));
-  console.log(viewerCameras,'viewer cameras')
 
-  
+  // Filter presets for TikTok-style effects
+  const filters = [{
+    id: 'none',
+    name: 'Normal',
+    style: ''
+  }, {
+    id: 'warm',
+    name: 'Warm',
+    style: 'sepia(20%) saturate(120%) brightness(105%)'
+  }, {
+    id: 'cool',
+    name: 'Cool',
+    style: 'hue-rotate(15deg) saturate(90%) brightness(105%)'
+  }, {
+    id: 'enhance',
+    name: 'Enhance',
+    style: 'contrast(110%) saturate(120%) brightness(105%)'
+  }, {
+    id: 'soft',
+    name: 'Soft',
+    style: 'brightness(105%) contrast(95%)'
+  }, {
+    id: 'vivid',
+    name: 'Vivid',
+    style: 'saturate(150%) contrast(110%)'
+  }, {
+    id: 'bw',
+    name: 'B&W',
+    style: 'grayscale(100%)'
+  }, {
+    id: 'vintage',
+    name: 'Vintage',
+    style: 'sepia(40%) contrast(90%) brightness(95%)'
+  }];
+  // Derived map for VideoCallGrid compatibility from SFU streams
+  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, {
+    stream: vs.stream,
+    displayName: 'Viewer',
+    sessionToken: vs.id
+  }]));
+  console.log(viewerCameras, 'viewer cameras');
+
   // Debug: Log viewer cameras updates
   useEffect(() => {
     console.log('🎥 Host: Viewer cameras updated, count:', viewerCameras.size);
@@ -156,7 +186,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   //     }
 
   //     const videoTrack = videoTracks[0];
-      
+
   //     // Check if track became disabled or ended
   //     if (!videoTrack.enabled || videoTrack.readyState !== 'live') {
   //       console.error('❌ Video track issue:', {
@@ -181,9 +211,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
   //   return () => clearInterval(monitorInterval);
   // }, [isStreaming, toast]);
-
-
-
 
   // Debug: Log hostStream state changes for VideoCallGrid
   useEffect(() => {
@@ -210,7 +237,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [isTikTokMode, setIsTikTokMode] = useState(false);
-  
+
   // Initialize stream queue with live streams
   const streamQueueData = liveStreams.map(stream => ({
     id: stream.id,
@@ -222,7 +249,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     thumbnail: stream.thumbnail,
     category: stream.category
   }));
-  
   const {
     currentStream,
     nextStream,
@@ -234,15 +260,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } = useStreamQueue(streamQueueData);
   const [showStreamerChat, setShowStreamerChat] = useState(true);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
-  
+
   // Get active stream viewers
-  const { viewers: activeViewers, isLoading: viewersLoading } = useStreamViewers(activeStreamId || '');
+  const {
+    viewers: activeViewers,
+    isLoading: viewersLoading
+  } = useStreamViewers(activeStreamId || '');
 
   // Sync viewer count to DB
   useEffect(() => {
     if (isStreaming && activeStreamId) {
       const updateViewerCount = async () => {
-         await supabase.from('streaming_sessions').update({
+        await supabase.from('streaming_sessions').update({
           current_viewers: activeViewers.length
         }).eq('id', activeStreamId);
       };
@@ -356,8 +385,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
   }, [myActiveStream]);
 
-
-
   // Subscribe to gift transactions when streaming
   useEffect(() => {
     if (!activeStreamId || !user) return;
@@ -426,25 +453,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Subscribe to chat messages for floating display
   useEffect(() => {
     if (!activeStreamId || !isStreaming) return;
+    const channel = supabase.channel(`host_chat_${activeStreamId}`).on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'stream_chat_messages',
+      filter: `stream_id=eq.${activeStreamId}`
+    }, payload => {
+      const newMsg = payload.new as any;
+      setFloatingChatMessages(prev => [...prev.slice(-4), newMsg]);
 
-    const channel = supabase
-      .channel(`host_chat_${activeStreamId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'stream_chat_messages',
-        filter: `stream_id=eq.${activeStreamId}`
-      }, (payload) => {
-        const newMsg = payload.new as any;
-        setFloatingChatMessages(prev => [...prev.slice(-4), newMsg]);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-          setFloatingChatMessages(prev => prev.filter(m => m.id !== newMsg.id));
-        }, 5000);
-      })
-      .subscribe();
-
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        setFloatingChatMessages(prev => prev.filter(m => m.id !== newMsg.id));
+      }, 5000);
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
@@ -458,25 +480,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Heartbeat to keep stream marked as active (using ref to avoid stale closures)
   useEffect(() => {
     if (!isStreaming || !activeStreamId) return;
-
     console.log('💓 Starting stream activity heartbeat for:', activeStreamId);
-
     const updateActivity = async () => {
       const currentStreamId = activeStreamIdRef.current;
       if (!currentStreamId) {
         console.warn('⚠️ No active stream ID for heartbeat');
         return;
       }
-
       try {
         console.log('💓 Sending heartbeat for stream:', currentStreamId);
-        const { error, data } = await supabase
-          .from('streaming_sessions')
-          .update({ last_activity_at: new Date().toISOString() })
-          .eq('id', currentStreamId)
-          .select('last_activity_at')
-          .single();
-        
+        const {
+          error,
+          data
+        } = await supabase.from('streaming_sessions').update({
+          last_activity_at: new Date().toISOString()
+        }).eq('id', currentStreamId).select('last_activity_at').single();
         if (error) {
           console.error('❌ Error updating stream activity:', error);
         } else {
@@ -493,7 +511,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     // Then send every 30 seconds (more frequent than inactivity check)
     const heartbeatInterval = setInterval(updateActivity, 30000);
-
     return () => {
       console.log('💔 Stopping stream activity heartbeat');
       clearInterval(heartbeatInterval);
@@ -503,7 +520,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Monitor stream inactivity and auto-end after 15 minutes (delayed start)
   useEffect(() => {
     if (!isStreaming || !activeStreamId) return;
-
     console.log('⏱️ Inactivity monitor will start in 2 minutes for stream:', activeStreamId);
     let hasWarnedUser = false;
     let inactivityCheckInterval: NodeJS.Timeout | null = null;
@@ -511,32 +527,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     // Delay the first inactivity check by 2 minutes to let heartbeat establish
     const startDelay = setTimeout(() => {
       console.log('⏱️ Starting inactivity monitor now');
-      
       inactivityCheckInterval = setInterval(async () => {
         const currentStreamId = activeStreamIdRef.current;
         if (!currentStreamId) return;
-
         try {
-          const { data: streamData, error } = await supabase
-            .from('streaming_sessions')
-            .select('last_activity_at, status')
-            .eq('id', currentStreamId)
-            .single();
-
+          const {
+            data: streamData,
+            error
+          } = await supabase.from('streaming_sessions').select('last_activity_at, status').eq('id', currentStreamId).single();
           if (error) {
             console.error('❌ Error checking stream activity:', error);
             return;
           }
-
           if (!streamData || streamData.status !== 'live') {
             console.log('⚠️ Stream no longer live, stopping inactivity monitor');
             return;
           }
-
           const lastActivityTime = new Date(streamData.last_activity_at).getTime();
           const currentTime = Date.now();
           const inactiveSeconds = (currentTime - lastActivityTime) / 1000;
-
           console.log('⏱️ Inactivity check:', {
             lastActivity: streamData.last_activity_at,
             inactiveSeconds: Math.floor(inactiveSeconds),
@@ -557,13 +566,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           if (inactiveSeconds >= 900) {
             console.log('🔴 Stream inactive for 15+ minutes, auto-ending stream');
             if (inactivityCheckInterval) clearInterval(inactivityCheckInterval);
-            
             toast({
               title: "Stream ended due to inactivity",
               description: "Your stream was automatically ended after 15 minutes of no activity.",
               variant: "destructive"
             });
-            
             await endStream();
           } else {
             const remainingMinutes = Math.ceil((900 - inactiveSeconds) / 60);
@@ -598,12 +605,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Re-attach srcObject continuously during streaming to ensure video stays visible
   useEffect(() => {
     if (!isStreaming || !isCameraOn) return;
-    
     const ensureVideoConnection = () => {
       if (videoRef.current && streamRef.current) {
         const hasValidSrcObject = videoRef.current.srcObject === streamRef.current;
         const hasActiveTracks = streamRef.current.getVideoTracks().some(t => t.enabled && t.readyState === 'live');
-        
         console.log('📹 Video connection check:', {
           hasVideoRef: !!videoRef.current,
           hasStreamRef: !!streamRef.current,
@@ -612,7 +617,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           isCameraOn,
           isStreaming
         });
-        
         if (!hasValidSrcObject && hasActiveTracks) {
           console.log('🔄 Re-attaching srcObject during streaming');
           videoRef.current.srcObject = streamRef.current;
@@ -620,13 +624,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       }
     };
-    
+
     // Check immediately
     ensureVideoConnection();
-    
+
     // Check periodically while streaming
     const interval = setInterval(ensureVideoConnection, 2000);
-    
     return () => clearInterval(interval);
   }, [isStreaming, isCameraOn]);
 
@@ -716,16 +719,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         // Only archive streams that are VERY old (24+ hours) to avoid killing active streams
         // Reduced from 6 hours to 24 hours to be much safer
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { error: immediateCleanupError } = await supabase
-          .from('streaming_sessions')
-          .update({
-            status: 'archived',
-            ended_at: new Date().toISOString(),
-            current_viewers: 0
-          })
-          .eq('status', 'live')
-          .lt('started_at', twentyFourHoursAgo); // Only streams older than 24 hours
-          
+        const {
+          error: immediateCleanupError
+        } = await supabase.from('streaming_sessions').update({
+          status: 'archived',
+          ended_at: new Date().toISOString(),
+          current_viewers: 0
+        }).eq('status', 'live').lt('started_at', twentyFourHoursAgo); // Only streams older than 24 hours
+
         if (immediateCleanupError) {
           console.warn('Failed immediate cleanup:', immediateCleanupError);
         } else {
@@ -803,14 +804,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       supabase.removeChannel(channel);
     };
   }, []);
-
   const cleanupStream = async () => {
     // Stop all tracks
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    
+
     // Clear video src
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -846,7 +846,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
   //     // 3. Clear intervals
 
-
   //     // 4. Update database if streaming (use ref for current value) - Archive immediately
   //     if (activeStreamIdRef.current) {
   //       console.log('Archiving stream on unmount');
@@ -864,7 +863,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (activeStreamId && isStreaming) {
         console.log('🚪 Browser closing/refreshing - ending stream synchronously');
-        
+
         // Synchronously update the database before page closes
         const xhr = new XMLHttpRequest();
         xhr.open('PATCH', `https://kdvnxzniqyomdeicmycs.supabase.co/rest/v1/streaming_sessions?id=eq.${activeStreamId}`, false);
@@ -872,7 +871,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         xhr.setRequestHeader('apikey', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXwGx_INpWPGPXY6Z6oJEb5E');
         xhr.setRequestHeader('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtkdm54em5pcXlvbWRlaWNteWNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxMjA4NjAsImV4cCI6MjA3MDY5Njg2MH0.OpjCOM_0uI5MujiR191FXwGx_INpWPGPXY6Z6oJEb5E');
         xhr.setRequestHeader('Prefer', 'return=minimal');
-        
         try {
           xhr.send(JSON.stringify({
             status: 'archived',
@@ -882,16 +880,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         } catch (error) {
           console.error('Failed to end stream on unload:', error);
         }
-        
+
         // Show confirmation dialog
         e.preventDefault();
         e.returnValue = 'You are currently streaming. Are you sure you want to leave?';
         return e.returnValue;
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
@@ -900,29 +896,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Handle browser visibility changes - check and restore connection when tab becomes visible
   useEffect(() => {
     if (!isStreaming) return;
-
     const handleVisibilityChange = () => {
       if (document.hidden) {
         console.log('📱 Tab hidden - connection may throttle');
       } else {
         console.log('📱 Tab visible - checking connection health');
-        
+
         // Check connection health when tab becomes visible
         const health = checkChannelHealth();
         setConnectionHealth(health || null);
-        
         if (health && !health.isHealthy) {
           console.warn('⚠️ Connection unhealthy after tab switch, may auto-reconnect');
           setIsReconnecting(true);
-          
+
           // Clear reconnecting flag after a few seconds
           setTimeout(() => setIsReconnecting(false), 5000);
         }
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -931,11 +923,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Monitor connection health periodically while streaming
   useEffect(() => {
     if (!isStreaming) return;
-
     const healthCheckInterval = setInterval(() => {
       const health = checkChannelHealth();
       setConnectionHealth(health || null);
-      
       if (health && !health.isHealthy) {
         console.warn('⚠️ Connection health check failed:', health.details);
       }
@@ -943,7 +933,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     return () => clearInterval(healthCheckInterval);
   }, [isStreaming, checkChannelHealth]);
-  
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
@@ -1008,7 +997,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (videoRef.current && streamRef.current) {
         videoRef.current.srcObject = streamRef.current;
         await videoRef.current.play();
-        
+
         // Update host stream state for VideoCallGrid
         console.log('✅ Setting host stream state for VideoCallGrid');
         setHostStream(streamRef.current);
@@ -1072,71 +1061,70 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Flip camera between front and back (for mobile)
   const flipCamera = async () => {
     if (!streamRef.current) return;
-    
     const newFacingMode = cameraFacingMode === 'user' ? 'environment' : 'user';
-    
+
     // Stop current video track
     streamRef.current.getVideoTracks().forEach(track => track.stop());
-    
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
+          width: {
+            ideal: 1080
+          },
+          height: {
+            ideal: 1920
+          },
           facingMode: newFacingMode,
-          aspectRatio: { ideal: 9/16 }
+          aspectRatio: {
+            ideal: 9 / 16
+          }
         },
         audio: false
       });
-      
+
       // Replace video track in existing stream
       const newVideoTrack = newStream.getVideoTracks()[0];
       const oldVideoTrack = streamRef.current.getVideoTracks()[0];
-      
       if (oldVideoTrack) {
         streamRef.current.removeTrack(oldVideoTrack);
       }
       streamRef.current.addTrack(newVideoTrack);
-      
       if (videoRef.current) {
         videoRef.current.srcObject = streamRef.current;
       }
-      
       setCameraFacingMode(newFacingMode);
-      toast({ title: 'Camera flipped', description: `Now using ${newFacingMode === 'user' ? 'front' : 'back'} camera` });
+      toast({
+        title: 'Camera flipped',
+        description: `Now using ${newFacingMode === 'user' ? 'front' : 'back'} camera`
+      });
     } catch (err) {
       console.error('Failed to flip camera:', err);
-      toast({ 
-        title: 'Camera Error', 
-        description: 'Could not switch camera. Your device may only have one camera.', 
-        variant: 'destructive' 
+      toast({
+        title: 'Camera Error',
+        description: 'Could not switch camera. Your device may only have one camera.',
+        variant: 'destructive'
       });
     }
   };
-
   const validateMediaStream = (stream: MediaStream | null): boolean => {
     if (!stream) {
       console.warn('⚠️ Stream is null');
       return false;
     }
-    
     const videoTracks = stream.getVideoTracks();
     if (videoTracks.length === 0) {
       console.warn('⚠️ No video tracks in stream');
       return false;
     }
-    
     const videoTrack = videoTracks[0];
     if (!videoTrack.enabled) {
       console.warn('⚠️ Video track is disabled');
       return false;
     }
-    
     if (videoTrack.readyState !== 'live') {
       console.warn('⚠️ Video track is not live, state:', videoTrack.readyState);
       return false;
     }
-    
     console.log('✅ Stream is valid:', {
       trackCount: videoTracks.length,
       enabled: videoTrack.enabled,
@@ -1144,7 +1132,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     });
     return true;
   };
-
   const startStream = async () => {
     if (!user) {
       toast({
@@ -1262,15 +1249,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Stream validation failed');
       }
 
-
-
       // Initialize SFU stream
       console.log('🔧 Initializing SFU stream...');
       await initialize('streamer', {}, data.id, streamRef.current);
       console.log('✅ SFU stream initialized');
-
       setChannelStatus('connected');
-      
+
       // Update stream to live immediately with activity timestamp
       const {
         error: updateError
@@ -1279,7 +1263,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         started_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString()
       }).eq('id', data.id);
-      
       if (updateError) {
         console.error('Error updating stream to live:', updateError);
       } else {
@@ -1287,8 +1270,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         setStreamLifecycle('live');
         setIsBroadcastReady(true);
       }
-
-
 
       // Fetch ICE servers to check TURN availability
       try {
@@ -1301,10 +1282,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       } catch (err) {
         console.error('Failed to fetch ICE servers:', err);
       }
-
       console.log('✅ Broadcast setup initiated');
       setIsLoading(false);
-
       toast({
         title: "🎥 Stream Starting...",
         description: "Establishing broadcast connection"
@@ -1334,28 +1313,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   };
   const handleHostReconnect = async () => {
-      // Re-initialize SFU
-      if (activeStreamId && streamRef.current) {
-        cleanup();
-        await initialize('streamer', {}, activeStreamId, streamRef.current);
-        toast({
-          title: "Reconnected",
-          description: "Stream connection reset."
-        });
-      }
+    // Re-initialize SFU
+    if (activeStreamId && streamRef.current) {
+      cleanup();
+      await initialize('streamer', {}, activeStreamId, streamRef.current);
+      toast({
+        title: "Reconnected",
+        description: "Stream connection reset."
+      });
+    }
   };
-
   const endStream = async () => {
     if (!activeStreamId) return;
     setStreamLifecycle('ending');
     setIsLoading(true);
     try {
-
-
       // Cleanup SFU
       cleanup();
-      
-      
       setChannelStatus('disconnected');
 
       // Phase 1: Stop all media tracks
@@ -1461,7 +1435,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     setViewingStreamData(null);
     setIsTikTokMode(false);
   };
-  
   const handleTikTokNext = () => {
     goToNext();
     if (currentStream) {
@@ -1479,7 +1452,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-  
   const handleTikTokPrevious = () => {
     goToPrevious();
     if (currentStream) {
@@ -1548,21 +1520,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   ✨ Real-time Streaming
                 </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (liveStreams.length > 0) {
-                      joinStream(liveStreams[0], true);
-                    } else {
-                      toast({
-                        title: "No live streams",
-                        description: "There are no live streams available right now",
-                      });
-                    }
-                  }}
-                  className="gap-2"
-                >
+                <Button variant="outline" size="sm" onClick={() => {
+                if (liveStreams.length > 0) {
+                  joinStream(liveStreams[0], true);
+                } else {
+                  toast({
+                    title: "No live streams",
+                    description: "There are no live streams available right now"
+                  });
+                }
+              }} className="gap-2">
                   <Play className="w-4 h-4" />
                   TikTok Mode
                 </Button>
@@ -1613,17 +1580,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     <div className="relative">
                       {/* Stream Thumbnail */}
                       <div className="aspect-video relative overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20">
-                        {stream.thumbnail ? (
-                          <img 
-                            src={stream.thumbnail} 
-                            alt={stream.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
+                        {stream.thumbnail ? <img src={stream.thumbnail} alt={stream.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" /> : <div className="w-full h-full flex items-center justify-center">
                             <Video className="w-12 h-12 text-muted-foreground" />
-                          </div>
-                        )}
+                          </div>}
                         
                         {/* Live Badge */}
                         <div className="absolute top-3 left-3 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 animate-pulse">
@@ -1659,11 +1618,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </div>
                         
                         {/* Category Badge */}
-                        {stream.category && (
-                          <Badge variant="outline" className="text-xs">
+                        {stream.category && <Badge variant="outline" className="text-xs">
                             {stream.category}
-                          </Badge>
-                        )}
+                          </Badge>}
                         
                         {/* Stats */}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2">
@@ -1761,35 +1718,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       {/* Connection Status Indicator */}
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connection:</span>
-                        {channelStatus === 'connected' && !isReconnecting ? (
-                          <Badge variant="outline" className="bg-green-500/10 border-green-500/30 text-green-700">
+                        {channelStatus === 'connected' && !isReconnecting ? <Badge variant="outline" className="bg-green-500/10 border-green-500/30 text-green-700">
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             Connected
-                          </Badge>
-                        ) : channelStatus === 'connecting' || isReconnecting ? (
-                          <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-700">
+                          </Badge> : channelStatus === 'connecting' || isReconnecting ? <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-700">
                             <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                             {isReconnecting ? 'Reconnecting...' : 'Connecting...'}
-                          </Badge>
-                        ) : channelStatus === 'error' ? (
-                          <Badge variant="outline" className="bg-red-500/10 border-red-500/30 text-red-700">
+                          </Badge> : channelStatus === 'error' ? <Badge variant="outline" className="bg-red-500/10 border-red-500/30 text-red-700">
                             <XCircle className="w-3 h-3 mr-1" />
                             Connection Error
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-500/10 border-gray-500/30">
+                          </Badge> : <Badge variant="outline" className="bg-gray-500/10 border-gray-500/30">
                             <Activity className="w-3 h-3 mr-1" />
                             Disconnected
-                          </Badge>
-                        )}
+                          </Badge>}
                       </div>
                       
-                      {connectionHealth && !connectionHealth.isHealthy && (
-                        <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
+                      {connectionHealth && !connectionHealth.isHealthy && <div className="text-xs text-yellow-600 dark:text-yellow-500 flex items-center gap-1">
                           <Activity className="w-3 h-3" />
                           Connection quality degraded - auto-reconnecting
-                        </div>
-                      )}
+                        </div>}
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connected Viewers:</span>
@@ -1840,40 +1787,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 <CardContent>
                   <div className="flex flex-col items-center space-y-4">
                     {/* Compact Camera Preview */}
-                    <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
-                      isHostFullscreen 
-                        ? 'fixed inset-0 z-50 rounded-none' 
-                        : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'
-                    }`}>
+                    <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}>
                       {/* Video element always in DOM - hidden when camera off */}
-                      <video 
-                        ref={videoRef} 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
-                        style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
-                      />
+                      <video ref={videoRef} autoPlay muted playsInline className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`} style={{
+                      filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined
+                    }} />
                       {/* Stream active indicator */}
-                      {isCameraOn && isStreaming && (
-                        <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
+                      {isCameraOn && isStreaming && <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
                           Stream Active
-                        </div>
-                      )}
+                        </div>}
                       {/* Keep video visible with placeholder when camera off */}
-                      {!isCameraOn && (
-                        <div className="absolute inset-0 bg-black flex items-center justify-center">
+                      {!isCameraOn && <div className="absolute inset-0 bg-black flex items-center justify-center">
                           <VideoOff className="w-12 h-12 text-muted-foreground" />
-                        </div>
-                      )}
+                        </div>}
                       
                       {/* Fullscreen Toggle Button - Mobile Only */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden"
-                        onClick={() => setIsHostFullscreen(!isHostFullscreen)}
-                      >
+                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" onClick={() => setIsHostFullscreen(!isHostFullscreen)}>
                         {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
                       </Button>
                       
@@ -1883,22 +1812,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </Badge>}
 
                       {/* Viewer Camera Thumbnails Overlay */}
-                      {isStreaming && (activeViewers.length > 0 || viewerCameras.size > 0) && (
-                        <div className="absolute top-10 left-2 right-12 z-20 overflow-x-auto">
+                      {isStreaming && (activeViewers.length > 0 || viewerCameras.size > 0) && <div className="absolute top-10 left-2 right-12 z-20 overflow-x-auto">
                           <div className="flex gap-1.5 pb-1">
                             {/* Viewers with active cameras */}
-                            {Array.from(viewerCameras.values()).map((camera) => (
-                              <div 
-                                key={camera.sessionToken} 
-                                className="relative w-12 h-16 rounded-lg overflow-hidden border-2 border-primary/50 shadow-lg flex-shrink-0 bg-black"
-                              >
-                                <video
-                                  autoPlay
-                                  playsInline
-                                  muted
-                                  className="w-full h-full object-cover"
-                                  ref={(el) => { if (el && camera.stream) el.srcObject = camera.stream; }}
-                                />
+                            {Array.from(viewerCameras.values()).map(camera => <div key={camera.sessionToken} className="relative w-12 h-16 rounded-lg overflow-hidden border-2 border-primary/50 shadow-lg flex-shrink-0 bg-black">
+                                <video autoPlay playsInline muted className="w-full h-full object-cover" ref={el => {
+                            if (el && camera.stream) el.srcObject = camera.stream;
+                          }} />
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-0.5">
                                   <span className="text-[8px] text-white truncate block text-center">
                                     {camera.displayName?.slice(0, 6) || 'Viewer'}
@@ -1907,16 +1827,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                                 <div className="absolute top-0.5 right-0.5">
                                   <Video className="w-2.5 h-2.5 text-green-400" />
                                 </div>
-                              </div>
-                            ))}
+                              </div>)}
                             {/* Viewers without cameras - show avatar */}
-                            {activeViewers
-                              .filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id))
-                              .map((viewer) => (
-                                <div 
-                                  key={viewer.session_id} 
-                                  className="relative w-12 h-16 rounded-lg overflow-hidden border border-border/50 bg-black/60 flex flex-col items-center justify-center flex-shrink-0"
-                                >
+                            {activeViewers.filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id)).map(viewer => <div key={viewer.session_id} className="relative w-12 h-16 rounded-lg overflow-hidden border border-border/50 bg-black/60 flex flex-col items-center justify-center flex-shrink-0">
                                   <Avatar className="h-6 w-6">
                                     <AvatarImage src={viewer.avatar_url} />
                                     <AvatarFallback className="text-[10px] bg-muted">
@@ -1926,34 +1839,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                                   <span className="text-[8px] text-white/80 mt-0.5 truncate max-w-[40px] text-center">
                                     {viewer.viewer_display_name?.slice(0, 6) || 'Guest'}
                                   </span>
-                                  {viewer.is_guest && (
-                                    <span className="absolute top-0.5 left-0.5 text-[6px] bg-muted/80 px-0.5 rounded text-muted-foreground">
+                                  {viewer.is_guest && <span className="absolute top-0.5 left-0.5 text-[6px] bg-muted/80 px-0.5 rounded text-muted-foreground">
                                       G
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
+                                    </span>}
+                                </div>)}
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
                       {/* Like Animation Overlay */}
                       {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
 
                       {/* Floating Chat Messages Overlay */}
-                      {isStreaming && (
-                        <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
-                          {floatingChatMessages.map((msg) => (
-                            <div
-                              key={msg.id}
-                              className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
-                            >
+                      {isStreaming && <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                          {floatingChatMessages.map(msg => <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs">
                               <span className="text-white font-semibold text-sm">{msg.username}: </span>
                               <span className="text-white text-sm">{msg.message}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            </div>)}
+                        </div>}
 
                       {/* Gift Notifications Overlay */}
                       {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
@@ -1969,24 +1871,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
 
                     {/* Camera Status Indicator */}
-                    {!isCameraOn && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
+                    {!isCameraOn && <div className="flex items-center gap-2 text-muted-foreground">
                         <span className="text-sm">Camera Off</span>
-                      </div>
-                    )}
+                      </div>}
 
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
                     <div className="flex items-center justify-center gap-4">
                       {/* Flip Camera */}
                       <div className="flex flex-col items-center gap-1">
-                        <Button 
-                          onClick={flipCamera} 
-                          variant="ghost" 
-                          size="icon"
-                          disabled={!isCameraOn}
-                          title="Flip Camera"
-                          className="h-10 w-10"
-                        >
+                        <Button onClick={flipCamera} variant="ghost" size="icon" disabled={!isCameraOn} title="Flip Camera" className="h-10 w-10">
                           <FlipHorizontal className="w-5 h-5" />
                         </Button>
                         <span className="text-xs text-muted-foreground">Flip</span>
@@ -1996,32 +1889,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       <div className="flex flex-col items-center gap-1">
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              disabled={!isCameraOn} 
-                              title="Filters"
-                              className={`h-10 w-10 ${activeFilter !== 'none' ? 'text-primary' : ''}`}
-                            >
+                            <Button variant="ghost" size="icon" disabled={!isCameraOn} title="Filters" className={`h-10 w-10 ${activeFilter !== 'none' ? 'text-primary' : ''}`}>
                               <Wand2 className="w-5 h-5" />
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-64 p-3" align="center">
                             <p className="text-sm font-medium mb-2 text-center">Choose Filter</p>
                             <div className="grid grid-cols-4 gap-2">
-                              {filters.map((filter) => (
-                                <button
-                                  key={filter.id}
-                                  onClick={() => setActiveFilter(filter.id)}
-                                  className={`p-2 rounded-lg text-xs transition-all ${
-                                    activeFilter === filter.id 
-                                      ? 'bg-primary text-primary-foreground ring-2 ring-primary' 
-                                      : 'bg-muted hover:bg-muted/80'
-                                  }`}
-                                >
+                              {filters.map(filter => <button key={filter.id} onClick={() => setActiveFilter(filter.id)} className={`p-2 rounded-lg text-xs transition-all ${activeFilter === filter.id ? 'bg-primary text-primary-foreground ring-2 ring-primary' : 'bg-muted hover:bg-muted/80'}`}>
                                   {filter.name}
-                                </button>
-                              ))}
+                                </button>)}
                             </div>
                           </PopoverContent>
                         </Popover>
@@ -2030,19 +1907,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       
                       {/* Camera Toggle */}
                       <div className="flex flex-col items-center gap-1">
-                        <Button 
-                          onClick={() => {
-                            if (!hasCameraPermission) {
-                              initializeMedia(true, false);
-                            } else {
-                              toggleCamera();
-                            }
-                          }} 
-                          disabled={isRequestingCamera} 
-                          variant="outline" 
-                          size="icon"
-                          className="h-10 w-10"
-                        >
+                        <Button onClick={() => {
+                        if (!hasCameraPermission) {
+                          initializeMedia(true, false);
+                        } else {
+                          toggleCamera();
+                        }
+                      }} disabled={isRequestingCamera} variant="outline" size="icon" className="h-10 w-10">
                           {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
                         </Button>
                         <span className="text-xs text-muted-foreground">Cam</span>
@@ -2050,19 +1921,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       
                       {/* Mic Toggle */}
                       <div className="flex flex-col items-center gap-1">
-                        <Button 
-                          onClick={() => {
-                            if (!hasMicPermission) {
-                              initializeMedia(false, true);
-                            } else {
-                              toggleMicrophone();
-                            }
-                          }} 
-                          disabled={isRequestingMic} 
-                          variant="outline" 
-                          size="icon"
-                          className="h-10 w-10"
-                        >
+                        <Button onClick={() => {
+                        if (!hasMicPermission) {
+                          initializeMedia(false, true);
+                        } else {
+                          toggleMicrophone();
+                        }
+                      }} disabled={isRequestingMic} variant="outline" size="icon" className="h-10 w-10">
                           {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </Button>
                         <span className="text-xs text-muted-foreground">Mic</span>
@@ -2084,40 +1949,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
-                      {!isStreaming ? (
-                        <Button 
-                          onClick={startStream} 
-                          disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} 
-                          className="w-full bg-red-500 hover:bg-red-600 text-white" 
-                          size="lg"
-                        >
+                      {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
-                        </Button>
-                      ) : (
-                        <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
+                        </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
                           {isLoading ? 'Ending...' : 'End Stream'}
-                        </Button>
-                      )}
-                      {!hasCameraPermission && (
-                        <p className="text-xs text-muted-foreground text-center mt-2">
+                        </Button>}
+                      {!hasCameraPermission && <p className="text-xs text-muted-foreground text-center mt-2">
                           Enable camera to start broadcasting
-                        </p>
-                      )}
+                        </p>}
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Live Chat & Viewers (only when streaming) */}
-              {isStreaming && activeStreamId && (
-                <div className="space-y-4 lg:row-span-2">
+              {isStreaming && activeStreamId && <div className="space-y-4 lg:row-span-2">
                   {/* All Viewers Card */}
-                  <ViewerCameraThumbnails
-                    viewerCameras={viewerCameras}
-                    allViewers={activeViewers}
-                    className="max-h-[400px]"
-                  />
+                  <ViewerCameraThumbnails viewerCameras={viewerCameras} allViewers={activeViewers} className="max-h-[400px]" />
                   
                   {/* Active Viewers Card */}
                   <Card className="cultural-card">
@@ -2129,93 +1978,48 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[200px]">
-                        {viewersLoading ? (
-                          <p className="text-sm text-muted-foreground">Loading viewers...</p>
-                        ) : activeViewers.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No viewers yet</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {activeViewers.map((viewer) => (
-                              <div 
-                                key={viewer.session_id} 
-                                className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
-                              >
+                        {viewersLoading ? <p className="text-sm text-muted-foreground">Loading viewers...</p> : activeViewers.length === 0 ? <p className="text-sm text-muted-foreground">No viewers yet</p> : <div className="space-y-2">
+                            {activeViewers.map(viewer => <div key={viewer.session_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
                                 <Avatar className="w-8 h-8 relative">
                                   <AvatarImage src={viewer.avatar_url || '/placeholder.svg'} />
                                   <AvatarFallback>
                                     {viewer.viewer_display_name[0]?.toUpperCase() || 'G'}
                                   </AvatarFallback>
-                                  {viewer.camera_stream_active && (
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                  {viewer.camera_stream_active && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
                                       <Video className="w-2.5 h-2.5 text-primary-foreground" />
-                                    </div>
-                                  )}
+                                    </div>}
                                 </Avatar>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium truncate flex items-center gap-1">
                                     {viewer.viewer_display_name}
-                                    {viewer.camera_enabled && (
-                                      <Video className="w-3 h-3 text-primary" />
-                                    )}
+                                    {viewer.camera_enabled && <Video className="w-3 h-3 text-primary" />}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
                                     {viewer.is_guest ? 'Guest' : 'Member'}
                                     {viewer.camera_stream_active && ' • Camera active'}
                                   </p>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                              </div>)}
+                          </div>}
                       </ScrollArea>
                     </CardContent>
                   </Card>
 
                   {/* Live Chat Card */}
                   <Card className="cultural-card flex flex-col h-[500px]">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                      <CardTitle className="text-base">Live Chat</CardTitle>
-                      <Button size="sm" variant="ghost" onClick={() => setShowStreamerChat(!showStreamerChat)} className="h-8 w-8 p-0">
-                        {showStreamerChat ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                      </Button>
-                    </CardHeader>
+                    
                     <CardContent className="flex-1 p-0 overflow-hidden">
                       {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
                     </CardContent>
                   </Card>
-                </div>
-              )}
+                </div>}
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Conditional viewer rendering based on mode */}
-      {viewingStreamId && viewingStreamData && (
-        isTikTokMode ? (
-          <TikTokStreamViewer
-            streamId={viewingStreamId}
-            streamTitle={viewingStreamData.title}
-            hostName={viewingStreamData.host_name || 'Anonymous'}
-            hostUserId={viewingStreamData.host_user_id}
-            currentViewers={viewingStreamData.current_viewers}
-            totalLikes={viewingStreamData.total_likes || 0}
-            onClose={closeStreamViewer}
-            onNext={hasNext ? handleTikTokNext : undefined}
-            onPrevious={hasPrevious ? handleTikTokPrevious : undefined}
-            hasNext={hasNext}
-            hasPrevious={hasPrevious}
-          />
-        ) : (
-          <StreamViewer
-            streamId={viewingStreamId}
-            streamTitle={viewingStreamData.title}
-            hostName={viewingStreamData.host_name || 'Anonymous'}
-            hostUserId={viewingStreamData.host_user_id}
-            onClose={closeStreamViewer}
-          />
-        )
-      )}
+      {viewingStreamId && viewingStreamData && (isTikTokMode ? <TikTokStreamViewer streamId={viewingStreamId} streamTitle={viewingStreamData.title} hostName={viewingStreamData.host_name || 'Anonymous'} hostUserId={viewingStreamData.host_user_id} currentViewers={viewingStreamData.current_viewers} totalLikes={viewingStreamData.total_likes || 0} onClose={closeStreamViewer} onNext={hasNext ? handleTikTokNext : undefined} onPrevious={hasPrevious ? handleTikTokPrevious : undefined} hasNext={hasNext} hasPrevious={hasPrevious} /> : <StreamViewer streamId={viewingStreamId} streamTitle={viewingStreamData.title} hostName={viewingStreamData.host_name || 'Anonymous'} hostUserId={viewingStreamData.host_user_id} onClose={closeStreamViewer} />)}
 
       <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
 
