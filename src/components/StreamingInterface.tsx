@@ -2057,9 +2057,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               {/* Live Chat & Viewers (only when streaming) */}
               {isStreaming && activeStreamId && (
                 <div className="space-y-4 lg:row-span-2">
-                  {/* Viewer Cameras Card */}
+                  {/* All Viewers Card */}
                   <ViewerCameraThumbnails
                     viewerCameras={viewerCameras}
+                    allViewers={activeViewers}
                     className="max-h-[400px]"
                   />
                   
