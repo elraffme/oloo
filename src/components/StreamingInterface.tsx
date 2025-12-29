@@ -1744,7 +1744,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative bg-black rounded-lg overflow-hidden aspect-[9/16] w-full max-w-sm md:max-w-md lg:max-w-lg mx-auto">
+                  <div className="relative bg-black rounded-lg overflow-hidden w-full min-h-[150px] md:min-h-[200px] border border-border shadow-lg">
                     {isStreaming ? (
                       // Use VideoCallGrid when streaming to show host + viewers
                       <VideoCallGrid
@@ -1758,7 +1758,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     ) : (
                       // Show preview before streaming
                       <>
-                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-black" /> : <div className="w-full h-full flex items-center justify-center text-white">
+                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain bg-black" /> : <div className="w-full h-full flex items-center justify-center text-white">
                             <VideoOff className="w-12 h-12" />
                           </div>}
                       </>
