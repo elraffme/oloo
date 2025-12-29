@@ -1882,6 +1882,61 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           LIVE
                         </Badge>}
 
+                      {/* Viewer Camera Thumbnails Overlay */}
+                      {isStreaming && (activeViewers.length > 0 || viewerCameras.size > 0) && (
+                        <div className="absolute top-10 left-2 right-12 z-20 overflow-x-auto">
+                          <div className="flex gap-1.5 pb-1">
+                            {/* Viewers with active cameras */}
+                            {Array.from(viewerCameras.values()).map((camera) => (
+                              <div 
+                                key={camera.sessionToken} 
+                                className="relative w-12 h-16 rounded-lg overflow-hidden border-2 border-primary/50 shadow-lg flex-shrink-0 bg-black"
+                              >
+                                <video
+                                  autoPlay
+                                  playsInline
+                                  muted
+                                  className="w-full h-full object-cover"
+                                  ref={(el) => { if (el && camera.stream) el.srcObject = camera.stream; }}
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-0.5">
+                                  <span className="text-[8px] text-white truncate block text-center">
+                                    {camera.displayName?.slice(0, 6) || 'Viewer'}
+                                  </span>
+                                </div>
+                                <div className="absolute top-0.5 right-0.5">
+                                  <Video className="w-2.5 h-2.5 text-green-400" />
+                                </div>
+                              </div>
+                            ))}
+                            {/* Viewers without cameras - show avatar */}
+                            {activeViewers
+                              .filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id))
+                              .map((viewer) => (
+                                <div 
+                                  key={viewer.session_id} 
+                                  className="relative w-12 h-16 rounded-lg overflow-hidden border border-border/50 bg-black/60 flex flex-col items-center justify-center flex-shrink-0"
+                                >
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarImage src={viewer.avatar_url} />
+                                    <AvatarFallback className="text-[10px] bg-muted">
+                                      {viewer.viewer_display_name?.[0]?.toUpperCase() || '?'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-[8px] text-white/80 mt-0.5 truncate max-w-[40px] text-center">
+                                    {viewer.viewer_display_name?.slice(0, 6) || 'Guest'}
+                                  </span>
+                                  {viewer.is_guest && (
+                                    <span className="absolute top-0.5 left-0.5 text-[6px] bg-muted/80 px-0.5 rounded text-muted-foreground">
+                                      G
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Like Animation Overlay */}
                       {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
 
