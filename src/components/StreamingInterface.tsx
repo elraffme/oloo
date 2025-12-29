@@ -1706,7 +1706,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </Select>
                   </div>
 
-                   {isStreaming && <div className="p-4 bg-muted rounded-lg space-y-3">
+                   {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">Broadcasting Status:</span>
                         <Badge className="bg-green-500 text-white">
