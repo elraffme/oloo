@@ -1990,9 +1990,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         >
                           {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
                         </Button>
-                        <span className="text-xs text-muted-foreground">
-                          {isRequestingCamera ? '...' : !hasCameraPermission ? 'Camera' : isCameraOn ? 'Cam On' : 'Cam Off'}
-                        </span>
+                        <span className="text-xs text-muted-foreground">Cam</span>
                       </div>
                       
                       {/* Mic Toggle */}
