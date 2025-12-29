@@ -1841,7 +1841,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
                     isHostFullscreen 
                       ? 'fixed inset-0 z-50 rounded-none' 
-                      : 'rounded-lg aspect-[9/16] max-h-[70vh] w-auto'
+                      : 'rounded-lg aspect-[9/16] max-h-[70vh] min-w-[280px] w-full max-w-[400px]'
                   }`}>
                     {/* Video element always in DOM - hidden when camera off */}
                     <video 
@@ -1849,9 +1849,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       autoPlay 
                       muted 
                       playsInline 
-                      className={`w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
+                      className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
                       style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
                     />
+                    {/* Stream active indicator */}
+                    {isCameraOn && isStreaming && (
+                      <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
+                        Stream Active
+                      </div>
+                    )}
                     {/* Camera off overlay - shown only when camera is off */}
                     {!isCameraOn && (
                       <div className="absolute inset-0 flex items-center justify-center text-white bg-black">
