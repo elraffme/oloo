@@ -135,7 +135,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
         <p className="text-[10px] md:text-xs text-muted-foreground">{messages.length} messages</p>
       </div>
 
-      <ScrollArea className="flex-1 p-2 md:p-3">
+      <ScrollArea className="flex-1 min-h-0 p-2 md:p-3">
         <div className="space-y-2 md:space-y-3">
           {messages.length === 0 ? <div className="text-center text-muted-foreground text-xs md:text-sm py-6 md:py-8">
               No messages yet. Be the first to chat!
@@ -158,14 +158,14 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
       </ScrollArea>
 
       {/* Message input or guest notice */}
-      {isGuest ? <div className="bg-muted/50 rounded-lg p-2 mx-2 mb-2 md:mx-3 md:mb-3 text-center space-y-1.5">
+      {isGuest ? <div className="mt-auto bg-muted/50 rounded-lg p-2 mx-2 mb-2 md:mx-3 md:mb-3 text-center space-y-1.5">
             <p className="text-sm text-muted-foreground">
               Sign in to join the conversation
             </p>
             <Button size="sm" onClick={() => window.location.href = '/auth'} className="w-full">
               Sign In to Chat
             </Button>
-        </div> : <form onSubmit={handleSendMessage} className="mt-auto p-2 md:p-3 border-t border-border">
+        </div> : <form onSubmit={handleSendMessage} className="shrink-0 p-2 md:p-3 border-t border-border">
             <div className="flex items-center gap-2">
               <Input 
                 value={newMessage} 
