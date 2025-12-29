@@ -1763,7 +1763,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     ) : (
                       // Show preview before streaming
                       <>
-                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain bg-black" /> : <div className="w-full h-full flex items-center justify-center text-white">
+                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-black" /> : <div className="w-full h-full flex items-center justify-center text-white">
                             <VideoOff className="w-12 h-12" />
                           </div>}
                       </>
