@@ -1943,9 +1943,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                     
                     {/* Helper Text */}
-                    <p className="text-xs text-muted-foreground text-center">
-                      {!hasCameraPermission || !hasMicPermission ? 'Grant camera and mic permissions to go live' : 'Camera and mic are ready'}
-                    </p>
+                    
                     
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
