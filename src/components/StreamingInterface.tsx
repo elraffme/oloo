@@ -595,16 +595,40 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   }, [isCameraOn]);
 
-  // Re-attach srcObject when streaming to ensure video stays visible
+  // Re-attach srcObject continuously during streaming to ensure video stays visible
   useEffect(() => {
-    if (isStreaming && videoRef.current && streamRef.current) {
-      if (videoRef.current.srcObject !== streamRef.current) {
-        console.log('🔄 Re-attaching srcObject during streaming');
-        videoRef.current.srcObject = streamRef.current;
-        videoRef.current.play().catch(err => console.error('Error re-playing video:', err));
+    if (!isStreaming || !isCameraOn) return;
+    
+    const ensureVideoConnection = () => {
+      if (videoRef.current && streamRef.current) {
+        const hasValidSrcObject = videoRef.current.srcObject === streamRef.current;
+        const hasActiveTracks = streamRef.current.getVideoTracks().some(t => t.enabled && t.readyState === 'live');
+        
+        console.log('📹 Video connection check:', {
+          hasVideoRef: !!videoRef.current,
+          hasStreamRef: !!streamRef.current,
+          hasValidSrcObject,
+          hasActiveTracks,
+          isCameraOn,
+          isStreaming
+        });
+        
+        if (!hasValidSrcObject && hasActiveTracks) {
+          console.log('🔄 Re-attaching srcObject during streaming');
+          videoRef.current.srcObject = streamRef.current;
+          videoRef.current.play().catch(err => console.error('Error re-playing video:', err));
+        }
       }
-    }
-  }, [isStreaming]);
+    };
+    
+    // Check immediately
+    ensureVideoConnection();
+    
+    // Check periodically while streaming
+    const interval = setInterval(ensureVideoConnection, 2000);
+    
+    return () => clearInterval(interval);
+  }, [isStreaming, isCameraOn]);
 
   // Fetch live streams from database (archived/ended sessions excluded)
   useEffect(() => {
