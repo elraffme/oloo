@@ -74,17 +74,7 @@ export const ViewerCameraThumbnails: React.FC<ViewerCameraThumbnailsProps> = ({
   const viewersWithoutCameras = allViewers.filter(viewer => !activeSessionTokens.has(viewer.session_id));
   const totalViewers = camerasArray.length + viewersWithoutCameras.length;
   if (totalViewers === 0) {
-    return <Card className={cn("bg-background/95 backdrop-blur-sm border-border/50 p-4", className)}>
-        <div className="flex flex-col items-center justify-center text-center py-6">
-          <div className="rounded-full bg-muted p-3 mb-3">
-            <User className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-foreground mb-1">No Viewers Yet</p>
-          <p className="text-xs text-muted-foreground">
-            Viewers will appear here when they join your stream
-          </p>
-        </div>
-      </Card>;
+    return;
   }
   return <Card className={cn("bg-background/95 backdrop-blur-sm border-border/50", className)}>
       <div className="p-3 border-b border-border/50">
