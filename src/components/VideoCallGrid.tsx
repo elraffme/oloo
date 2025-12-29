@@ -185,7 +185,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
   const hasAudioTrack = tile.stream?.getAudioTracks().some(t => t.enabled) || false;
 
   return (
-    <div className="relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-black border border-border shadow-lg">
+    <div className="relative w-full aspect-[9/16] max-h-[70vh] rounded-lg overflow-hidden bg-black border border-border shadow-lg">
       {hasStream ? (
         <video
           ref={videoRef}
@@ -194,7 +194,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           webkit-playsinline="true"
           x-webkit-airplay="allow"
           muted={tile.isYou}
-          className={`w-full h-full object-contain ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
           onLoadedMetadata={() => {
             console.log(`📺 VideoTile: Metadata loaded for ${tile.displayName}`);
             videoRef.current?.play().catch(e => console.warn('Play after metadata failed:', e));
