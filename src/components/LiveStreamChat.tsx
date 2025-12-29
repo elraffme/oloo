@@ -165,7 +165,7 @@ export const LiveStreamChat: React.FC<LiveStreamChatProps> = ({
             <Button size="sm" onClick={() => window.location.href = '/auth'} className="w-full">
               Sign In to Chat
             </Button>
-        </div> : <form onSubmit={handleSendMessage} className="shrink-0 p-2 md:p-3 border-t border-border">
+        </div> : <form onSubmit={handleSendMessage} className="mt-auto shrink-0 p-2 md:p-3 border-t border-border">
             <div className="flex items-center gap-2">
               <Input 
                 value={newMessage} 
