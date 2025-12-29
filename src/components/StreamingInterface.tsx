@@ -595,6 +595,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
   }, [isCameraOn]);
 
+  // Re-attach srcObject when streaming to ensure video stays visible
+  useEffect(() => {
+    if (isStreaming && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        console.log('🔄 Re-attaching srcObject during streaming');
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(err => console.error('Error re-playing video:', err));
+      }
+    }
+  }, [isStreaming]);
+
   // Fetch live streams from database (archived/ended sessions excluded)
   useEffect(() => {
     const fetchLiveStreams = async () => {
@@ -1808,18 +1819,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       ? 'fixed inset-0 z-50 rounded-none' 
                       : 'rounded-lg aspect-[9/16] max-h-[70vh] w-auto'
                   }`}>
-                    {/* Host's own camera - always visible using videoRef */}
-                    {isCameraOn ? (
-                      <video 
-                        ref={videoRef} 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className="w-full h-full object-cover bg-black" 
-                        style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white">
+                    {/* Video element always in DOM - hidden when camera off */}
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      muted 
+                      playsInline 
+                      className={`w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
+                      style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
+                    />
+                    {/* Camera off overlay - shown only when camera is off */}
+                    {!isCameraOn && (
+                      <div className="absolute inset-0 flex items-center justify-center text-white bg-black">
                         <VideoOff className="w-12 h-12" />
                       </div>
                     )}
