@@ -16,6 +16,7 @@ interface FloatingActionButtonsProps {
   cameraEnabled?: boolean;
   isMicRequesting?: boolean;
   isCameraRequesting?: boolean;
+  unreadMessages?: number;
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
   cameraEnabled = false,
   isMicRequesting = false,
   isCameraRequesting = false,
+  unreadMessages = 0,
   className
 }) => {
   return (
@@ -51,14 +53,21 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
       </Button>
 
       {/* Chat Button */}
-      <Button
-        size="icon"
-        variant="ghost"
-        onClick={onChat}
-        className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
-      >
-        <MessageSquare className="h-5 w-5 text-white" />
-      </Button>
+      <div className="relative">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onChat}
+          className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+        >
+          <MessageSquare className="h-5 w-5 text-white" />
+        </Button>
+        {unreadMessages > 0 && (
+          <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 flex items-center justify-center px-1 animate-pulse">
+            {unreadMessages > 99 ? '99+' : unreadMessages}
+          </span>
+        )}
+      </div>
 
       {/* Like Button */}
       <div className="flex flex-col items-center">
