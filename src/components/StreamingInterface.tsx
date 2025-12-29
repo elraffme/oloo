@@ -1921,92 +1921,109 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     )}
 
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-4">
                       {/* Flip Camera */}
-                      <Button 
-                        onClick={flipCamera} 
-                        variant="ghost" 
-                        size="icon"
-                        disabled={!isCameraOn}
-                        title="Flip Camera"
-                        className="h-10 w-10"
-                      >
-                        <FlipHorizontal className="w-5 h-5" />
-                      </Button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Button 
+                          onClick={flipCamera} 
+                          variant="ghost" 
+                          size="icon"
+                          disabled={!isCameraOn}
+                          title="Flip Camera"
+                          className="h-10 w-10"
+                        >
+                          <FlipHorizontal className="w-5 h-5" />
+                        </Button>
+                        <span className="text-xs text-muted-foreground">Flip</span>
+                      </div>
                       
                       {/* Filter Picker */}
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            disabled={!isCameraOn} 
-                            title="Filters"
-                            className={`h-10 w-10 ${activeFilter !== 'none' ? 'text-primary' : ''}`}
-                          >
-                            <Wand2 className="w-5 h-5" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-3" align="center">
-                          <p className="text-sm font-medium mb-2 text-center">Choose Filter</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {filters.map((filter) => (
-                              <button
-                                key={filter.id}
-                                onClick={() => setActiveFilter(filter.id)}
-                                className={`p-2 rounded-lg text-xs transition-all ${
-                                  activeFilter === filter.id 
-                                    ? 'bg-primary text-primary-foreground ring-2 ring-primary' 
-                                    : 'bg-muted hover:bg-muted/80'
-                                }`}
-                              >
-                                {filter.name}
-                              </button>
-                            ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      <div className="flex flex-col items-center gap-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              disabled={!isCameraOn} 
+                              title="Filters"
+                              className={`h-10 w-10 ${activeFilter !== 'none' ? 'text-primary' : ''}`}
+                            >
+                              <Wand2 className="w-5 h-5" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-3" align="center">
+                            <p className="text-sm font-medium mb-2 text-center">Choose Filter</p>
+                            <div className="grid grid-cols-4 gap-2">
+                              {filters.map((filter) => (
+                                <button
+                                  key={filter.id}
+                                  onClick={() => setActiveFilter(filter.id)}
+                                  className={`p-2 rounded-lg text-xs transition-all ${
+                                    activeFilter === filter.id 
+                                      ? 'bg-primary text-primary-foreground ring-2 ring-primary' 
+                                      : 'bg-muted hover:bg-muted/80'
+                                  }`}
+                                >
+                                  {filter.name}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <span className="text-xs text-muted-foreground">Filter</span>
+                      </div>
                       
                       {/* Camera Toggle */}
-                      <Button 
-                        onClick={() => {
-                          if (!hasCameraPermission) {
-                            initializeMedia(true, false);
-                          } else {
-                            toggleCamera();
-                          }
-                        }} 
-                        disabled={isRequestingCamera} 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1 max-w-[110px]"
-                      >
-                        {isCameraOn ? <Video className="w-4 h-4 mr-1" /> : <VideoOff className="w-4 h-4 mr-1" />}
-                        {isRequestingCamera ? '...' : !hasCameraPermission ? 'Camera' : isCameraOn ? 'Off' : 'On'}
-                      </Button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Button 
+                          onClick={() => {
+                            if (!hasCameraPermission) {
+                              initializeMedia(true, false);
+                            } else {
+                              toggleCamera();
+                            }
+                          }} 
+                          disabled={isRequestingCamera} 
+                          variant="outline" 
+                          size="icon"
+                          className="h-10 w-10"
+                        >
+                          {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          {isRequestingCamera ? '...' : !hasCameraPermission ? 'Camera' : isCameraOn ? 'Cam On' : 'Cam Off'}
+                        </span>
+                      </div>
                       
                       {/* Mic Toggle */}
-                      <Button 
-                        onClick={() => {
-                          if (!hasMicPermission) {
-                            initializeMedia(false, true);
-                          } else {
-                            toggleMicrophone();
-                          }
-                        }} 
-                        disabled={isRequestingMic} 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1 max-w-[110px]"
-                      >
-                        {isMicOn ? <Mic className="w-4 h-4 mr-1" /> : <MicOff className="w-4 h-4 mr-1" />}
-                        {isRequestingMic ? '...' : !hasMicPermission ? 'Mic' : isMicOn ? 'Off' : 'On'}
-                      </Button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Button 
+                          onClick={() => {
+                            if (!hasMicPermission) {
+                              initializeMedia(false, true);
+                            } else {
+                              toggleMicrophone();
+                            }
+                          }} 
+                          disabled={isRequestingMic} 
+                          variant="outline" 
+                          size="icon"
+                          className="h-10 w-10"
+                        >
+                          {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          {isRequestingMic ? '...' : !hasMicPermission ? 'Mic' : isMicOn ? 'Mic On' : 'Mic Off'}
+                        </span>
+                      </div>
                       
                       {/* Settings */}
-                      <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(true)} className="h-10 w-10">
-                        <Settings className="w-5 h-5" />
-                      </Button>
+                      <div className="flex flex-col items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(true)} className="h-10 w-10">
+                          <Settings className="w-5 h-5" />
+                        </Button>
+                        <span className="text-xs text-muted-foreground">Settings</span>
+                      </div>
                     </div>
                     
                     {/* Helper Text */}
