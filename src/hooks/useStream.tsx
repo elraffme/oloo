@@ -437,7 +437,12 @@ export const useStream = (navigation = null) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: type === "camera",
+        video: type === "camera" ? {
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
+          facingMode: 'user',
+          aspectRatio: { ideal: 9/16 }
+        } : false,
       });
 
       localStreamRef.current = stream;
