@@ -1816,42 +1816,44 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Controls */}
-                  <div className="mt-4 space-y-3">
-                    {/* Permission Buttons - Always Visible */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={() => {
-                      if (!hasCameraPermission) {
-                        initializeMedia(true, false);
-                      } else {
-                        toggleCamera();
-                      }
-                    }} disabled={isRequestingCamera} variant="outline" size="sm">
+                  <div className="mt-4 space-y-4">
+                    {/* Single Row: Camera, Mic, Settings */}
+                    <div className="flex items-center justify-center gap-3">
+                      <Button 
+                        onClick={() => {
+                          if (!hasCameraPermission) {
+                            initializeMedia(true, false);
+                          } else {
+                            toggleCamera();
+                          }
+                        }} 
+                        disabled={isRequestingCamera} 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1 max-w-[140px]"
+                      >
                         {isCameraOn ? <Video className="w-4 h-4 mr-2" /> : <VideoOff className="w-4 h-4 mr-2" />}
-                        {isRequestingCamera ? 'Requesting...' : !hasCameraPermission ? 'Enable Camera' : isCameraOn ? 'Turn Off Camera' : 'Turn On Camera'}
+                        {isRequestingCamera ? 'Requesting...' : !hasCameraPermission ? 'Enable Camera' : isCameraOn ? 'Camera Off' : 'Camera On'}
                       </Button>
-                      <Button onClick={() => {
-                      if (!hasMicPermission) {
-                        initializeMedia(false, true);
-                      } else {
-                        toggleMicrophone();
-                      }
-                    }} disabled={isRequestingMic} variant="outline" size="sm">
+                      
+                      <Button 
+                        onClick={() => {
+                          if (!hasMicPermission) {
+                            initializeMedia(false, true);
+                          } else {
+                            toggleMicrophone();
+                          }
+                        }} 
+                        disabled={isRequestingMic} 
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1 max-w-[140px]"
+                      >
                         {isMicOn ? <Mic className="w-4 h-4 mr-2" /> : <MicOff className="w-4 h-4 mr-2" />}
-                        {isRequestingMic ? 'Requesting...' : !hasMicPermission ? 'Enable Mic' : isMicOn ? 'Turn Off Mic' : 'Turn On Mic'}
-                      </Button>
-                    </div>
-                    
-                    {/* Toggle Controls - Always Visible */}
-                    <div className="flex items-center justify-center space-x-4">
-                      <Button variant={isCameraOn ? "default" : "secondary"} size="sm" onClick={toggleCamera} disabled={!hasCameraPermission}>
-                        {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                        {isRequestingMic ? 'Requesting...' : !hasMicPermission ? 'Enable Mic' : isMicOn ? 'Mic Off' : 'Mic On'}
                       </Button>
                       
-                      <Button variant={isMicOn ? "default" : "secondary"} size="sm" onClick={toggleMicrophone} disabled={!hasMicPermission}>
-                        {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                      </Button>
-                      
-                      <Button variant="ghost" size="sm" onClick={() => setShowTroubleshooting(true)}>
+                      <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(true)}>
                         <Settings className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1860,26 +1862,30 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     <p className="text-xs text-muted-foreground text-center">
                       {!hasCameraPermission || !hasMicPermission ? 'Grant camera and mic permissions to go live' : 'Camera and mic are ready'}
                     </p>
-                  </div>
-
-                  {/* Diagnostics Panel - Hidden in production */}
-
-
-                  {/* Go Live Button */}
-                  <div className="mt-6 space-y-2">
-                    {!isStreaming ? <>
-                        <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                    
+                    {/* Start Streaming Button - Prominent */}
+                    <div className="pt-2">
+                      {!isStreaming ? (
+                        <Button 
+                          onClick={startStream} 
+                          disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} 
+                          className="w-full bg-red-500 hover:bg-red-600 text-white" 
+                          size="lg"
+                        >
+                          <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button>
-                        {hasCameraPermission && <p className="text-xs text-muted-foreground text-center">
-                            Viewers will connect to your stream in real-time via peer-to-peer connection
-                          </p>}
-                      </> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
-                        {isLoading ? 'Ending...' : 'End Stream'}
-                      </Button>}
-                    {!hasCameraPermission && <p className="text-sm text-muted-foreground text-center mt-2">
-                      Enable camera to start broadcasting
-                    </p>}
+                      ) : (
+                        <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
+                          {isLoading ? 'Ending...' : 'End Stream'}
+                        </Button>
+                      )}
+                      {!hasCameraPermission && (
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          Enable camera to start broadcasting
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
