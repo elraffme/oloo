@@ -1858,11 +1858,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         Stream Active
                       </div>
                     )}
-                    {/* Camera off overlay - shown only when camera is off */}
+                    {/* Keep video visible with placeholder when camera off */}
                     {!isCameraOn && (
-                      <div className="absolute inset-0 flex items-center justify-center text-white bg-black">
-                        <VideoOff className="w-12 h-12" />
-                      </div>
+                      <div className="absolute inset-0 bg-black" />
                     )}
                     
                     {/* Fullscreen Toggle Button - Mobile Only */}
@@ -1913,6 +1911,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                   {/* Controls */}
                   <div className="mt-4 space-y-4">
+                    {/* Camera Status Indicator */}
+                    {!isCameraOn && (
+                      <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                        <VideoOff className="w-5 h-5" />
+                        <span className="text-sm">Camera Off</span>
+                      </div>
+                    )}
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
                     <div className="flex items-center justify-center gap-2">
                       {/* Flip Camera */}
