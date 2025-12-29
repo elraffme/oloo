@@ -1968,39 +1968,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   
                   {/* Active Viewers Card */}
                   <Card className="cultural-card">
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Active Viewers ({activeViewers.length})
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-[200px]">
-                        {viewersLoading ? <p className="text-sm text-muted-foreground">Loading viewers...</p> : activeViewers.length === 0 ? <p className="text-sm text-muted-foreground">No viewers yet</p> : <div className="space-y-2">
-                            {activeViewers.map(viewer => <div key={viewer.session_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                                <Avatar className="w-8 h-8 relative">
-                                  <AvatarImage src={viewer.avatar_url || '/placeholder.svg'} />
-                                  <AvatarFallback>
-                                    {viewer.viewer_display_name[0]?.toUpperCase() || 'G'}
-                                  </AvatarFallback>
-                                  {viewer.camera_stream_active && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                                      <Video className="w-2.5 h-2.5 text-primary-foreground" />
-                                    </div>}
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium truncate flex items-center gap-1">
-                                    {viewer.viewer_display_name}
-                                    {viewer.camera_enabled && <Video className="w-3 h-3 text-primary" />}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {viewer.is_guest ? 'Guest' : 'Member'}
-                                    {viewer.camera_stream_active && ' • Camera active'}
-                                  </p>
-                                </div>
-                              </div>)}
-                          </div>}
-                      </ScrollArea>
-                    </CardContent>
+                    
+                    
                   </Card>
 
                   {/* Live Chat Card */}

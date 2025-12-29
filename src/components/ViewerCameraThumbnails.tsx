@@ -98,13 +98,7 @@ export const ViewerCameraThumbnails: React.FC<ViewerCameraThumbnailsProps> = ({
       </div>
 
       <ScrollArea className="h-full max-h-[500px]">
-        <div className="p-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {/* First show viewers with cameras */}
-          {camerasArray.map(camera => <ViewerCameraThumbnail key={camera.sessionToken} camera={camera} />)}
-          
-          {/* Then show viewers without cameras */}
-          {viewersWithoutCameras.map(viewer => <ViewerPlaceholderThumbnail key={viewer.session_id} viewer={viewer} />)}
-        </div>
+        
       </ScrollArea>
     </Card>;
 };
