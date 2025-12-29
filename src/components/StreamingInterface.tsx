@@ -1748,7 +1748,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
                     isHostFullscreen 
                       ? 'fixed inset-0 z-50 rounded-none' 
-                      : 'rounded-lg w-full min-h-[150px] md:min-h-[200px]'
+                      : 'rounded-lg aspect-[9/16] max-h-[70vh] w-auto mx-auto'
                   }`}>
                     {isStreaming ? (
                       // Use VideoCallGrid when streaming to show host + viewers
