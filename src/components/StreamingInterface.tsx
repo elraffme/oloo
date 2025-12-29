@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity, RefreshCw } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -105,6 +105,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     balance
   } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
+  const [isHostFullscreen, setIsHostFullscreen] = useState(false);
   
   
   // Derived map for VideoCallGrid compatibility from SFU streams
@@ -1744,7 +1745,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative bg-black rounded-lg overflow-hidden w-full min-h-[150px] md:min-h-[200px] border border-border shadow-lg">
+                  <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
+                    isHostFullscreen 
+                      ? 'fixed inset-0 z-50 rounded-none' 
+                      : 'rounded-lg w-full min-h-[150px] md:min-h-[200px]'
+                  }`}>
                     {isStreaming ? (
                       // Use VideoCallGrid when streaming to show host + viewers
                       <VideoCallGrid
@@ -1763,6 +1768,16 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           </div>}
                       </>
                     )}
+                    
+                    {/* Fullscreen Toggle Button - Mobile Only */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden"
+                      onClick={() => setIsHostFullscreen(!isHostFullscreen)}
+                    >
+                      {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                    </Button>
                     
                     {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
                         <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
