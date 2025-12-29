@@ -1837,87 +1837,89 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </Badge>}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex justify-center">
-                  <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
-                    isHostFullscreen 
-                      ? 'fixed inset-0 z-50 rounded-none' 
-                      : 'rounded-lg aspect-[9/16] max-h-[70vh] min-w-[280px] w-full max-w-[400px]'
-                  }`}>
-                    {/* Video element always in DOM - hidden when camera off */}
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      muted 
-                      playsInline 
-                      className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
-                      style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
-                    />
-                    {/* Stream active indicator */}
-                    {isCameraOn && isStreaming && (
-                      <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
-                        Stream Active
-                      </div>
-                    )}
-                    {/* Keep video visible with placeholder when camera off */}
-                    {!isCameraOn && (
-                      <div className="absolute inset-0 bg-black" />
-                    )}
-                    
-                    {/* Fullscreen Toggle Button - Mobile Only */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden"
-                      onClick={() => setIsHostFullscreen(!isHostFullscreen)}
-                    >
-                      {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                    </Button>
-                    
-                    {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
-                        <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
-                        LIVE
-                      </Badge>}
+                <CardContent>
+                  <div className="flex flex-col items-center space-y-4">
+                    {/* Compact Camera Preview */}
+                    <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${
+                      isHostFullscreen 
+                        ? 'fixed inset-0 z-50 rounded-none' 
+                        : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'
+                    }`}>
+                      {/* Video element always in DOM - hidden when camera off */}
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
+                        style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
+                      />
+                      {/* Stream active indicator */}
+                      {isCameraOn && isStreaming && (
+                        <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
+                          Stream Active
+                        </div>
+                      )}
+                      {/* Keep video visible with placeholder when camera off */}
+                      {!isCameraOn && (
+                        <div className="absolute inset-0 bg-black flex items-center justify-center">
+                          <VideoOff className="w-12 h-12 text-muted-foreground" />
+                        </div>
+                      )}
+                      
+                      {/* Fullscreen Toggle Button - Mobile Only */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden"
+                        onClick={() => setIsHostFullscreen(!isHostFullscreen)}
+                      >
+                        {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                      </Button>
+                      
+                      {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
+                          <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
+                          LIVE
+                        </Badge>}
 
-                    {/* Like Animation Overlay */}
-                    {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
+                      {/* Like Animation Overlay */}
+                      {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
 
-                    {/* Floating Chat Messages Overlay */}
-                    {isStreaming && (
-                      <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
-                        {floatingChatMessages.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
-                          >
-                            <span className="text-white font-semibold text-sm">{msg.username}: </span>
-                            <span className="text-white text-sm">{msg.message}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Gift Notifications Overlay */}
-                    {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
-                        {giftNotifications.map(notification => <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
-                            <span className="text-3xl">{notification.giftEmoji}</span>
-                            <div>
-                              <p className="font-semibold text-sm">{notification.senderName}</p>
-                              <p className="text-xs text-gray-300">sent {notification.giftName}</p>
+                      {/* Floating Chat Messages Overlay */}
+                      {isStreaming && (
+                        <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                          {floatingChatMessages.map((msg) => (
+                            <div
+                              key={msg.id}
+                              className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
+                            >
+                              <span className="text-white font-semibold text-sm">{msg.username}: </span>
+                              <span className="text-white text-sm">{msg.message}</span>
                             </div>
-                            <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                          </div>)}
-                      </div>}
-                  </div>
+                          ))}
+                        </div>
+                      )}
 
-                  {/* Controls */}
-                  <div className="mt-4 space-y-4">
+                      {/* Gift Notifications Overlay */}
+                      {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
+                          {giftNotifications.map(notification => <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
+                              <span className="text-3xl">{notification.giftEmoji}</span>
+                              <div>
+                                <p className="font-semibold text-sm">{notification.senderName}</p>
+                                <p className="text-xs text-gray-300">sent {notification.giftName}</p>
+                              </div>
+                              <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+                            </div>)}
+                        </div>}
+                    </div>
+
                     {/* Camera Status Indicator */}
                     {!isCameraOn && (
-                      <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                        <VideoOff className="w-5 h-5" />
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <span className="text-sm">Camera Off</span>
                       </div>
                     )}
+
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
                     <div className="flex items-center justify-center gap-2">
                       {/* Flip Camera */}
@@ -2013,7 +2015,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </p>
                     
                     {/* Start Streaming Button - Prominent */}
-                    <div className="pt-2">
+                    <div className="w-full max-w-[280px]">
                       {!isStreaming ? (
                         <Button 
                           onClick={startStream} 
