@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Settings, Users, Eye, Heart, Gift, Share2, MoreVertical, Play, Pause, Volume2, ArrowLeft, Crown, Sparkles, User, ChevronRight, ChevronLeft, Radio, CheckCircle2, XCircle, Activity, RefreshCw, Maximize2, Minimize2, FlipHorizontal, Wand2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -28,6 +28,7 @@ import { useStreamQueue } from '@/hooks/useStreamQueue';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface StreamingInterfaceProps {
   onBack?: () => void;
@@ -106,8 +107,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } = useCurrency();
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
   const [isHostFullscreen, setIsHostFullscreen] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'user' | 'environment'>('user');
+  const [activeFilter, setActiveFilter] = useState<string>('none');
   
-  
+  // Filter presets for TikTok-style effects
+  const filters = [
+    { id: 'none', name: 'Normal', style: '' },
+    { id: 'warm', name: 'Warm', style: 'sepia(20%) saturate(120%) brightness(105%)' },
+    { id: 'cool', name: 'Cool', style: 'hue-rotate(15deg) saturate(90%) brightness(105%)' },
+    { id: 'enhance', name: 'Enhance', style: 'contrast(110%) saturate(120%) brightness(105%)' },
+    { id: 'soft', name: 'Soft', style: 'brightness(105%) contrast(95%)' },
+    { id: 'vivid', name: 'Vivid', style: 'saturate(150%) contrast(110%)' },
+    { id: 'bw', name: 'B&W', style: 'grayscale(100%)' },
+    { id: 'vintage', name: 'Vintage', style: 'sepia(40%) contrast(90%) brightness(95%)' },
+  ];
   // Derived map for VideoCallGrid compatibility from SFU streams
   const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, { stream: vs.stream, displayName: 'Viewer', sessionToken: vs.id }]));
   console.log(viewerCameras,'viewer cameras')
@@ -1020,7 +1033,52 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }
     }
   };
-  // Helper function to validate MediaStream
+
+  // Flip camera between front and back (for mobile)
+  const flipCamera = async () => {
+    if (!streamRef.current) return;
+    
+    const newFacingMode = cameraFacingMode === 'user' ? 'environment' : 'user';
+    
+    // Stop current video track
+    streamRef.current.getVideoTracks().forEach(track => track.stop());
+    
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
+          facingMode: newFacingMode,
+          aspectRatio: { ideal: 9/16 }
+        },
+        audio: false
+      });
+      
+      // Replace video track in existing stream
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      const oldVideoTrack = streamRef.current.getVideoTracks()[0];
+      
+      if (oldVideoTrack) {
+        streamRef.current.removeTrack(oldVideoTrack);
+      }
+      streamRef.current.addTrack(newVideoTrack);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      
+      setCameraFacingMode(newFacingMode);
+      toast({ title: 'Camera flipped', description: `Now using ${newFacingMode === 'user' ? 'front' : 'back'} camera` });
+    } catch (err) {
+      console.error('Failed to flip camera:', err);
+      toast({ 
+        title: 'Camera Error', 
+        description: 'Could not switch camera. Your device may only have one camera.', 
+        variant: 'destructive' 
+      });
+    }
+  };
+
   const validateMediaStream = (stream: MediaStream | null): boolean => {
     if (!stream) {
       console.warn('⚠️ Stream is null');
@@ -1763,9 +1821,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     ) : (
                       // Show preview before streaming
                       <>
-                        {isCameraOn ? <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover bg-black" /> : <div className="w-full h-full flex items-center justify-center text-white">
+                        {isCameraOn ? (
+                          <video 
+                            ref={videoRef} 
+                            autoPlay 
+                            muted 
+                            playsInline 
+                            className="w-full h-full object-cover bg-black" 
+                            style={{ filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white">
                             <VideoOff className="w-12 h-12" />
-                          </div>}
+                          </div>
+                        )}
                       </>
                     )}
                     
@@ -1817,8 +1886,54 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
                   {/* Controls */}
                   <div className="mt-4 space-y-4">
-                    {/* Single Row: Camera, Mic, Settings */}
-                    <div className="flex items-center justify-center gap-3">
+                    {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
+                    <div className="flex items-center justify-center gap-2">
+                      {/* Flip Camera */}
+                      <Button 
+                        onClick={flipCamera} 
+                        variant="ghost" 
+                        size="icon"
+                        disabled={!isCameraOn}
+                        title="Flip Camera"
+                        className="h-10 w-10"
+                      >
+                        <FlipHorizontal className="w-5 h-5" />
+                      </Button>
+                      
+                      {/* Filter Picker */}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            disabled={!isCameraOn} 
+                            title="Filters"
+                            className={`h-10 w-10 ${activeFilter !== 'none' ? 'text-primary' : ''}`}
+                          >
+                            <Wand2 className="w-5 h-5" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-3" align="center">
+                          <p className="text-sm font-medium mb-2 text-center">Choose Filter</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            {filters.map((filter) => (
+                              <button
+                                key={filter.id}
+                                onClick={() => setActiveFilter(filter.id)}
+                                className={`p-2 rounded-lg text-xs transition-all ${
+                                  activeFilter === filter.id 
+                                    ? 'bg-primary text-primary-foreground ring-2 ring-primary' 
+                                    : 'bg-muted hover:bg-muted/80'
+                                }`}
+                              >
+                                {filter.name}
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      
+                      {/* Camera Toggle */}
                       <Button 
                         onClick={() => {
                           if (!hasCameraPermission) {
@@ -1830,12 +1945,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         disabled={isRequestingCamera} 
                         variant="outline" 
                         size="sm"
-                        className="flex-1 max-w-[140px]"
+                        className="flex-1 max-w-[110px]"
                       >
-                        {isCameraOn ? <Video className="w-4 h-4 mr-2" /> : <VideoOff className="w-4 h-4 mr-2" />}
-                        {isRequestingCamera ? 'Requesting...' : !hasCameraPermission ? 'Enable Camera' : isCameraOn ? 'Camera Off' : 'Camera On'}
+                        {isCameraOn ? <Video className="w-4 h-4 mr-1" /> : <VideoOff className="w-4 h-4 mr-1" />}
+                        {isRequestingCamera ? '...' : !hasCameraPermission ? 'Camera' : isCameraOn ? 'Off' : 'On'}
                       </Button>
                       
+                      {/* Mic Toggle */}
                       <Button 
                         onClick={() => {
                           if (!hasMicPermission) {
@@ -1847,14 +1963,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         disabled={isRequestingMic} 
                         variant="outline" 
                         size="sm"
-                        className="flex-1 max-w-[140px]"
+                        className="flex-1 max-w-[110px]"
                       >
-                        {isMicOn ? <Mic className="w-4 h-4 mr-2" /> : <MicOff className="w-4 h-4 mr-2" />}
-                        {isRequestingMic ? 'Requesting...' : !hasMicPermission ? 'Enable Mic' : isMicOn ? 'Mic Off' : 'Mic On'}
+                        {isMicOn ? <Mic className="w-4 h-4 mr-1" /> : <MicOff className="w-4 h-4 mr-1" />}
+                        {isRequestingMic ? '...' : !hasMicPermission ? 'Mic' : isMicOn ? 'Off' : 'On'}
                       </Button>
                       
-                      <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(true)}>
-                        <Settings className="w-4 h-4" />
+                      {/* Settings */}
+                      <Button variant="ghost" size="icon" onClick={() => setShowTroubleshooting(true)} className="h-10 w-10">
+                        <Settings className="w-5 h-5" />
                       </Button>
                     </div>
                     
@@ -1894,7 +2011,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               {isStreaming && activeStreamId && (
                 <div className="space-y-4 lg:row-span-2">
                   {/* Viewer Cameras Card */}
-                  <ViewerCameraThumbnails 
+                  <ViewerCameraThumbnails
                     viewerCameras={viewerCameras}
                     className="max-h-[400px]"
                   />

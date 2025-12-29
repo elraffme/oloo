@@ -36,7 +36,7 @@ const ViewerCameraThumbnail: React.FC<{ camera: ViewerCamera }> = ({ camera }) =
 
   return (
     <Card className="relative overflow-hidden bg-background/95 backdrop-blur-sm border-border/50">
-      <div className="aspect-video relative">
+      <div className="aspect-[9/16] relative">
         <video
           ref={videoRef}
           autoPlay
@@ -106,7 +106,7 @@ export const ViewerCameraThumbnails: React.FC<ViewerCameraThumbnailsProps> = ({
       </div>
 
       <ScrollArea className="h-full max-h-[500px]">
-        <div className="p-3 grid grid-cols-2 gap-3">
+        <div className="p-3 grid grid-cols-3 sm:grid-cols-4 gap-2">
           {camerasArray.map((camera) => (
             <ViewerCameraThumbnail
               key={camera.sessionToken}
