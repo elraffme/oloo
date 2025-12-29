@@ -1,1 +1,4 @@
 project_id = "kdvnxzniqyomdeicmycs"
+
+[functions.cleanup-streams]
+verify_jwt = false
