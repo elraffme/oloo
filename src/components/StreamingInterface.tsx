@@ -2010,9 +2010,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         >
                           {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                         </Button>
-                        <span className="text-xs text-muted-foreground">
-                          {isRequestingMic ? '...' : !hasMicPermission ? 'Mic' : isMicOn ? 'Mic On' : 'Mic Off'}
-                        </span>
+                        <span className="text-xs text-muted-foreground">Mic</span>
                       </div>
                       
                       {/* Settings */}
