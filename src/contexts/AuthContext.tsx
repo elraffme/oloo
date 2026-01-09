@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithTwitter: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (data: any) => Promise<{ error: any }>;
   requestPasswordReset: (email: string) => Promise<{ error: any }>;
@@ -356,6 +357,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithTwitter = async () => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'twitter',
+        options: {
+          redirectTo: redirectUrl,
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "X Sign In Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "X Sign In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -363,6 +394,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithTwitter,
     signOut,
     updateProfile,
     requestPasswordReset,
