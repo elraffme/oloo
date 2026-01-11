@@ -12,6 +12,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithTwitter: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
+  signInWithLinkedIn: () => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (data: any) => Promise<{ error: any }>;
   requestPasswordReset: (email: string) => Promise<{ error: any }>;
@@ -418,6 +419,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithLinkedIn = async () => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'linkedin_oidc',
+        options: {
+          redirectTo: redirectUrl,
+        }
+      });
+      
+      if (error) {
+        toast({
+          title: "LinkedIn Sign In Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+      
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "LinkedIn Sign In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
@@ -427,6 +458,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithGoogle,
     signInWithTwitter,
     signInWithFacebook,
+    signInWithLinkedIn,
     signOut,
     updateProfile,
     requestPasswordReset,
