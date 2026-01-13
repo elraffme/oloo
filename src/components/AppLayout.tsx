@@ -18,8 +18,9 @@ const AppLayout = () => {
   const location = useLocation();
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check if user has completed onboarding
+  // Check if user has completed onboarding and if they're an admin
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) {
@@ -37,6 +38,13 @@ const AppLayout = () => {
         if (profile?.onboarding_completed === true) {
           setHasProfile(true);
         }
+
+        // Check admin status
+        const { data: adminStatus } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+        setIsAdmin(adminStatus === true);
       } catch (error) {
         console.log('No profile found');
       } finally {
@@ -97,7 +105,11 @@ const AppLayout = () => {
     path: '/app/profile',
     icon: User,
     label: 'Profile'
-  }];
+  }, ...(isAdmin ? [{
+    path: '/app/admin',
+    icon: Shield,
+    label: 'Admin'
+  }] : [])];
   const handleSignOut = async () => {
     await signOut();
   };
