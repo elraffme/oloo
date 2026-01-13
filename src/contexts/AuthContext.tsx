@@ -237,31 +237,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!user) return { error: new Error('No user logged in') };
       
-      // Use upsert to create or update profile
+      // Use upsert to create or update profile with proper onConflict
       const { error } = await supabase
         .from('profiles')
-        .upsert({ 
-          user_id: user.id,
-          ...data,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+        .upsert(
+          { 
+            user_id: user.id,
+            ...data,
+            updated_at: new Date().toISOString()
+          },
+          { 
+            onConflict: 'user_id',
+            ignoreDuplicates: false 
+          }
+        );
       
       if (error) {
+        console.error('Profile update error:', error);
         toast({
           title: "Update Error",
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Profile Updated",
-          description: "Your profile has been updated successfully",
-        });
+        return { error };
       }
       
-      return { error };
+      console.log('Profile updated successfully with onboarding_completed:', data.onboarding_completed);
+      
+      return { error: null };
     } catch (error: any) {
+      console.error('Profile update exception:', error);
       toast({
         title: "Update Error",
         description: error.message,
