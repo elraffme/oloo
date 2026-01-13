@@ -6,6 +6,9 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { SocialInteractionsNotifier } from '@/components/SocialInteractionsNotifier';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
 const AppLayout = () => {
   const {
     user,
@@ -13,6 +16,38 @@ const AppLayout = () => {
     loading
   } = useAuth();
   const location = useLocation();
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [hasProfile, setHasProfile] = useState(false);
+
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user) {
+        setCheckingProfile(false);
+        return;
+      }
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, age, location')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile && profile.display_name && profile.age && profile.location) {
+          setHasProfile(true);
+        }
+      } catch (error) {
+        console.log('No profile found');
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+    
+    if (!loading) {
+      checkProfile();
+    }
+  }, [user, loading]);
 
   // Enable global real-time notifications
   useRealtimeNotifications();
@@ -20,11 +55,13 @@ const AppLayout = () => {
   // Enable social interaction notifications
   SocialInteractionsNotifier();
 
-  // Redirect to auth if not logged in
+  // Redirect to sign in if not logged in
   if (!user && !loading) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/signin" replace />;
   }
-  if (loading) {
+
+  // Show loading while checking
+  if (loading || checkingProfile) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse text-center">
           <div className="heart-logo mx-auto mb-4">
@@ -33,6 +70,11 @@ const AppLayout = () => {
           <p className="text-muted-foreground">Loading your Òloo experience...</p>
         </div>
       </div>;
+  }
+
+  // Redirect to onboarding if profile not complete
+  if (!hasProfile) {
+    return <Navigate to="/onboarding" replace />;
   }
   const navItems = [{
     path: '/app',
