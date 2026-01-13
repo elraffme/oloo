@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X, CalendarIcon } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -83,11 +83,13 @@ const OnboardingStep = ({
   </div>;
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { user, updateProfile } = useAuth();
+  const { user, loading: authLoading, updateProfile } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [hasProfile, setHasProfile] = useState(false);
   const [formData, setFormData] = useState({
     agreed: false,
     name: "",
@@ -104,6 +106,61 @@ const Onboarding = () => {
     personality: "",
     photos: [] as File[]
   });
+
+  // Check if user has a complete profile (returning user)
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!user) {
+        setCheckingProfile(false);
+        return;
+      }
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, age, location')
+          .eq('user_id', user.id)
+          .single();
+        
+        // If profile exists with required fields, they're a returning user
+        if (profile && profile.display_name && profile.age && profile.location) {
+          setHasProfile(true);
+        }
+      } catch (error) {
+        console.log('No existing profile found, proceeding with onboarding');
+      } finally {
+        setCheckingProfile(false);
+      }
+    };
+    
+    if (!authLoading) {
+      checkProfile();
+    }
+  }, [user, authLoading]);
+
+  // Loading state
+  if (authLoading || checkingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+        <div className="animate-pulse text-center">
+          <div className="heart-logo mx-auto mb-4">
+            <span className="logo-text">Ò</span>
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to sign in if not authenticated
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  // Redirect returning users to app
+  if (hasProfile) {
+    return <Navigate to="/app" replace />;
+  }
   const totalSteps = 6;
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
@@ -252,9 +309,11 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Save onboarding data to localStorage before navigating to auth
-      localStorage.setItem('onboardingData', JSON.stringify(formData));
-      navigate('/auth');
+      // Final step - save profile and go to app
+      const success = await saveProfile();
+      if (success) {
+        navigate('/app');
+      }
     }
   };
   const prevStep = () => {

@@ -58,7 +58,7 @@ const Auth = () => {
     }
   }, []);
 
-  // Redirect only if user is authenticated AND has a complete profile
+  // Redirect only if user is authenticated - check profile and redirect appropriately
   useEffect(() => {
     const checkAndRedirect = async () => {
       if (user && !loading) {
@@ -68,12 +68,15 @@ const Auth = () => {
             error
           } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', user.id).single();
 
-          // Only redirect to /app if profile is complete
+          // Redirect to /app if profile is complete, otherwise /onboarding
           if (data && data.display_name && data.age && data.location) {
             navigate('/app');
+          } else {
+            navigate('/onboarding');
           }
         } catch (error) {
           console.error('Error checking profile:', error);
+          navigate('/onboarding');
         }
       }
     };

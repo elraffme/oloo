@@ -331,7 +331,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -361,7 +361,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithTwitter = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'twitter',
@@ -391,7 +391,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithFacebook = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
@@ -421,7 +421,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithLinkedIn = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/onboarding`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
