@@ -30,11 +30,11 @@ const AppLayout = () => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, age, location')
+          .select('onboarding_completed')
           .eq('user_id', user.id)
           .single();
         
-        if (profile && profile.display_name && profile.age && profile.location) {
+        if (profile?.onboarding_completed === true) {
           setHasProfile(true);
         }
       } catch (error) {
