@@ -83,7 +83,7 @@ const LandingPage = () => {
                 {t('landing.signIn')}
               </Button>
               <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading" onClick={() => {
-            navigate('/signin');
+            navigate('/auth');
             setIsMenuOpen(false);
           }}>
                 <span className="nsibidi-symbol mr-1">♦</span>
@@ -112,12 +112,12 @@ const LandingPage = () => {
         <div className="relative z-10 flex-1 flex flex-col justify-end px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
           {/* Bottom CTA Section */}
           <div className="space-y-2.5 sm:space-y-4 pb-6 sm:pb-8 lg:pb-10 max-w-sm sm:max-w-md mx-auto w-full">
-            {/* Primary CTA */}
-            <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/signin')}>
+            {/* Primary CTA - Sign Up (new users) */}
+            <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/auth')}>
               {t('landing.signUp')}
             </Button>
 
-            {/* Secondary CTA */}
+            {/* Secondary CTA - Sign In (returning users) */}
             <Button variant="ghost" onClick={() => navigate('/signin')} className="w-full h-11 sm:h-12 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-sm sm:text-base lg:text-lg">
               {t('landing.signIn')}
             </Button>
@@ -256,7 +256,7 @@ const LandingPage = () => {
           <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
             Embrace culture, art, and soul—find someone who truly gets you.
           </p>
-          <Button className="h-11 sm:h-12 lg:h-14 px-6 sm:px-8 lg:px-12 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/onboarding')}>
+          <Button className="h-11 sm:h-12 lg:h-14 px-6 sm:px-8 lg:px-12 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/auth')}>
             Create Your Profile Now
           </Button>
         </div>
