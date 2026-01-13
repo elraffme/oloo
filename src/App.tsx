@@ -38,6 +38,7 @@ import MeetMe from "./pages/MeetMe";
 import Trivia from "./pages/Trivia";
 import TriviaLeaderboard from "./pages/TriviaLeaderboard";
 import Shop from "./pages/Shop";
+import Admin from "./pages/Admin";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -72,6 +73,7 @@ const App = () => (
               <Route path="messages" element={<Messages />} />
               <Route path="profile" element={<Profile />} />
               <Route path="premium" element={<Premium />} />
+              <Route path="admin" element={<Admin />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
