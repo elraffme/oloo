@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Throttle function to prevent excessive updates
 const throttle = (func: Function, delay: number) => {
@@ -23,10 +22,25 @@ interface PresenceState {
 }
 
 export const usePresence = () => {
-  const { user } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [presenceState, setPresenceState] = useState<PresenceState>({});
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const channelRef = useRef<any>(null);
+
+  // Get user from Supabase directly to avoid context dependency issues
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!user) {
