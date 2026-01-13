@@ -808,6 +808,7 @@ export type Database = {
           notify_messages: boolean | null
           notify_streams: boolean | null
           occupation: string | null
+          onboarding_completed: boolean
           open_to_kids: boolean | null
           profile_photos: string[] | null
           prompt_responses: Json | null
@@ -844,6 +845,7 @@ export type Database = {
           notify_messages?: boolean | null
           notify_streams?: boolean | null
           occupation?: string | null
+          onboarding_completed?: boolean
           open_to_kids?: boolean | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
@@ -880,6 +882,7 @@ export type Database = {
           notify_messages?: boolean | null
           notify_streams?: boolean | null
           occupation?: string | null
+          onboarding_completed?: boolean
           open_to_kids?: boolean | null
           profile_photos?: string[] | null
           prompt_responses?: Json | null
