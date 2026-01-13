@@ -107,7 +107,7 @@ const Onboarding = () => {
     photos: [] as File[]
   });
 
-  // Check if user has a complete profile (returning user)
+  // Check if user has completed onboarding
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) {
@@ -118,12 +118,12 @@ const Onboarding = () => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('display_name, age, location')
+          .select('onboarding_completed')
           .eq('user_id', user.id)
           .single();
         
-        // If profile exists with required fields, they're a returning user
-        if (profile && profile.display_name && profile.age && profile.location) {
+        // If onboarding is completed, redirect to app
+        if (profile?.onboarding_completed === true) {
           setHasProfile(true);
         }
       } catch (error) {
@@ -256,7 +256,7 @@ const Onboarding = () => {
         heightInCm = Math.round(feet * 30.48 + inches * 2.54);
       }
       
-      // Prepare profile data
+      // Prepare profile data with onboarding_completed = true
       const profileData = {
         display_name: formData.name,
         age: age,
@@ -269,7 +269,8 @@ const Onboarding = () => {
         profile_photos: photoUrls,
         avatar_url: photoUrls[0] || null,
         bio: formData.hobbies ? `${formData.hobbies}\n\nPersonality: ${formData.personality}` : 'New to Òloo!',
-        location: 'Not specified'
+        location: 'Not specified',
+        onboarding_completed: true
       };
       
       console.log('Saving profile...', profileData);

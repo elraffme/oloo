@@ -32,11 +32,13 @@ const SignIn = () => {
     const checkProfile = async () => {
       if (user && !loading) {
         try {
-          const {
-            data,
-            error
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', user.id).single();
-          if (error || !data || !data.display_name || !data.age || !data.location) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (error || !data || data.onboarding_completed !== true) {
             setHasProfile(false);
           } else {
             setHasProfile(true);
@@ -98,15 +100,16 @@ const SignIn = () => {
         error
       } = await signIn(formData.email, formData.password);
       if (!error) {
-        // Check if user has completed profile
-        const {
-          data: session
-        } = await supabase.auth.getSession();
+        // Check if user has completed onboarding
+        const { data: session } = await supabase.auth.getSession();
         if (session?.session?.user) {
-          const {
-            data: profile
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', session.session.user.id).single();
-          if (!profile || !profile.display_name || !profile.age || !profile.location) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('user_id', session.session.user.id)
+            .single();
+          
+          if (!profile || profile.onboarding_completed !== true) {
             navigate('/onboarding');
           } else {
             navigate('/app');
