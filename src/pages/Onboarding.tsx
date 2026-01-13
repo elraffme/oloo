@@ -415,7 +415,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 3:
-      return <OnboardingStep title="Basic Information" description="A few more details about you" onNext={nextStep} onBack={prevStep} canProceed={formData.height.length > 0 && formData.bodyType.length > 0 && formData.education.length > 0 && formData.occupation.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="Basic Information" description="A few more details about you" onNext={nextStep} onBack={prevStep} canProceed={formData.height.length > 0 && formData.bodyType.length > 0 && formData.education.length > 0} currentStep={step} totalSteps={totalSteps}>
           <div className="space-y-4">
             <div>
               <Label>Height</Label>
@@ -604,7 +604,7 @@ const Onboarding = () => {
           </div>
         </OnboardingStep>;
     case 6:
-      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} currentStep={step} totalSteps={totalSteps}>
+      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} canProceed={true} currentStep={step} totalSteps={totalSteps}>
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
               <span className="logo-text">Ò</span>
