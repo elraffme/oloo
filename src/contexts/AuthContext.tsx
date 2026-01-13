@@ -47,14 +47,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Handle OAuth redirect - check profile and redirect appropriately
+        // Handle OAuth redirect - check profile onboarding_completed status
         if (event === 'SIGNED_IN' && session?.user) {
-          // Check if user has a complete profile
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
                 .from('profiles')
-                .select('display_name, age, location')
+                .select('onboarding_completed')
                 .eq('user_id', session.user.id)
                 .single();
               
@@ -63,11 +62,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const authPages = ['/signin', '/auth', '/'];
               
               if (authPages.includes(currentPath)) {
-                if (profile && profile.display_name && profile.age && profile.location) {
-                  // Returning user with complete profile - go to app
+                if (profile?.onboarding_completed === true) {
+                  // Returning user with completed onboarding - go to app
                   window.location.href = '/app';
                 } else {
-                  // New user or incomplete profile - go to onboarding
+                  // New user or onboarding not completed - go to onboarding
                   window.location.href = '/onboarding';
                 }
               }
@@ -79,7 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 p_details: { event, timestamp: new Date().toISOString() }
               });
             } catch (error) {
-              console.error('Failed to check profile or log security event:', error);
+              console.error('Failed to check profile:', error);
               // If profile check fails, redirect to onboarding as safe default
               const currentPath = window.location.pathname;
               if (['/signin', '/auth', '/'].includes(currentPath)) {
