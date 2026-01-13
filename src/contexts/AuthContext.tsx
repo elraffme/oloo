@@ -42,23 +42,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Log auth events for security audit
+        // Handle OAuth redirect - check profile and redirect appropriately
         if (event === 'SIGNED_IN' && session?.user) {
-          // Use secure audit logging function instead of direct insert
+          // Check if user has a complete profile
           setTimeout(async () => {
             try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('display_name, age, location')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              // Only redirect if we're on a page that should handle auth redirects
+              const currentPath = window.location.pathname;
+              const authPages = ['/signin', '/auth', '/'];
+              
+              if (authPages.includes(currentPath)) {
+                if (profile && profile.display_name && profile.age && profile.location) {
+                  // Returning user with complete profile - go to app
+                  window.location.href = '/app';
+                } else {
+                  // New user or incomplete profile - go to onboarding
+                  window.location.href = '/onboarding';
+                }
+              }
+              
+              // Log security event
               await supabase.rpc('log_security_event', {
                 p_action: 'login',
                 p_resource_type: 'auth',
                 p_details: { event, timestamp: new Date().toISOString() }
               });
             } catch (error) {
-              console.error('Failed to log security event:', error);
+              console.error('Failed to check profile or log security event:', error);
+              // If profile check fails, redirect to onboarding as safe default
+              const currentPath = window.location.pathname;
+              if (['/signin', '/auth', '/'].includes(currentPath)) {
+                window.location.href = '/onboarding';
+              }
             }
           }, 0);
         }
