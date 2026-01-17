@@ -33,6 +33,15 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Helper function to clear all pending onboarding/verification states
+const clearPendingStates = () => {
+  localStorage.removeItem('pendingOnboardingData');
+  localStorage.removeItem('onboardingData');
+  localStorage.removeItem('pendingBiometricConsent');
+  localStorage.removeItem('pendingVerification');
+  localStorage.removeItem('onboardingStep');
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -75,7 +84,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               // Check for pending onboarding data (from email verification flow)
               const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
-              const pendingBiometricConsent = localStorage.getItem('pendingBiometricConsent');
               
               if (pendingOnboardingData) {
                 try {
@@ -91,18 +99,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     profile_photos: onboardingData.photos || [],
                     prompt_responses: onboardingData.promptResponses || {}
                   }).eq('user_id', session.user.id);
-                  
-                  localStorage.removeItem('pendingOnboardingData');
-                  localStorage.removeItem('onboardingData');
                 } catch (error) {
                   console.error('Error applying pending onboarding data:', error);
                 }
               }
               
-              // Clean up biometric consent flag
-              if (pendingBiometricConsent) {
-                localStorage.removeItem('pendingBiometricConsent');
-              }
+              // Clear all pending states after processing
+              clearPendingStates();
               
               // Only redirect if we're on a page that should handle auth redirects
               const currentPath = window.location.pathname;

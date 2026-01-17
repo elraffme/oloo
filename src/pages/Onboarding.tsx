@@ -325,6 +325,13 @@ const Onboarding = () => {
       
       console.log('Profile saved successfully! onboarding_completed:', verifyProfile?.onboarding_completed);
       
+      // Clear all pending states to allow immediate navigation to /app
+      localStorage.removeItem('pendingOnboardingData');
+      localStorage.removeItem('onboardingData');
+      localStorage.removeItem('pendingBiometricConsent');
+      localStorage.removeItem('pendingVerification');
+      localStorage.removeItem('onboardingStep');
+      
       toast({
         title: "Profile created!",
         description: "Welcome to Òloo"
