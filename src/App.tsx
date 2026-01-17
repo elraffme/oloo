@@ -17,6 +17,7 @@ const queryClient = new QueryClient({
 });
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
+import AuthVerify from "./pages/AuthVerify";
 import SignIn from "./pages/SignIn";
 import Onboarding from "./pages/Onboarding";
 import About from "./pages/About";
@@ -49,6 +50,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/verify" element={<AuthVerify />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password/confirm" element={<ResetPasswordConfirm />} />

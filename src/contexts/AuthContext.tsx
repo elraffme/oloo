@@ -51,6 +51,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(async () => {
             try {
+              // Check if this is an OAuth user (automatically verified) or email user
+              const isOAuthUser = session.user.app_metadata?.provider && 
+                                  session.user.app_metadata.provider !== 'email';
+              
+              // For email sign-ups, check if email is verified
+              if (!isOAuthUser && !session.user.email_confirmed_at) {
+                const currentPath = window.location.pathname;
+                const authPages = ['/signin', '/auth', '/'];
+                
+                if (authPages.includes(currentPath)) {
+                  // Redirect unverified email users to verify page
+                  window.location.href = '/auth/verify';
+                }
+                return;
+              }
+              
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('onboarding_completed')
@@ -90,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               
               // Only redirect if we're on a page that should handle auth redirects
               const currentPath = window.location.pathname;
-              const authPages = ['/signin', '/auth', '/'];
+              const authPages = ['/signin', '/auth', '/', '/auth/verify'];
               
               if (authPages.includes(currentPath)) {
                 if (profile?.onboarding_completed === true) {
