@@ -208,7 +208,7 @@ const Onboarding = () => {
     return age;
   };
 
-  const saveProfile = async () => {
+  const saveProfile = async (): Promise<boolean> => {
     if (!user) {
       toast({
         title: "Error",
@@ -244,6 +244,7 @@ const Onboarding = () => {
           description: "You must be at least 18 years old",
           variant: "destructive"
         });
+        setIsSaving(false);
         return false;
       }
 
@@ -273,8 +274,9 @@ const Onboarding = () => {
         onboarding_completed: true
       };
       
-      console.log('Saving profile...', profileData);
+      console.log('Saving profile with onboarding_completed = true...', profileData);
       
+      // Use updateProfile from context (handles upsert with onConflict: 'user_id')
       const { error } = await updateProfile(profileData);
       
       if (error) {
@@ -284,8 +286,44 @@ const Onboarding = () => {
           description: error.message,
           variant: "destructive"
         });
+        setIsSaving(false);
         return false;
       }
+      
+      // Verify the profile was saved with onboarding_completed = true
+      const { data: verifyProfile, error: verifyError } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (verifyError || !verifyProfile?.onboarding_completed) {
+        console.error('Profile verification failed:', verifyError);
+        // Retry saving directly if verification failed
+        const { error: retryError } = await supabase
+          .from('profiles')
+          .upsert({
+            user_id: user.id,
+            ...profileData,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
+          });
+        
+        if (retryError) {
+          console.error('Retry save failed:', retryError);
+          toast({
+            title: "Error saving profile",
+            description: "Please try again",
+            variant: "destructive"
+          });
+          setIsSaving(false);
+          return false;
+        }
+      }
+      
+      console.log('Profile saved successfully! onboarding_completed:', verifyProfile?.onboarding_completed);
       
       toast({
         title: "Profile created!",
@@ -313,7 +351,9 @@ const Onboarding = () => {
       // Final step - save profile and go to app
       const success = await saveProfile();
       if (success) {
-        navigate('/app');
+        // Use window.location for reliable redirect that bypasses any auth state race conditions
+        console.log('Onboarding complete, redirecting to /app...');
+        window.location.href = '/app';
       }
     }
   };
