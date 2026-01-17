@@ -78,6 +78,15 @@ const AppLayout = () => {
     return <Navigate to="/signin" replace />;
   }
 
+  // CRITICAL: Block unverified email users from accessing /app
+  // This is a synchronous check that runs before any content renders
+  if (user && !loading) {
+    const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
+    if (!isOAuthUser && !user.email_confirmed_at) {
+      return <Navigate to="/auth/verify" replace />;
+    }
+  }
+
   // Show loading while checking
   if (loading || checkingProfile) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
