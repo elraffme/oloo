@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Heart, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Heart, ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 import { FaceVerification } from '@/components/FaceVerification';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -155,6 +155,9 @@ const Auth = () => {
       setIsSubmitting(false);
     }
   };
+  const [showEmailVerificationMessage, setShowEmailVerificationMessage] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -202,38 +205,18 @@ const Auth = () => {
       const result = await signUp(formData.email, formData.password, metadata);
       console.log('SignUp result:', result);
       if (!result.error) {
-        // If we have onboarding data, create the profile
+        // Store the email and show verification message
+        setRegisteredEmail(formData.email);
+        setShowEmailVerificationMessage(true);
+        
+        // Store onboarding data for after email verification
         if (onboardingData) {
-          try {
-            const {
-              data: session
-            } = await supabase.auth.getSession();
-            if (session?.session?.user) {
-              await supabase.from('profiles').update({
-                display_name: onboardingData.displayName || '',
-                age: onboardingData.age || 0,
-                bio: onboardingData.bio || formData.bio || 'Hello, I\'m new to Òloo!',
-                height_cm: onboardingData.height || null,
-                gender: onboardingData.gender || null,
-                interests: onboardingData.interests || [],
-                relationship_goals: onboardingData.relationshipGoal || null,
-                profile_photos: onboardingData.photos || [],
-                prompt_responses: onboardingData.promptResponses || {}
-              }).eq('user_id', session.session.user.id);
-
-              // Clear onboarding data from localStorage
-              localStorage.removeItem('onboardingData');
-            }
-          } catch (error) {
-            console.error('Error saving profile:', error);
-          }
+          localStorage.setItem('pendingOnboardingData', JSON.stringify(onboardingData));
         }
-
-        // Navigate to app after successful signup
+        
+        // Store biometric consent preference for after verification
         if (formData.biometricConsent) {
-          setShowVerification(true);
-        } else {
-          navigate('/app');
+          localStorage.setItem('pendingBiometricConsent', 'true');
         }
       }
     } catch (error) {
@@ -254,6 +237,56 @@ const Auth = () => {
         <FaceVerification onVerificationComplete={handleVerificationComplete} profilePhotos={[]} />
       </div>;
   }
+  // Show email verification message
+  if (showEmailVerificationMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#f7f4e8' }}>
+        <Card className="max-w-md w-full backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-afro-heading">Check Your Email</CardTitle>
+            <CardDescription className="text-base">
+              We've sent a verification link to:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <p className="font-semibold text-lg text-foreground bg-muted/50 py-2 px-4 rounded-lg">
+              {registeredEmail}
+            </p>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2 text-left">
+                <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <span>Click the link in the email to verify your account</span>
+              </div>
+              <div className="flex items-start gap-2 text-left">
+                <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <span>After verification, you'll be redirected to complete your profile</span>
+              </div>
+              <div className="flex items-start gap-2 text-left">
+                <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                <span>Check your spam folder if you don't see the email</span>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-border">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setShowEmailVerificationMessage(false);
+                  setFormData(prev => ({ ...prev, email: '', password: '', confirmPassword: '' }));
+                }}
+              >
+                Use a different email
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">

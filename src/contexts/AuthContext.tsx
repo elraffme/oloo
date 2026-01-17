@@ -57,6 +57,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 .eq('user_id', session.user.id)
                 .single();
               
+              // Check for pending onboarding data (from email verification flow)
+              const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
+              const pendingBiometricConsent = localStorage.getItem('pendingBiometricConsent');
+              
+              if (pendingOnboardingData) {
+                try {
+                  const onboardingData = JSON.parse(pendingOnboardingData);
+                  await supabase.from('profiles').update({
+                    display_name: onboardingData.displayName || '',
+                    age: onboardingData.age || 0,
+                    bio: onboardingData.bio || 'Hello, I\'m new to Òloo!',
+                    height_cm: onboardingData.height || null,
+                    gender: onboardingData.gender || null,
+                    interests: onboardingData.interests || [],
+                    relationship_goals: onboardingData.relationshipGoal || null,
+                    profile_photos: onboardingData.photos || [],
+                    prompt_responses: onboardingData.promptResponses || {}
+                  }).eq('user_id', session.user.id);
+                  
+                  localStorage.removeItem('pendingOnboardingData');
+                  localStorage.removeItem('onboardingData');
+                } catch (error) {
+                  console.error('Error applying pending onboarding data:', error);
+                }
+              }
+              
+              // Clean up biometric consent flag
+              if (pendingBiometricConsent) {
+                localStorage.removeItem('pendingBiometricConsent');
+              }
+              
               // Only redirect if we're on a page that should handle auth redirects
               const currentPath = window.location.pathname;
               const authPages = ['/signin', '/auth', '/'];
