@@ -157,6 +157,12 @@ const Onboarding = () => {
     return <Navigate to="/signin" replace />;
   }
 
+  // Block unverified email users - redirect to verification page
+  const isEmailProvider = !user.app_metadata?.provider || user.app_metadata.provider === 'email';
+  if (isEmailProvider && !user.email_confirmed_at) {
+    return <Navigate to="/auth/verify" replace />;
+  }
+
   // Redirect returning users to app
   if (hasProfile) {
     return <Navigate to="/app" replace />;
