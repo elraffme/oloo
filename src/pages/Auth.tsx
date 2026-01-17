@@ -61,18 +61,28 @@ const Auth = () => {
     }
   }, []);
 
-  // Redirect only if user is authenticated - check profile and redirect appropriately
+  // Redirect only if user is authenticated - check email verification and profile
   useEffect(() => {
     const checkAndRedirect = async () => {
       if (user && !loading) {
+        // For email sign-ups, check if email is verified first
+        const isEmailProvider = !user.app_metadata?.provider || user.app_metadata.provider === 'email';
+        
+        if (isEmailProvider && !user.email_confirmed_at) {
+          // Email not verified - redirect to verification page
+          navigate('/auth/verify');
+          return;
+        }
+        
         try {
-          const {
-            data,
-            error
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', user.id).single();
+          const { data } = await supabase
+            .from('profiles')
+            .select('onboarding_completed')
+            .eq('user_id', user.id)
+            .single();
 
-          // Redirect to /app if profile is complete, otherwise /onboarding
-          if (data && data.display_name && data.age && data.location) {
+          // Redirect to /app if onboarding is complete, otherwise /onboarding
+          if (data?.onboarding_completed) {
             navigate('/app');
           } else {
             navigate('/onboarding');
