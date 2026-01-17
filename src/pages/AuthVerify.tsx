@@ -14,45 +14,68 @@ const AuthVerify = () => {
   const [resending, setResending] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
-  // If user is verified, redirect to app or onboarding
+  // Auto-check verification status and redirect when verified
   useEffect(() => {
-    const checkVerificationStatus = async () => {
-      if (!user) return;
-      
+    if (!user || loading) return;
+
+    const checkAndRedirect = async () => {
       // OAuth users are always verified
       if (user.app_metadata?.provider && user.app_metadata.provider !== 'email') {
-        redirectToAppOrOnboarding();
+        await redirectToAppOrOnboarding();
         return;
       }
       
       // Check if email is confirmed
       if (user.email_confirmed_at) {
-        redirectToAppOrOnboarding();
+        await redirectToAppOrOnboarding();
       }
     };
 
-    const redirectToAppOrOnboarding = async () => {
+    checkAndRedirect();
+
+    // Poll for verification status every 3 seconds
+    const pollInterval = setInterval(async () => {
       try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('user_id', user!.id)
-          .single();
-        
-        if (profile?.onboarding_completed) {
-          navigate('/app', { replace: true });
-        } else {
-          navigate('/onboarding', { replace: true });
+        const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+        if (refreshedUser?.email_confirmed_at) {
+          clearInterval(pollInterval);
+          toast({
+            title: "Email Verified!",
+            description: "Redirecting you now..."
+          });
+          await redirectToAppOrOnboarding();
         }
-      } catch {
+      } catch (error) {
+        console.error('Error polling verification status:', error);
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [user, loading]);
+
+  const redirectToAppOrOnboarding = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        navigate('/signin', { replace: true });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('user_id', currentUser.id)
+        .single();
+      
+      if (profile?.onboarding_completed) {
+        navigate('/app', { replace: true });
+      } else {
         navigate('/onboarding', { replace: true });
       }
-    };
-
-    if (!loading && user) {
-      checkVerificationStatus();
+    } catch {
+      navigate('/onboarding', { replace: true });
     }
-  }, [user, loading, navigate]);
+  };
 
   // Redirect to sign in if no user
   if (!loading && !user) {
@@ -171,7 +194,7 @@ const AuthVerify = () => {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Verify Your Email</CardTitle>
+          <CardTitle className="text-2xl">Please verify your email to continue</CardTitle>
           <CardDescription>
             We've sent a verification link to <strong>{user?.email}</strong>
           </CardDescription>
@@ -182,9 +205,14 @@ const AuthVerify = () => {
               <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-foreground mb-1">Check your inbox</p>
-                <p>Click the verification link in the email we sent you to activate your account.</p>
+                <p>Click the verification link in the email we sent you. Once verified, you'll be automatically redirected.</p>
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>Waiting for verification...</span>
           </div>
 
           <div className="space-y-3">
