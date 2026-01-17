@@ -20,11 +20,21 @@ const AppLayout = () => {
   const [hasProfile, setHasProfile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check if user has completed onboarding and if they're an admin
+  // Check if user has completed onboarding, email verification, and if they're an admin
   useEffect(() => {
     const checkProfile = async () => {
       if (!user) {
         setCheckingProfile(false);
+        return;
+      }
+
+      // Check email verification for non-OAuth users
+      // OAuth users (google, twitter, etc.) are automatically verified
+      const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
+      
+      if (!isOAuthUser && !user.email_confirmed_at) {
+        // Email not verified - redirect to verify page
+        window.location.href = '/auth/verify';
         return;
       }
       
