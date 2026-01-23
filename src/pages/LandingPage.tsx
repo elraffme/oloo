@@ -5,6 +5,7 @@ import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe,
 import landingImage from "@/assets/hero-background.png";
 import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import LanguageSelectionModal from "@/components/LanguageSelectionModal";
 import { useTranslation } from "react-i18next";
 
 const LandingPage = () => {
@@ -42,6 +43,9 @@ const LandingPage = () => {
     setIsMenuOpen(false);
   };
   return <div className="min-h-screen flex flex-col overflow-hidden bg-black">
+      {/* Language Selection Modal - First Visit */}
+      <LanguageSelectionModal />
+      
       {/* Top Header - Fixed */}
       <header className="bg-black/95 py-2 sm:py-3 lg:py-5 relative z-50 border-b border-primary/20">
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2" aria-label="Toggle menu">
