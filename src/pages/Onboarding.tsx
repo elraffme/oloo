@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,28 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Users, Heart, X, CalendarIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, X } from "lucide-react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-const OnboardingStep = ({
-  title,
-  description,
-  children,
-  onNext,
-  onBack,
-  canProceed = true,
-  isLastStep = false,
-  isSaving = false,
-  currentStep,
-  totalSteps
-}: {
+
+interface OnboardingStepProps {
   title: string;
   description?: string;
   children: React.ReactNode;
@@ -38,13 +24,35 @@ const OnboardingStep = ({
   isSaving?: boolean;
   currentStep: number;
   totalSteps: number;
-}) => <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex items-center justify-center p-4">
+  backLabel: string;
+  continueLabel: string;
+  savingLabel: string;
+  letsStartLabel: string;
+}
+
+const OnboardingStep = ({
+  title,
+  description,
+  children,
+  onNext,
+  onBack,
+  canProceed = true,
+  isLastStep = false,
+  isSaving = false,
+  currentStep,
+  totalSteps,
+  backLabel,
+  continueLabel,
+  savingLabel,
+  letsStartLabel
+}: OnboardingStepProps) => (
+  <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/10 flex items-center justify-center p-4">
     <Card className="w-full max-w-md cultural-card">
       <CardHeader className="text-center">
         <div className="w-full bg-secondary rounded-full h-2 mb-4">
           <div className="nsibidi-gradient h-2 rounded-full transition-all duration-500" style={{
-          width: `${currentStep / totalSteps * 100}%`
-        }} />
+            width: `${currentStep / totalSteps * 100}%`
+          }} />
         </div>
         <CardTitle className="text-2xl font-afro-heading">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
@@ -52,10 +60,12 @@ const OnboardingStep = ({
       <CardContent className="space-y-6">
         {children}
         <div className="flex gap-2">
-          {onBack && <Button variant="outline" onClick={onBack} className="flex-1">
+          {onBack && (
+            <Button variant="outline" onClick={onBack} className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>}
+              {backLabel}
+            </Button>
+          )}
           <Button 
             onClick={onNext} 
             disabled={!canProceed || (isLastStep && isSaving)} 
@@ -64,15 +74,13 @@ const OnboardingStep = ({
             {isLastStep && isSaving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                Saving Profile...
+                {savingLabel}
               </>
             ) : isLastStep ? (
-              <>
-              Let's Start!
-              </>
+              <>{letsStartLabel}</>
             ) : (
               <>
-                Continue
+                {continueLabel}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </>
             )}
@@ -80,8 +88,11 @@ const OnboardingStep = ({
         </div>
       </CardContent>
     </Card>
-  </div>;
+  </div>
+);
+
 const Onboarding = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, loading: authLoading, updateProfile } = useAuth();
   const { toast } = useToast();
@@ -146,7 +157,7 @@ const Onboarding = () => {
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t('onboarding.loading')}</p>
         </div>
       </div>
     );
@@ -167,13 +178,16 @@ const Onboarding = () => {
   if (hasProfile) {
     return <Navigate to="/app" replace />;
   }
+
   const totalSteps = 6;
+
   const updateData = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
+
   const uploadPhotos = async (): Promise<string[]> => {
     if (!user || formData.photos.length === 0) return [];
     
@@ -217,8 +231,8 @@ const Onboarding = () => {
   const saveProfile = async (): Promise<boolean> => {
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to complete onboarding",
+        title: t('common.error'),
+        description: t('onboarding.errors.mustBeLoggedIn'),
         variant: "destructive"
       });
       return false;
@@ -227,8 +241,8 @@ const Onboarding = () => {
     // Validate required fields
     if (!formData.name || !formData.birthDate || !formData.gender) {
       toast({
-        title: "Missing Information",
-        description: "Please complete all required fields",
+        title: t('onboarding.errors.missingInfo'),
+        description: t('onboarding.errors.completeFields'),
         variant: "destructive"
       });
       return false;
@@ -246,8 +260,8 @@ const Onboarding = () => {
       // Validate age
       if (age < 18 || age > 100) {
         toast({
-          title: "Invalid Age",
-          description: "You must be at least 18 years old",
+          title: t('onboarding.errors.invalidAge'),
+          description: t('onboarding.errors.mustBe18'),
           variant: "destructive"
         });
         setIsSaving(false);
@@ -288,7 +302,7 @@ const Onboarding = () => {
       if (error) {
         console.error('Update profile error:', error);
         toast({
-          title: "Error saving profile",
+          title: t('onboarding.errors.errorSaving'),
           description: error.message,
           variant: "destructive"
         });
@@ -320,8 +334,8 @@ const Onboarding = () => {
         if (retryError) {
           console.error('Retry save failed:', retryError);
           toast({
-            title: "Error saving profile",
-            description: "Please try again",
+            title: t('onboarding.errors.errorSaving'),
+            description: t('onboarding.errors.tryAgain'),
             variant: "destructive"
           });
           setIsSaving(false);
@@ -339,16 +353,16 @@ const Onboarding = () => {
       localStorage.removeItem('onboardingStep');
       
       toast({
-        title: "Profile created!",
-        description: "Welcome to Òloo"
+        title: t('onboarding.success.profileCreated'),
+        description: t('onboarding.success.welcome')
       });
       
       return true;
     } catch (error: any) {
       console.error('Profile save error:', error);
       toast({
-        title: "Error",
-        description: error?.message || "Failed to save profile. Please try again.",
+        title: t('common.error'),
+        description: error?.message || t('onboarding.errors.failedSave'),
         variant: "destructive"
       });
       return false;
@@ -370,9 +384,11 @@ const Onboarding = () => {
       }
     }
   };
+
   const prevStep = () => {
     if (step > 1) setStep(step - 1);
   };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
@@ -402,29 +418,57 @@ const Onboarding = () => {
       updateData('photos', [...formData.photos, ...files].slice(0, 6));
     }
   };
+
+  // Common props for OnboardingStep
+  const stepProps = {
+    currentStep: step,
+    totalSteps,
+    backLabel: t('onboarding.back'),
+    continueLabel: t('onboarding.continue'),
+    savingLabel: t('onboarding.savingProfile'),
+    letsStartLabel: t('onboarding.letsStart')
+  };
+
   switch (step) {
     case 1:
-      return <OnboardingStep title="Terms of Service" description="Please review and accept our terms" onNext={nextStep} canProceed={formData.agreed} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step1.title')} 
+          description={t('onboarding.step1.description')} 
+          onNext={nextStep} 
+          canProceed={formData.agreed} 
+          {...stepProps}
+        >
           <div className="space-y-4">
             <div className="bg-muted p-4 rounded-lg max-h-32 overflow-y-auto text-sm">
-              <p>Welcome to Òloo! By using our service, you agree to our terms of service and privacy policy. We prioritize your safety and cultural connections.</p>
+              <p>{t('onboarding.step1.welcome')}</p>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox id="agree" checked={formData.agreed} onCheckedChange={checked => updateData('agreed', checked)} />
-              <Label htmlFor="agree" className="text-sm">I agree to the Terms of Service and Privacy Policy</Label>
+              <Label htmlFor="agree" className="text-sm">{t('onboarding.step1.agreeTerms')}</Label>
             </div>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     case 2:
-      return <OnboardingStep title="Tell us about yourself" description="Basic information for your profile" onNext={nextStep} onBack={prevStep} canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step2.title')} 
+          description={t('onboarding.step2.description')} 
+          onNext={nextStep} 
+          onBack={prevStep} 
+          canProceed={formData.name.length >= 2 && formData.birthDate.length > 0 && formData.gender.length > 0 && formData.orientation.length > 0} 
+          {...stepProps}
+        >
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name" className="text-base">Username</Label>
-              <Input id="name" value={formData.name} onChange={e => updateData('name', e.target.value)} placeholder="Enter your username" className="text-lg" />
-              <p className="text-xs text-muted-foreground mt-1">Username will appear on profile</p>
+              <Label htmlFor="name" className="text-base">{t('onboarding.step2.username')}</Label>
+              <Input id="name" value={formData.name} onChange={e => updateData('name', e.target.value)} placeholder={t('onboarding.step2.usernamePlaceholder')} className="text-lg" />
+              <p className="text-xs text-muted-foreground mt-1">{t('onboarding.step2.usernameHint')}</p>
             </div>
             <div>
-              <Label htmlFor="birthDate">Date of Birth</Label>
+              <Label htmlFor="birthDate">{t('onboarding.step2.dateOfBirth')}</Label>
               <Input 
                 id="birthDate" 
                 type="date"
@@ -434,47 +478,57 @@ const Onboarding = () => {
                 min="1900-01-01"
                 className="h-12"
               />
-              <p className="text-xs text-muted-foreground mt-1">Your age will be public, but not your birthday</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('onboarding.step2.dateOfBirthHint')}</p>
             </div>
             <div>
-              <Label>Gender</Label>
+              <Label>{t('onboarding.step2.gender')}</Label>
               <Select value={formData.gender} onValueChange={value => updateData('gender', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your gender" />
+                  <SelectValue placeholder={t('onboarding.step2.genderPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="man">Man</SelectItem>
-                  <SelectItem value="woman">Woman</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="man">{t('onboarding.step2.genderMan')}</SelectItem>
+                  <SelectItem value="woman">{t('onboarding.step2.genderWoman')}</SelectItem>
+                  <SelectItem value="other">{t('onboarding.step2.genderOther')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Sexual Orientation</Label>
+              <Label>{t('onboarding.step2.orientation')}</Label>
               <Select value={formData.orientation} onValueChange={value => updateData('orientation', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your orientation" />
+                  <SelectValue placeholder={t('onboarding.step2.orientationPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="straight">Straight</SelectItem>
-                  <SelectItem value="gay">Gay</SelectItem>
-                  <SelectItem value="lesbian">Lesbian</SelectItem>
-                  <SelectItem value="bisexual">Bisexual</SelectItem>
-                  <SelectItem value="pansexual">Pansexual</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="straight">{t('onboarding.step2.orientationStraight')}</SelectItem>
+                  <SelectItem value="gay">{t('onboarding.step2.orientationGay')}</SelectItem>
+                  <SelectItem value="lesbian">{t('onboarding.step2.orientationLesbian')}</SelectItem>
+                  <SelectItem value="bisexual">{t('onboarding.step2.orientationBisexual')}</SelectItem>
+                  <SelectItem value="pansexual">{t('onboarding.step2.orientationPansexual')}</SelectItem>
+                  <SelectItem value="other">{t('onboarding.step2.orientationOther')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     case 3:
-      return <OnboardingStep title="Basic Information" description="A few more details about you" onNext={nextStep} onBack={prevStep} canProceed={formData.height.length > 0 && formData.bodyType.length > 0 && formData.education.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step3.title')} 
+          description={t('onboarding.step3.description')} 
+          onNext={nextStep} 
+          onBack={prevStep} 
+          canProceed={formData.height.length > 0 && formData.bodyType.length > 0 && formData.education.length > 0} 
+          {...stepProps}
+        >
           <div className="space-y-4">
             <div>
-              <Label>Height</Label>
+              <Label>{t('onboarding.step3.height')}</Label>
               <Select value={formData.height} onValueChange={value => updateData('height', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your height" />
+                  <SelectValue placeholder={t('onboarding.step3.heightPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="4'10">4'10" (147 cm)</SelectItem>
@@ -502,85 +556,95 @@ const Onboarding = () => {
               </Select>
             </div>
             <div>
-              <Label>Body Type</Label>
+              <Label>{t('onboarding.step3.bodyType')}</Label>
               <Select value={formData.bodyType} onValueChange={value => updateData('bodyType', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your body type" />
+                  <SelectValue placeholder={t('onboarding.step3.bodyTypePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="slim">Slim</SelectItem>
-                  <SelectItem value="athletic">Athletic</SelectItem>
-                  <SelectItem value="average">Average</SelectItem>
-                  <SelectItem value="curvy">Curvy</SelectItem>
-                  <SelectItem value="muscular">Muscular</SelectItem>
-                  <SelectItem value="heavyset">Heavyset</SelectItem>
+                  <SelectItem value="slim">{t('onboarding.step3.bodyTypeSlim')}</SelectItem>
+                  <SelectItem value="athletic">{t('onboarding.step3.bodyTypeAthletic')}</SelectItem>
+                  <SelectItem value="average">{t('onboarding.step3.bodyTypeAverage')}</SelectItem>
+                  <SelectItem value="curvy">{t('onboarding.step3.bodyTypeCurvy')}</SelectItem>
+                  <SelectItem value="muscular">{t('onboarding.step3.bodyTypeMuscular')}</SelectItem>
+                  <SelectItem value="heavyset">{t('onboarding.step3.bodyTypeHeavyset')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Education</Label>
+              <Label>{t('onboarding.step3.education')}</Label>
               <Select value={formData.education} onValueChange={value => updateData('education', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your education level" />
+                  <SelectValue placeholder={t('onboarding.step3.educationPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="high-school">High School</SelectItem>
-                  <SelectItem value="some-college">Some College</SelectItem>
-                  <SelectItem value="associates">Associate's Degree</SelectItem>
-                  <SelectItem value="bachelors">Bachelor's Degree</SelectItem>
-                  <SelectItem value="masters">Master's Degree</SelectItem>
-                  <SelectItem value="phd">PhD/Doctorate</SelectItem>
-                  <SelectItem value="trade">Trade School</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="high-school">{t('onboarding.step3.educationHighSchool')}</SelectItem>
+                  <SelectItem value="some-college">{t('onboarding.step3.educationSomeCollege')}</SelectItem>
+                  <SelectItem value="associates">{t('onboarding.step3.educationAssociates')}</SelectItem>
+                  <SelectItem value="bachelors">{t('onboarding.step3.educationBachelors')}</SelectItem>
+                  <SelectItem value="masters">{t('onboarding.step3.educationMasters')}</SelectItem>
+                  <SelectItem value="phd">{t('onboarding.step3.educationPhD')}</SelectItem>
+                  <SelectItem value="trade">{t('onboarding.step3.educationTrade')}</SelectItem>
+                  <SelectItem value="other">{t('onboarding.step3.educationOther')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="occupation">Occupation</Label>
-              <Input id="occupation" value={formData.occupation} onChange={e => updateData('occupation', e.target.value)} placeholder="What do you do?" />
+              <Label htmlFor="occupation">{t('onboarding.step3.occupation')}</Label>
+              <Input id="occupation" value={formData.occupation} onChange={e => updateData('occupation', e.target.value)} placeholder={t('onboarding.step3.occupationPlaceholder')} />
             </div>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     case 4:
-      return <OnboardingStep title="Your Preferences" description="Tell us what you're looking for" onNext={nextStep} onBack={prevStep} canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step4.title')} 
+          description={t('onboarding.step4.description')} 
+          onNext={nextStep} 
+          onBack={prevStep} 
+          canProceed={formData.interestedIn.length > 0 && formData.lookingFor.length > 0} 
+          {...stepProps}
+        >
           <div className="space-y-4">
             <div>
-              <Label>Show me</Label>
+              <Label>{t('onboarding.step4.showMe')}</Label>
               <Select value={formData.interestedIn} onValueChange={value => updateData('interestedIn', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Who you're interested in" />
+                  <SelectValue placeholder={t('onboarding.step4.showMePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="men">Men</SelectItem>
-                  <SelectItem value="women">Women</SelectItem>
-                  <SelectItem value="everyone">Everyone</SelectItem>
+                  <SelectItem value="men">{t('onboarding.step4.showMeMen')}</SelectItem>
+                  <SelectItem value="women">{t('onboarding.step4.showMeWomen')}</SelectItem>
+                  <SelectItem value="everyone">{t('onboarding.step4.showMeEveryone')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Relationship Goals</Label>
+              <Label>{t('onboarding.step4.relationshipGoals')}</Label>
               <Select value={formData.lookingFor} onValueChange={value => updateData('lookingFor', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="What you're looking for" />
+                  <SelectValue placeholder={t('onboarding.step4.relationshipGoalsPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="long-term">Long-term relationship</SelectItem>
-                  <SelectItem value="short-term">Short-term dating</SelectItem>
-                  <SelectItem value="open-to-short">Open to short-term</SelectItem>
-                  <SelectItem value="open-to-long">Open to long-term</SelectItem>
-                  <SelectItem value="not-sure">Not really sure</SelectItem>
+                  <SelectItem value="long-term">{t('onboarding.step4.relationshipLongTerm')}</SelectItem>
+                  <SelectItem value="short-term">{t('onboarding.step4.relationshipShortTerm')}</SelectItem>
+                  <SelectItem value="open-to-short">{t('onboarding.step4.relationshipOpenShort')}</SelectItem>
+                  <SelectItem value="open-to-long">{t('onboarding.step4.relationshipOpenLong')}</SelectItem>
+                  <SelectItem value="not-sure">{t('onboarding.step4.relationshipNotSure')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="hobbies">Hobbies & Lifestyle</Label>
-              <Textarea id="hobbies" value={formData.hobbies} onChange={e => updateData('hobbies', e.target.value)} placeholder="Tell us about your hobbies, interests, and lifestyle..." className="min-h-24" />
+              <Label htmlFor="hobbies">{t('onboarding.step4.hobbies')}</Label>
+              <Textarea id="hobbies" value={formData.hobbies} onChange={e => updateData('hobbies', e.target.value)} placeholder={t('onboarding.step4.hobbiesPlaceholder')} className="min-h-24" />
             </div>
             <div>
-              <Label>Personality Type</Label>
+              <Label>{t('onboarding.step4.personality')}</Label>
               <Select value={formData.personality} onValueChange={value => updateData('personality', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder={t('onboarding.step4.personalityPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="INTJ">INTJ - The Architect</SelectItem>
@@ -603,9 +667,19 @@ const Onboarding = () => {
               </Select>
             </div>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     case 5:
-      return <OnboardingStep title="Add Photos" description="Show your best self! Add at least one photo" onNext={nextStep} onBack={prevStep} canProceed={formData.photos.length > 0} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step5.title')} 
+          description={t('onboarding.step5.description')} 
+          onNext={nextStep} 
+          onBack={prevStep} 
+          canProceed={formData.photos.length > 0} 
+          {...stepProps}
+        >
           <div className="space-y-4">
             <div 
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
@@ -621,55 +695,81 @@ const Onboarding = () => {
               <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground mb-2">
                 {isDragging 
-                  ? "Drop your photos here" 
+                  ? t('onboarding.step5.dropPhotos')
                   : formData.photos.length > 0 
                     ? `${formData.photos.length} photo(s) selected` 
-                    : "Drag & drop or click to upload (max 6 photos)"}
+                    : t('onboarding.step5.dragDrop')}
               </p>
               <Input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" id="photo-upload" />
               <Button type="button" variant="outline" className="w-full pointer-events-none">
                 <Upload className="w-4 h-4 mr-2" />
-                Select Photos
+                {t('onboarding.step5.selectPhotos')}
               </Button>
             </div>
             
-            {formData.photos.length > 0 && <div className="grid grid-cols-3 gap-2">
-                {formData.photos.slice(0, 6).map((photo, index) => <div key={index} className="relative aspect-square group">
+            {formData.photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {formData.photos.slice(0, 6).map((photo, index) => (
+                  <div key={index} className="relative aspect-square group">
                     <img src={URL.createObjectURL(photo)} alt={`Upload ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
-                    <Button size="sm" variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => {
-                e.stopPropagation();
-                const newPhotos = formData.photos.filter((_, i) => i !== index);
-                updateData('photos', newPhotos);
-              }}>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onClick={e => {
+                        e.stopPropagation();
+                        const newPhotos = formData.photos.filter((_, i) => i !== index);
+                        updateData('photos', newPhotos);
+                      }}
+                    >
                       <X className="h-3 w-3" />
                     </Button>
-                    {index === 0 && <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
-                        Main
-                      </div>}
-                  </div>)}
-              </div>}
+                    {index === 0 && (
+                      <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
+                        {t('onboarding.step5.main')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             
             <div className="bg-accent/10 p-3 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                💡 <strong>Tip:</strong> Your first photo will be your main profile picture. Add multiple angles and genuine smiles!
+                {t('onboarding.step5.tip')}
               </p>
             </div>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     case 6:
-      return <OnboardingStep title="You're All Set!" description="Welcome to Òloo - let's find your perfect match" onNext={nextStep} onBack={prevStep} isLastStep={true} isSaving={isSaving} canProceed={true} currentStep={step} totalSteps={totalSteps}>
+      return (
+        <OnboardingStep 
+          title={t('onboarding.step6.title')} 
+          description={t('onboarding.step6.description')} 
+          onNext={nextStep} 
+          onBack={prevStep} 
+          isLastStep={true} 
+          isSaving={isSaving} 
+          canProceed={true} 
+          {...stepProps}
+        >
           <div className="text-center space-y-4">
             <div className="heart-logo mx-auto mb-6">
               <span className="logo-text">Ò</span>
             </div>
-            <p className="text-lg font-medium">Ready to start your journey?</p>
+            <p className="text-lg font-medium">{t('onboarding.step6.ready')}</p>
             <p className="text-sm text-muted-foreground">
-              Your profile is complete and you're ready to discover amazing people who share your culture and values.
+              {t('onboarding.step6.readyDescription')}
             </p>
           </div>
-        </OnboardingStep>;
+        </OnboardingStep>
+      );
+    
     default:
-      return <div>Error: Invalid step</div>;
+      return <div>{t('onboarding.errors.invalidStep')}</div>;
   }
 };
+
 export default Onboarding;
