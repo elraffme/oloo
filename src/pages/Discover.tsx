@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProfileCard } from '@/components/ProfileCard';
@@ -13,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Brain } from 'lucide-react';
 
 const Discover = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -94,13 +96,13 @@ const Discover = () => {
           await loadFriendshipStates(shuffledNewProfiles);
           
           toast({
-            title: "More profiles loaded! 🎉",
-            description: `Found ${shuffledNewProfiles.length} more people for you to meet.`,
+            title: t('discover.moreProfilesLoaded'),
+            description: t('discover.foundMorePeople', { count: shuffledNewProfiles.length }),
           });
         } else {
           toast({
-            title: "No more profiles",
-            description: "You've seen all available profiles for now. Check back later!",
+            title: t('discover.noMoreProfilesAvailable'),
+            description: t('discover.seenAllProfiles'),
           });
         }
       } else {
@@ -122,8 +124,8 @@ const Discover = () => {
         setProfiles(mockProfiles);
       } else {
         toast({
-          title: "Error",
-          description: "Failed to load more profiles. Please try again.",
+          title: t('errors.error'),
+          description: t('discover.errorLoadingProfiles'),
           variant: "destructive",
         });
       }
@@ -184,8 +186,8 @@ const Discover = () => {
       // Record super like (treat as special like)
       if (!user) {
         toast({
-          title: "Authentication Required",
-          description: "Please sign in to use Super Like.",
+          title: t('discover.authRequired'),
+          description: t('discover.signInToSuperLike'),
           variant: "destructive",
         });
         navigate('/auth');
@@ -195,8 +197,8 @@ const Discover = () => {
       const targetUserId = getTargetUserId(currentProfile);
       if (!targetUserId) {
         toast({
-          title: "Demo profile",
-          description: "Interactions are disabled for demo profiles.",
+          title: t('discover.demoProfile'),
+          description: t('discover.demoProfileInteractions'),
         });
         return;
       }
@@ -212,8 +214,8 @@ const Discover = () => {
       }
 
       toast({
-        title: "Super Like sent! ⭐",
-        description: `You super liked ${currentProfile.display_name}!`,
+        title: t('discover.superLikeSent'),
+        description: t('discover.youSuperLiked', { name: currentProfile.display_name }),
       });
 
       setSwipeDirection('right');
@@ -224,8 +226,8 @@ const Discover = () => {
     } catch (error) {
       console.error('Error recording super like:', error);
       toast({
-        title: "Error",
-        description: "Failed to send super like. Please try again.",
+        title: t('errors.error'),
+        description: t('discover.errorSuperLike'),
         variant: "destructive",
       });
     }
@@ -235,8 +237,8 @@ const Discover = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       toast({
-        title: "Undone",
-        description: "Went back to previous profile",
+        title: t('discover.undone'),
+        description: t('discover.backToPrevious'),
       });
     }
   };
@@ -247,8 +249,8 @@ const Discover = () => {
 
   const handleBoost = () => {
     toast({
-      title: "Boost feature coming soon! 🚀",
-      description: "This feature will increase your profile visibility.",
+      title: t('discover.boostComingSoon'),
+      description: t('discover.boostDesc'),
     });
   };
 
@@ -262,13 +264,13 @@ const Discover = () => {
       try {
         // First, record the like
         if (!user) {
-          toast({ title: "Authentication Required", description: "Please sign in to like profiles.", variant: "destructive" });
+          toast({ title: t('discover.authRequired'), description: t('discover.signInToLike'), variant: "destructive" });
           navigate('/auth');
           return;
         }
         const targetUserId = getTargetUserId(currentProfile);
         if (!targetUserId) {
-          toast({ title: "Demo profile", description: "Likes are disabled for demo profiles." });
+          toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileLikes') });
           return;
         }
         const { error } = await supabase.from('user_connections').insert({
@@ -300,16 +302,16 @@ const Discover = () => {
             }, 700);
           } else {
             toast({
-              title: "Profile liked! 💖",
-              description: `You liked ${currentProfile.display_name}. If they like you back, you'll get a match!`,
+              title: t('discover.profileLiked'),
+              description: t('discover.theyLikeBack', { name: currentProfile.display_name }),
             });
           }
         }
       } catch (error) {
         console.error('Error recording like:', error);
         toast({
-          title: "Error",
-          description: "Failed to record like. Please try again.",
+          title: t('errors.error'),
+          description: t('discover.errorLike'),
           variant: "destructive",
         });
       }
@@ -317,7 +319,7 @@ const Discover = () => {
       // Record dislike/pass
       try {
         if (!user) {
-          toast({ title: "Authentication Required", description: "Please sign in to continue.", variant: "destructive" });
+          toast({ title: t('discover.authRequired'), description: t('discover.signInToContinue'), variant: "destructive" });
           navigate('/auth');
           return;
         }
@@ -346,7 +348,7 @@ const Discover = () => {
   const handleMessage = (profileId: string) => {
     console.log(`Starting conversation with profile ${profileId}`);
     if (!isValidUuid(profileId)) {
-      toast({ title: "Demo profile", description: "Messaging is only available with real users." });
+      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileMessaging') });
       return;
     }
     navigate('/app/messages', { state: { selectedUser: profileId, newConversation: profileId } });
@@ -359,7 +361,7 @@ const Discover = () => {
   const handleSendMessage = (profileId: string, message: string) => {
     console.log(`Sending message to ${profileId}: ${message}`);
     if (!isValidUuid(profileId)) {
-      toast({ title: "Demo profile", description: "Messaging is only available with real users." });
+      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileMessaging') });
       return;
     }
     navigate('/app/messages', { 
@@ -368,7 +370,7 @@ const Discover = () => {
         initialMessage: message 
       } 
     });
-    toast({ title: "Message sent! 💬", description: "Your message has been sent successfully." });
+    toast({ title: t('discover.messageSent'), description: t('discover.messageSentSuccess') });
   };
 
   const handleAddFriend = async () => {
@@ -377,8 +379,8 @@ const Discover = () => {
     
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to add friends.",
+        title: t('discover.authRequired'),
+        description: t('discover.signInToAddFriends'),
         variant: "destructive",
       });
       navigate('/auth');
@@ -386,7 +388,7 @@ const Discover = () => {
     }
     
     if (!targetUserId) {
-      toast({ title: "Demo profile", description: "You can only add real users as friends." });
+      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileFriends') });
       return;
     }
 
@@ -400,20 +402,20 @@ const Discover = () => {
         if (result.type === 'accepted') {
           setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'friends' }));
           toast({
-            title: "Now Friends! 🎉",
-            description: `You and ${currentProfile.display_name} are now friends!`,
+            title: t('discover.nowFriends'),
+            description: t('discover.youAndFriends', { name: currentProfile.display_name }),
           });
         } else {
           setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'sent' }));
           toast({
-            title: "Friend Request Sent! 👋",
-            description: `Friend request sent to ${currentProfile.display_name}`,
+            title: t('discover.friendRequestSent'),
+            description: t('discover.friendRequestSentTo', { name: currentProfile.display_name }),
           });
         }
       } else {
         setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
         toast({
-          title: "Info",
+          title: t('errors.info'),
           description: result.message,
         });
         // Reset to idle after 3 seconds for retry
@@ -425,8 +427,8 @@ const Discover = () => {
       console.error('Error sending friend request:', error);
       setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
       toast({
-        title: "Error",
-        description: "Failed to send friend request. Please try again.",
+        title: t('errors.error'),
+        description: t('errors.tryAgain'),
         variant: "destructive",
       });
       // Reset to idle after 3 seconds for retry
