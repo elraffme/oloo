@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,7 @@ import { EquippedItemsDisplay } from '@/components/EquippedItemsDisplay';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
+  const { t } = useTranslation();
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
@@ -338,7 +340,7 @@ const Profile = () => {
               <span className="logo-text">Ò</span>
             </div>
           </div>
-          <p className="text-muted-foreground">Loading your profile...</p>
+          <p className="text-muted-foreground">{t('profile.loadingProfile')}</p>
         </div>
       </div>
     );
@@ -373,22 +375,22 @@ const Profile = () => {
                   {isEditing ? (
                     <div className="space-y-3">
                       <div>
-                        <Label htmlFor="display_name">Display Name</Label>
+                        <Label htmlFor="display_name">{t('profile.displayName')}</Label>
                         <Input
                           id="display_name"
                           value={editForm.display_name}
                           onChange={(e) => handleInputChange('display_name', e.target.value)}
-                          placeholder="Your display name"
+                          placeholder={t('profile.displayName')}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="age">Age</Label>
+                        <Label htmlFor="age">{t('profile.age')}</Label>
                         <Input
                           id="age"
                           type="number"
                           value={editForm.age}
                           onChange={(e) => handleInputChange('age', parseInt(e.target.value) || 0)}
-                          placeholder="Your age"
+                          placeholder={t('profile.age')}
                           min="18"
                           max="100"
                         />
@@ -411,13 +413,13 @@ const Profile = () => {
                             className="text-2xl font-bold font-afro-heading p-0 h-auto text-primary hover:text-primary/80"
                             onClick={() => window.location.href = '/app'}
                           >
-                            Complete Your Profile
+                            {t('profile.completeProfile')}
                           </Button>
                         )}
                       </div>
                       {profile?.age && (
                         <p className="text-muted-foreground">
-                          {profile.age} years old
+                          {profile.age} {t('profile.yearsOld')}
                         </p>
                       )}
                     </div>
@@ -426,16 +428,16 @@ const Profile = () => {
                 {isEditing ? (
                   <div className="flex gap-2">
                     <Button onClick={handleSave} size="sm">
-                      Save
+                      {t('common.save')}
                     </Button>
                     <Button variant="outline" onClick={handleEditToggle} size="sm">
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                   </div>
                 ) : (
                   <Button variant="outline" onClick={handleEditToggle}>
                     <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
+                    {t('profile.editProfile')}
                   </Button>
                 )}
               </div>
@@ -444,39 +446,39 @@ const Profile = () => {
               {isEditing ? (
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="location">{t('profile.location')}</Label>
                     <Input
                       id="location"
                       value={editForm.location}
                       onChange={(e) => handleInputChange('location', e.target.value)}
-                      placeholder="Your location"
+                      placeholder={t('profile.location')}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="occupation">Occupation</Label>
+                    <Label htmlFor="occupation">{t('profile.occupation')}</Label>
                     <Input
                       id="occupation"
                       value={editForm.occupation}
                       onChange={(e) => handleInputChange('occupation', e.target.value)}
-                      placeholder="Your occupation"
+                      placeholder={t('profile.occupation')}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="education">Education</Label>
+                    <Label htmlFor="education">{t('profile.education')}</Label>
                     <Input
                       id="education"
                       value={editForm.education}
                       onChange={(e) => handleInputChange('education', e.target.value)}
-                      placeholder="Your education"
+                      placeholder={t('profile.education')}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="relationship_goals">Relationship Goals</Label>
+                    <Label htmlFor="relationship_goals">{t('profile.relationshipGoals')}</Label>
                     <Input
                       id="relationship_goals"
                       value={editForm.relationship_goals}
                       onChange={(e) => handleInputChange('relationship_goals', e.target.value)}
-                      placeholder="What are you looking for?"
+                      placeholder={t('profile.whatLookingFor')}
                     />
                   </div>
                 </div>
@@ -507,20 +509,20 @@ const Profile = () => {
 
               {isEditing ? (
                 <div>
-                  <Label htmlFor="bio">Bio</Label>
+                  <Label htmlFor="bio">{t('profile.about')}</Label>
                   <Textarea
                     id="bio"
                     value={editForm.bio}
                     onChange={(e) => handleInputChange('bio', e.target.value)}
-                    placeholder="Tell us about yourself..."
+                    placeholder={t('profile.about')}
                     rows={3}
                   />
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Bio</Label>
+                  <Label className="text-muted-foreground">{t('profile.about')}</Label>
                   <p className="text-sm leading-relaxed">
-                    {profile?.bio || 'No bio added yet. Click Edit Profile to add one!'}
+                    {profile?.bio || t('profile.about')}
                   </p>
                 </div>
               )}

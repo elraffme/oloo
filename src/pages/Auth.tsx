@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(10, 'Password must be at least 10 characters');
 const Auth = () => {
+  const { t } = useTranslation();
   const {
     user,
     loading,
@@ -256,9 +258,9 @@ const Auth = () => {
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <Mail className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl font-afro-heading">Check Your Email</CardTitle>
+            <CardTitle className="text-2xl font-afro-heading">{t('auth.checkEmail')}</CardTitle>
             <CardDescription className="text-base">
-              We've sent a verification link to:
+              {t('auth.emailSent')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
@@ -268,15 +270,15 @@ const Auth = () => {
             <div className="space-y-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-2 text-left">
                 <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Click the link in the email to verify your account</span>
+                <span>{t('auth.verificationStep1')}</span>
               </div>
               <div className="flex items-start gap-2 text-left">
                 <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>After verification, you'll be redirected to complete your profile</span>
+                <span>{t('auth.verificationStep2')}</span>
               </div>
               <div className="flex items-start gap-2 text-left">
                 <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Check your spam folder if you don't see the email</span>
+                <span>{t('auth.verificationStep3')}</span>
               </div>
             </div>
             <div className="pt-4 border-t border-border">
@@ -288,7 +290,7 @@ const Auth = () => {
                   setFormData(prev => ({ ...prev, email: '', password: '', confirmPassword: '' }));
                 }}
               >
-                Use a different email
+                {t('auth.useDifferentEmail')}
               </Button>
             </div>
           </CardContent>
@@ -303,7 +305,7 @@ const Auth = () => {
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
-          <p className="text-muted-foreground text-center">Loading Òloo...</p>
+          <p className="text-muted-foreground text-center">{t('auth.loadingOloo')}</p>
         </div>
       </div>;
   }
@@ -316,7 +318,7 @@ const Auth = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {t('common.back')}
           </Button>
           
           
@@ -324,8 +326,8 @@ const Auth = () => {
           <h1 className="text-4xl font-bold font-afro-heading mb-2">
             <span className="afro-heading text-primary">Òloo</span>
           </h1>
-          <p className="text-xl text-black font-afro-body">
-            Cultured in connection
+          <p className="text-xl text-foreground font-afro-body">
+            {t('landing.tagline')}
           </p>
         </div>
 
@@ -333,11 +335,11 @@ const Auth = () => {
         <div className="max-w-md mx-auto">
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
-              <CardTitle className="font-afro-heading text-white text-2xl font-normal">
-                Create Account
+              <CardTitle className="font-afro-heading text-foreground text-2xl font-normal">
+                {t('auth.createAccount')}
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                Experience meaningful connections rooted in culture and heritage
+                {t('auth.meaningfulConnections')}
               </CardDescription>
             </CardHeader>
             
@@ -348,28 +350,28 @@ const Auth = () => {
               <div className="relative z-10">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={() => formData.email && validateEmail(formData.email)} placeholder="your@email.com" className={emailError ? 'border-red-500' : ''} required />
-                    {emailError && <p className="text-sm text-red-500 mt-1">{emailError}</p>}
+                    <Label htmlFor="email">{t('auth.email')}</Label>
+                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={() => formData.email && validateEmail(formData.email)} placeholder={t('auth.emailPlaceholder')} className={emailError ? 'border-destructive' : ''} required />
+                    {emailError && <p className="text-sm text-destructive mt-1">{emailError}</p>}
                   </div>
 
                   <div>
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" name="location" value={formData.location} onChange={handleInputChange} placeholder="Lagos, Nigeria" required />
+                    <Label htmlFor="location">{t('auth.location')}</Label>
+                    <Input id="location" name="location" value={formData.location} onChange={handleInputChange} placeholder={t('auth.locationPlaceholder')} required />
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="password">Password (minimum 10 characters)</Label>
-                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} onBlur={() => formData.password && validatePassword(formData.password)} placeholder="Create a strong password" className={passwordError ? 'border-red-500' : ''} required minLength={10} />
+                    <Label htmlFor="password">{t('auth.passwordMinLength')}</Label>
+                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} onBlur={() => formData.password && validatePassword(formData.password)} placeholder={t('auth.createStrongPassword')} className={passwordError ? 'border-destructive' : ''} required minLength={10} />
                     <button type="button" className="absolute right-3 top-8 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
-                    {passwordError && <p className="text-sm text-red-500 mt-1">{passwordError}</p>}
+                    {passwordError && <p className="text-sm text-destructive mt-1">{passwordError}</p>}
                   </div>
 
                   <div className="relative">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirm your password" className={passwordError && formData.confirmPassword ? 'border-red-500' : ''} required minLength={10} />
+                    <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
+                    <Input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleInputChange} placeholder={t('auth.confirmPasswordPlaceholder')} className={passwordError && formData.confirmPassword ? 'border-destructive' : ''} required minLength={10} />
                   </div>
 
                   <div className="space-y-3">
@@ -379,8 +381,8 @@ const Auth = () => {
                       acceptTerms: checked as boolean
                     }))} />
                       <Label htmlFor="acceptTerms" className="text-sm leading-relaxed">
-                        I accept the <span className="text-black underline">Terms of Service</span> and{' '}
-                        <span className="text-black underline">Privacy Policy</span>
+                        {t('auth.acceptTerms')} <span className="text-primary underline">{t('auth.termsOfService')}</span> {t('auth.and')}{' '}
+                        <span className="text-primary underline">{t('auth.privacyPolicy')}</span>
                       </Label>
                     </div>
 
@@ -390,13 +392,13 @@ const Auth = () => {
                       biometricConsent: checked as boolean
                     }))} />
                       <Label htmlFor="biometricConsent" className="text-sm leading-relaxed">
-                        <span className="text-orange-500">Optional:</span> I consent to face verification for enhanced security and profile authenticity
+                        <span className="text-accent">{t('auth.optional')}</span> {t('auth.biometricConsent')}
                       </Label>
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" disabled={isSubmitting}>
-                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                  <Button type="submit" className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" disabled={isSubmitting}>
+                    {isSubmitting ? t('auth.creatingAccount') : t('auth.createAccount')}
                   </Button>
                 </form>
 
@@ -406,7 +408,7 @@ const Auth = () => {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="bg-card px-4 text-muted-foreground">or continue with</span>
+                    <span className="bg-card px-4 text-muted-foreground">{t('common.orContinueWith')}</span>
                   </div>
                 </div>
 
@@ -416,7 +418,7 @@ const Auth = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300 flex items-center justify-center gap-3"
+                    className="w-full h-12 bg-card text-foreground border-2 border-border hover:bg-muted font-semibold transition-all duration-300 flex items-center justify-center gap-3"
                     onClick={() => signInWithGoogle()}
                     disabled={isSubmitting}
                   >
@@ -426,67 +428,66 @@ const Auth = () => {
                       <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
-                    Continue with Google
+                    {t('auth.continueWith')} {t('auth.google')}
                   </Button>
 
                   {/* X (Twitter) */}
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300 flex items-center justify-center gap-3"
+                    className="w-full h-12 bg-card text-foreground border-2 border-border hover:bg-muted font-semibold transition-all duration-300 flex items-center justify-center gap-3"
                     onClick={() => signInWithTwitter()}
                     disabled={isSubmitting}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
-                    Continue with X
+                    {t('auth.continueWith')} {t('auth.twitter')}
                   </Button>
 
                   {/* Facebook */}
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300 flex items-center justify-center gap-3"
+                    className="w-full h-12 bg-card text-foreground border-2 border-border hover:bg-muted font-semibold transition-all duration-300 flex items-center justify-center gap-3"
                     onClick={() => signInWithFacebook()}
                     disabled={isSubmitting}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    Continue with Facebook
+                    {t('auth.continueWith')} {t('auth.facebook')}
                   </Button>
 
                   {/* LinkedIn */}
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300 flex items-center justify-center gap-3"
+                    className="w-full h-12 bg-card text-foreground border-2 border-border hover:bg-muted font-semibold transition-all duration-300 flex items-center justify-center gap-3"
                     onClick={() => signInWithLinkedIn()}
                     disabled={isSubmitting}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#0A66C2">
                       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                     </svg>
-                    Continue with LinkedIn
+                    {t('auth.continueWith')} {t('auth.linkedin')}
                   </Button>
                 </div>
 
                 {/* Sign In Link */}
                 <div className="mt-6 pt-6 border-t border-border text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Already have an account?
+                    {t('auth.alreadyHaveAccount')}
                   </p>
-                  <Button variant="outline" className="w-full h-12 bg-white text-black border-2 border-gray-200 hover:bg-gray-50 font-semibold transition-all duration-300" onClick={() => window.location.href = '/signin'}>
-                    Sign In
+                  <Button variant="outline" className="w-full h-12 bg-card text-foreground border-2 border-border hover:bg-muted font-semibold transition-all duration-300" onClick={() => window.location.href = '/signin'}>
+                    {t('auth.signIn')}
                   </Button>
                 </div>
 
                 {/* Footer */}
                 <div className="mt-4 pt-4 border-t border-border text-center">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    By joining Òloo, you agree to our community guidelines and commit to respectful, 
-                    authentic connections within our culturally-rich environment.
+                    {t('common.termsFooter')}
                   </p>
                 </div>
               </div>
