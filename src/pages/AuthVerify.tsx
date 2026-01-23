@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const AuthVerify = () => {
+  const { t } = useTranslation();
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -40,8 +42,8 @@ const AuthVerify = () => {
         if (refreshedUser?.email_confirmed_at) {
           clearInterval(pollInterval);
           toast({
-            title: "Email Verified!",
-            description: "Redirecting you now..."
+            title: t('authVerify.emailVerified'),
+            description: t('authVerify.redirecting')
           });
           await redirectToAppOrOnboarding();
         }
@@ -98,20 +100,20 @@ const AuthVerify = () => {
 
       if (error) {
         toast({
-          title: "Error",
+          title: t('common.error'),
           description: error.message,
           variant: "destructive"
         });
       } else {
         toast({
-          title: "Email Sent!",
-          description: "A new verification link has been sent to your email."
+          title: t('authVerify.emailSentSuccess'),
+          description: t('authVerify.newLinkSent')
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to resend verification email",
+        title: t('common.error'),
+        description: error.message || t('errors.somethingWrong'),
         variant: "destructive"
       });
     } finally {
@@ -127,8 +129,8 @@ const AuthVerify = () => {
       
       if (error) {
         toast({
-          title: "Error",
-          description: "Could not check verification status",
+          title: t('common.error'),
+          description: t('authVerify.errorStatus'),
           variant: "destructive"
         });
         return;
@@ -136,8 +138,8 @@ const AuthVerify = () => {
 
       if (refreshedUser?.email_confirmed_at) {
         toast({
-          title: "Email Verified!",
-          description: "Redirecting you now..."
+          title: t('authVerify.emailVerified'),
+          description: t('authVerify.redirecting')
         });
         
         // Check profile and redirect
@@ -154,14 +156,14 @@ const AuthVerify = () => {
         }
       } else {
         toast({
-          title: "Not Yet Verified",
-          description: "Please check your email and click the verification link."
+          title: t('authVerify.notYetVerified'),
+          description: t('authVerify.checkEmailClick')
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Could not check verification status",
+        title: t('common.error'),
+        description: t('authVerify.errorStatus'),
         variant: "destructive"
       });
     } finally {
@@ -181,7 +183,7 @@ const AuthVerify = () => {
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -194,9 +196,9 @@ const AuthVerify = () => {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Please verify your email to continue</CardTitle>
+          <CardTitle className="text-2xl">{t('authVerify.title')}</CardTitle>
           <CardDescription>
-            We've sent a verification link to <strong>{user?.email}</strong>
+            {t('authVerify.sentTo')} <strong>{user?.email}</strong>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -204,15 +206,15 @@ const AuthVerify = () => {
             <div className="flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-foreground mb-1">Check your inbox</p>
-                <p>Click the verification link in the email we sent you. Once verified, you'll be automatically redirected.</p>
+                <p className="font-medium text-foreground mb-1">{t('authVerify.checkInbox')}</p>
+                <p>{t('authVerify.instructions')}</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>Waiting for verification...</span>
+            <span>{t('authVerify.waitingVerification')}</span>
           </div>
 
           <div className="space-y-3">
@@ -224,12 +226,12 @@ const AuthVerify = () => {
               {checkingStatus ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Checking...
+                  {t('authVerify.checking')}
                 </>
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  I've Verified My Email
+                  {t('authVerify.iveVerified')}
                 </>
               )}
             </Button>
@@ -243,10 +245,10 @@ const AuthVerify = () => {
               {resending ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  {t('authVerify.sending')}
                 </>
               ) : (
-                "Resend Verification Email"
+                t('authVerify.resendEmail')
               )}
             </Button>
 
@@ -256,12 +258,12 @@ const AuthVerify = () => {
               className="w-full"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Sign Out & Try Different Email
+              {t('authVerify.signOutDifferent')}
             </Button>
           </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            Didn't receive the email? Check your spam folder or request a new one.
+            {t('authVerify.spamNote')}
           </p>
         </CardContent>
       </Card>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 
 const ResetPassword = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
@@ -50,7 +52,7 @@ const ResetPassword = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => navigate('/signin')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Sign In
+            {t('resetPassword.backToSignIn')}
           </Button>
           
           <div className="heart-logo mx-auto mb-4">
@@ -61,7 +63,7 @@ const ResetPassword = () => {
             <span className="afro-heading">Òloo</span>
           </h1>
           <p className="text-xl text-muted-foreground font-afro-body">
-            Reset your password
+            {t('resetPassword.title')}
           </p>
         </div>
 
@@ -70,10 +72,10 @@ const ResetPassword = () => {
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               <CardTitle className="text-2xl font-afro-heading bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Forgot Password?
+                {t('resetPassword.forgotPassword')}
               </CardTitle>
               <CardDescription className="text-base text-muted-foreground/90">
-                Enter your email and we'll send you a reset link
+                {t('resetPassword.description')}
               </CardDescription>
             </CardHeader>
             
@@ -85,15 +87,14 @@ const ResetPassword = () => {
                   <Alert className="mb-6 border-green-500/50 bg-green-500/10">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-700 dark:text-green-400">
-                      Check your email! We've sent you a password reset link. 
-                      Please check your inbox and spam folder.
+                      {t('resetPassword.checkEmail')}
                     </AlertDescription>
                   </Alert>
                 ) : null}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email">{t('resetPassword.emailAddress')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -101,7 +102,7 @@ const ResetPassword = () => {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
+                        placeholder={t('resetPassword.placeholder')}
                         className="pl-10"
                         required
                         disabled={success}
@@ -111,7 +112,7 @@ const ResetPassword = () => {
 
                   {cooldown > 0 && (
                     <p className="text-sm text-muted-foreground text-center">
-                      Please wait {cooldown} seconds before requesting another reset link
+                      {t('resetPassword.waitSeconds', { seconds: cooldown })}
                     </p>
                   )}
 
@@ -120,29 +121,28 @@ const ResetPassword = () => {
                     className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40"
                     disabled={isSubmitting || success || cooldown > 0}
                   >
-                    {isSubmitting ? 'Sending...' : success ? 'Email Sent!' : 'Send Reset Link'}
+                    {isSubmitting ? t('resetPassword.sending') : success ? t('resetPassword.emailSent') : t('resetPassword.sendResetLink')}
                   </Button>
                 </form>
 
                 {/* Back to Sign In */}
                 <div className="mt-6 pt-6 border-t border-border text-center">
                   <p className="text-sm text-muted-foreground mb-3">
-                    Remember your password?
+                    {t('resetPassword.rememberPassword')}
                   </p>
                   <Button 
                     variant="ghost" 
                     className="text-primary hover:text-primary/80 hover:bg-primary/5"
                     onClick={() => navigate('/signin')}
                   >
-                    Back to Sign In
+                    {t('resetPassword.backToSignIn')}
                   </Button>
                 </div>
 
                 {/* Footer */}
                 <div className="mt-4 pt-4 border-t border-border text-center">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    For security reasons, we don't disclose whether an email exists in our system. 
-                    If you don't receive an email, please check your spam folder.
+                    {t('resetPassword.securityNote')}
                   </p>
                 </div>
               </div>
