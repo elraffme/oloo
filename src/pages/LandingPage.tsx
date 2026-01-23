@@ -52,7 +52,7 @@ const LandingPage = () => {
           {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Menu size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl px-10 sm:px-12">Òloo</h1>
-        <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">Cultured in Connection</p>
+        <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">{t('landing.tagline')}</p>
         
         {/* Dropdown Menu */}
         {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background backdrop-blur-md border-b border-primary/40 shadow-2xl animate-fade-in z-50">
