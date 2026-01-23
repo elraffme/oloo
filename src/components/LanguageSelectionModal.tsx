@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, Check } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Globe, Check } from 'lucide-react';
 
 interface Language {
   code: string;
@@ -18,7 +12,10 @@ interface Language {
 
 const LANGUAGES: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
   { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
   { code: 'am', name: 'Amharic', nativeName: 'አማርኛ' },
   { code: 'ha', name: 'Hausa', nativeName: 'Hausa' },
   { code: 'ig', name: 'Igbo', nativeName: 'Igbo' },
@@ -27,25 +24,25 @@ const LANGUAGES: Language[] = [
   { code: 'xh', name: 'Xhosa', nativeName: 'isiXhosa' },
   { code: 'af', name: 'Afrikaans', nativeName: 'Afrikaans' },
   { code: 'so', name: 'Somali', nativeName: 'Soomaali' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
 ];
 
 const LANGUAGE_SELECTED_KEY = 'oloo_language_selected';
 
 export const LanguageSelectionModal: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   useEffect(() => {
     // Check if user has already selected a language
-    const hasSelected = localStorage.getItem(LANGUAGE_SELECTED_KEY);
-    if (!hasSelected) {
+    const hasSelectedLanguage = localStorage.getItem(LANGUAGE_SELECTED_KEY);
+    
+    if (!hasSelectedLanguage) {
       setIsOpen(true);
-      // Default to English or detected language
-      setSelectedLanguage(i18n.language || 'en');
+      // Default to browser language or English
+      const browserLang = i18n.language?.split('-')[0] || 'en';
+      const supportedLang = LANGUAGES.find(l => l.code === browserLang);
+      setSelectedLanguage(supportedLang ? browserLang : 'en');
     }
   }, [i18n.language]);
 
@@ -54,68 +51,55 @@ export const LanguageSelectionModal: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-    // Change language
-    i18n.changeLanguage(selectedLanguage);
-    
-    // Mark as selected in localStorage
+    await i18n.changeLanguage(selectedLanguage);
     localStorage.setItem(LANGUAGE_SELECTED_KEY, 'true');
     localStorage.setItem('i18nextLng', selectedLanguage);
-    
     setIsOpen(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden">
-        <DialogHeader className="text-center pb-2">
-          <div className="mx-auto w-14 h-14 rounded-full nsibidi-gradient flex items-center justify-center mb-3">
-            <Globe className="w-7 h-7 text-primary-foreground" />
+    <Dialog open={isOpen} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogHeader className="text-center">
+          <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Globe className="w-6 h-6 text-primary" />
           </div>
-          <DialogTitle className="text-xl font-afro-heading text-center">
-            Choose Your Language
+          <DialogTitle className="text-xl font-afro-heading">
+            {t('languageModal.title')}
           </DialogTitle>
-          <DialogDescription className="text-center text-muted-foreground">
-            Select your preferred language for the best experience
+          <DialogDescription>
+            {t('languageModal.subtitle')}
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto py-4 px-1">
+
+        <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto py-4">
           {LANGUAGES.map((language) => (
             <button
               key={language.code}
               onClick={() => handleLanguageSelect(language.code)}
-              className={`
-                relative flex flex-col items-center justify-center p-3 rounded-lg
-                border-2 transition-all duration-200
-                ${selectedLanguage === language.code 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-border hover:border-primary/50 hover:bg-accent/50'
-                }
-              `}
+              className={`flex items-center justify-between p-3 rounded-lg border transition-all text-left ${
+                selectedLanguage === language.code
+                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              }`}
             >
+              <div>
+                <p className="font-medium text-sm">{language.nativeName}</p>
+                <p className="text-xs text-muted-foreground">{language.name}</p>
+              </div>
               {selectedLanguage === language.code && (
-                <div className="absolute top-2 right-2">
-                  <Check className="w-4 h-4 text-primary" />
-                </div>
+                <Check className="w-4 h-4 text-primary flex-shrink-0" />
               )}
-              <span className="font-medium text-foreground text-sm">
-                {language.nativeName}
-              </span>
-              <span className="text-xs text-muted-foreground mt-0.5">
-                {language.name}
-              </span>
             </button>
           ))}
         </div>
-        
-        <div className="pt-2">
-          <Button 
-            onClick={handleConfirm}
-            className="w-full h-12 nsibidi-gradient text-primary-foreground font-semibold rounded-full"
-          >
-            Continue
-          </Button>
-        </div>
+
+        <Button 
+          onClick={handleConfirm} 
+          className="w-full nsibidi-gradient text-primary-foreground"
+        >
+          {t('languageModal.confirm')}
+        </Button>
       </DialogContent>
     </Dialog>
   );
