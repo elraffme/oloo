@@ -317,13 +317,80 @@
     "darkMode": "Hali ya Giza",
     "lightMode": "Hali ya Mwanga"
   },
-  "errors": {
+"errors": {
     "somethingWrong": "Kitu kimeenda vibaya",
     "tryAgain": "Tafadhali jaribu tena",
     "networkError": "Kosa la mtandao",
     "notFound": "Haipatikani",
     "unauthorized": "Haujaidhinishwa",
     "forbidden": "Imekatazwa"
+  },
+  "authVerify": {
+    "title": "Tafadhali thibitisha barua pepe yako ili kuendelea",
+    "sentTo": "Tumetuma kiungo cha uthibitishaji kwa",
+    "checkInbox": "Angalia inbox yako",
+    "instructions": "Bofya kiungo cha uthibitishaji katika barua pepe tuliyokutumia. Ukishathibitishwa, utaelekezwa kiautomatiki.",
+    "waitingVerification": "Inasubiri uthibitishaji...",
+    "iveVerified": "Nimethibitisha Barua Pepe Yangu",
+    "checking": "Inakagua...",
+    "resendEmail": "Tuma Tena Barua Pepe ya Uthibitishaji",
+    "sending": "Inatuma...",
+    "signOutDifferent": "Ondoka na Jaribu Barua Pepe Nyingine",
+    "spamNote": "Hukupokea barua pepe? Angalia folda yako ya spam au omba mpya.",
+    "emailVerified": "Barua Pepe Imethibitishwa!",
+    "redirecting": "Inaelekeza sasa...",
+    "notYetVerified": "Bado Haijathibitishwa",
+    "checkEmailClick": "Tafadhali angalia barua pepe yako na bofya kiungo cha uthibitishaji.",
+    "errorStatus": "Imeshindwa kukagua hali ya uthibitishaji",
+    "emailSentSuccess": "Barua Pepe Imetumwa!",
+    "newLinkSent": "Kiungo kipya cha uthibitishaji kimetumwa kwa barua pepe yako."
+  },
+  "resetPassword": {
+    "title": "Weka upya nenosiri lako",
+    "forgotPassword": "Umesahau Nenosiri?",
+    "description": "Ingiza barua pepe yako na tutakutumia kiungo cha kuweka upya",
+    "emailAddress": "Anwani ya Barua Pepe",
+    "placeholder": "yako@barua.com",
+    "waitSeconds": "Tafadhali subiri sekunde {{seconds}} kabla ya kuomba kiungo kingine cha kuweka upya",
+    "sending": "Inatuma...",
+    "emailSent": "Barua Pepe Imetumwa!",
+    "sendResetLink": "Tuma Kiungo cha Kuweka Upya",
+    "checkEmail": "Angalia barua pepe yako! Tumekutumia kiungo cha kuweka upya nenosiri. Angalia inbox na folda yako ya spam.",
+    "rememberPassword": "Unakumbuka nenosiri lako?",
+    "backToSignIn": "Rudi kwenye Kuingia",
+    "securityNote": "Kwa sababu za usalama, hatufichupi kama barua pepe ipo katika mfumo wetu. Usipopokea barua pepe, angalia folda yako ya spam."
+  },
+  "feed": {
+    "title": "Mlisho wa Kijamii",
+    "subtitle": "Kaa unganishwa na marafiki zako na gundua kinachoendelea",
+    "loadingFeed": "Inapakia mlisho wako...",
+    "browseByInterest": "Vinjari kwa Maslahi",
+    "findPeople": "Pata watu wenye shauku zinazofanana",
+    "meetMeGame": "Mchezo wa Nikutane",
+    "quickBrowse": "Vinjari haraka na upate sarafu!",
+    "dailyTrivia": "Trivia ya Kila Siku",
+    "testKnowledge": "Jaribu maarifa yako na upate sarafu",
+    "shopItems": "Bidhaa za Duka",
+    "browseShop": "Vinjari zawadi na bidhaa bora",
+    "statusPlaceholder": "Una nini akilini?",
+    "postStatus": "Chapisha Hali",
+    "posting": "Inachapisha...",
+    "recentActivity": "Shughuli za Hivi Karibuni",
+    "noActivity": "Hakuna shughuli za hivi karibuni",
+    "startConnecting": "Anza kuunganisha na marafiki ili kuona shughuli hapa!",
+    "viewAll": "Tazama Zote",
+    "posted": "Imechapishwa!",
+    "statusShared": "Hali yako imeshirikiwa na marafiki zako.",
+    "errorPosting": "Imeshindwa kuchapisha hali. Tafadhali jaribu tena."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Ukurasa haupatikani",
+    "returnHome": "Rudi Nyumbani"
+  },
+  "index": {
+    "loading": "Inapakia...",
+    "premiumExperience": "Uzoefu wa bora wa uchumba kwa miunganisho ya kisasa"
   },
   "languageModal": {
     "title": "Chagua Lugha Yako",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,7 @@ interface ActivityItem {
 }
 
 const Feed = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -348,16 +350,16 @@ const Feed = () => {
 
       setStatusContent('');
       toast({
-        title: "Posted!",
-        description: "Your status has been shared with your friends.",
+        title: t('feed.posted'),
+        description: t('feed.statusShared'),
       });
       
       loadFeed();
     } catch (error) {
       console.error('Error posting status:', error);
       toast({
-        title: "Error",
-        description: "Failed to post status. Please try again.",
+        title: t('common.error'),
+        description: t('feed.errorPosting'),
         variant: "destructive",
       });
     } finally {
@@ -420,7 +422,7 @@ const Feed = () => {
           <div className="animate-pulse mb-4">
             <Sparkles className="w-12 h-12 mx-auto text-primary" />
           </div>
-          <p className="text-muted-foreground">Loading your feed...</p>
+          <p className="text-muted-foreground">{t('feed.loadingFeed')}</p>
         </div>
       </div>
     );
@@ -431,8 +433,8 @@ const Feed = () => {
       {/* Page Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-afro-heading mb-2">Social Feed</h1>
-          <p className="text-muted-foreground">Stay connected with your friends and discover what's happening</p>
+          <h1 className="text-3xl font-bold font-afro-heading mb-2">{t('feed.title')}</h1>
+          <p className="text-muted-foreground">{t('feed.subtitle')}</p>
         </div>
         <DailyLoginRewards />
       </div>
@@ -450,9 +452,9 @@ const Feed = () => {
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Browse by Interest</h3>
+                <h3 className="font-semibold mb-1">{t('feed.browseByInterest')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Find people with shared passions
+                  {t('feed.findPeople')}
                 </p>
               </div>
             </div>
@@ -470,9 +472,9 @@ const Feed = () => {
                 <span className="text-2xl">⚡</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Meet Me Game</h3>
+                <h3 className="font-semibold mb-1">{t('feed.meetMeGame')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Quick browse & earn coins!
+                  {t('feed.quickBrowse')}
                 </p>
               </div>
             </div>
@@ -490,9 +492,9 @@ const Feed = () => {
                 <Brain className="w-6 h-6 text-blue-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Daily Trivia</h3>
+                <h3 className="font-semibold mb-1">{t('feed.dailyTrivia')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Test your knowledge & earn coins
+                  {t('feed.testKnowledge')}
                 </p>
               </div>
             </div>
@@ -510,9 +512,9 @@ const Feed = () => {
                 <ShoppingBag className="w-6 h-6 text-purple-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Virtual Shop</h3>
+                <h3 className="font-semibold mb-1">{t('feed.shopItems')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Customize your profile with coins
+                  {t('feed.browseShop')}
                 </p>
               </div>
             </div>
@@ -532,7 +534,7 @@ const Feed = () => {
             </Avatar>
             <div className="flex-1 space-y-3">
               <Textarea
-                placeholder="What's on your mind?"
+                placeholder={t('feed.statusPlaceholder')}
                 value={statusContent}
                 onChange={(e) => setStatusContent(e.target.value)}
                 className="min-h-[80px] resize-none"
@@ -548,7 +550,7 @@ const Feed = () => {
                   size="sm"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  {posting ? 'Posting...' : 'Post'}
+                  {posting ? t('feed.posting') : t('feed.postStatus')}
                 </Button>
               </div>
             </div>
@@ -562,7 +564,7 @@ const Feed = () => {
           <CardHeader>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              Recent Activity
+              {t('feed.recentActivity')}
             </h2>
           </CardHeader>
           <CardContent className="space-y-3">

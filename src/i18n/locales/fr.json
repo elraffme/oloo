@@ -317,13 +317,80 @@
     "darkMode": "Mode sombre",
     "lightMode": "Mode clair"
   },
-  "errors": {
+"errors": {
     "somethingWrong": "Quelque chose s'est mal passé",
     "tryAgain": "Veuillez réessayer",
     "networkError": "Erreur réseau",
     "notFound": "Non trouvé",
     "unauthorized": "Non autorisé",
     "forbidden": "Interdit"
+  },
+  "authVerify": {
+    "title": "Veuillez vérifier votre e-mail pour continuer",
+    "sentTo": "Nous avons envoyé un lien de vérification à",
+    "checkInbox": "Vérifiez votre boîte de réception",
+    "instructions": "Cliquez sur le lien de vérification dans l'e-mail que nous vous avons envoyé. Une fois vérifié, vous serez automatiquement redirigé.",
+    "waitingVerification": "En attente de vérification...",
+    "iveVerified": "J'ai vérifié mon e-mail",
+    "checking": "Vérification...",
+    "resendEmail": "Renvoyer l'e-mail de vérification",
+    "sending": "Envoi...",
+    "signOutDifferent": "Déconnexion et essayer un autre e-mail",
+    "spamNote": "Vous n'avez pas reçu l'e-mail? Vérifiez votre dossier spam ou demandez-en un nouveau.",
+    "emailVerified": "E-mail vérifié!",
+    "redirecting": "Redirection en cours...",
+    "notYetVerified": "Pas encore vérifié",
+    "checkEmailClick": "Veuillez vérifier votre e-mail et cliquez sur le lien de vérification.",
+    "errorStatus": "Impossible de vérifier le statut de vérification",
+    "emailSentSuccess": "E-mail envoyé!",
+    "newLinkSent": "Un nouveau lien de vérification a été envoyé à votre e-mail."
+  },
+  "resetPassword": {
+    "title": "Réinitialiser votre mot de passe",
+    "forgotPassword": "Mot de passe oublié?",
+    "description": "Entrez votre e-mail et nous vous enverrons un lien de réinitialisation",
+    "emailAddress": "Adresse e-mail",
+    "placeholder": "votre@email.com",
+    "waitSeconds": "Veuillez attendre {{seconds}} secondes avant de demander un autre lien de réinitialisation",
+    "sending": "Envoi...",
+    "emailSent": "E-mail envoyé!",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "checkEmail": "Vérifiez votre e-mail! Nous vous avons envoyé un lien de réinitialisation de mot de passe. Vérifiez votre boîte de réception et votre dossier spam.",
+    "rememberPassword": "Vous vous souvenez de votre mot de passe?",
+    "backToSignIn": "Retour à la connexion",
+    "securityNote": "Pour des raisons de sécurité, nous ne divulguons pas si un e-mail existe dans notre système. Si vous ne recevez pas d'e-mail, vérifiez votre dossier spam."
+  },
+  "feed": {
+    "title": "Fil Social",
+    "subtitle": "Restez connecté avec vos amis et découvrez ce qui se passe",
+    "loadingFeed": "Chargement de votre fil...",
+    "browseByInterest": "Parcourir par intérêt",
+    "findPeople": "Trouvez des personnes avec des passions partagées",
+    "meetMeGame": "Jeu Meet Me",
+    "quickBrowse": "Parcours rapide et gagnez des pièces!",
+    "dailyTrivia": "Trivia Quotidien",
+    "testKnowledge": "Testez vos connaissances et gagnez des pièces",
+    "shopItems": "Articles de Boutique",
+    "browseShop": "Parcourez les cadeaux et les articles premium",
+    "statusPlaceholder": "Qu'est-ce qui vous préoccupe?",
+    "postStatus": "Publier le statut",
+    "posting": "Publication...",
+    "recentActivity": "Activité récente",
+    "noActivity": "Aucune activité récente",
+    "startConnecting": "Commencez à vous connecter avec des amis pour voir l'activité ici!",
+    "viewAll": "Tout voir",
+    "posted": "Publié!",
+    "statusShared": "Votre statut a été partagé avec vos amis.",
+    "errorPosting": "Échec de la publication du statut. Veuillez réessayer."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page non trouvée",
+    "returnHome": "Retour à l'accueil"
+  },
+  "index": {
+    "loading": "Chargement...",
+    "premiumExperience": "Expérience de rencontres premium pour des connexions sophistiquées"
   },
   "languageModal": {
     "title": "Choisissez Votre Langue",

@@ -421,7 +421,7 @@
     "darkMode": "Dark Mode",
     "lightMode": "Light Mode"
   },
-  "errors": {
+"errors": {
     "somethingWrong": "Something went wrong",
     "tryAgain": "Please try again",
     "networkError": "Network error",
@@ -430,6 +430,73 @@
     "forbidden": "Forbidden",
     "error": "Error",
     "info": "Info"
+  },
+  "authVerify": {
+    "title": "Please verify your email to continue",
+    "sentTo": "We've sent a verification link to",
+    "checkInbox": "Check your inbox",
+    "instructions": "Click the verification link in the email we sent you. Once verified, you'll be automatically redirected.",
+    "waitingVerification": "Waiting for verification...",
+    "iveVerified": "I've Verified My Email",
+    "checking": "Checking...",
+    "resendEmail": "Resend Verification Email",
+    "sending": "Sending...",
+    "signOutDifferent": "Sign Out & Try Different Email",
+    "spamNote": "Didn't receive the email? Check your spam folder or request a new one.",
+    "emailVerified": "Email Verified!",
+    "redirecting": "Redirecting you now...",
+    "notYetVerified": "Not Yet Verified",
+    "checkEmailClick": "Please check your email and click the verification link.",
+    "errorStatus": "Could not check verification status",
+    "emailSentSuccess": "Email Sent!",
+    "newLinkSent": "A new verification link has been sent to your email."
+  },
+  "resetPassword": {
+    "title": "Reset your password",
+    "forgotPassword": "Forgot Password?",
+    "description": "Enter your email and we'll send you a reset link",
+    "emailAddress": "Email Address",
+    "placeholder": "your@email.com",
+    "waitSeconds": "Please wait {{seconds}} seconds before requesting another reset link",
+    "sending": "Sending...",
+    "emailSent": "Email Sent!",
+    "sendResetLink": "Send Reset Link",
+    "checkEmail": "Check your email! We've sent you a password reset link. Please check your inbox and spam folder.",
+    "rememberPassword": "Remember your password?",
+    "backToSignIn": "Back to Sign In",
+    "securityNote": "For security reasons, we don't disclose whether an email exists in our system. If you don't receive an email, please check your spam folder."
+  },
+  "feed": {
+    "title": "Social Feed",
+    "subtitle": "Stay connected with your friends and discover what's happening",
+    "loadingFeed": "Loading your feed...",
+    "browseByInterest": "Browse by Interest",
+    "findPeople": "Find people with shared passions",
+    "meetMeGame": "Meet Me Game",
+    "quickBrowse": "Quick browse & earn coins!",
+    "dailyTrivia": "Daily Trivia",
+    "testKnowledge": "Test your knowledge & earn coins",
+    "shopItems": "Shop Items",
+    "browseShop": "Browse gifts and premium items",
+    "statusPlaceholder": "What's on your mind?",
+    "postStatus": "Post Status",
+    "posting": "Posting...",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "startConnecting": "Start connecting with friends to see activity here!",
+    "viewAll": "View All",
+    "posted": "Posted!",
+    "statusShared": "Your status has been shared with your friends.",
+    "errorPosting": "Failed to post status. Please try again."
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "returnHome": "Return to Home"
+  },
+  "index": {
+    "loading": "Loading...",
+    "premiumExperience": "Premium dating experience for sophisticated connections"
   },
   "languageModal": {
     "title": "Choose Your Language",
