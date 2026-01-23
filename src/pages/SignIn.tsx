@@ -7,7 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
+
 const SignIn = () => {
+  const { t } = useTranslation();
   const {
     user,
     loading,
@@ -138,16 +141,14 @@ const SignIn = () => {
         <div className="mb-8 text-center">
           <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {t('common.back')}
           </Button>
-          
-          
           
           <h1 className="text-4xl font-bold font-afro-heading mb-2">
             <span className="afro-heading text-primary">Òloo</span>
           </h1>
           <p className="text-xl text-muted-foreground font-afro-body">
-            Welcome back
+            {t('landing.welcomeBack')}
           </p>
         </div>
 
@@ -157,7 +158,7 @@ const SignIn = () => {
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
               
               <CardDescription className="text-base text-muted-foreground/90">
-                Continue your journey of meaningful connections
+                {t('auth.continueJourney')}
               </CardDescription>
             </CardHeader>
             

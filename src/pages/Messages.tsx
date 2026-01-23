@@ -5,8 +5,10 @@ import MessagingInterface from '@/components/MessagingInterface';
 import MatchesSection from '@/components/MatchesSection';
 import FriendsSection from '@/components/FriendsSection';
 import { MessageCircle, Heart, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Messages = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState('friends');
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
@@ -42,15 +44,15 @@ const Messages = () => {
           <TabsList className="grid w-full grid-cols-3 h-10 md:h-11 max-w-lg">
             <TabsTrigger value="friends" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
               <Users className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden xs:inline">Friends</span>
+              <span className="hidden xs:inline">{t('messages.friends')}</span>
             </TabsTrigger>
             <TabsTrigger value="matches" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
               <Heart className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden xs:inline">Matches</span>
+              <span className="hidden xs:inline">{t('messages.matches')}</span>
             </TabsTrigger>
             <TabsTrigger value="messages" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm px-2">
               <MessageCircle className="w-3 h-3 md:w-4 md:h-4" />
-              <span className="hidden xs:inline">Messages</span>
+              <span className="hidden xs:inline">{t('messages.title')}</span>
             </TabsTrigger>
           </TabsList>
         </div>
