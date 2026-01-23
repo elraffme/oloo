@@ -6,6 +6,7 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { Heart, Video, MessageCircle, User, Settings, LogOut, Search, Zap, Shield, Crown, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { SocialInteractionsNotifier } from '@/components/SocialInteractionsNotifier';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -162,6 +163,9 @@ const AppLayout = () => {
 
             {/* Right Actions */}
             <div className="flex items-center space-x-2">
+              {/* Language Selector */}
+              <LanguageSelector variant="ghost" className="text-sm hidden sm:flex" />
+              
               {/* Quick Actions */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -210,7 +214,7 @@ const AppLayout = () => {
 
       {/* Bottom Navigation - Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-6 h-16">
           {navItems.map(item => {
           const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
           return <NavLink key={item.path} to={item.path} className="flex flex-col items-center justify-center space-y-1">
@@ -220,6 +224,9 @@ const AppLayout = () => {
                 </span>
               </NavLink>;
         })}
+          <div className="flex flex-col items-center justify-center">
+            <LanguageSelector variant="ghost" className="p-1 h-auto" />
+          </div>
         </div>
       </nav>
 

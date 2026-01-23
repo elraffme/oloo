@@ -13,6 +13,7 @@ import { useSocialInteractions } from "@/hooks/useSocialInteractions";
 import { useShopGifts } from "@/hooks/useShopGifts";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Badge } from "@/components/ui/badge";
+import { LanguageSelector } from "./LanguageSelector";
 
 
 const Navigation = () => {
@@ -132,6 +133,7 @@ const Navigation = () => {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center space-x-3 font-afro-body">
+          <LanguageSelector variant="ghost" className="text-sm" />
           {user ? (
             <>
               <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
@@ -205,6 +207,10 @@ const Navigation = () => {
                 <span className="nsibidi-symbol mr-2">◈</span>
                 Get Started
               </Button>
+              
+              <div className="border-t border-border my-4" />
+              
+              <LanguageSelector variant="ghost" className="justify-start text-lg" />
               
               <div className="border-t border-border my-4" />
               
