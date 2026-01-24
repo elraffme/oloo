@@ -1976,6 +1976,54 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawals: {
+        Row: {
+          admin_notes: string | null
+          cash_amount_cents: number
+          conversion_rate: number
+          created_at: string
+          id: string
+          payment_details: Json | null
+          payment_method: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          token_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          cash_amount_cents: number
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          token_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          cash_amount_cents?: number
+          conversion_rate?: number
+          created_at?: string
+          id?: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          token_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       xp_transactions: {
         Row: {
           amount: number
@@ -2101,6 +2149,10 @@ export type Database = {
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
       cleanup_stale_viewer_sessions: { Args: never; Returns: undefined }
+      complete_withdrawal: {
+        Args: { p_admin_notes?: string; p_withdrawal_id: string }
+        Returns: boolean
+      }
       convert_gold_to_coins: { Args: { p_gold_amount: number }; Returns: Json }
       create_secure_token_transaction: {
         Args: {
@@ -2470,6 +2522,10 @@ export type Database = {
       }
       make_user_admin: { Args: { target_email: string }; Returns: boolean }
       open_gift: { Args: { p_transaction_id: string }; Returns: Json }
+      process_withdrawal_request: {
+        Args: { p_conversion_rate?: number; p_token_amount: number }
+        Returns: string
+      }
       purchase_coins: {
         Args: { p_package_id: number; p_payment_intent_id: string }
         Returns: Json
@@ -2487,6 +2543,10 @@ export type Database = {
       reject_friend_request: {
         Args: { requester_user_id: string }
         Returns: Json
+      }
+      reject_withdrawal: {
+        Args: { p_admin_notes?: string; p_withdrawal_id: string }
+        Returns: boolean
       }
       secure_payment_operation: {
         Args: {

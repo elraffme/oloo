@@ -28,6 +28,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import AdminWithdrawals from '@/components/AdminWithdrawals';
 
 interface UserProfile {
   id: string;
@@ -311,6 +312,9 @@ const Admin = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Withdrawal Management */}
+      <AdminWithdrawals />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => {

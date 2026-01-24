@@ -40,7 +40,8 @@ import {
   Zap,
   Camera,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  Wallet
 } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoUpload } from '@/components/PhotoUpload';
@@ -51,6 +52,7 @@ import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { AchievementsSection } from '@/components/AchievementsSection';
 import { BadgeDisplay } from '@/components/BadgeDisplay';
 import { EquippedItemsDisplay } from '@/components/EquippedItemsDisplay';
+import WithdrawalRequest from '@/components/WithdrawalRequest';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -587,7 +589,7 @@ const Profile = () => {
       </Card>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="visitors">
             <Eye className="w-4 h-4 mr-1" />
@@ -595,6 +597,10 @@ const Profile = () => {
           </TabsTrigger>
           <TabsTrigger value="achievements">
             🏆 Badges
+          </TabsTrigger>
+          <TabsTrigger value="wallet">
+            <Wallet className="w-4 h-4 mr-1" />
+            Wallet
           </TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -731,6 +737,11 @@ const Profile = () => {
             userId={user?.id || ''}
             isOwnProfile={true}
           />
+        </TabsContent>
+
+        {/* Wallet Tab - Token Withdrawal */}
+        <TabsContent value="wallet" className="space-y-6">
+          <WithdrawalRequest />
         </TabsContent>
 
         {/* Photos Tab */}
