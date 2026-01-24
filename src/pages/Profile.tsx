@@ -53,6 +53,7 @@ import { AchievementsSection } from '@/components/AchievementsSection';
 import { BadgeDisplay } from '@/components/BadgeDisplay';
 import { EquippedItemsDisplay } from '@/components/EquippedItemsDisplay';
 import WithdrawalRequest from '@/components/WithdrawalRequest';
+import { CoinShop } from '@/components/CoinShop';
 import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
@@ -74,6 +75,7 @@ const Profile = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [showCoinShop, setShowCoinShop] = useState(false);
   const { toast } = useToast();
   const [editForm, setEditForm] = useState({
     display_name: '',
@@ -680,23 +682,32 @@ const Profile = () => {
                   <p className="text-3xl font-bold">{tokenBalance}</p>
                   <p className="text-sm text-muted-foreground">Available Tokens</p>
                 </div>
-                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button 
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                  onClick={() => setShowCoinShop(true)}
+                >
                   Buy Tokens
                 </Button>
               </div>
               
+              <p className="text-xs text-muted-foreground">
+                Gift pricing reference (send gifts during livestreams):
+              </p>
               <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                <div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <p className="text-2xl">🌹</p>
                   <p className="font-semibold">10 Tokens</p>
-                  <p className="text-muted-foreground">Rose Gift</p>
+                  <p className="text-muted-foreground text-xs">Rose Gift</p>
                 </div>
-                <div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <p className="text-2xl">❤️</p>
                   <p className="font-semibold">25 Tokens</p>
-                  <p className="text-muted-foreground">Heart Gift</p>
+                  <p className="text-muted-foreground text-xs">Heart Gift</p>
                 </div>
-                <div>
+                <div className="p-2 rounded-lg bg-muted/50">
+                  <p className="text-2xl">💎</p>
                   <p className="font-semibold">100 Tokens</p>
-                  <p className="text-muted-foreground">Diamond Gift</p>
+                  <p className="text-muted-foreground text-xs">Diamond Gift</p>
                 </div>
               </div>
             </CardContent>
@@ -939,6 +950,9 @@ const Profile = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Coin Shop Dialog */}
+      <CoinShop open={showCoinShop} onOpenChange={setShowCoinShop} />
     </div>
   );
 };
