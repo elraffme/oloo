@@ -55,13 +55,14 @@ import { EquippedItemsDisplay } from '@/components/EquippedItemsDisplay';
 import WithdrawalRequest from '@/components/WithdrawalRequest';
 import { CoinShop } from '@/components/CoinShop';
 import { useNavigate } from 'react-router-dom';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const Profile = () => {
   const { t } = useTranslation();
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [tokenBalance, setTokenBalance] = useState(0);
+  const { balance: currencyBalance, refreshBalance } = useCurrency();
   const [stats, setStats] = useState({
     matches: 0,
     likes: 0,
@@ -95,7 +96,6 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       loadProfile();
-      loadTokenBalance();
       loadStats();
       loadFeaturedBadges();
     }
@@ -128,16 +128,6 @@ const Profile = () => {
       setLoading(false);
     }
   };
-
-  const loadTokenBalance = async () => {
-    try {
-      const { data } = await supabase.rpc('get_user_token_balance');
-      setTokenBalance(data || 0);
-    } catch (error) {
-      console.error('Error loading token balance:', error);
-    }
-  };
-
   const getMainProfilePhoto = () => {
     if (!profile?.profile_photos || profile.profile_photos.length === 0) {
       return profile?.avatar_url;
@@ -679,7 +669,7 @@ const Profile = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-3xl font-bold">{tokenBalance}</p>
+                  <p className="text-3xl font-bold">{currencyBalance?.coin_balance?.toLocaleString() || 0}</p>
                   <p className="text-sm text-muted-foreground">Available Tokens</p>
                 </div>
                 <Button 
