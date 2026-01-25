@@ -34,6 +34,7 @@ export const useWithdrawals = () => {
       const { data, error } = await supabase
         .from('withdrawals')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
