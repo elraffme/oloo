@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
-import { useSecurePayments } from '@/hooks/useSecurePayments';
 import { Skeleton } from './ui/skeleton';
 
 interface CoinPackage {
@@ -26,7 +25,6 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const [selectedPackage, setSelectedPackage] = useState<CoinPackage | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const { refreshBalance, balance, convertGoldToCoins } = useCurrency();
-  const { createPaymentIntent } = useSecurePayments();
   const [goldAmount, setGoldAmount] = useState('');
   const [converting, setConverting] = useState(false);
 
@@ -49,21 +47,14 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
     setSelectedPackage(pkg);
 
     try {
-      // Create payment intent using the secure hook
-      const result = await createPaymentIntent({
-        amount_cents: pkg.price_cents,
-        tier: pkg.name,
-        currency: 'usd',
-      });
+      // MVP: Direct purchase without payment gateway
+      // Generate a mock payment intent ID for testing
+      const mockPaymentIntentId = `mock_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      if (!result.success) {
-        throw new Error(result.error || 'Payment creation failed');
-      }
-
-      // Purchase coins via RPC
+      // Purchase coins via RPC (this handles balance update and VIP tier)
       const { error: purchaseError } = await supabase.rpc('purchase_coins', {
         p_package_id: pkg.id,
-        p_payment_intent_id: result.data?.id || `payment_${Date.now()}`,
+        p_payment_intent_id: mockPaymentIntentId,
       });
 
       if (purchaseError) throw purchaseError;
