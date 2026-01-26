@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Coins, Sparkles, Check, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Coins, Sparkles, Check, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Skeleton } from './ui/skeleton';
+import { useSearchParams } from 'react-router-dom';
 
 interface CoinPackage {
   id: number;
@@ -27,6 +28,7 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
   const { refreshBalance, balance, convertGoldToCoins } = useCurrency();
   const [goldAmount, setGoldAmount] = useState('');
   const [converting, setConverting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: packages, isLoading } = useQuery({
     queryKey: ['coin-packages'],
@@ -42,34 +44,69 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
     },
   });
 
+  // Handle payment return
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
+
+    if (paymentStatus === 'success' && sessionId) {
+      verifyPayment(sessionId);
+      // Clear URL params
+      setSearchParams({});
+    } else if (paymentStatus === 'canceled') {
+      toast.error('Payment was canceled');
+      setSearchParams({});
+    }
+  }, [searchParams]);
+
+  const verifyPayment = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-coin-payment', {
+        body: { session_id: sessionId }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        if (data.already_processed) {
+          toast.info('This payment was already processed');
+        } else {
+          toast.success(
+            `Successfully added ${data.coins_added} coins to your wallet!`,
+            { icon: <Coins className="h-4 w-4 text-yellow-500" /> }
+          );
+        }
+        await refreshBalance();
+      } else {
+        toast.error(data.error || 'Payment verification failed');
+      }
+    } catch (error: any) {
+      console.error('Payment verification error:', error);
+      toast.error('Failed to verify payment. Please contact support.');
+    }
+  };
+
   const handlePurchase = async (pkg: CoinPackage) => {
     setPurchasing(true);
     setSelectedPackage(pkg);
 
     try {
-      // MVP: Direct purchase without payment gateway
-      // Generate a mock payment intent ID for testing
-      const mockPaymentIntentId = `mock_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-
-      // Purchase coins via RPC (this handles balance update and VIP tier)
-      const { error: purchaseError } = await supabase.rpc('purchase_coins', {
-        p_package_id: pkg.id,
-        p_payment_intent_id: mockPaymentIntentId,
+      const { data, error } = await supabase.functions.invoke('create-coin-checkout', {
+        body: { package_id: pkg.id }
       });
 
-      if (purchaseError) throw purchaseError;
+      if (error) throw error;
 
-      toast.success(
-        `Successfully purchased ${pkg.coin_amount + pkg.bonus_coins} coins!`,
-        {
-          icon: <Coins className="h-4 w-4 text-yellow-500" />,
-        }
-      );
-
-      await refreshBalance();
-      onOpenChange(false);
+      if (data.url) {
+        // Open Stripe Checkout in new tab
+        window.open(data.url, '_blank');
+        toast.info('Stripe checkout opened in new tab. Complete your payment there.');
+      } else {
+        throw new Error('No checkout URL returned');
+      }
     } catch (error: any) {
-      toast.error(error.message || 'Purchase failed');
+      console.error('Purchase error:', error);
+      toast.error(error.message || 'Failed to start checkout');
     } finally {
       setPurchasing(false);
       setSelectedPackage(null);
@@ -210,7 +247,10 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
                         {purchasing && selectedPackage?.id === pkg.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          'Purchase'
+                          <>
+                            Purchase
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                          </>
                         )}
                       </Button>
                     </div>
@@ -242,6 +282,11 @@ export const CoinShop = ({ open, onOpenChange }: { open: boolean; onOpenChange: 
               </li>
             </ul>
           </Card>
+
+          {/* Payment Info */}
+          <p className="text-xs text-muted-foreground text-center">
+            Payments are processed securely via Stripe. All transactions are encrypted.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
