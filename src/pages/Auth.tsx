@@ -380,7 +380,7 @@ const Auth = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 rounded-b-lg pointer-events-none"></div>
               
               <div className="relative z-10">
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={(e) => { e.preventDefault(); console.log('=== FORM SUBMIT EVENT ==='); handleSignUp(e); }} className="space-y-4">
                   <div>
                     <Label htmlFor="email">{t('auth.email')}</Label>
                     <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} onBlur={() => formData.email && validateEmail(formData.email)} placeholder={t('auth.emailPlaceholder')} className={emailError ? 'border-destructive' : ''} required />
@@ -430,10 +430,14 @@ const Auth = () => {
                   </div>
 
                   <Button 
-                    type="submit" 
+                    type="button"
                     className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" 
                     disabled={isSubmitting}
-                    onClick={() => console.log('=== BUTTON CLICKED ===')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('=== DIRECT BUTTON CLICK - CALLING SIGNUP ===');
+                      handleSignUp(e as unknown as React.FormEvent);
+                    }}
                   >
                     {isSubmitting ? t('auth.creatingAccount') : t('auth.createAccount')}
                   </Button>
