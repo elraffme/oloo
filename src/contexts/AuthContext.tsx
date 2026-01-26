@@ -184,11 +184,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signUp = async (email: string, password: string, metadata: any = {}) => {
+    // Don't set global loading state for signUp - it blocks the form
+    console.log('[AuthContext] signUp called with email:', email);
+    
     try {
-      setLoading(true);
       const redirectUrl = `${window.location.origin}/`;
+      console.log('[AuthContext] Calling supabase.auth.signUp with redirect:', redirectUrl);
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -197,22 +200,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
       
+      console.log('[AuthContext] signUp response:', { data, error });
+      
       if (error) {
+        console.error('[AuthContext] signUp error:', error);
         toast({
           title: "Sign Up Error",
           description: error.message,
           variant: "destructive",
         });
-      } else {
+        return { error };
+      }
+      
+      // Check if user was created (even if email sending fails)
+      if (data?.user) {
+        console.log('[AuthContext] User created successfully:', data.user.id);
         toast({
           title: "Welcome to Òloo!",
           description: "Please check your email to confirm your account",
         });
+      } else {
+        console.warn('[AuthContext] No user returned from signUp');
       }
       
-      return { error };
-    } finally {
-      setLoading(false);
+      return { error: null, data };
+    } catch (err: any) {
+      console.error('[AuthContext] signUp exception:', err);
+      toast({
+        title: "Sign Up Error",
+        description: err.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+      return { error: err };
     }
   };
 
