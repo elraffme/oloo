@@ -41,6 +41,7 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [formError, setFormError] = useState('');
   const [onboardingData, setOnboardingData] = useState<any>(null);
 
   // Load onboarding data from localStorage if it exists
@@ -173,6 +174,9 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear previous form error
+    setFormError('');
+    
     // Immediate visible feedback
     console.log('=== SIGNUP FORM SUBMITTED ===');
     console.log('[Auth] Form data:', { 
@@ -188,36 +192,57 @@ const Auth = () => {
       return;
     }
 
+    // Collect all validation errors
+    let hasErrors = false;
+
     // Validate email
-    if (!validateEmail(formData.email)) {
+    if (!formData.email.trim()) {
+      console.log('[Auth] Email is empty');
+      setEmailError('Email is required');
+      hasErrors = true;
+    } else if (!validateEmail(formData.email)) {
       console.log('[Auth] Email validation failed');
-      return;
+      hasErrors = true;
     }
 
     // Validate password
-    if (!validatePassword(formData.password)) {
+    if (!formData.password) {
+      console.log('[Auth] Password is empty');
+      setPasswordError('Password is required');
+      hasErrors = true;
+    } else if (!validatePassword(formData.password)) {
       console.log('[Auth] Password validation failed');
-      return;
+      hasErrors = true;
     }
 
     // Check password match
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
       console.log('[Auth] Passwords do not match');
       setPasswordError('Passwords do not match');
-      return;
+      hasErrors = true;
+    } else if (!formData.confirmPassword) {
+      console.log('[Auth] Confirm password is empty');
+      setPasswordError('Please confirm your password');
+      hasErrors = true;
+    }
+
+    // Check required fields - location
+    if (!formData.location.trim()) {
+      console.log('[Auth] Location missing');
+      setFormError('Please enter your location');
+      hasErrors = true;
     }
 
     // Check terms
     if (!formData.acceptTerms) {
       console.log('[Auth] Terms not accepted');
-      alert('Please accept the Terms of Service to continue');
-      return;
+      setFormError('Please accept the Terms of Service to continue');
+      hasErrors = true;
     }
 
-    // Check required fields
-    if (!formData.location.trim()) {
-      console.log('[Auth] Location missing');
-      alert('Please enter your location');
+    // If there are validation errors, stop here
+    if (hasErrors) {
+      console.log('[Auth] Validation failed, not proceeding with signup');
       return;
     }
     
@@ -257,10 +282,11 @@ const Auth = () => {
         }
       } else {
         console.error('[Auth] SignUp returned error:', result.error);
+        setFormError(result.error.message || 'Signup failed. Please try again.');
       }
     } catch (error: any) {
       console.error('[Auth] Sign up exception:', error);
-      alert(error?.message || 'An error occurred during sign up. Please try again.');
+      setFormError(error?.message || 'An error occurred during sign up. Please try again.');
     } finally {
       console.log('[Auth] Resetting isSubmitting state');
       setIsSubmitting(false);
@@ -428,6 +454,12 @@ const Auth = () => {
                       </Label>
                     </div>
                   </div>
+
+                  {formError && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                      {formError}
+                    </div>
+                  )}
 
                   <Button 
                     type="button"
