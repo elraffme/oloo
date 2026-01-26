@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.create-coin-checkout]
+verify_jwt = false
+
+[functions.verify-coin-payment]
+verify_jwt = false
+
+[functions.secure-payment]
+verify_jwt = false
+
+[functions.validate-profile]
+verify_jwt = false
