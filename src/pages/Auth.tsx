@@ -172,51 +172,68 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    console.log('[Auth] handleSignUp triggered');
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('[Auth] Already submitting, ignoring');
+      return;
+    }
 
     // Validate email
     if (!validateEmail(formData.email)) {
+      console.log('[Auth] Email validation failed');
       return;
     }
 
     // Validate password
     if (!validatePassword(formData.password)) {
+      console.log('[Auth] Password validation failed');
       return;
     }
 
     // Check password match
     if (formData.password !== formData.confirmPassword) {
+      console.log('[Auth] Passwords do not match');
       setPasswordError('Passwords do not match');
       return;
     }
 
     // Check terms
     if (!formData.acceptTerms) {
+      console.log('[Auth] Terms not accepted');
       alert('Please accept the Terms of Service to continue');
       return;
     }
 
     // Check required fields
     if (!formData.location.trim()) {
+      console.log('[Auth] Location missing');
       alert('Please enter your location');
       return;
     }
+    
+    console.log('[Auth] All validations passed, starting signup...');
     setIsSubmitting(true);
-    console.log('Starting sign up process...');
+    
     try {
       const metadata = {
         location: formData.location.trim(),
         bio: formData.bio.trim() || 'Hello, I\'m new to Òloo!',
         biometric_consent: formData.biometricConsent
       };
-      console.log('Calling signUp with:', {
+      
+      console.log('[Auth] Calling signUp with:', {
         email: formData.email,
         hasPassword: !!formData.password,
         metadata
       });
+      
       const result = await signUp(formData.email, formData.password, metadata);
-      console.log('SignUp result:', result);
+      console.log('[Auth] SignUp result:', result);
+      
       if (!result.error) {
+        console.log('[Auth] SignUp successful, showing verification message');
         // Store the email and show verification message
         setRegisteredEmail(formData.email);
         setShowEmailVerificationMessage(true);
@@ -230,11 +247,14 @@ const Auth = () => {
         if (formData.biometricConsent) {
           localStorage.setItem('pendingBiometricConsent', 'true');
         }
+      } else {
+        console.error('[Auth] SignUp returned error:', result.error);
       }
-    } catch (error) {
-      console.error('Sign up error:', error);
-      alert('An error occurred during sign up. Please try again.');
+    } catch (error: any) {
+      console.error('[Auth] Sign up exception:', error);
+      alert(error?.message || 'An error occurred during sign up. Please try again.');
     } finally {
+      console.log('[Auth] Resetting isSubmitting state');
       setIsSubmitting(false);
     }
   };
