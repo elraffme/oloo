@@ -172,7 +172,15 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Auth] handleSignUp triggered');
+    
+    // Immediate visible feedback
+    console.log('=== SIGNUP FORM SUBMITTED ===');
+    console.log('[Auth] Form data:', { 
+      email: formData.email, 
+      hasPassword: !!formData.password,
+      location: formData.location,
+      acceptTerms: formData.acceptTerms 
+    });
     
     // Prevent double submission
     if (isSubmitting) {
@@ -319,7 +327,11 @@ const Auth = () => {
     );
   }
 
+  // Debug: Log component state
+  console.log('[Auth] Component state:', { loading, user: !!user, isSubmitting });
+
   if (loading) {
+    console.log('[Auth] Showing loading spinner');
     return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">
           <div className="heart-logo mx-auto mb-4">
@@ -417,7 +429,12 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" disabled={isSubmitting}>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-lg font-semibold romantic-gradient hover:opacity-90 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-primary/40" 
+                    disabled={isSubmitting}
+                    onClick={() => console.log('=== BUTTON CLICKED ===')}
+                  >
                     {isSubmitting ? t('auth.creatingAccount') : t('auth.createAccount')}
                   </Button>
                 </form>
