@@ -1531,7 +1531,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 }
               }} className="gap-2">
                   <Play className="w-4 h-4" />
-                  TikTok Mode
+                  Òloo Mode
                 </Button>
               </div>
             </div>
@@ -1947,7 +1947,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
-                      {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || isLoading || !streamRef.current || !streamRef.current.getVideoTracks()[0]?.enabled || streamRef.current.getVideoTracks()[0]?.readyState !== 'live'} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                      {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || !streamCategory || isLoading} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
