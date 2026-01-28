@@ -554,43 +554,9 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
               LIVE
             </Badge>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white"
-                onClick={toggleViewerCamera}
-                disabled={isCameraRequesting}
-              >
-                {isCameraRequesting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : viewerCameraEnabled ? (
-                  <Video className="w-5 h-5" />
-                ) : (
-                  <VideoOff className="w-5 h-5" />
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white"
-                onClick={toggleViewerMic}
-                disabled={isMicRequesting}
-              >
-                {isMicRequesting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : viewerMicEnabled ? (
-                  <Mic className="w-5 h-5" />
-                ) : (
-                  <MicOff className="w-5 h-5" />
-                )}
-              </Button>
-
-              <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-                <Eye className="w-4 h-4 text-white" />
-                <span className="text-white text-sm font-medium">{viewers}</span>
-              </div>
+            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
+              <Eye className="w-4 h-4 text-white" />
+              <span className="text-white text-sm font-medium">{viewers}</span>
             </div>
           </div>
         </div>
@@ -646,6 +612,49 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         </div>
 
         <div className="absolute bottom-32 right-4 flex flex-col items-center gap-6">
+          {/* Camera Toggle */}
+          <button
+            onClick={toggleViewerCamera}
+            disabled={isCameraRequesting}
+            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+          >
+            <div className={cn(
+              "w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center",
+              viewerCameraEnabled ? "bg-primary" : "bg-black/40"
+            )}>
+              {isCameraRequesting ? (
+                <Loader2 className="w-7 h-7 text-white animate-spin" />
+              ) : viewerCameraEnabled ? (
+                <Video className="w-7 h-7 text-white" />
+              ) : (
+                <VideoOff className="w-7 h-7 text-white" />
+              )}
+            </div>
+            <span className="text-white text-xs font-medium">Camera</span>
+          </button>
+
+          {/* Mic Toggle */}
+          <button
+            onClick={toggleViewerMic}
+            disabled={isMicRequesting}
+            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+          >
+            <div className={cn(
+              "w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center",
+              viewerMicEnabled ? "bg-primary" : "bg-black/40"
+            )}>
+              {isMicRequesting ? (
+                <Loader2 className="w-7 h-7 text-white animate-spin" />
+              ) : viewerMicEnabled ? (
+                <Mic className="w-7 h-7 text-white" />
+              ) : (
+                <MicOff className="w-7 h-7 text-white" />
+              )}
+            </div>
+            <span className="text-white text-xs font-medium">Mic</span>
+          </button>
+
+          {/* Like Button */}
           <button
             onClick={handleLike}
             className="flex flex-col items-center gap-1 transition-transform active:scale-90"

@@ -640,42 +640,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-          {/* Microphone Toggle Button */}
-          <Button
-            variant={viewerMicEnabled ? "default" : "ghost"}
-            size="sm"
-            onClick={toggleViewerMic}
-            disabled={isMicRequesting}
-            className={viewerMicEnabled ? "gap-2 bg-primary hover:bg-primary/90" : "gap-2 text-white hover:bg-white/20"}
-          >
-            {isMicRequesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : viewerMicEnabled ? (
-              <Mic className="w-4 h-4" />
-            ) : (
-              <MicOff className="w-4 h-4" />
-            )}
-            <span className="hidden md:inline">Mic</span>
-          </Button>
-
-          {/* Camera Toggle Button */}
-          <Button
-            variant={viewerCameraEnabled ? "default" : "ghost"}
-            size="sm"
-            onClick={toggleViewerCamera}
-            disabled={isCameraRequesting}
-            className={viewerCameraEnabled ? "gap-2 bg-primary hover:bg-primary/90" : "gap-2 text-white hover:bg-white/20"}
-          >
-            {isCameraRequesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : viewerCameraEnabled ? (
-              <Video className="w-4 h-4" />
-            ) : (
-              <VideoOff className="w-4 h-4" />
-            )}
-            <span className="hidden md:inline">Camera</span>
-          </Button>
-          
           {/* Desktop Message Button */}
           <Button
             variant="ghost"
