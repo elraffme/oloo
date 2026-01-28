@@ -237,9 +237,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       // Initialize SFU connection
       console.log('🔌 Connecting to SFU stream...');
+      setConnectionState('joining');
       await initialize('viewer', {}, streamId);
 
       setIsConnected(true);
+      setConnectionState('connected');
 
       // Load initial like status and count
       if (user) {

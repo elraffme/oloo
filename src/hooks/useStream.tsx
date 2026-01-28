@@ -283,8 +283,24 @@ export const useStream = (navigation = null) => {
   }
 
   async function initialize(role, options = {}, liveId, existingStream = null) {
+    console.log('🚀 Initializing stream...', { role, liveId });
+    
+    // Clean up any existing connection before reinitializing
+    if (socketRef.current) {
+      console.log('⚠️ Existing socket found, cleaning up first...');
+      socketRef.current.disconnect();
+      socketRef.current = null;
+      setSocket(null);
+    }
+    
+    // Reset state for fresh connection
+    if (device.current) {
+      device.current = null;
+    }
+    consumeTransports.current.clear();
+    consumers.current.clear();
+    
     roleRef.current = role;
-
     roomId.current = liveId;
 
     if (role === "streamer") {
@@ -316,9 +332,10 @@ export const useStream = (navigation = null) => {
       }
     }
 
-      const newSocket = io(SERVER_URL);
-      socketRef.current = newSocket;
-      setSocket(newSocket);
+    console.log('🔌 Creating new socket connection to:', SERVER_URL);
+    const newSocket = io(SERVER_URL);
+    socketRef.current = newSocket;
+    setSocket(newSocket);
   }
 
   useEffect(() => {
