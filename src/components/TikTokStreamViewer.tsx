@@ -143,8 +143,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       
       setSessionToken(token);
 
+      console.log('🔌 Connecting to SFU stream...');
       await initialize('viewer', {}, streamId);
       setIsConnected(true);
+      console.log('✅ Connected to stream');
 
       if (user) {
         const { data: likeData } = await supabase
