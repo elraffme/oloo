@@ -786,6 +786,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         onGift={() => setShowGiftSelector(true)}
         onChat={handleChatToggle}
         onLeave={handleLeaveStream}
+        onMute={toggleMute}
+        isMuted={isMuted}
         onMic={toggleViewerMic}
         onCamera={toggleViewerCamera}
         micEnabled={viewerMicEnabled}
@@ -813,8 +815,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         onComplete={() => setShowLikeAnimation(false)} 
       />
 
-      {/* Bottom Controls */}
-      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-between gap-2">
+      {/* Bottom Controls - Desktop Only (mobile uses FloatingActionButtons) */}
+      <div className="bg-black/80 p-3 md:p-4 hidden md:flex items-center justify-between gap-2">
         <Button
           variant={isMuted ? "destructive" : "ghost"}
           size="icon"
@@ -824,17 +826,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </Button>
         
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSendMessage}
-          className="gap-2 text-white md:hidden"
-        >
-          <MessageCircle className="w-4 h-4" />
-          Message Host
-        </Button>
-        
-        <div className="hidden md:flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="default"
             size="lg"

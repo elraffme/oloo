@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Gift, MessageSquare, LogOut, Mic, MicOff, Video, VideoOff, Loader2 } from 'lucide-react';
+import { Heart, Gift, MessageSquare, LogOut, Mic, MicOff, Video, VideoOff, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -12,8 +12,10 @@ interface FloatingActionButtonsProps {
   onLeave?: () => void;
   onMic?: () => void;
   onCamera?: () => void;
+  onMute?: () => void;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
+  isMuted?: boolean;
   isMicRequesting?: boolean;
   isCameraRequesting?: boolean;
   unreadMessages?: number;
@@ -29,8 +31,10 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
   onLeave,
   onMic,
   onCamera,
+  onMute,
   micEnabled = false,
   cameraEnabled = false,
+  isMuted = true,
   isMicRequesting = false,
   isCameraRequesting = false,
   unreadMessages = 0,
@@ -42,6 +46,25 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
       "bg-black/60 backdrop-blur-md rounded-full px-4 py-2",
       className
     )}>
+      {/* Speaker/Mute Button */}
+      {onMute && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onMute}
+          className={cn(
+            "h-11 w-11 rounded-full transition-all duration-300",
+            isMuted ? "bg-destructive/80 hover:bg-destructive" : "hover:bg-white/20"
+          )}
+        >
+          {isMuted ? (
+            <VolumeX className="h-5 w-5 text-white" />
+          ) : (
+            <Volume2 className="h-5 w-5 text-white" />
+          )}
+        </Button>
+      )}
+
       {/* Gift Button */}
       <Button
         size="icon"
