@@ -32,12 +32,46 @@ export const useStream = (navigation = null) => {
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
+    
+    // Close transports
     produceTransport.current?.close();
+    produceTransport.current = null;
+    
     consumeTransports.current.forEach((transport) => transport?.close());
+    consumeTransports.current.clear();
+    
+    // Close all consumers
+    consumers.current.forEach((consumer) => consumer?.close());
+    consumers.current.clear();
+    
+    // Stop local stream tracks
     localStreamRef.current?.getTracks().forEach((track) => track?.stop());
+    localStreamRef.current = null;
+    
+    // Disconnect socket
     socketRef.current?.disconnect();
+    socketRef.current = null;
+    
+    // Reset refs
+    device.current = null;
     reconnectAttempts.current = 0;
     hostPeerId.current = null;
+    remotePeerId.current = "";
+    roomId.current = "";
+    
+    // Reset state - critical for rejoin
+    setSocket(null);
+    setLocalStream(null);
+    setRemoteStream(null);
+    setViewerStreams([]);
+    setIsConnected(false);
+    setIsReconnecting(false);
+    setPeers([]);
+    
+    // Generate new peerId for fresh connection
+    peerId.current = crypto.randomUUID();
+    
+    console.log('✅ Stream cleanup complete, ready for rejoin');
   }
 
   async function loadDevice(routerRtpCapabilities) {

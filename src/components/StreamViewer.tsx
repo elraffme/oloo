@@ -266,19 +266,39 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
     initViewer();
     
-    // Cleanup on unmount
+    // Cleanup on unmount - CRITICAL for rejoin to work
     return () => {
-      // cleanup();
+      console.log('🧹 StreamViewer unmounting, cleaning up...');
       
+      // Always cleanup stream resources
+      cleanup();
+      
+      // Reset local state
+      setIsConnected(false);
+      setHasVideo(false);
+      setViewerCameraEnabled(false);
+      setViewerMicEnabled(false);
+      setHostStream(null);
+      setConfirmedViewerStream(null);
+      setConnectionState('disconnected');
+      isLeavingRef.current = false;
+      
+      // Stop video element
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+      
+      // Leave stream in database
       if (sessionToken) {
         (async () => {
           try {
             await supabase.rpc('leave_stream_viewer', {
               p_session_token: sessionToken
             });
-            console.log('Left stream');
+            console.log('Left stream successfully');
           } catch (error) {
-            console.error(error);
+            console.error('Error leaving stream:', error);
           }
         })();
       }
