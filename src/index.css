@@ -459,7 +459,10 @@ body {
   .video-fullscreen-container:-ms-fullscreen {
     width: 100vw !important;
     height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
     display: flex !important;
+    flex-direction: column !important;
     visibility: visible !important;
     opacity: 1 !important;
     position: fixed !important;
@@ -469,21 +472,51 @@ body {
     bottom: 0 !important;
     z-index: 9999 !important;
     background: black !important;
+    overflow: visible !important;
   }
 
-  /* Ensure video grid inside fullscreen container is visible */
+  /* Ensure all children inside fullscreen container are visible */
   .video-fullscreen-container:fullscreen > *,
-  .video-fullscreen-container:-webkit-full-screen > * {
+  .video-fullscreen-container:-webkit-full-screen > *,
+  .video-fullscreen-container:-moz-full-screen > *,
+  .video-fullscreen-container:-ms-fullscreen > * {
     display: flex !important;
     visibility: visible !important;
+    opacity: 1 !important;
     width: 100% !important;
     height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+  }
+  
+  /* Ensure video elements inside fullscreen are visible */
+  .video-fullscreen-container:fullscreen video,
+  .video-fullscreen-container:-webkit-full-screen video,
+  .video-fullscreen-container:-moz-full-screen video {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
   }
 
   /* Mobile Safari specific fullscreen handling */
   @supports (-webkit-touch-callout: none) {
     .video-fullscreen-container {
       -webkit-overflow-scrolling: touch;
+    }
+    
+    /* iOS doesn't support true fullscreen API - use these styles when isFullscreen state is true */
+    .video-fullscreen-container[data-fullscreen="true"] {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      background: black !important;
     }
   }
 }
