@@ -223,10 +223,13 @@ export const useStream = (navigation = null) => {
 
   async function handleProducerTransport(data) {
     try {
+      console.log('📤 Creating producer transport...');
       produceTransport.current = device.current.createSendTransport(data.data);
 
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
-        socket.emit(
+        console.log('🔗 Producer transport connecting...');
+        // Use socketRef for stable reference
+        socketRef.current?.emit(
           "connectTransport",
           { dtlsParameters, id: peerId.current },
           callback
@@ -234,16 +237,18 @@ export const useStream = (navigation = null) => {
       });
 
       produceTransport.current.on("connectionstatechange", (state) => {
+        console.log('📤 Producer transport state:', state);
         switch (state) {
           case "connecting":
-            console.log("connecting");
+            console.log("🔄 Producer transport connecting...");
             break;
           case "connected":
-            console.log("connected");
+            console.log("✅ Producer transport connected!");
+            setConnectionPhase('streaming');
             break;
           case "failed":
-            console.log("failed");
-            socket.emit(
+            console.log("❌ Producer transport failed, restarting ICE...");
+            socketRef.current?.emit(
               "producerRestartIce",
               peerId.current,
               async (params) => {
@@ -261,10 +266,12 @@ export const useStream = (navigation = null) => {
       produceTransport.current.on(
         "produce",
         ({ kind, rtpParameters, appData }, callback) => {
-          socket.emit(
+          console.log(`🎬 Producing ${kind} track to SFU...`);
+          socketRef.current?.emit(
             "produce",
             { kind, rtpParameters, id: peerId.current, room: roomId.current, appData },
             ({ producerId }) => {
+              console.log(`✅ ${kind} producer created with ID:`, producerId);
               callback({ id: producerId });
             }
           );
@@ -273,37 +280,62 @@ export const useStream = (navigation = null) => {
 
       const stream = localStreamRef.current;
       if (!stream) {
-        console.log("Local stream not initialized");
+        console.error("❌ Local stream not initialized - cannot produce");
+        setConnectionPhase('error');
+        setConnectionError('Local stream not available');
         return;
       }
 
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
+      
+      console.log('📹 Stream tracks available:', {
+        video: videoTrack ? { enabled: videoTrack.enabled, state: videoTrack.readyState } : null,
+        audio: audioTrack ? { enabled: audioTrack.enabled, state: audioTrack.readyState } : null
+      });
+
+      let producedCount = 0;
 
       if (audioTrack) {
-        await produceTransport.current.produce({ track: audioTrack, appData: { type: roleRef.current, peerId: peerId.current }  });
+        console.log('🎤 Producing audio track...');
+        await produceTransport.current.produce({ 
+          track: audioTrack, 
+          appData: { type: roleRef.current, peerId: peerId.current } 
+        });
+        producedCount++;
+        console.log('✅ Audio track produced successfully');
       }
+      
       if (videoTrack) {
-        await produceTransport.current.produce({ track: videoTrack,
-                  encodings: [
-                {
-                  ssrc: 111110,
-                  scalabilityMode: "L3T3_KEY",
-                  maxBitrate: 1000000,
-                },
-              ],
-              appData: { type: roleRef.current, peerId: peerId.current }
-         });
+        console.log('📹 Producing video track...');
+        await produceTransport.current.produce({ 
+          track: videoTrack,
+          encodings: [
+            {
+              ssrc: 111110,
+              scalabilityMode: "L3T3_KEY",
+              maxBitrate: 1000000,
+            },
+          ],
+          appData: { type: roleRef.current, peerId: peerId.current }
+        });
+        producedCount++;
+        console.log('✅ Video track produced successfully');
       }
+      
+      console.log(`🎉 Host is now broadcasting ${producedCount} track(s) to room: ${roomId.current}`);
+      
     } catch (error) {
-      console.error("Error creating producer transport:", error);
+      console.error("❌ Error creating producer transport:", error);
+      setConnectionPhase('error');
+      setConnectionError('Failed to create broadcast connection');
     }
   }
 
   function startConsumeProducer(producer) {
-    console.log("new proda came", producer);
+    console.log("🎬 New producer received, creating consume transport...", producer);
     setConnectionPhase('consuming');
-    socket.emit("createConsumeTransport", {
+    socketRef.current?.emit("createConsumeTransport", {
       producer,
       id: peerId.current,
       room: roomId.current,
@@ -312,11 +344,13 @@ export const useStream = (navigation = null) => {
 
   async function consume(data) {
     try {
+      console.log('📥 Creating receive transport for consumption...');
       const transport = device.current.createRecvTransport(data.data);
       consumeTransports.current.set(data.storageId, transport);
 
       transport.on("connect", ({ dtlsParameters }, callback) => {
-        socket.emit(
+        console.log('🔗 Consumer transport connecting...');
+        socketRef.current?.emit(
           "transportConnect",
           { dtlsParameters, storageId: data.storageId },
           callback
@@ -324,16 +358,17 @@ export const useStream = (navigation = null) => {
       });
 
       transport.on("connectionstatechange", (state) => {
+        console.log('📥 Consumer transport state:', state);
         switch (state) {
           case "connecting":
-            console.log("Connecting To Stream!");
+            console.log("🔄 Connecting to stream...");
             break;
           case "connected":
-            console.log("subscribed!");
+            console.log("✅ Subscribed to stream!");
             break;
           case "failed":
-            console.log("Failed!");
-            socket.emit(
+            console.log("❌ Consumer connection failed, restarting ICE...");
+            socketRef.current?.emit(
               "consumerRestartIce",
               data.storageId,
               async (params) => {
@@ -348,7 +383,8 @@ export const useStream = (navigation = null) => {
         }
       });
 
-      socket.emit("startConsuming", {
+      console.log('📡 Starting to consume producer:', data.producer.producerId);
+      socketRef.current?.emit("startConsuming", {
         rtpCapabilities: device.current.rtpCapabilities,
         storageId: data.storageId,
         producerId: data.producer.producerId,
@@ -357,7 +393,9 @@ export const useStream = (navigation = null) => {
         room: roomId.current,
       });
     } catch (error) {
-      console.error("Error creating consumer transport:", error);
+      console.error("❌ Error creating consumer transport:", error);
+      setConnectionPhase('error');
+      setConnectionError('Failed to receive stream');
     }
   }
 
@@ -498,12 +536,15 @@ export const useStream = (navigation = null) => {
     if (!socket) return;
 
     socket.on("connect", () => {
-      console.log("connected socket");
+      console.log("✅ Socket connected to SFU server");
       setIsConnected(true);
+      
+      console.log('📡 Requesting RTP capabilities from SFU...');
       socket.emit("getRTPCapabilites", async (data) => {
-        console.log('emit recvd')
+        console.log('📡 RTP capabilities received, loading device...');
         await loadDevice(data.capabilities);
         
+        console.log('🚪 Joining room:', roomId.current, 'as', roleRef.current);
         setConnectionPhase('joining_room');
         socket.emit("addUserCall", {
           room: roomId.current,
@@ -513,10 +554,12 @@ export const useStream = (navigation = null) => {
         });
         
         if (roleRef.current === "streamer") {
+          console.log('📤 Requesting producer transport for streaming...');
           socket.emit("createTransport", peerId.current);
         } else {
           // Viewer: start polling and timeout
           setConnectionPhase('awaiting_producers');
+          console.log('👁️ Viewer mode - requesting producers immediately...');
           // Request producers immediately (don't wait for first poll interval)
           requestProducers();
           // Then start polling for subsequent attempts
@@ -525,11 +568,28 @@ export const useStream = (navigation = null) => {
         }
       });
     });
+    
+    socket.on("disconnect", (reason) => {
+      console.log("❌ Socket disconnected:", reason);
+      setIsConnected(false);
+      if (reason === "io server disconnect") {
+        // Server disconnected, try to reconnect
+        socket.connect();
+      }
+    });
+    
+    socket.on("connect_error", (error) => {
+      console.error("❌ Socket connection error:", error);
+      setConnectionPhase('error');
+      setConnectionError('Failed to connect to streaming server');
+    });
 
     return () => {
       socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
     };
-  }, [socket, startProducerPolling, startConnectionTimeout]);
+  }, [socket, startProducerPolling, startConnectionTimeout, requestProducers]);
 
   useEffect(() => {
     return () => {
