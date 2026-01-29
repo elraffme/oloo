@@ -23,6 +23,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface StreamViewerProps {
   streamId: string;
@@ -76,6 +77,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Debug logging for stream states
   useEffect(() => {
@@ -655,11 +657,14 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   }, [connectionState]);
 
   // Fullscreen toggle using browser Fullscreen API
+  // Apply fullscreen to the video container, not the entire page wrapper
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
-        if (containerRef.current) {
-          await containerRef.current.requestFullscreen();
+        // Use video container ref for fullscreen - this contains only the video elements
+        const targetEl = videoContainerRef.current || containerRef.current;
+        if (targetEl) {
+          await targetEl.requestFullscreen();
           setIsFullscreen(true);
         }
       } else {
@@ -667,6 +672,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         setIsFullscreen(false);
       }
     } catch (error) {
+      console.error('Fullscreen error:', error);
       toast.error('Fullscreen not available');
     }
   };
@@ -677,7 +683,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
@@ -713,7 +723,24 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
-        <div className="flex-1 relative">
+        {/* Video Container - This is the fullscreen target */}
+        <div 
+          ref={videoContainerRef}
+          className={cn(
+            "flex-1 relative bg-black",
+            // Fullscreen-specific styles to ensure video remains visible
+            isFullscreen && "w-screen h-screen"
+          )}
+          style={{
+            // Explicit styles to prevent hiding in fullscreen
+            display: 'flex',
+            flexDirection: 'column',
+            visibility: 'visible',
+            position: isFullscreen ? 'fixed' : 'relative',
+            inset: isFullscreen ? 0 : undefined,
+            zIndex: isFullscreen ? 9999 : 10,
+          }}
+        >
           {/* Hidden Video Element for Host Stream */}
           <video
             ref={videoRef}
@@ -802,8 +829,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               </div>
             ))}
           </div>
+          
+          {/* Fullscreen exit hint - only visible in fullscreen */}
+          {isFullscreen && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm opacity-50 pointer-events-none">
+              Press ESC to exit fullscreen
+            </div>
+          )}
         </div>
-
+        
         {/* Chat Below Video - Desktop Only */}
         {showChat && !isMobile && (
           <div className="h-48 border-t border-border bg-background">

@@ -93,6 +93,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const swipeRef = useSwipeGesture({
@@ -526,11 +527,14 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   };
 
   // True fullscreen toggle using browser Fullscreen API
+  // Apply fullscreen to the video container, not the entire page wrapper
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
-        if (containerRef.current) {
-          await containerRef.current.requestFullscreen();
+        // Use video container ref for fullscreen - this contains only the video elements
+        const targetEl = videoContainerRef.current || containerRef.current;
+        if (targetEl) {
+          await targetEl.requestFullscreen();
           setIsFullscreen(true);
         }
       } else {
@@ -538,6 +542,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         setIsFullscreen(false);
       }
     } catch (error) {
+      console.error('Fullscreen error:', error);
       toast.error('Fullscreen not available');
     }
   };
@@ -548,7 +553,11 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   return (
@@ -562,7 +571,23 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       onClick={() => setShowUI(true)}
     >
-      <div id="video-container" className="absolute inset-0 flex items-center justify-center">
+      {/* Video Container - This is the fullscreen target */}
+      <div 
+        ref={videoContainerRef}
+        id="video-container" 
+        className={cn(
+          "absolute inset-0 flex items-center justify-center bg-black",
+          // Fullscreen-specific styles to ensure video remains visible
+          isFullscreen && "w-screen h-screen"
+        )}
+        style={{
+          // Explicit styles to prevent hiding in fullscreen
+          display: 'flex',
+          visibility: 'visible',
+          position: isFullscreen ? 'fixed' : 'absolute',
+          zIndex: isFullscreen ? 9999 : 10,
+        }}
+      >
         <video
           ref={videoRef}
           className="hidden"
