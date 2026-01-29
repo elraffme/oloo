@@ -139,7 +139,7 @@ const SignIn = () => {
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
-          <Button variant="ghost" className="absolute top-6 left-6" onClick={() => window.history.back()}>
+          <Button variant="ghost" className="absolute top-6 left-6" onClick={() => navigate('/')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             {t('common.back')}
           </Button>
