@@ -656,8 +656,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   }, [connectionState]);
 
-  // Fullscreen toggle using browser Fullscreen API
-  // Apply fullscreen ONLY to the video container element
+  // Toggle fullscreen - uses native API where supported, CSS fallback for iOS Safari
   const toggleFullscreen = async () => {
     const targetEl = videoContainerRef.current;
     if (!targetEl) {
@@ -665,27 +664,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       return;
     }
 
-    try {
-      // Check for existing fullscreen element (cross-browser)
-      const fullscreenEl = document.fullscreenElement || 
-                           (document as any).webkitFullscreenElement ||
-                           (document as any).mozFullScreenElement ||
-                           (document as any).msFullscreenElement;
+    // Check if we're currently in browser fullscreen
+    const fullscreenEl = document.fullscreenElement || 
+                         (document as any).webkitFullscreenElement ||
+                         (document as any).mozFullScreenElement ||
+                         (document as any).msFullscreenElement;
 
-      if (!fullscreenEl) {
-        // Enter fullscreen - use webkit prefix for iOS Safari
-        if (targetEl.requestFullscreen) {
-          await targetEl.requestFullscreen();
-        } else if ((targetEl as any).webkitRequestFullscreen) {
-          await (targetEl as any).webkitRequestFullscreen();
-        } else if ((targetEl as any).mozRequestFullScreen) {
-          await (targetEl as any).mozRequestFullScreen();
-        } else if ((targetEl as any).msRequestFullscreen) {
-          await (targetEl as any).msRequestFullscreen();
-        }
-        setIsFullscreen(true);
-      } else {
-        // Exit fullscreen
+    if (isFullscreen || fullscreenEl) {
+      // Exit fullscreen
+      try {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {
@@ -695,11 +682,29 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         } else if ((document as any).msExitFullscreen) {
           await (document as any).msExitFullscreen();
         }
-        setIsFullscreen(false);
+      } catch (e) {
+        // Ignore errors on exit
       }
-    } catch (error) {
-      console.error('Fullscreen error:', error);
-      // Don't show error toast on user gesture issues
+      setIsFullscreen(false);
+    } else {
+      // Enter fullscreen - try native API first
+      try {
+        if (targetEl.requestFullscreen) {
+          await targetEl.requestFullscreen();
+        } else if ((targetEl as any).webkitRequestFullscreen) {
+          await (targetEl as any).webkitRequestFullscreen();
+        } else if ((targetEl as any).mozRequestFullScreen) {
+          await (targetEl as any).mozRequestFullScreen();
+        } else if ((targetEl as any).msRequestFullscreen) {
+          await (targetEl as any).msRequestFullscreen();
+        }
+      } catch (error) {
+        console.log('Native fullscreen not available, using CSS fallback');
+      }
+
+      // Always set isFullscreen to true - CSS styles will handle the visual fullscreen
+      // This ensures mobile devices (especially iOS) still get a fullscreen-like experience
+      setIsFullscreen(true);
     }
   };
 
@@ -712,7 +717,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         (document as any).mozFullScreenElement ||
         (document as any).msFullscreenElement
       );
-      setIsFullscreen(isNowFullscreen);
+      // Only sync state if browser fullscreen state changed
+      if (!isNowFullscreen && document.fullscreenElement === null) {
+        setIsFullscreen(false);
+      }
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -872,11 +880,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             ))}
           </div>
           
-          {/* Fullscreen exit hint - only visible in fullscreen */}
+          {/* Mobile fullscreen exit button - clickable for mobile users */}
           {isFullscreen && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm opacity-50 pointer-events-none">
-              Press ESC to exit fullscreen
-            </div>
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-4 right-4 z-[10000] bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 transition-colors"
+            >
+              <Minimize2 className="w-4 h-4" />
+              Exit Fullscreen
+            </button>
           )}
         </div>
         
