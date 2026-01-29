@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useStream } from '@/hooks/useStream';
-
-type ConnectionState = 'disconnected' | 'checking_broadcaster' | 'joining' | 'awaiting_offer' | 'processing_offer' | 'awaiting_ice' | 'connected' | 'streaming' | 'awaiting_user_interaction' | 'failed' | 'timeout';
+import { useStream, ConnectionPhase } from '@/hooks/useStream';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff, Maximize2, Minimize2, AlertCircle, Home } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
@@ -42,7 +40,23 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 }) => {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { initialize, remoteStream, cleanup, isConnected: isSFUConnected, isReconnecting, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream } = useStream();
+  const { 
+    initialize, 
+    remoteStream, 
+    cleanup, 
+    isConnected: isSFUConnected, 
+    isReconnecting, 
+    publishStream, 
+    unpublishStream, 
+    viewerStreams, 
+    toggleMute: toggleSFUMute, 
+    toggleVideo, 
+    localStream,
+    connectionPhase,
+    connectionError,
+    elapsedTime,
+    retryConnection
+  } = useStream();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isLeavingRef = useRef(false);
@@ -58,7 +72,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
   
   
@@ -114,18 +127,16 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     message: string;
   }>>([]);
 
-  const getConnectionMessage = (state: ConnectionState): string => {
-    switch (state) {
-      case 'checking_broadcaster': return 'Verifying broadcaster online...';
-      case 'joining': return 'Joining stream via database...';
-      case 'awaiting_offer': return 'Requesting WebRTC connection...';
-      case 'processing_offer': return 'Establishing peer connection...';
-      case 'awaiting_ice': return 'Negotiating optimal route...';
-      case 'connected': return 'Connected! Loading video stream...';
+  const getConnectionMessage = (phase: ConnectionPhase): string => {
+    switch (phase) {
+      case 'connecting': return 'Connecting to server...';
+      case 'device_loading': return 'Loading media device...';
+      case 'joining_room': return 'Joining stream room...';
+      case 'awaiting_producers': return `Waiting for host video... (${elapsedTime}s)`;
+      case 'consuming': return 'Receiving video stream...';
       case 'streaming': return 'Live';
-      case 'awaiting_user_interaction': return 'Click to unmute and play';
-      case 'failed': return 'Connection lost - Reconnecting automatically...';
-      case 'timeout': return 'Connection timeout - Trying alternate route...';
+      case 'timeout': return 'Connection timed out';
+      case 'error': return connectionError || 'Connection error';
       default: return 'Initializing...';
     }
   };
@@ -169,7 +180,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     const handlePlaying = () => {
       console.log('📹 Video is playing!');
       setHasVideo(true);
-      setConnectionState('streaming');
+      // connectionPhase is now managed by useStream hook
     };
     
     const handlePlay = () => {
@@ -244,11 +255,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       // Initialize SFU connection
       console.log('🔌 Connecting to SFU stream...');
-      setConnectionState('joining');
+      // Connection phase is now managed by useStream hook
       await initialize('viewer', {}, streamId);
 
       setIsConnected(true);
-      setConnectionState('connected');
+      // Connection phase is now managed by useStream hook
 
       // Load initial like status and count
       if (user) {
@@ -289,7 +300,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       setViewerMicEnabled(false);
       setHostStream(null);
       setConfirmedViewerStream(null);
-      setConnectionState('disconnected');
+      // connectionPhase is now managed by useStream hook
       isLeavingRef.current = false;
       
       // Stop video element
@@ -321,7 +332,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       videoRef.current.srcObject = remoteStream;
       videoRef.current.play().catch(e => console.error('Error playing remote stream:', e));
       setHasVideo(true);
-      setConnectionState('streaming');
+      // connectionPhase is now managed by useStream hook
     }
   }, [remoteStream]);
 
@@ -415,11 +426,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Connection watchdog - monitors and shows reconnection status
   useEffect(() => {
     if (isReconnecting) {
-      setConnectionState('failed');
       toast.info('Reconnecting to stream...');
-    } else if (isSFUConnected && remoteStream) {
-      setConnectionState('streaming');
     }
+    // connectionPhase is now managed by useStream hook
   }, [isSFUConnected, isReconnecting, remoteStream]);
 
   const toggleMute = async () => {
@@ -444,7 +453,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       try {
         await videoRef.current.play();
         console.log('✅ Manual play succeeded');
-        setConnectionState('streaming');
+        // connectionPhase is now managed by useStream hook
       } catch (err) {
         console.error('❌ Manual play failed:', err);
         toast.error('Failed to start video playback');
@@ -643,18 +652,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   // Cleanup viewer camera on unmount
   // Viewer stream cleanup is now handled by useStream's cleanup()
 
-  // Monitor connection state changes and show user feedback
+  // Monitor connection phase changes and show user feedback
   useEffect(() => {
-    if (connectionState === 'connected') {
+    if (connectionPhase === 'consuming') {
       toast.success('Connected to stream!');
-    } else if (connectionState === 'failed') {
-      toast.error('Connection lost - Auto-reconnecting...');
-    } else if (connectionState === 'timeout') {
-      toast.warning('Connection timeout - Retrying...');
-    } else if (connectionState === 'streaming') {
+    } else if (connectionPhase === 'error') {
+      toast.error('Connection error');
+    } else if (connectionPhase === 'timeout') {
+      toast.warning('Connection timeout - Click retry to try again');
+    } else if (connectionPhase === 'streaming') {
       toast.success('Stream playing!');
     }
-  }, [connectionState]);
+  }, [connectionPhase]);
 
   // Toggle fullscreen - uses native API where supported, CSS fallback for iOS Safari
   const toggleFullscreen = async () => {
@@ -736,7 +745,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, []);
 
-  const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
+  const showConnectionControls = ['timeout', 'error'].includes(connectionPhase);
 
   return (
     <TooltipProvider>
@@ -800,35 +809,56 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           />
           
           {/* Connection Status Overlay */}
-          {connectionState !== 'streaming' && (
+          {connectionPhase !== 'streaming' && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
-              {connectionState === 'awaiting_user_interaction' ? (
-                <div className="flex flex-col items-center gap-4">
-                  <Button
-                    onClick={handlePlayVideo}
-                    size="lg"
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <Play className="w-6 h-6 mr-2" />
-                    Tap to Play Video
-                  </Button>
-                  <p className="text-white text-sm">Autoplay was blocked. Click to start.</p>
+              {connectionPhase === 'timeout' || connectionPhase === 'error' ? (
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <h3 className="text-white font-semibold text-lg">
+                    {connectionPhase === 'timeout' ? 'Connection Timed Out' : 'Connection Error'}
+                  </h3>
+                  <p className="text-muted-foreground text-sm max-w-xs">
+                    {connectionError || 'The host may not be streaming yet, or there was a network issue.'}
+                  </p>
+                  <p className="text-muted-foreground/60 text-xs">
+                    Waited {elapsedTime} seconds
+                  </p>
+                  <div className="flex gap-3 mt-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleLeaveStream}
+                      className="gap-2"
+                    >
+                      <Home className="w-4 h-4" />
+                      Leave
+                    </Button>
+                    <Button
+                      onClick={retryConnection}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Retry Connection
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <>
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionState)}</p>
+                  <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionPhase)}</p>
+                  {connectionPhase === 'awaiting_producers' && (
+                    <p className="text-muted-foreground text-xs">
+                      Searching for host video stream...
+                    </p>
+                  )}
                 </>
               )}
-              
-              {/* Connection timeout modal hidden - auto-reconnection runs in background */}
-
-              {/* Manual connection controls hidden - auto-reconnection runs in background */}
             </div>
           )}
           
           {/* LIVE Badge */}
-          {connectionState === 'streaming' && (
+          {connectionPhase === 'streaming' && (
             <Badge 
               variant="destructive"
               className="absolute top-4 left-4 z-30 animate-pulse"
@@ -839,7 +869,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           )}
 
           {/* Leave Stream Button - Desktop */}
-          {connectionState === 'streaming' && (
+          {connectionPhase === 'streaming' && (
             <Button
               variant="destructive"
               size="sm"
