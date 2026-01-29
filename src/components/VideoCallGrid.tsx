@@ -25,12 +25,17 @@ interface VideoCallGridProps {
   isHost: boolean;
 }
 
-const getGridClass = (count: number): string => {
-  if (count === 1) return 'grid-cols-1';
-  if (count === 2) return 'grid-cols-1 md:grid-cols-2';
-  if (count <= 4) return 'grid-cols-2';
-  if (count <= 6) return 'grid-cols-2 md:grid-cols-3';
-  return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+// Priority layout: host always gets prominent positioning
+const getLayoutConfig = (count: number, hasHost: boolean) => {
+  if (count === 1) {
+    return { type: 'single', gridClass: 'grid-cols-1' };
+  }
+  if (count === 2) {
+    // 2 participants: side by side on desktop, stacked on mobile with equal sizing
+    return { type: 'duo', gridClass: 'grid-cols-1 md:grid-cols-2' };
+  }
+  // 3+ participants: host featured layout
+  return { type: 'featured', gridClass: '' };
 };
 
 export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
@@ -92,18 +97,49 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
     });
   }
 
-  const gridClass = getGridClass(tiles.length);
+  const layoutConfig = getLayoutConfig(tiles.length, tiles.some(t => t.isHost));
 
+  // Featured layout for 3+ participants with host priority
+  if (layoutConfig.type === 'featured' && tiles.length >= 3) {
+    const hostTile = tiles.find(t => t.isHost);
+    const otherTiles = tiles.filter(t => !t.isHost);
+    
+    return (
+      <div className="flex flex-col h-full w-full bg-background p-2 gap-2">
+        {/* Host takes 60% of vertical space with fixed aspect ratio */}
+        {hostTile && (
+          <div className="flex-[3] min-h-0">
+            <VideoTile key={hostTile.id} tile={hostTile} isFeatureHost />
+          </div>
+        )}
+        {/* Viewers share remaining 40% in a scrollable row */}
+        <div className="flex-[2] min-h-0 flex gap-2 overflow-x-auto">
+          {otherTiles.map((tile) => (
+            <div key={tile.id} className="flex-shrink-0 h-full aspect-video">
+              <VideoTile tile={tile} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Standard grid for 1-2 participants
   return (
-    <div className={`grid ${gridClass} gap-2 p-2 h-full w-full bg-background`}>
+    <div className={`grid ${layoutConfig.gridClass} gap-2 p-2 h-full w-full bg-background`}>
       {tiles.map((tile) => (
-        <VideoTile key={tile.id} tile={tile} />
+        <VideoTile key={tile.id} tile={tile} isFeatureHost={tile.isHost && tiles.length === 2} />
       ))}
     </div>
   );
 };
 
-const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
+interface VideoTileProps {
+  tile: VideoTile;
+  isFeatureHost?: boolean;
+}
+
+const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = tile.videoRef || localVideoRef;
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
@@ -184,8 +220,12 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
   // Check if stream has active audio track
   const hasAudioTrack = tile.stream?.getAudioTracks().some(t => t.enabled) || false;
 
+  // Use object-contain for consistent framing - no cropping/zooming
+  // This ensures host and viewer cameras display identically regardless of container size
+  const objectFitClass = 'object-contain';
+
   return (
-    <div className="relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-black border border-border shadow-lg">
+    <div className={`relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-muted border border-border shadow-lg ${isFeatureHost ? 'ring-2 ring-primary' : ''}`}>
       {hasStream ? (
         <video
           ref={videoRef}
@@ -194,7 +234,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           webkit-playsinline="true"
           x-webkit-airplay="allow"
           muted={tile.isYou}
-          className={`w-full h-full object-cover ${tile.isYou ? 'scale-x-[-1]' : ''}`}
+          className={`w-full h-full ${objectFitClass} bg-muted ${tile.isYou ? 'scale-x-[-1]' : ''}`}
           onLoadedMetadata={() => {
             console.log(`📺 VideoTile: Metadata loaded for ${tile.displayName}`);
             videoRef.current?.play().catch(e => console.warn('Play after metadata failed:', e));
@@ -217,26 +257,26 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
       {/* Show tap to play overlay on mobile if blocked */}
       {playbackBlocked && !tile.isYou && (
         <div 
-          className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer z-10"
+          className="absolute inset-0 flex items-center justify-center bg-background/50 cursor-pointer z-10"
           onClick={handleTapToPlay}
         >
           <div className="text-center">
-            <Volume2 className="w-8 h-8 mx-auto mb-2 text-white" />
-            <span className="text-sm text-white font-medium">Tap to hear audio</span>
+            <Volume2 className="w-8 h-8 mx-auto mb-2 text-foreground" />
+            <span className="text-sm text-foreground font-medium">Tap to hear audio</span>
           </div>
         </div>
       )}
       
       {/* Name Label and Badges - Always Visible */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-3 backdrop-blur-sm">
+      <div className="absolute bottom-0 left-0 right-0 bg-background/90 p-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-semibold truncate drop-shadow-lg">
+          <span className="text-foreground text-sm font-semibold truncate drop-shadow-lg">
             {tile.displayName}
           </span>
           
           {/* Show mic icon when viewer has active audio */}
           {hasAudioTrack && !tile.isYou && !tile.isHost && (
-            <Mic className="w-3 h-3 text-green-400 drop-shadow-lg" />
+            <Mic className="w-3 h-3 text-primary drop-shadow-lg" />
           )}
           
           {tile.isHost && (
@@ -252,7 +292,7 @@ const VideoTile: React.FC<{ tile: VideoTile }> = ({ tile }) => {
           )}
           
           {tile.isMuted && (
-            <MicOff className="w-3 h-3 text-white drop-shadow-lg" />
+            <MicOff className="w-3 h-3 text-muted-foreground drop-shadow-lg" />
           )}
         </div>
       </div>
