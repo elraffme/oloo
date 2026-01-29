@@ -5,6 +5,23 @@ import { io } from "socket.io-client";
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
+// Connection timing constants
+const PRODUCER_TIMEOUT_MS = 10000; // 10 seconds before showing timeout
+const PRODUCER_POLL_INTERVAL_MS = 3000; // Poll every 3 seconds
+const MAX_PRODUCER_POLLS = 3; // Maximum polling attempts
+
+// Connection phase type for granular state tracking
+export type ConnectionPhase = 
+  | 'idle' 
+  | 'connecting' 
+  | 'device_loading' 
+  | 'joining_room' 
+  | 'awaiting_producers' 
+  | 'consuming' 
+  | 'streaming' 
+  | 'timeout' 
+  | 'error';
+
 export const useStream = (navigation = null) => {
   const [socket, setSocket] = useState(null);
   const [peers, setPeers] = useState([]);
@@ -15,6 +32,11 @@ export const useStream = (navigation = null) => {
   const [remoteStream, setRemoteStream] = useState(null);
   const [viewerStreams, setViewerStreams] = useState([]);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  
+  // New state for connection phase tracking
+  const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>('idle');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const device = useRef(null);
   const produceTransport = useRef(null);
@@ -29,9 +51,118 @@ export const useStream = (navigation = null) => {
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 3;
+  
+  // New refs for connection timing
+  const connectionStartTime = useRef<number | null>(null);
+  const producerPollInterval = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeout = useRef<NodeJS.Timeout | null>(null);
+  const elapsedTimeInterval = useRef<NodeJS.Timeout | null>(null);
+  const producerPollCount = useRef(0);
+  const hasReceivedProducers = useRef(false);
+
+  // Clear all timing intervals and timeouts
+  const clearAllTimers = useCallback(() => {
+    if (producerPollInterval.current) {
+      clearInterval(producerPollInterval.current);
+      producerPollInterval.current = null;
+    }
+    if (connectionTimeout.current) {
+      clearTimeout(connectionTimeout.current);
+      connectionTimeout.current = null;
+    }
+    if (elapsedTimeInterval.current) {
+      clearInterval(elapsedTimeInterval.current);
+      elapsedTimeInterval.current = null;
+    }
+    producerPollCount.current = 0;
+    hasReceivedProducers.current = false;
+  }, []);
+
+  // Start elapsed time counter
+  const startElapsedTimeCounter = useCallback(() => {
+    connectionStartTime.current = Date.now();
+    setElapsedTime(0);
+    
+    elapsedTimeInterval.current = setInterval(() => {
+      if (connectionStartTime.current) {
+        setElapsedTime(Math.floor((Date.now() - connectionStartTime.current) / 1000));
+      }
+    }, 1000);
+  }, []);
+
+  // Request current producers from SFU
+  const requestProducers = useCallback(() => {
+    if (socketRef.current && roomId.current) {
+      console.log(`🔄 Polling for producers (attempt ${producerPollCount.current + 1}/${MAX_PRODUCER_POLLS})`);
+      socketRef.current.emit('getCurrentProducers', { room: roomId.current });
+    }
+  }, []);
+
+  // Start producer polling
+  const startProducerPolling = useCallback(() => {
+    producerPollCount.current = 0;
+    
+    producerPollInterval.current = setInterval(() => {
+      if (hasReceivedProducers.current) {
+        // Producers received, stop polling
+        if (producerPollInterval.current) {
+          clearInterval(producerPollInterval.current);
+          producerPollInterval.current = null;
+        }
+        return;
+      }
+      
+      producerPollCount.current++;
+      requestProducers();
+      
+      if (producerPollCount.current >= MAX_PRODUCER_POLLS) {
+        // Max polls reached, stop polling but wait for timeout
+        if (producerPollInterval.current) {
+          clearInterval(producerPollInterval.current);
+          producerPollInterval.current = null;
+        }
+        console.log('⏱️ Max producer polls reached, waiting for timeout...');
+      }
+    }, PRODUCER_POLL_INTERVAL_MS);
+  }, [requestProducers]);
+
+  // Start connection timeout
+  const startConnectionTimeout = useCallback(() => {
+    connectionTimeout.current = setTimeout(() => {
+      if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
+        console.log('⏰ Connection timeout - no producers found');
+        setConnectionPhase('timeout');
+        setConnectionError('Could not find host video. The host may not be streaming yet.');
+        clearAllTimers();
+      }
+    }, PRODUCER_TIMEOUT_MS);
+  }, [clearAllTimers]);
+
+  // Retry connection - re-poll for producers
+  const retryConnection = useCallback(() => {
+    console.log('🔄 Retrying connection...');
+    setConnectionPhase('awaiting_producers');
+    setConnectionError(null);
+    hasReceivedProducers.current = false;
+    reconnectAttempts.current++;
+    
+    // Clear existing timers
+    clearAllTimers();
+    
+    // Start fresh polling and timeout
+    startElapsedTimeCounter();
+    startProducerPolling();
+    startConnectionTimeout();
+    
+    // Request producers immediately
+    requestProducers();
+  }, [clearAllTimers, startElapsedTimeCounter, startProducerPolling, startConnectionTimeout, requestProducers]);
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
+    
+    // Clear all timers first
+    clearAllTimers();
     
     // Close transports
     produceTransport.current?.close();
@@ -58,6 +189,7 @@ export const useStream = (navigation = null) => {
     hostPeerId.current = null;
     remotePeerId.current = "";
     roomId.current = "";
+    connectionStartTime.current = null;
     
     // Reset state - critical for rejoin
     setSocket(null);
@@ -67,6 +199,9 @@ export const useStream = (navigation = null) => {
     setIsConnected(false);
     setIsReconnecting(false);
     setPeers([]);
+    setConnectionPhase('idle');
+    setConnectionError(null);
+    setElapsedTime(0);
     
     // Generate new peerId for fresh connection
     peerId.current = crypto.randomUUID();
@@ -76,10 +211,13 @@ export const useStream = (navigation = null) => {
 
   async function loadDevice(routerRtpCapabilities) {
     try {
+      setConnectionPhase('device_loading');
       device.current = new Device();
       await device.current.load({ routerRtpCapabilities });
     } catch (error) {
       console.error("Error loading device:", error);
+      setConnectionPhase('error');
+      setConnectionError('Failed to load media device');
     }
   }
 
@@ -164,6 +302,7 @@ export const useStream = (navigation = null) => {
 
   function startConsumeProducer(producer) {
     console.log("new proda came", producer);
+    setConnectionPhase('consuming');
     socket.emit("createConsumeTransport", {
       producer,
       id: peerId.current,
@@ -279,11 +418,19 @@ export const useStream = (navigation = null) => {
         streamerConsumers.map((c) => c.track)
       );
       setRemoteStream(newStream);
+      
+      // Successfully streaming - clear all timers and update phase
+      setConnectionPhase('streaming');
+      clearAllTimers();
     }
   }
 
   async function initialize(role, options = {}, liveId, existingStream = null) {
     console.log('🚀 Initializing stream...', { role, liveId });
+    
+    // Set initial connection phase
+    setConnectionPhase('connecting');
+    setConnectionError(null);
     
     // Clean up any existing connection before reinitializing
     if (socketRef.current) {
@@ -299,6 +446,7 @@ export const useStream = (navigation = null) => {
     }
     consumeTransports.current.clear();
     consumers.current.clear();
+    hasReceivedProducers.current = false;
     
     roleRef.current = role;
     roomId.current = liveId;
@@ -329,6 +477,9 @@ export const useStream = (navigation = null) => {
         }
       } catch (error) {
         console.log("Error getting user media:", error);
+        setConnectionPhase('error');
+        setConnectionError('Failed to access camera/microphone');
+        return;
       }
     }
 
@@ -336,6 +487,11 @@ export const useStream = (navigation = null) => {
     const newSocket = io(SERVER_URL);
     socketRef.current = newSocket;
     setSocket(newSocket);
+    
+    // Start elapsed time counter for viewers
+    if (role === 'viewer') {
+      startElapsedTimeCounter();
+    }
   }
 
   useEffect(() => {
@@ -347,14 +503,22 @@ export const useStream = (navigation = null) => {
       socket.emit("getRTPCapabilites", async (data) => {
         console.log('emit recvd')
         await loadDevice(data.capabilities);
+        
+        setConnectionPhase('joining_room');
         socket.emit("addUserCall", {
           room: roomId.current,
           peerId: peerId.current,
           username: "User",
           type: roleRef.current,
         });
+        
         if (roleRef.current === "streamer") {
           socket.emit("createTransport", peerId.current);
+        } else {
+          // Viewer: start polling and timeout
+          setConnectionPhase('awaiting_producers');
+          startProducerPolling();
+          startConnectionTimeout();
         }
       });
     });
@@ -362,7 +526,7 @@ export const useStream = (navigation = null) => {
     return () => {
       socket.off("connect");
     };
-  }, [socket]);
+  }, [socket, startProducerPolling, startConnectionTimeout]);
 
   useEffect(() => {
     return () => {
@@ -381,20 +545,37 @@ export const useStream = (navigation = null) => {
   useEffect(() => {
     if (!socket) return;
     socket.on("currentProducers", (producers) => {
-      producers.forEach((producer) => startConsumeProducer(producer));
+      console.log(`📡 Received currentProducers: ${producers.length} producer(s)`);
+      
+      if (producers.length > 0) {
+        // Found producers! Mark as received and consume them
+        hasReceivedProducers.current = true;
+        clearAllTimers();
+        setConnectionPhase('consuming');
+        producers.forEach((producer) => startConsumeProducer(producer));
+      } else {
+        // Empty response - polling will continue if still active
+        console.log('📭 No producers yet, waiting...');
+      }
     });
     return () => {
       socket.off("currentProducers");
     };
-  }, [socket]);
+  }, [socket, clearAllTimers]);
 
   useEffect(() => {
     if (!socket) return;
-    socket.on("newProducer", startConsumeProducer);
+    socket.on("newProducer", (producer) => {
+      console.log('🆕 New producer arrived');
+      hasReceivedProducers.current = true;
+      clearAllTimers();
+      setConnectionPhase('consuming');
+      startConsumeProducer(producer);
+    });
     return () => {
       socket.off("newProducer");
     };
-  }, [socket]);
+  }, [socket, clearAllTimers]);
 
   useEffect(() => {
     if (!socket) return;
@@ -479,7 +660,17 @@ export const useStream = (navigation = null) => {
 
 
   function checkChannelHealth() {
-    return { isHealthy: isConnected, details: {} };
+    return { 
+      isHealthy: isConnected && connectionPhase !== 'error' && connectionPhase !== 'timeout', 
+      details: {
+        socketConnected: !!socketRef.current?.connected,
+        deviceLoaded: !!device.current,
+        hasProducers: hasReceivedProducers.current,
+        consumersActive: consumers.current.size > 0,
+        connectionPhase,
+        elapsedTime
+      } 
+    };
   }
 
 
@@ -562,6 +753,11 @@ export const useStream = (navigation = null) => {
     viewerStreams,
     publishStream,
     unpublishStream,
-    peerId: peerId.current
+    peerId: peerId.current,
+    // New exports for connection phase tracking
+    connectionPhase,
+    connectionError,
+    elapsedTime,
+    retryConnection
   };
 };

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
   Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
-  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2, Maximize2
+  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2, Maximize2, RefreshCw, AlertCircle, Home
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { useStream } from '@/hooks/useStream';
+import { useStream, ConnectionPhase } from '@/hooks/useStream';
 
 interface ChatMessage {
   id: string;
@@ -65,7 +65,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  const { initialize, remoteStream, cleanup, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream, isMuted: isSFUMuted, peerId } = useStream();
+  const { initialize, remoteStream, cleanup, publishStream, unpublishStream, viewerStreams, toggleMute: toggleSFUMute, toggleVideo, localStream, isMuted: isSFUMuted, peerId, connectionPhase, connectionError, elapsedTime, retryConnection } = useStream();
 
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -666,6 +666,61 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           muted={isMuted}
         />
         
+        {/* Connection Status Overlay */}
+        {connectionPhase !== 'streaming' && connectionPhase !== 'idle' && (
+          <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
+            {connectionPhase === 'timeout' || connectionPhase === 'error' ? (
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                </div>
+                <h3 className="text-white font-semibold text-lg">
+                  {connectionPhase === 'timeout' ? 'Connection Timed Out' : 'Connection Error'}
+                </h3>
+                <p className="text-muted-foreground text-sm max-w-xs">
+                  {connectionError || 'The host may not be streaming yet, or there was a network issue.'}
+                </p>
+                <p className="text-muted-foreground/60 text-xs">
+                  Waited {elapsedTime} seconds
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="gap-2"
+                  >
+                    <Home className="w-4 h-4" />
+                    Leave
+                  </Button>
+                  <Button
+                    onClick={retryConnection}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Loader2 className="h-12 w-12 animate-spin text-white" />
+                <p className="text-white font-medium text-sm">
+                  {connectionPhase === 'connecting' && 'Connecting to server...'}
+                  {connectionPhase === 'device_loading' && 'Loading media device...'}
+                  {connectionPhase === 'joining_room' && 'Joining stream...'}
+                  {connectionPhase === 'awaiting_producers' && `Waiting for host video... (${elapsedTime}s)`}
+                  {connectionPhase === 'consuming' && 'Receiving video stream...'}
+                </p>
+                {connectionPhase === 'awaiting_producers' && (
+                  <p className="text-muted-foreground text-xs">
+                    Searching for host video stream...
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        
         <VideoCallGrid
           hostStream={hostStream}
           hostName={hostName}
@@ -677,6 +732,17 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           isHost={false}
           isFullscreen={isFullscreen}
         />
+        
+        {/* LIVE Badge */}
+        {connectionPhase === 'streaming' && (
+          <Badge 
+            variant="destructive"
+            className="absolute top-4 left-4 z-30 animate-pulse"
+          >
+            <div className="w-2 h-2 bg-white rounded-full mr-2" />
+            LIVE
+          </Badge>
+        )}
         
         {/* Mobile fullscreen exit button - appears inside the fullscreen container */}
         {isFullscreen && (
