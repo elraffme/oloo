@@ -762,9 +762,25 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       {/* Main Video Area */}
       <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
         {/* Video Container - This is the ONLY fullscreen target */}
+        {/* Using inline styles to ensure visibility on mobile where :fullscreen pseudo-class may not work */}
         <div 
           ref={videoContainerRef}
-          className="video-fullscreen-container flex-1 flex flex-col relative bg-black"
+          className="video-fullscreen-container flex-1 flex flex-col relative"
+          data-fullscreen={isFullscreen ? "true" : "false"}
+          style={{
+            backgroundColor: '#000',
+            display: 'flex',
+            visibility: 'visible',
+            opacity: 1,
+            width: isFullscreen ? '100vw' : '100%',
+            height: isFullscreen ? '100vh' : '100%',
+            position: isFullscreen ? 'fixed' : 'relative',
+            top: isFullscreen ? 0 : undefined,
+            left: isFullscreen ? 0 : undefined,
+            right: isFullscreen ? 0 : undefined,
+            bottom: isFullscreen ? 0 : undefined,
+            zIndex: isFullscreen ? 9999 : 10,
+          }}
         >
           {/* Hidden Video Element for Host Stream */}
           <video
@@ -840,6 +856,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             viewerName={user?.email?.split('@')[0] || 'You'}
             isMuted={isMuted}
             isHost={false}
+            isFullscreen={isFullscreen}
           />
 
           {/* Floating Chat Messages */}

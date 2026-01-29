@@ -23,6 +23,7 @@ interface VideoCallGridProps {
   isMuted?: boolean;
   relayedViewerCameras?: Map<string, { stream: MediaStream; displayName: string; avatarUrl?: string }>;
   isHost: boolean;
+  isFullscreen?: boolean;
 }
 
 // Priority layout: host always gets prominent positioning
@@ -47,6 +48,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
   viewerName = 'You',
   isMuted = false,
   relayedViewerCameras,
+  isFullscreen = false,
 }) => {
   const tiles: VideoTile[] = [];
   const seenSessionTokens = new Set<string>();
@@ -105,7 +107,16 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
     const otherTiles = tiles.filter(t => !t.isHost);
     
     return (
-      <div className="flex flex-col h-full w-full bg-background p-2 gap-2">
+      <div 
+        className="flex flex-col h-full w-full p-2 gap-2"
+        style={{
+          backgroundColor: isFullscreen ? '#000' : 'hsl(var(--background))',
+          display: 'flex',
+          visibility: 'visible',
+          width: isFullscreen ? '100vw' : '100%',
+          height: isFullscreen ? '100vh' : '100%',
+        }}
+      >
         {/* Host takes 60% of vertical space with fixed aspect ratio */}
         {hostTile && (
           <div className="flex-[3] min-h-0">
@@ -126,7 +137,16 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
 
   // Standard grid for 1-2 participants
   return (
-    <div className={`grid ${layoutConfig.gridClass} gap-2 p-2 h-full w-full bg-background`}>
+    <div 
+      className={`grid ${layoutConfig.gridClass} gap-2 p-2 h-full w-full`}
+      style={{
+        backgroundColor: isFullscreen ? '#000' : 'hsl(var(--background))',
+        display: 'grid',
+        visibility: 'visible',
+        width: isFullscreen ? '100vw' : '100%',
+        height: isFullscreen ? '100vh' : '100%',
+      }}
+    >
       {tiles.map((tile) => (
         <VideoTile key={tile.id} tile={tile} isFeatureHost={tile.isHost && tiles.length === 2} />
       ))}

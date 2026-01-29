@@ -610,10 +610,26 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       onClick={() => setShowUI(true)}
     >
       {/* Video Container - This is the ONLY fullscreen target */}
+      {/* Using inline styles to ensure visibility on mobile where :fullscreen pseudo-class may not work */}
       <div 
         ref={videoContainerRef}
         id="video-container" 
-        className="video-fullscreen-container absolute inset-0 flex items-center justify-center bg-black"
+        className="video-fullscreen-container absolute inset-0 flex items-center justify-center"
+        data-fullscreen={isFullscreen ? "true" : "false"}
+        style={{
+          backgroundColor: '#000',
+          display: 'flex',
+          visibility: 'visible',
+          opacity: 1,
+          width: isFullscreen ? '100vw' : '100%',
+          height: isFullscreen ? '100vh' : '100%',
+          position: isFullscreen ? 'fixed' : 'absolute',
+          top: isFullscreen ? 0 : undefined,
+          left: isFullscreen ? 0 : undefined,
+          right: isFullscreen ? 0 : undefined,
+          bottom: isFullscreen ? 0 : undefined,
+          zIndex: isFullscreen ? 9999 : 10,
+        }}
       >
         <video
           ref={videoRef}
@@ -632,6 +648,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           viewerCameras={new Map()}
           relayedViewerCameras={relayedViewerCameras}
           isHost={false}
+          isFullscreen={isFullscreen}
         />
       </div>
 
