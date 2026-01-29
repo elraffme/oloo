@@ -526,8 +526,18 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
   };
 
-  // True fullscreen toggle using browser Fullscreen API
-  // Apply fullscreen ONLY to the video container element
+  // Check if browser supports fullscreen API on non-video elements
+  const supportsFullscreenAPI = () => {
+    const el = document.documentElement;
+    return !!(
+      el.requestFullscreen ||
+      (el as any).webkitRequestFullscreen ||
+      (el as any).mozRequestFullScreen ||
+      (el as any).msRequestFullscreen
+    );
+  };
+
+  // Toggle fullscreen - uses native API where supported, CSS fallback for iOS Safari
   const toggleFullscreen = async () => {
     const targetEl = videoContainerRef.current;
     if (!targetEl) {
@@ -535,27 +545,15 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       return;
     }
 
-    try {
-      // Check for existing fullscreen element (cross-browser)
-      const fullscreenEl = document.fullscreenElement || 
-                           (document as any).webkitFullscreenElement ||
-                           (document as any).mozFullScreenElement ||
-                           (document as any).msFullscreenElement;
+    // Check if we're currently in browser fullscreen
+    const fullscreenEl = document.fullscreenElement || 
+                         (document as any).webkitFullscreenElement ||
+                         (document as any).mozFullScreenElement ||
+                         (document as any).msFullscreenElement;
 
-      if (!fullscreenEl) {
-        // Enter fullscreen - use webkit prefix for iOS Safari
-        if (targetEl.requestFullscreen) {
-          await targetEl.requestFullscreen();
-        } else if ((targetEl as any).webkitRequestFullscreen) {
-          await (targetEl as any).webkitRequestFullscreen();
-        } else if ((targetEl as any).mozRequestFullScreen) {
-          await (targetEl as any).mozRequestFullScreen();
-        } else if ((targetEl as any).msRequestFullscreen) {
-          await (targetEl as any).msRequestFullscreen();
-        }
-        setIsFullscreen(true);
-      } else {
-        // Exit fullscreen
+    if (isFullscreen || fullscreenEl) {
+      // Exit fullscreen
+      try {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {
@@ -565,11 +563,36 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         } else if ((document as any).msExitFullscreen) {
           await (document as any).msExitFullscreen();
         }
-        setIsFullscreen(false);
+      } catch (e) {
+        // Ignore errors on exit
       }
-    } catch (error) {
-      console.error('Fullscreen error:', error);
-      // Don't show error toast on user gesture issues
+      setIsFullscreen(false);
+    } else {
+      // Enter fullscreen - try native API first
+      let nativeFullscreenSucceeded = false;
+      
+      try {
+        if (targetEl.requestFullscreen) {
+          await targetEl.requestFullscreen();
+          nativeFullscreenSucceeded = true;
+        } else if ((targetEl as any).webkitRequestFullscreen) {
+          await (targetEl as any).webkitRequestFullscreen();
+          nativeFullscreenSucceeded = true;
+        } else if ((targetEl as any).mozRequestFullScreen) {
+          await (targetEl as any).mozRequestFullScreen();
+          nativeFullscreenSucceeded = true;
+        } else if ((targetEl as any).msRequestFullscreen) {
+          await (targetEl as any).msRequestFullscreen();
+          nativeFullscreenSucceeded = true;
+        }
+      } catch (error) {
+        console.log('Native fullscreen not available, using CSS fallback');
+        nativeFullscreenSucceeded = false;
+      }
+
+      // Always set isFullscreen to true - CSS styles will handle the visual fullscreen
+      // This ensures mobile devices (especially iOS) still get a fullscreen-like experience
+      setIsFullscreen(true);
     }
   };
 
@@ -582,7 +605,11 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         (document as any).mozFullScreenElement ||
         (document as any).msFullscreenElement
       );
-      setIsFullscreen(isNowFullscreen);
+      // Only sync state if browser fullscreen state changed
+      // Don't set to false if we're using CSS-only fullscreen on mobile
+      if (!isNowFullscreen && document.fullscreenElement === null) {
+        setIsFullscreen(false);
+      }
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -650,6 +677,17 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           isHost={false}
           isFullscreen={isFullscreen}
         />
+        
+        {/* Mobile fullscreen exit button - appears inside the fullscreen container */}
+        {isFullscreen && (
+          <button
+            onClick={toggleFullscreen}
+            className="absolute top-4 right-4 z-[10000] bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 transition-colors"
+          >
+            <Minimize2 className="w-4 h-4" />
+            Exit Fullscreen
+          </button>
+        )}
       </div>
 
       <div 
