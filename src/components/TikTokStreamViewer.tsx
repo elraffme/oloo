@@ -527,36 +527,74 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   };
 
   // True fullscreen toggle using browser Fullscreen API
-  // Apply fullscreen to the video container, not the entire page wrapper
+  // Apply fullscreen ONLY to the video container element
   const toggleFullscreen = async () => {
+    const targetEl = videoContainerRef.current;
+    if (!targetEl) {
+      console.error('Video container ref not found');
+      return;
+    }
+
     try {
-      if (!document.fullscreenElement) {
-        // Use video container ref for fullscreen - this contains only the video elements
-        const targetEl = videoContainerRef.current || containerRef.current;
-        if (targetEl) {
+      // Check for existing fullscreen element (cross-browser)
+      const fullscreenEl = document.fullscreenElement || 
+                           (document as any).webkitFullscreenElement ||
+                           (document as any).mozFullScreenElement ||
+                           (document as any).msFullscreenElement;
+
+      if (!fullscreenEl) {
+        // Enter fullscreen - use webkit prefix for iOS Safari
+        if (targetEl.requestFullscreen) {
           await targetEl.requestFullscreen();
-          setIsFullscreen(true);
+        } else if ((targetEl as any).webkitRequestFullscreen) {
+          await (targetEl as any).webkitRequestFullscreen();
+        } else if ((targetEl as any).mozRequestFullScreen) {
+          await (targetEl as any).mozRequestFullScreen();
+        } else if ((targetEl as any).msRequestFullscreen) {
+          await (targetEl as any).msRequestFullscreen();
         }
+        setIsFullscreen(true);
       } else {
-        await document.exitFullscreen();
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          await (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
+        }
         setIsFullscreen(false);
       }
     } catch (error) {
       console.error('Fullscreen error:', error);
-      toast.error('Fullscreen not available');
+      // Don't show error toast on user gesture issues
     }
   };
 
-  // Listen for fullscreen changes (e.g., user presses Escape)
+  // Listen for fullscreen changes (e.g., user presses Escape or swipes down on mobile)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isNowFullscreen = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isNowFullscreen);
     };
+    
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -571,22 +609,11 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       onClick={() => setShowUI(true)}
     >
-      {/* Video Container - This is the fullscreen target */}
+      {/* Video Container - This is the ONLY fullscreen target */}
       <div 
         ref={videoContainerRef}
         id="video-container" 
-        className={cn(
-          "absolute inset-0 flex items-center justify-center bg-black",
-          // Fullscreen-specific styles to ensure video remains visible
-          isFullscreen && "w-screen h-screen"
-        )}
-        style={{
-          // Explicit styles to prevent hiding in fullscreen
-          display: 'flex',
-          visibility: 'visible',
-          position: isFullscreen ? 'fixed' : 'absolute',
-          zIndex: isFullscreen ? 9999 : 10,
-        }}
+        className="video-fullscreen-container absolute inset-0 flex items-center justify-center bg-black"
       >
         <video
           ref={videoRef}
