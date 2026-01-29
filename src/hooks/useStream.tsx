@@ -517,6 +517,9 @@ export const useStream = (navigation = null) => {
         } else {
           // Viewer: start polling and timeout
           setConnectionPhase('awaiting_producers');
+          // Request producers immediately (don't wait for first poll interval)
+          requestProducers();
+          // Then start polling for subsequent attempts
           startProducerPolling();
           startConnectionTimeout();
         }
