@@ -1,6 +1,7 @@
 import React from 'react';
-import { Heart, Gift, MessageSquare, LogOut, Mic, MicOff, Video, VideoOff, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Heart, Gift, MessageSquare, LogOut, Mic, MicOff, Video, VideoOff, Loader2, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface FloatingActionButtonsProps {
@@ -13,9 +14,11 @@ interface FloatingActionButtonsProps {
   onMic?: () => void;
   onCamera?: () => void;
   onMute?: () => void;
+  onFullscreen?: () => void;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
   isMuted?: boolean;
+  isFullscreen?: boolean;
   isMicRequesting?: boolean;
   isCameraRequesting?: boolean;
   unreadMessages?: number;
@@ -32,15 +35,18 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
   onMic,
   onCamera,
   onMute,
+  onFullscreen,
   micEnabled = false,
   cameraEnabled = false,
   isMuted = true,
+  isFullscreen = false,
   isMicRequesting = false,
   isCameraRequesting = false,
   unreadMessages = 0,
   className
 }) => {
   return (
+    <TooltipProvider>
     <div className={cn(
       "fixed bottom-4 left-1/2 -translate-x-1/2 flex flex-row items-center gap-3 z-40 md:hidden",
       "bg-black/60 backdrop-blur-md rounded-full px-4 py-2",
@@ -172,6 +178,30 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           <LogOut className="h-5 w-5 text-white" />
         </Button>
       )}
+
+      {/* Fullscreen Button */}
+      {onFullscreen && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onFullscreen}
+              className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-5 w-5 text-white" />
+              ) : (
+                <Maximize2 className="h-5 w-5 text-white" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </div>
+    </TooltipProvider>
   );
 };
