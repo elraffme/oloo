@@ -65,7 +65,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     initialize,
     cleanup,
     checkChannelHealth,
-    viewerStreams
+    viewerStreams,
+    isProducingReady,
+    onProductionReady,
+    connectionPhase
   } = useStream();
 
   // Determine active tab from URL - default to discover
@@ -1254,24 +1257,34 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // Initialize SFU stream
       console.log('🔧 Initializing SFU stream...');
       await initialize('streamer', {}, data.id, streamRef.current);
-      console.log('✅ SFU stream initialized');
-      setChannelStatus('connected');
+      console.log('✅ SFU stream initialized, waiting for production confirmation...');
+      setChannelStatus('connecting');
 
-      // Update stream to live immediately with activity timestamp
-      const {
-        error: updateError
-      } = await supabase.from('streaming_sessions').update({
-        status: 'live',
-        started_at: new Date().toISOString(),
-        last_activity_at: new Date().toISOString()
-      }).eq('id', data.id);
-      if (updateError) {
-        console.error('Error updating stream to live:', updateError);
-      } else {
-        console.log('✅ Stream is now live and ready for viewers');
-        setStreamLifecycle('live');
-        setIsBroadcastReady(true);
-      }
+      // Register callback for when production is ready
+      onProductionReady(() => {
+        console.log('🎉 Production ready callback triggered - updating DB to live');
+        
+        // Update stream to live NOW that SFU has confirmed production
+        supabase.from('streaming_sessions').update({
+          status: 'live',
+          started_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString()
+        }).eq('id', data.id).then(({ error: updateError }) => {
+          if (updateError) {
+            console.error('Error updating stream to live:', updateError);
+          } else {
+            console.log('✅ Stream is now live and ready for viewers');
+            setStreamLifecycle('live');
+            setIsBroadcastReady(true);
+            setChannelStatus('connected');
+            
+            toast({
+              title: "🎥 You're Live!",
+              description: "Viewers can now join your stream"
+            });
+          }
+        });
+      });
 
       // Fetch ICE servers to check TURN availability
       try {
@@ -1284,7 +1297,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       } catch (err) {
         console.error('Failed to fetch ICE servers:', err);
       }
-      console.log('✅ Broadcast setup initiated');
+      console.log('✅ Broadcast setup initiated, waiting for SFU confirmation...');
       setIsLoading(false);
       toast({
         title: "🎥 Stream Starting...",
