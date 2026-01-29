@@ -113,6 +113,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [myActiveStream, setMyActiveStream] = useState<StreamData | null>(null);
   const [isHostFullscreen, setIsHostFullscreen] = useState(false);
   const [cameraFacingMode, setCameraFacingMode] = useState<'user' | 'environment'>('user');
+  const hostVideoContainerRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string>('none');
 
   // Filter presets for TikTok-style effects
@@ -1426,6 +1427,77 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
+
+  // Host fullscreen toggle with hybrid approach (Native API + CSS fallback)
+  const toggleHostFullscreen = async () => {
+    const targetEl = hostVideoContainerRef.current;
+    if (!targetEl) {
+      console.warn('No host video container ref for fullscreen');
+      return;
+    }
+
+    if (isHostFullscreen) {
+      // Exit fullscreen
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitFullscreenElement) {
+          await (document as any).webkitExitFullscreen();
+        }
+      } catch (error) {
+        console.log('Exit fullscreen error (using CSS fallback):', error);
+      }
+      setIsHostFullscreen(false);
+    } else {
+      // Enter fullscreen - try native first, fallback to CSS
+      try {
+        if (targetEl.requestFullscreen) {
+          await targetEl.requestFullscreen();
+        } else if ((targetEl as any).webkitRequestFullscreen) {
+          await (targetEl as any).webkitRequestFullscreen();
+        } else if ((targetEl as any).mozRequestFullScreen) {
+          await (targetEl as any).mozRequestFullScreen();
+        } else if ((targetEl as any).msRequestFullscreen) {
+          await (targetEl as any).msRequestFullscreen();
+        }
+      } catch (error) {
+        console.log('Native fullscreen not available, using CSS fallback:', error);
+      }
+      // Always set state to true for CSS fallback (iOS Safari doesn't support fullscreen on divs)
+      setIsHostFullscreen(true);
+    }
+  };
+
+  // Listen for fullscreen changes (including vendor-prefixed)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isNativeFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      // Only sync if native fullscreen was exited via hardware key (Escape)
+      if (!isNativeFullscreen && isHostFullscreen) {
+        // Check if this was a native exit (not CSS-only mode)
+        if (document.fullscreenElement === null && hostVideoContainerRef.current) {
+          setIsHostFullscreen(false);
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, [isHostFullscreen]);
   const joinStream = (stream: StreamData, useTikTokMode: boolean = isTikTokMode) => {
     setViewingStreamId(stream.id);
     setViewingStreamData(stream);
@@ -1787,12 +1859,40 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col items-center space-y-4">
-                    {/* Compact Camera Preview */}
-                    <div className={`relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}>
+                    {/* Compact Camera Preview - with hybrid fullscreen support */}
+                    <div 
+                      ref={hostVideoContainerRef}
+                      className={`video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}
+                      style={isHostFullscreen ? {
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        zIndex: 9999,
+                        borderRadius: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#000',
+                      } : undefined}
+                      data-fullscreen={isHostFullscreen ? 'true' : 'false'}
+                    >
                       {/* Video element always in DOM - hidden when camera off */}
-                      <video ref={videoRef} autoPlay muted playsInline className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`} style={{
-                      filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined
-                    }} />
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        muted 
+                        playsInline 
+                        className={`${isHostFullscreen ? 'w-full h-full' : 'absolute inset-0 w-full h-full'} object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`} 
+                        style={{
+                          filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined,
+                          display: isCameraOn ? 'block' : 'none',
+                          visibility: 'visible',
+                        }} 
+                      />
                       {/* Stream active indicator */}
                       {isCameraOn && isStreaming && <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
                           Stream Active
@@ -1802,19 +1902,38 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           <VideoOff className="w-12 h-12 text-muted-foreground" />
                         </div>}
                       
-                      {/* Fullscreen Toggle Button - Mobile Only */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" onClick={() => setIsHostFullscreen(!isHostFullscreen)}>
-                              {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{isHostFullscreen ? 'Exit Fullscreen Preview' : 'Fullscreen Preview'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {/* Mobile Exit Fullscreen Button - Always visible in fullscreen */}
+                      {isHostFullscreen && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-4 right-4 z-[10000] bg-black/60 hover:bg-black/80 text-white h-12 w-12 rounded-full"
+                          onClick={toggleHostFullscreen}
+                        >
+                          <Minimize2 className="w-6 h-6" />
+                        </Button>
+                      )}
+                      
+                      {/* Fullscreen Toggle Button - Mobile Only (when NOT fullscreen) */}
+                      {!isHostFullscreen && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" 
+                                onClick={toggleHostFullscreen}
+                              >
+                                <Maximize2 className="w-5 h-5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Fullscreen Preview</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                       
                       {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
                           <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
