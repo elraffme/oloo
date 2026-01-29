@@ -1,235 +1,168 @@
 
 
-# Plan: Fix Livestream Host Video Not Connecting Issue
-
-## Status: ✅ COMPLETED (Round 2)
-
-## Changes Made
-1. **Fixed stale socket references** - Changed all socket operations to use `socketRef.current` instead of `socket` state variable to prevent closure issues
-2. **Added immediate producer request** - Viewers now request producers immediately after joining room
-3. **Added comprehensive logging** - Full trace of host production flow and viewer consumption flow
-4. **Added error handling for socket events** - Handle disconnect and connection errors
-5. **Fixed producer transport callbacks** - Use stable refs for all SFU communication
+# Plan: Fix Host Video Not Connecting Issue
 
 ## Problem Analysis
 
-Based on the console logs and code analysis, here's what's happening:
+The console logs show viewers repeatedly receiving "0 producers" from the SFU server, despite streams being marked as "live" in the database. This indicates the **host's video/audio tracks are not being successfully published to the SFU server**.
 
-1. **Viewer connects successfully** to the SFU server at `api.oloo.media`
-2. **Socket connection established** - "connected socket" logged
-3. **Device loads correctly** - "emit recvd" logged
-4. **Room join succeeds** - joins room with the stream ID
-5. **Producer polling returns empty** - "📡 Received currentProducers: 0 producer(s)" repeatedly
-6. **Timeout triggers** - After 10 seconds with no producers, shows timeout UI
-
-The streams exist in the database (e.g., "Live tracking" and "Growth" with active viewers), but the SFU server is not returning any producers for the room. This indicates a **state desync between the database and the SFU server**.
-
-## Root Causes Identified
-
-### Cause 1: Stale Database State
-The `streaming_sessions` table shows streams as "live" even when the host has disconnected from the SFU. The database cleanup isn't happening when:
-- Host closes browser without ending stream
-- Host loses internet connection
-- SFU server restarts
-
-### Cause 2: Missing First Producer Request
-Currently, the viewer starts polling **after** joining the room, but the first poll happens 3 seconds later. There's no immediate request for producers when joining.
-
-Looking at the code flow:
+### Current Flow Breakdown:
 ```text
-socket.emit("addUserCall", ...) // Join room
-setConnectionPhase('awaiting_producers')
-startProducerPolling() // Starts interval that fires after 3s
-startConnectionTimeout() // 10s timeout
+Host starts stream → Database marked "live" → SFU connection attempted
+                                                    ↓
+                                           (PROBLEM AREA)
+                                                    ↓
+Viewer joins → Requests producers → SFU returns 0 → Timeout
 ```
 
-The first `getCurrentProducers` request happens at 3 seconds, not immediately after joining.
+### Root Causes Identified:
 
-### Cause 3: No Heartbeat Validation
-Viewers try to join streams that may have been abandoned, with no way to verify the host is actually connected to the SFU before attempting to join.
+1. **Race condition in socket state**: The socket effect uses `socket` from state but the `socket` variable in the closure can become stale when React re-renders
+2. **Missing production confirmation**: The stream is marked "live" in the database before confirming the host successfully produced tracks to the SFU
+3. **Inconsistent socket references**: Some handlers use `socket` (state) while others use `socketRef.current` - mixing these can cause event handlers to miss events
+4. **No production readiness signaling**: Viewers start polling immediately, but there's no way to know if the host has finished producing
 
 ## Solution Architecture
 
 ```text
-+------------------+     +--------------------+     +----------------------+
-|  Socket Connect  | --> | Load Device & Join | --> | IMMEDIATE Producer   |
-+------------------+     +--------------------+     | Request (not wait 3s)|
-                                                    +----------------------+
-                                                            |
-                         +----------------------------------+
-                         v
-          +----------------------------------+
-          | If 0 producers:                  |
-          | Start polling + show message     |
-          | "Host may be reconnecting..."    |
-          +----------------------------------+
-                         |
-     +-------------------+-------------------+
-     v                                       v
-+-------------------+           +------------------------+
-| Producers Found   |           | Still 0 after timeout  |
-| Consume Stream    |           | Query DB for host      |
-+-------------------+           | last_activity_at       |
-                                +------------------------+
-                                            |
-                    +-----------------------+
-                    v
-         +------------------------+
-         | If host inactive >2min |
-         | Show "Stream may have  |
-         | ended" message         |
-         +------------------------+
++------------------+     +----------------------+     +-------------------+
+|  Host: Camera    | --> | Host: Connect to SFU | --> | Host: Produce     |
+|  Ready           |     | + Join Room          |     | Audio/Video       |
++------------------+     +----------------------+     +-------------------+
+                                                              ↓
+                                                    +-------------------+
+                                                    | Host: Confirm     |
+                                                    | Production Ready  |
+                                                    | (update DB flag)  |
+                                                    +-------------------+
+                                                              ↓
++------------------+     +----------------------+     +-------------------+
+|  Viewer: Connect | --> | Viewer: Request      | --> | Viewer: Consume   |
+|  to SFU          |     | Producers            |     | Host Stream       |
++------------------+     +----------------------+     +-------------------+
 ```
 
 ## Implementation Steps
 
-### Step 1: Add Immediate Producer Request After Joining
+### Step 1: Fix Socket Reference Consistency
 
 **File: `src/hooks/useStream.tsx`**
 
-Currently, the first producer poll happens after 3 seconds. We need to request producers immediately after joining the room.
+The main socket effect uses `socket` from React state, but this creates stale closures. All socket operations should consistently use `socketRef.current`:
 
-Changes:
-- After emitting `addUserCall`, immediately emit `getCurrentProducers`
-- Then start the polling interval for subsequent retries
+- Change `socket.on("connect", ...)` to use `socketRef.current` for all emit calls inside
+- Change `socket.emit("getRTPCapabilites", ...)` callback to use refs
+- Ensure `handleProducerTransport`, `consume`, and `startConsumeProducer` all use `socketRef.current`
 
-This ensures the viewer gets the first response within ~100ms instead of waiting 3 seconds.
-
-### Step 2: Add Stream Validation Before Joining
-
-**File: `src/components/StreamViewer.tsx`** and **`TikTokStreamViewer.tsx`**
-
-Before connecting to the SFU, check if the stream's `last_activity_at` is recent (within 2 minutes). If the host hasn't had activity in 2+ minutes, show a warning that the stream may have ended.
-
-Changes:
-- Fetch `last_activity_at` from `streaming_sessions` table
-- If stale, show "This stream may have ended. Try anyway?" with options
-- If user proceeds, attempt connection with appropriate expectations
-
-### Step 3: Improve Timeout UI with Actionable Information
-
-**Files: `src/components/StreamViewer.tsx`, `TikTokStreamViewer.tsx`**
-
-When timeout occurs, provide more helpful information:
-- Check the database to see if the stream is still marked as "live"
-- If stream shows live but no SFU producers, explain "Host may have disconnected. Stream will auto-connect if host returns."
-- Add "Go Back to Discover" button prominently
-
-### Step 4: Add Host Activity Heartbeat
-
-**File: `src/components/StreamingInterface.tsx`** (Host side)
-
-The host should send periodic heartbeats to update `last_activity_at` in the database:
-- Every 30 seconds while streaming, update `last_activity_at`
-- This allows viewers to detect stale streams
-
-### Step 5: Improve Producer Polling Start Logic
+### Step 2: Add Production Success Confirmation
 
 **File: `src/hooks/useStream.tsx`**
 
-Fix the polling to start immediately, not wait for the first interval:
+Add explicit confirmation when host production succeeds:
+- After both audio and video tracks are produced, emit a "productionReady" event or update a state
+- Add `isProducing` state to track production status
+- Only transition to 'streaming' phase after all tracks are confirmed produced
 
-Current:
-```typescript
-// Polling starts but first request is after 3 seconds
-producerPollInterval.current = setInterval(() => {
-  // First execution after 3000ms
-  requestProducers();
-}, PRODUCER_POLL_INTERVAL_MS);
-```
+### Step 3: Add Host Production Logging
 
-Should be:
-```typescript
-// Request immediately, then start interval
-requestProducers(); // Immediate first request
-producerPollInterval.current = setInterval(() => {
-  requestProducers();
-}, PRODUCER_POLL_INTERVAL_MS);
-```
+**File: `src/hooks/useStream.tsx`**
 
-### Step 6: Add Stream Status Verification on Timeout
+Add comprehensive logging to trace the host production flow:
+- Log when `transportCreated` event is received
+- Log the `producerId` returned from each produce call
+- Log any errors in the production process
 
-**File: `src/hooks/useStream.tsx`** or viewer components
+### Step 4: Improve Viewer Producer Discovery
 
-When timeout occurs:
-1. Query the database to check if stream is still "live"
-2. Check `last_activity_at` timestamp
-3. Display appropriate message based on findings:
-   - "Host appears offline" if `last_activity_at` > 2 minutes old
-   - "Host is live but connection failed - try again" if recent activity
-   - "Stream has ended" if status changed to "ended"
+**File: `src/hooks/useStream.tsx`**
+
+Enhance the producer polling mechanism:
+- Request producers immediately after socket connects (not just after joining room)
+- Listen for both `currentProducers` and `newProducer` events simultaneously
+- Add more aggressive retry logic when producers are initially empty
+
+### Step 5: Add Socket Connection Validation
+
+**File: `src/hooks/useStream.tsx`**
+
+Before emitting events, validate socket is truly connected:
+- Check `socket.connected` before each emit
+- Add error handling for failed emits
+- Implement reconnection logic if socket disconnects mid-stream
+
+### Step 6: Verify Database-SFU Synchronization
+
+**File: `src/components/StreamingInterface.tsx`**
+
+Only mark stream as "live" after confirming SFU production:
+- Wait for `connectionPhase` to reach 'streaming' before updating DB status
+- Add a production success callback from useStream hook
+- If production fails, keep stream in 'waiting' status and show error
 
 ---
 
 ## Technical Details
 
-### Immediate Producer Request
+### Fix 1: Consistent Socket References
 
-In `useStream.tsx`, after joining room:
-
+Current problematic pattern:
 ```typescript
-socket.emit("addUserCall", {
-  room: roomId.current,
-  peerId: peerId.current,
-  username: "User",
-  type: roleRef.current,
-});
+useEffect(() => {
+  if (!socket) return;
+  socket.on("connect", () => {
+    // socket here can be stale!
+    socket.emit("getRTPCapabilites", ...);
+  });
+}, [socket]);
+```
 
-if (roleRef.current === "streamer") {
-  socket.emit("createTransport", peerId.current);
-} else {
-  setConnectionPhase('awaiting_producers');
-  // NEW: Request producers immediately
-  socket.emit('getCurrentProducers', { room: roomId.current });
-  // Then start polling for subsequent attempts
-  startProducerPolling();
-  startConnectionTimeout();
+Fixed pattern:
+```typescript
+useEffect(() => {
+  const currentSocket = socketRef.current;
+  if (!currentSocket) return;
+  
+  currentSocket.on("connect", () => {
+    // Always use the ref for operations
+    socketRef.current?.emit("getRTPCapabilites", ...);
+  });
+}, [socket]);
+```
+
+### Fix 2: Production Confirmation
+
+Add to handleProducerTransport:
+```typescript
+let producedCount = 0;
+const expectedTracks = (audioTrack ? 1 : 0) + (videoTrack ? 1 : 0);
+
+// After producing each track:
+producedCount++;
+if (producedCount === expectedTracks) {
+  console.log('🎉 All tracks produced successfully');
+  setConnectionPhase('streaming');
+  // Notify that production is complete
+  onProductionReady?.();
 }
 ```
 
-### Stream Freshness Check
+### Fix 3: Enhanced Logging
 
-Before connecting, check stream freshness:
-
+Add these logs to trace production:
 ```typescript
-const checkStreamFreshness = async (streamId: string): Promise<{ isFresh: boolean; lastActivity: Date | null }> => {
-  const { data } = await supabase
-    .from('streaming_sessions')
-    .select('last_activity_at, status')
-    .eq('id', streamId)
-    .single();
-  
-  if (!data || data.status !== 'live') {
-    return { isFresh: false, lastActivity: null };
+socket.on("transportCreated", (data) => {
+  console.log('🚚 Transport created:', data);
+  handleProducerTransport(data);
+});
+
+// In produce callback:
+socketRef.current?.emit("produce", {...}, ({ producerId }) => {
+  console.log(`✅ ${kind} producer ID: ${producerId}`);
+  // Verify producerId is valid
+  if (!producerId) {
+    console.error('❌ Invalid producerId returned!');
   }
-  
-  const lastActivity = new Date(data.last_activity_at);
-  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-  
-  return {
-    isFresh: lastActivity > twoMinutesAgo,
-    lastActivity
-  };
-};
-```
-
-### Host Heartbeat
-
-In the streaming interface, while streaming:
-
-```typescript
-useEffect(() => {
-  if (!isStreaming || !activeStreamId) return;
-  
-  const heartbeatInterval = setInterval(async () => {
-    await supabase
-      .from('streaming_sessions')
-      .update({ last_activity_at: new Date().toISOString() })
-      .eq('id', activeStreamId);
-  }, 30000); // Every 30 seconds
-  
-  return () => clearInterval(heartbeatInterval);
-}, [isStreaming, activeStreamId]);
+});
 ```
 
 ---
@@ -238,20 +171,17 @@ useEffect(() => {
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useStream.tsx` | Add immediate producer request after joining room |
-| `src/components/StreamViewer.tsx` | Add stream freshness check, improve timeout UI |
-| `src/components/TikTokStreamViewer.tsx` | Same changes as StreamViewer |
-| `src/components/StreamingInterface.tsx` | Add host heartbeat to update last_activity_at |
+| `src/hooks/useStream.tsx` | Fix socket refs, add production confirmation, enhance logging |
+| `src/components/StreamingInterface.tsx` | Sync DB status with actual SFU production state |
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-1. Test viewer joining active stream - should connect faster (immediate producer request)
-2. Test viewer joining stale stream (host disconnected) - should show appropriate warning
-3. Test retry button after timeout - should re-check for producers
-4. Test host heartbeat - verify `last_activity_at` updates every 30 seconds
-5. Test timeout message - should show helpful context about stream status
-6. Test "Go Back" flow - should cleanly return to discover page
+1. **Host production flow**: Start a stream and verify console shows "Video track produced successfully" and "Audio track produced successfully"
+2. **Viewer connection**: Join the stream and verify console shows producers being received
+3. **Production timing**: Verify stream status only shows "live" after production is confirmed
+4. **Error handling**: Test what happens if camera access fails mid-stream
+5. **Reconnection**: Test behavior when host loses connection and reconnects
 
