@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff } from 'lucide-react';
+import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { GiftSelector } from '@/components/GiftSelector';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
@@ -71,6 +72,10 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   
   // Host stream state
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
+  
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Debug logging for stream states
   useEffect(() => {
@@ -649,16 +654,43 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   }, [connectionState]);
 
+  // Fullscreen toggle using browser Fullscreen API
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current) {
+          await containerRef.current.requestFullscreen();
+          setIsFullscreen(true);
+        }
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      toast.error('Fullscreen not available');
+    }
+  };
+
+  // Listen for fullscreen changes (e.g., user presses Escape)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   const showConnectionControls = ['awaiting_offer', 'awaiting_ice', 'failed', 'timeout'].includes(connectionState);
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <TooltipProvider>
+    <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col">
       {/* Header */}
       <div className="bg-black/80 p-3 md:p-4 flex items-center justify-between text-white">
         <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
           <div className="min-w-0 flex-1">
             <h2 className="text-sm md:text-lg font-semibold truncate">{streamTitle}</h2>
-            <p className="text-xs md:text-sm text-gray-300 truncate">{hostName}</p>
+            <p className="text-xs md:text-sm text-muted-foreground truncate">{hostName}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
@@ -796,6 +828,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         cameraEnabled={viewerCameraEnabled}
         isMicRequesting={isMicRequesting}
         isCameraRequesting={isCameraRequesting}
+        onFullscreen={toggleFullscreen}
+        isFullscreen={isFullscreen}
       />
 
       {/* Mobile Chat Sheet */}
@@ -819,14 +853,39 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
       {/* Bottom Controls - Desktop Only (mobile uses FloatingActionButtons) */}
       <div className="bg-black/80 p-3 md:p-4 hidden md:flex items-center justify-between gap-2">
-        <Button
-          variant={isMuted ? "destructive" : "ghost"}
-          size="icon"
-          onClick={toggleMute}
-          className="h-10 w-10"
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isMuted ? "destructive" : "ghost"}
+                size="icon"
+                onClick={toggleMute}
+                className="h-10 w-10"
+              >
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isMuted ? 'Unmute' : 'Mute'}</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="h-10 w-10"
+              >
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         
         <div className="flex items-center gap-2">
           <Button
@@ -859,6 +918,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         />
       )}
     </div>
+    </TooltipProvider>
   );
 };
 

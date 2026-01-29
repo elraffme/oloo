@@ -28,6 +28,7 @@ import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -1802,9 +1803,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </div>}
                       
                       {/* Fullscreen Toggle Button - Mobile Only */}
-                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" onClick={() => setIsHostFullscreen(!isHostFullscreen)}>
-                        {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" onClick={() => setIsHostFullscreen(!isHostFullscreen)}>
+                              {isHostFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{isHostFullscreen ? 'Exit Fullscreen Preview' : 'Fullscreen Preview'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                       
                       {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
                           <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />

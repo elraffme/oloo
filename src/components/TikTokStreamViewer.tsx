@@ -6,8 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
   Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
-  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2
+  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2, Maximize2
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { toast } from 'sonner';
@@ -91,6 +92,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   
   const [relayedViewerCameras, setRelayedViewerCameras] = useState<Map<string, any>>(new Map());
   const [hostStream, setHostStream] = useState<MediaStream | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const swipeRef = useSwipeGesture({
     onSwipeUp: () => {
@@ -522,9 +525,40 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
   };
 
+  // True fullscreen toggle using browser Fullscreen API
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current) {
+          await containerRef.current.requestFullscreen();
+          setIsFullscreen(true);
+        }
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      toast.error('Fullscreen not available');
+    }
+  };
+
+  // Listen for fullscreen changes (e.g., user presses Escape)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
   return (
+    <TooltipProvider>
     <div 
-      ref={swipeRef}
+      ref={(node) => {
+        // Merge refs: swipeRef and containerRef
+        (swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      }}
       className="fixed inset-0 bg-black z-50 overflow-hidden"
       onClick={() => setShowUI(true)}
     >
@@ -707,6 +741,30 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
             <span className="text-white text-xs font-medium">Gift</span>
           </button>
 
+          {/* Fullscreen Button - Clearly labeled */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button 
+                onClick={toggleFullscreen}
+                className="flex flex-col items-center gap-1"
+              >
+                <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                  {isFullscreen ? (
+                    <Minimize2 className="w-7 h-7 text-white" />
+                  ) : (
+                    <Maximize2 className="w-7 h-7 text-white" />
+                  )}
+                </div>
+                <span className="text-white text-xs font-medium">
+                  {isFullscreen ? 'Exit' : 'Fullscreen'}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>{isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}</p>
+            </TooltipContent>
+          </Tooltip>
+
           <button 
             onClick={handleShare}
             className="flex flex-col items-center gap-1"
@@ -725,6 +783,18 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-sm">
+              <DropdownMenuItem onClick={toggleFullscreen}>
+                {isFullscreen ? (
+                  <><Minimize2 className="w-4 h-4 mr-2" /> Exit Fullscreen</>
+                ) : (
+                  <><Maximize2 className="w-4 h-4 mr-2" /> Fullscreen</>
+                )}
+              </DropdownMenuItem>
+              {document.pictureInPictureEnabled && (
+                <DropdownMenuItem onClick={handlePiP}>
+                  <Minimize2 className="w-4 h-4 mr-2" /> Picture-in-Picture
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleReport}>
                 <Flag className="w-4 h-4 mr-2" /> Report Stream
               </DropdownMenuItem>
@@ -734,11 +804,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
               <DropdownMenuItem onClick={handleNotInterested}>
                 <EyeOff className="w-4 h-4 mr-2" /> Not Interested
               </DropdownMenuItem>
-              {document.pictureInPictureEnabled && (
-                <DropdownMenuItem onClick={handlePiP}>
-                  <Minimize2 className="w-4 h-4 mr-2" /> Picture-in-Picture
-                </DropdownMenuItem>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -817,5 +882,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         }
       `}</style>
     </div>
+    </TooltipProvider>
   );
 };
