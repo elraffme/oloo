@@ -1356,7 +1356,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     setStreamLifecycle('ending');
     setIsLoading(true);
     try {
-      // Cleanup SFU
+      // Cleanup SFU first
       cleanup();
       setChannelStatus('disconnected');
 
@@ -1375,10 +1375,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         videoRef.current.pause();
       }
 
-      // Reset states
-      setIsCameraOn(false);
-      setIsMicOn(false);
-
       // Update database - Archive immediately
       const {
         error
@@ -1390,21 +1386,41 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (error) {
         console.error('Error archiving stream:', error);
       }
+
+      // CRITICAL: Reset ALL state to allow immediate restart
       setIsStreaming(false);
-      setActiveStreamId(null);
       setActiveStreamId(null);
       setTotalLikes(0);
       setTotalGifts(0);
-      setStreamLifecycle('ended');
+      setHostStream(null);
+      setIsBroadcastReady(false);
       setChannelStatus('disconnected');
+      setFloatingChatMessages([]);
+      
+      // Reset camera/mic state so user can re-request permissions
+      setIsCameraOn(false);
+      setIsMicOn(true); // Default mic to enabled for next stream
+      setHasCameraPermission(false);
+      setHasMicPermission(false);
+      
+      // CRITICAL: Reset lifecycle to 'idle' to allow new stream start
+      setStreamLifecycle('idle');
 
       // Phase 6: Enhanced visual feedback
       toast({
         title: "🎬 Stream ended and archived",
         description: `Thanks for streaming! ${activeViewers.length} viewers watched. Stream archived.`
       });
+      
+      console.log('✅ Stream ended - all state reset for restart');
     } catch (error: any) {
       console.error('Error ending stream:', error);
+      // Even on error, reset state to allow retry
+      setStreamLifecycle('idle');
+      setIsStreaming(false);
+      setActiveStreamId(null);
+      setHasCameraPermission(false);
+      setHasMicPermission(false);
       toast({
         title: "Error ending stream",
         description: "Stream has been stopped locally.",
