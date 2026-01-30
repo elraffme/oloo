@@ -325,10 +325,31 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     };
   }, [streamId, user]);
 
-  // Handle remote stream updates
+  // Handle remote stream updates with audio logging
   useEffect(() => {
     if (videoRef.current && remoteStream) {
       console.log('🎥 Setting remote stream', remoteStream.id);
+      
+      // Log audio track state for debugging
+      const audioTracks = remoteStream.getAudioTracks();
+      console.log('🔊 Remote stream audio state:', {
+        trackCount: audioTracks.length,
+        tracks: audioTracks.map(t => ({
+          label: t.label,
+          enabled: t.enabled,
+          muted: t.muted,
+          readyState: t.readyState
+        }))
+      });
+      
+      // Ensure audio tracks are enabled
+      audioTracks.forEach(track => {
+        if (!track.enabled) {
+          console.log('⚠️ Remote audio track was disabled, enabling...');
+          track.enabled = true;
+        }
+      });
+      
       videoRef.current.srcObject = remoteStream;
       videoRef.current.play().catch(e => console.error('Error playing remote stream:', e));
       setHasVideo(true);

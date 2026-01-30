@@ -1055,11 +1055,24 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const toggleMicrophone = () => {
     if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMicOn(audioTrack.enabled);
+      const audioTracks = streamRef.current.getAudioTracks();
+      if (audioTracks.length === 0) {
+        console.warn('⚠️ No audio tracks available to toggle');
+        return;
       }
+      
+      const audioTrack = audioTracks[0];
+      const newEnabled = !audioTrack.enabled;
+      audioTrack.enabled = newEnabled;
+      setIsMicOn(newEnabled);
+      
+      console.log(`🎤 Host microphone ${newEnabled ? 'enabled' : 'disabled'}:`, {
+        label: audioTrack.label,
+        enabled: audioTrack.enabled,
+        readyState: audioTrack.readyState
+      });
+    } else {
+      console.warn('⚠️ No stream available to toggle microphone');
     }
   };
 

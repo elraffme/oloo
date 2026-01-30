@@ -13,6 +13,10 @@ interface DiagnosticsData {
   audioEnabled: boolean;
   hasTURN: boolean;
   broadcastReady: boolean;
+  // Audio-specific fields
+  audioTrackState?: string;
+  audioTrackLabel?: string;
+  audioTrackMuted?: boolean;
 }
 
 interface StreamDiagnosticsProps {
@@ -83,6 +87,27 @@ export const StreamDiagnostics: React.FC<StreamDiagnosticsProps> = ({ data }) =>
               data.broadcastReady ? "text-green-500" : "text-yellow-500"
             )}>{data.broadcastReady ? '✅ Ready' : '⏳ Preparing'}</span>
           </div>
+          {data.audioTrackState && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Audio State:</span>
+              <span className={cn(
+                "font-semibold",
+                data.audioTrackState === 'live' ? "text-green-500" : "text-yellow-500"
+              )}>{data.audioTrackState}</span>
+            </div>
+          )}
+          {data.audioTrackLabel && (
+            <div className="flex justify-between col-span-2">
+              <span className="text-muted-foreground">Audio Device:</span>
+              <span className="font-mono text-xs truncate max-w-32">{data.audioTrackLabel}</span>
+            </div>
+          )}
+          {data.audioTrackMuted !== undefined && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Audio Muted:</span>
+              <span>{data.audioTrackMuted ? '🔇' : '🔊'}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
