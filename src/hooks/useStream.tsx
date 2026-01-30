@@ -197,6 +197,11 @@ export const useStream = (navigation = null) => {
     roomId.current = "";
     connectionStartTime.current = null;
     
+    // CRITICAL: Reset production tracking refs for restart
+    producedTracksCount.current = 0;
+    expectedTracksCount.current = 0;
+    onProductionReadyCallback.current = null;
+    
     // Reset state - critical for rejoin
     setSocket(null);
     setLocalStream(null);
@@ -208,6 +213,8 @@ export const useStream = (navigation = null) => {
     setConnectionPhase('idle');
     setConnectionError(null);
     setElapsedTime(0);
+    setIsProducingReady(false);
+    setIsMuted(false);
     
     // Generate new peerId for fresh connection
     peerId.current = crypto.randomUUID();
