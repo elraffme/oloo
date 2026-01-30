@@ -202,8 +202,29 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, [streamId, user]);
 
+  // Handle remote stream updates with audio logging
   useEffect(() => {
      if (remoteStream) {
+        // Log audio track state for debugging
+        const audioTracks = remoteStream.getAudioTracks();
+        console.log('🔊 Remote stream audio state:', {
+          trackCount: audioTracks.length,
+          tracks: audioTracks.map(t => ({
+            label: t.label,
+            enabled: t.enabled,
+            muted: t.muted,
+            readyState: t.readyState
+          }))
+        });
+        
+        // Ensure audio tracks are enabled
+        audioTracks.forEach(track => {
+          if (!track.enabled) {
+            console.log('⚠️ Remote audio track was disabled, enabling...');
+            track.enabled = true;
+          }
+        });
+        
         setHostStream(remoteStream);
         if (videoRef.current) {
            videoRef.current.srcObject = remoteStream;
@@ -305,9 +326,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, [streamId]);
 
+  // Stream status subscription - notify viewer when host ends stream
   useEffect(() => {
     const channel = supabase
-      .channel(`tiktok_likes:${streamId}`)
+      .channel(`tiktok_stream_status:${streamId}`)
       .on(
         'postgres_changes',
         {
@@ -323,6 +345,27 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           if (payload.new && 'current_viewers' in payload.new) {
             setViewers(payload.new.current_viewers || 0);
           }
+          
+          // Monitor stream status - if host ends stream, close viewer automatically
+          if (payload.new && 'status' in payload.new) {
+            const newStatus = (payload.new as any).status;
+            if (newStatus === 'ended' || newStatus === 'archived') {
+              console.log('🔴 Stream has ended by host, cleaning up viewer...');
+              
+              // Cleanup SFU connection
+              cleanup();
+              
+              // Stop video element
+              if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.srcObject = null;
+              }
+              
+              // Show notification and close
+              toast.error('Stream has ended');
+              setTimeout(() => onClose(), 500);
+            }
+          }
         }
       )
       .subscribe();
@@ -330,7 +373,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [streamId]);
+  }, [streamId, cleanup, onClose]);
 
   const handleLike = async () => {
     if (!user) {

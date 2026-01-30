@@ -326,12 +326,29 @@ export const useStream = (navigation = null) => {
       });
 
       if (audioTrack) {
-        console.log('🎤 Producing audio track...');
-        await produceTransport.current.produce({ 
-          track: audioTrack, 
-          appData: { type: roleRef.current, peerId: peerId.current } 
-        });
-        console.log('✅ Audio track produce() called');
+        // Verify audio track is ready before producing
+        if (!audioTrack.enabled) {
+          console.warn('⚠️ Audio track is disabled, enabling before production...');
+          audioTrack.enabled = true;
+        }
+        
+        if (audioTrack.readyState !== 'live') {
+          console.error('❌ Audio track not live, state:', audioTrack.readyState);
+          console.warn('⚠️ Skipping audio production - track not ready');
+        } else {
+          console.log('🎤 Producing audio track...', {
+            label: audioTrack.label,
+            enabled: audioTrack.enabled,
+            readyState: audioTrack.readyState
+          });
+          await produceTransport.current.produce({ 
+            track: audioTrack, 
+            appData: { type: roleRef.current, peerId: peerId.current } 
+          });
+          console.log('✅ Audio track produce() called successfully');
+        }
+      } else {
+        console.warn('⚠️ No audio track available for production');
       }
       
       if (videoTrack) {
@@ -526,7 +543,12 @@ export const useStream = (navigation = null) => {
            setCameraFace("user");
         } else {
         const stream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                sampleRate: { ideal: 48000 },
+              },
               video: {
                 width: { ideal: 1080 },
                 height: { ideal: 1920 },
@@ -534,6 +556,25 @@ export const useStream = (navigation = null) => {
                 aspectRatio: { ideal: 9/16 }
               }
             });
+            
+            // Verify audio track is ready
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              const audioTrack = audioTracks[0];
+              console.log('🎤 Host audio track acquired:', {
+                label: audioTrack.label,
+                enabled: audioTrack.enabled,
+                readyState: audioTrack.readyState,
+                muted: audioTrack.muted
+              });
+              // Ensure audio is enabled
+              if (!audioTrack.enabled) {
+                console.log('⚠️ Audio track was disabled, enabling...');
+                audioTrack.enabled = true;
+              }
+            } else {
+              console.warn('⚠️ No audio tracks acquired for host!');
+            }
 
             setIsMuted(false);
             setCameraFace("user");
@@ -756,10 +797,25 @@ export const useStream = (navigation = null) => {
 
   function toggleMute() {
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
-        setIsMuted(!track.enabled);
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      
+      if (audioTracks.length === 0) {
+        console.warn('⚠️ No audio tracks to toggle mute');
+        return;
+      }
+      
+      audioTracks.forEach((track) => {
+        const newEnabled = !track.enabled;
+        track.enabled = newEnabled;
+        console.log(`🎤 Audio track ${newEnabled ? 'unmuted' : 'muted'}:`, {
+          label: track.label,
+          enabled: track.enabled,
+          readyState: track.readyState
+        });
+        setIsMuted(!newEnabled);
       });
+    } else {
+      console.warn('⚠️ No local stream to toggle mute');
     }
   }
 
@@ -790,9 +846,27 @@ export const useStream = (navigation = null) => {
 
   async function publishStream(type = "camera", displayName = "Viewer"): Promise<MediaStream | null> {
     try {
+      console.log(`📤 Publishing viewer stream (type: ${type})...`);
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: type === "camera",
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: { ideal: 48000 },
+        },
+        video: type === "camera" ? { facingMode: 'user' } : false,
+      });
+
+      // Ensure audio track is enabled immediately after acquisition
+      stream.getAudioTracks().forEach(track => {
+        track.enabled = true;
+        console.log('🎤 Viewer audio track acquired:', {
+          label: track.label,
+          enabled: track.enabled,
+          readyState: track.readyState,
+          muted: track.muted
+        });
       });
 
       localStreamRef.current = stream;
@@ -800,20 +874,29 @@ export const useStream = (navigation = null) => {
       setIsMuted(false);
 
       if (!produceTransport.current) {
-        if (socket) {
-          socket.emit("createTransport", peerId.current);
+        console.log('📤 No produce transport yet, requesting one...');
+        if (socketRef.current) {
+          socketRef.current.emit("createTransport", peerId.current);
         }
       } else {
         const videoTrack = stream.getVideoTracks()[0];
         const audioTrack = stream.getAudioTracks()[0];
 
         if (audioTrack) {
-          await produceTransport.current.produce({
-            track: audioTrack,
-            appData: { type: roleRef.current, peerId: peerId.current, displayName },
-          });
+          // Verify audio track is ready
+          if (audioTrack.readyState !== 'live') {
+            console.error('❌ Viewer audio track not live:', audioTrack.readyState);
+          } else {
+            console.log('🎤 Producing viewer audio track to SFU...');
+            await produceTransport.current.produce({
+              track: audioTrack,
+              appData: { type: roleRef.current, peerId: peerId.current, displayName },
+            });
+            console.log('✅ Viewer audio track produced successfully');
+          }
         }
         if (videoTrack) {
+          console.log('📹 Producing viewer video track to SFU...');
           await produceTransport.current.produce({
             track: videoTrack,
             encodings: [
@@ -825,12 +908,13 @@ export const useStream = (navigation = null) => {
             ],
             appData: { type: roleRef.current, peerId: peerId.current, displayName },
           });
+          console.log('✅ Viewer video track produced successfully');
         }
       }
       
       return stream;
     } catch (error) {
-      console.error("Error publishing stream:", error);
+      console.error("❌ Error publishing viewer stream:", error);
       return null;
     }
   }
