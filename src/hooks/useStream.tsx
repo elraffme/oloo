@@ -573,29 +573,71 @@ export const useStream = (navigation = null) => {
     }
 
     if (appData?.type === "viewer") {
-      // VIEWER TRACK: Rebuild viewer streams map
+      // VIEWER TRACK: Rebuild viewer streams map with proper audio handling
       const viewerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type === "viewer"
       );
-      const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string }>();
+      
+      // Group consumers by peerId and create new MediaStream instances
+      // CRITICAL: Create fresh MediaStream each time to ensure React detects changes
+      const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string; hasAudio: boolean; hasVideo: boolean }>();
+      
       viewerConsumers.forEach((c) => {
         const pId = c.appData?.peerId || "unknown";
         const displayName = c.appData?.displayName || "Viewer";
+        
         if (!viewerStreamsMap.has(pId)) {
-          viewerStreamsMap.set(pId, { stream: new MediaStream(), displayName });
+          viewerStreamsMap.set(pId, { 
+            stream: new MediaStream(), 
+            displayName,
+            hasAudio: false,
+            hasVideo: false
+          });
         }
-        // Ensure track is enabled before adding
+        
+        const viewerData = viewerStreamsMap.get(pId)!;
+        
+        // CRITICAL: Force-enable track and add to stream
         c.track.enabled = true;
-        viewerStreamsMap.get(pId)!.stream.addTrack(c.track);
+        
+        // Check if track already exists in stream (avoid duplicates)
+        const existingTracks = viewerData.stream.getTracks().map(t => t.id);
+        if (!existingTracks.includes(c.track.id)) {
+          viewerData.stream.addTrack(c.track);
+          
+          if (c.kind === 'audio') {
+            viewerData.hasAudio = true;
+            console.log(`🔊 VIEWER AUDIO TRACK ADDED to host's viewerStreams:`, {
+              viewerId: pId,
+              trackId: c.track.id,
+              enabled: c.track.enabled,
+              readyState: c.track.readyState
+            });
+          } else if (c.kind === 'video') {
+            viewerData.hasVideo = true;
+          }
+        }
       });
-      setViewerStreams(
-        Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
-          id: vid,
-          stream: vdata.stream,
-          displayName: vdata.displayName,
-        }))
-      );
-      console.log(`👥 Viewer streams updated: ${viewerStreamsMap.size} viewers`);
+      
+      // Log final viewer stream composition
+      viewerStreamsMap.forEach((data, viewerId) => {
+        const audioTracks = data.stream.getAudioTracks();
+        const videoTracks = data.stream.getVideoTracks();
+        console.log(`👤 Viewer ${viewerId}: audio=${audioTracks.length} (enabled=${audioTracks.map(t => t.enabled).join(',')}), video=${videoTracks.length}`);
+      });
+      
+      // Update state with new stream instances
+      const newViewerStreams = Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
+        id: vid,
+        stream: vdata.stream,
+        displayName: vdata.displayName,
+      }));
+      
+      setViewerStreams(newViewerStreams);
+      console.log(`👥 Viewer streams updated: ${viewerStreamsMap.size} viewers, triggering ViewerAudioPlayer update`);
+      
+      // Force UI update to ensure ViewerAudioPlayer re-renders
+      setStreamUpdateCounter(c => c + 1);
     } else {
       // HOST/STREAMER TRACK: Handle with special care for audio continuity
       hostPeerId.current = remPeerId;
