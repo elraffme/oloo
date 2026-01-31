@@ -34,20 +34,51 @@ const ViewerCameraThumbnail: React.FC<{
   camera
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
-    if (videoRef.current && camera.stream) {
-      videoRef.current.srcObject = camera.stream;
-      videoRef.current.play().catch(e => console.error('Error playing viewer camera:', e));
-    }
+    const videoElement = videoRef.current;
+    if (!videoElement || !camera.stream) return;
+
+    console.log(`[ViewerCameraThumbnail] Setting up video for ${camera.displayName}`, {
+      streamId: camera.stream.id,
+      videoTracks: camera.stream.getVideoTracks().length
+    });
+
+    videoElement.srcObject = camera.stream;
+    videoElement.play().catch(e => console.error('Error playing viewer camera:', e));
+
+    // Listen for new tracks
+    const handleTrackAdded = () => {
+      videoElement.srcObject = camera.stream;
+      videoElement.play().catch(e => console.error('Error replaying on track add:', e));
+    };
+
+    camera.stream.addEventListener('addtrack', handleTrackAdded);
+
     return () => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      camera.stream.removeEventListener('addtrack', handleTrackAdded);
+      if (videoElement) {
+        videoElement.srcObject = null;
       }
     };
-  }, [camera.stream]);
-  return <Card className="relative overflow-hidden bg-background/95 backdrop-blur-sm border-border/50">
-      
-    </Card>;
+  }, [camera.stream, camera.stream.id, camera.displayName]);
+
+  return (
+    <Card className="relative overflow-hidden bg-background/95 backdrop-blur-sm border-border/50 w-24 h-24 flex-shrink-0">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={true} // Muted for visual thumbnails - audio handled by ViewerAudioPlayer
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+        <span className="text-xs text-white truncate block">
+          {camera.displayName}
+        </span>
+      </div>
+    </Card>
+  );
 };
 
 // Thumbnail without video (avatar placeholder)
@@ -56,9 +87,28 @@ const ViewerPlaceholderThumbnail: React.FC<{
 }> = ({
   viewer
 }) => {
-  return <Card className="relative overflow-hidden bg-background/95 backdrop-blur-sm border-border/50">
-      
-    </Card>;
+  return (
+    <Card className="relative overflow-hidden bg-background/95 backdrop-blur-sm border-border/50 w-24 h-24 flex-shrink-0">
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={viewer.avatar_url} />
+          <AvatarFallback>
+            {viewer.viewer_display_name?.charAt(0)?.toUpperCase() || 'V'}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+        <div className="flex items-center gap-1">
+          {viewer.camera_enabled === false && (
+            <VideoOff className="h-3 w-3 text-muted-foreground" />
+          )}
+          <span className="text-xs text-white truncate">
+            {viewer.viewer_display_name}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
 };
 export const ViewerCameraThumbnails: React.FC<ViewerCameraThumbnailsProps> = ({
   viewerCameras,
@@ -98,7 +148,17 @@ export const ViewerCameraThumbnails: React.FC<ViewerCameraThumbnailsProps> = ({
       </div>
 
       <ScrollArea className="h-full max-h-[500px]">
-        
+        <div className="p-3 flex flex-wrap gap-2">
+          {/* Render viewers with active camera streams */}
+          {camerasArray.map((camera) => (
+            <ViewerCameraThumbnail key={camera.sessionToken} camera={camera} />
+          ))}
+          
+          {/* Render viewers without camera streams (placeholder) */}
+          {viewersWithoutCameras.map((viewer) => (
+            <ViewerPlaceholderThumbnail key={viewer.session_id} viewer={viewer} />
+          ))}
+        </div>
       </ScrollArea>
     </Card>;
 };
