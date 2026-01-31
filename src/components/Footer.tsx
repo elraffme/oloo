@@ -3,6 +3,7 @@ import { Instagram, Facebook, Twitter, Linkedin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Footer = () => {
   const [email, setEmail] = useState("");
@@ -31,15 +32,31 @@ const Footer = () => {
 
     setIsSubmitting(true);
     
-    // Simulate subscription (replace with actual API call)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const { error } = await supabase
+      .from('newsletter_subscriptions')
+      .insert({ email: email.toLowerCase().trim(), source: 'footer' });
+
+    if (error) {
+      if (error.code === '23505') {
+        toast({
+          title: "Already subscribed",
+          description: "This email is already on our newsletter list",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Subscribed!",
+        description: "Thank you for subscribing to our newsletter",
+      });
+      setEmail("");
+    }
     
-    toast({
-      title: "Subscribed!",
-      description: "Thank you for subscribing to our newsletter",
-    });
-    
-    setEmail("");
     setIsSubmitting(false);
   };
 
