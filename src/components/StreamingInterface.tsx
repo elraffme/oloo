@@ -1058,21 +1058,49 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const audioTracks = streamRef.current.getAudioTracks();
       if (audioTracks.length === 0) {
         console.warn('⚠️ No audio tracks available to toggle');
+        toast({
+          title: "Microphone not available",
+          description: "No audio track found. Please enable microphone permissions.",
+          variant: "destructive"
+        });
         return;
       }
       
       const audioTrack = audioTracks[0];
+      
+      // Check track state first
+      if (audioTrack.readyState !== 'live') {
+        console.warn('⚠️ Audio track not live:', audioTrack.readyState);
+        toast({
+          title: "Microphone error",
+          description: "Audio track is not active. Please restart streaming.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const newEnabled = !audioTrack.enabled;
       audioTrack.enabled = newEnabled;
       setIsMicOn(newEnabled);
       
-      console.log(`🎤 Host microphone ${newEnabled ? 'enabled' : 'disabled'}:`, {
+      console.log(`🎤 Host microphone ${newEnabled ? 'ENABLED' : 'DISABLED'}:`, {
         label: audioTrack.label,
         enabled: audioTrack.enabled,
-        readyState: audioTrack.readyState
+        readyState: audioTrack.readyState,
+        muted: audioTrack.muted
+      });
+      
+      toast({
+        title: newEnabled ? "Microphone enabled" : "Microphone muted",
+        description: newEnabled ? "Viewers can now hear you" : "Viewers cannot hear you"
       });
     } else {
       console.warn('⚠️ No stream available to toggle microphone');
+      toast({
+        title: "No active stream",
+        description: "Start streaming to use the microphone.",
+        variant: "destructive"
+      });
     }
   };
 

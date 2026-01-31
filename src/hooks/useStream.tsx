@@ -181,9 +181,19 @@ export const useStream = (navigation = null) => {
     consumers.current.forEach((consumer) => consumer?.close());
     consumers.current.clear();
     
-    // Stop local stream tracks
-    localStreamRef.current?.getTracks().forEach((track) => track?.stop());
-    localStreamRef.current = null;
+    // CRITICAL: Stop and cleanup local stream tracks properly
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        // Remove event listeners
+        track.onended = null;
+        track.onmute = null;
+        track.onunmute = null;
+        // Stop the track
+        track.stop();
+        console.log(`🛑 Stopped ${track.kind} track:`, track.label);
+      });
+      localStreamRef.current = null;
+    }
     
     // Disconnect socket
     socketRef.current?.disconnect();
@@ -322,56 +332,87 @@ export const useStream = (navigation = null) => {
       const videoTrack = stream.getVideoTracks()[0];
       const audioTrack = stream.getAudioTracks()[0];
       
-      // Calculate expected tracks count BEFORE producing
-      expectedTracksCount.current = (audioTrack ? 1 : 0) + (videoTrack ? 1 : 0);
-      producedTracksCount.current = 0;
-      
-      console.log('📹 Stream tracks available:', {
-        video: videoTrack ? { enabled: videoTrack.enabled, state: videoTrack.readyState } : null,
-        audio: audioTrack ? { enabled: audioTrack.enabled, state: audioTrack.readyState } : null,
-        expectedTracks: expectedTracksCount.current
-      });
-
+      // CRITICAL: Verify and prepare audio track before production
+      let audioTrackReady = false;
       if (audioTrack) {
-        // Verify audio track is ready before producing
+        // Force enable audio track
         if (!audioTrack.enabled) {
-          console.warn('⚠️ Audio track is disabled, enabling before production...');
+          console.warn('⚠️ Audio track was disabled, enabling before production...');
           audioTrack.enabled = true;
         }
         
-        if (audioTrack.readyState !== 'live') {
-          console.error('❌ Audio track not live, state:', audioTrack.readyState);
-          console.warn('⚠️ Skipping audio production - track not ready');
-        } else {
-          console.log('🎤 Producing audio track...', {
+        // Wait a tick for track state to stabilize (mobile fix)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check track state
+        if (audioTrack.readyState === 'live') {
+          audioTrackReady = true;
+          console.log('🎤 Audio track verified ready for production:', {
             label: audioTrack.label,
             enabled: audioTrack.enabled,
-            readyState: audioTrack.readyState
+            readyState: audioTrack.readyState,
+            muted: audioTrack.muted,
+            id: audioTrack.id
           });
-          await produceTransport.current.produce({ 
-            track: audioTrack, 
-            appData: { type: roleRef.current, peerId: peerId.current } 
-          });
-          console.log('✅ Audio track produce() called successfully');
+        } else {
+          console.error('❌ Audio track not live after wait, state:', audioTrack.readyState);
         }
       } else {
-        console.warn('⚠️ No audio track available for production');
+        console.warn('⚠️ No audio track in stream - host will be muted');
       }
       
+      // Calculate expected tracks count BEFORE producing
+      expectedTracksCount.current = (audioTrackReady ? 1 : 0) + (videoTrack ? 1 : 0);
+      producedTracksCount.current = 0;
+      
+      console.log('📹 Stream tracks for production:', {
+        video: videoTrack ? { enabled: videoTrack.enabled, state: videoTrack.readyState } : null,
+        audio: audioTrackReady ? { enabled: audioTrack!.enabled, state: audioTrack!.readyState } : null,
+        expectedTracks: expectedTracksCount.current
+      });
+
+      // PRODUCE AUDIO FIRST (priority for communication)
+      if (audioTrackReady && audioTrack) {
+        try {
+          console.log('🎤 Producing audio track to SFU...');
+          await produceTransport.current.produce({ 
+            track: audioTrack, 
+            appData: { 
+              type: roleRef.current, 
+              peerId: peerId.current,
+              mediaType: 'audio'
+            } 
+          });
+          console.log('✅ Audio track production initiated');
+        } catch (audioError) {
+          console.error('❌ Failed to produce audio track:', audioError);
+          // Continue with video even if audio fails
+        }
+      }
+      
+      // PRODUCE VIDEO
       if (videoTrack) {
-        console.log('📹 Producing video track...');
-        await produceTransport.current.produce({ 
-          track: videoTrack,
-          encodings: [
-            {
-              ssrc: 111110,
-              scalabilityMode: "L3T3_KEY",
-              maxBitrate: 1000000,
-            },
-          ],
-          appData: { type: roleRef.current, peerId: peerId.current }
-        });
-        console.log('✅ Video track produce() called');
+        try {
+          console.log('📹 Producing video track to SFU...');
+          await produceTransport.current.produce({ 
+            track: videoTrack,
+            encodings: [
+              {
+                ssrc: 111110,
+                scalabilityMode: "L3T3_KEY",
+                maxBitrate: 1000000,
+              },
+            ],
+            appData: { 
+              type: roleRef.current, 
+              peerId: peerId.current,
+              mediaType: 'video'
+            }
+          });
+          console.log('✅ Video track production initiated');
+        } catch (videoError) {
+          console.error('❌ Failed to produce video track:', videoError);
+        }
       }
       
       console.log(`📤 Host initiated production of ${expectedTracksCount.current} track(s) to room: ${roomId.current}`);
@@ -473,7 +514,34 @@ export const useStream = (navigation = null) => {
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
 
-    console.log("new consumer", consumer.kind, "from", appData?.type);
+    // CRITICAL: Log and ensure audio tracks are properly configured
+    console.log(`📥 New consumer created: ${consumer.kind} from ${appData?.type}`, {
+      consumerId: consumer.id,
+      producerId,
+      trackId: consumer.track.id,
+      trackEnabled: consumer.track.enabled,
+      trackReadyState: consumer.track.readyState,
+      trackMuted: consumer.track.muted
+    });
+
+    // For audio consumers, ensure track is enabled and setup event listeners
+    if (consumer.kind === 'audio') {
+      consumer.track.enabled = true;
+      
+      consumer.track.onended = () => {
+        console.log(`🔇 Audio consumer track ended: ${consumer.id}`);
+      };
+      
+      consumer.track.onmute = () => {
+        console.log(`🔇 Audio consumer track muted by system: ${consumer.id}`);
+      };
+      
+      consumer.track.onunmute = () => {
+        console.log(`🔊 Audio consumer track unmuted by system: ${consumer.id}`);
+      };
+      
+      console.log(`🔊 Audio consumer ready: enabled=${consumer.track.enabled}, state=${consumer.track.readyState}`);
+    }
 
     if (appData?.type === "viewer") {
       const viewerConsumers = Array.from(consumers.current.values()).filter(
@@ -543,55 +611,104 @@ export const useStream = (navigation = null) => {
     if (role === "streamer") {
       try {
         if (existingStream) {
-           console.log("Using existing stream as local stream");
-           localStreamRef.current = existingStream;
-           setLocalStream(existingStream);
-           setIsMuted(false);
-           setCameraFace("user");
-        } else {
-        const stream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                sampleRate: { ideal: 48000 },
-              },
-              video: {
-                width: { ideal: 1080 },
-                height: { ideal: 1920 },
-                facingMode: 'user',
-                aspectRatio: { ideal: 9/16 }
-              }
-            });
+          console.log("Using existing stream as local stream");
+          
+          // Verify and setup existing stream's audio tracks
+          const audioTracks = existingStream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            const audioTrack = audioTracks[0];
+            // Ensure track is enabled
+            audioTrack.enabled = true;
             
-            // Verify audio track is ready
-            const audioTracks = stream.getAudioTracks();
-            if (audioTracks.length > 0) {
-              const audioTrack = audioTracks[0];
-              console.log('🎤 Host audio track acquired:', {
-                label: audioTrack.label,
-                enabled: audioTrack.enabled,
-                readyState: audioTrack.readyState,
-                muted: audioTrack.muted
-              });
-              // Ensure audio is enabled
-              if (!audioTrack.enabled) {
-                console.log('⚠️ Audio track was disabled, enabling...');
-                audioTrack.enabled = true;
-              }
-            } else {
-              console.warn('⚠️ No audio tracks acquired for host!');
+            // Setup event listeners
+            audioTrack.onended = () => console.log('🎤 Host audio track ended');
+            audioTrack.onmute = () => console.log('🎤 Host audio track muted by system');
+            audioTrack.onunmute = () => console.log('🎤 Host audio track unmuted by system');
+            
+            console.log('🎤 Host audio track from existing stream:', {
+              label: audioTrack.label,
+              enabled: audioTrack.enabled,
+              readyState: audioTrack.readyState,
+              muted: audioTrack.muted,
+              id: audioTrack.id
+            });
+          } else {
+            console.warn('⚠️ Existing stream has no audio tracks!');
+          }
+          
+          localStreamRef.current = existingStream;
+          setLocalStream(existingStream);
+          setIsMuted(false);
+          setCameraFace("user");
+        } else {
+          // Request fresh media stream
+          console.log('🎤 Requesting fresh media stream for host...');
+          
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: { ideal: 48000 },
+              channelCount: { ideal: 1 },
+            },
+            video: {
+              width: { ideal: 1080 },
+              height: { ideal: 1920 },
+              facingMode: 'user',
+              aspectRatio: { ideal: 9/16 }
             }
+          });
+          
+          // Wait a tick for track stabilization (mobile fix)
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verify and setup audio tracks
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            const audioTrack = audioTracks[0];
+            
+            // Force enable
+            audioTrack.enabled = true;
+            
+            // Setup event listeners for debugging
+            audioTrack.onended = () => {
+              console.log('🎤 Host audio track ended unexpectedly');
+              setIsMuted(true);
+            };
+            audioTrack.onmute = () => console.log('🎤 Host audio track muted by system');
+            audioTrack.onunmute = () => console.log('🎤 Host audio track unmuted by system');
+            
+            console.log('✅ Host audio track acquired:', {
+              label: audioTrack.label,
+              enabled: audioTrack.enabled,
+              readyState: audioTrack.readyState,
+              muted: audioTrack.muted,
+              id: audioTrack.id
+            });
+          } else {
+            console.error('❌ No audio tracks acquired for host! Microphone may not be available.');
+          }
 
-            setIsMuted(false);
-            setCameraFace("user");
-            setLocalStream(stream);
-            localStreamRef.current = stream;
+          setIsMuted(false);
+          setCameraFace("user");
+          setLocalStream(stream);
+          localStreamRef.current = stream;
         }
-      } catch (error) {
-        console.log("Error getting user media:", error);
+      } catch (error: any) {
+        let errorMessage = 'Failed to access camera/microphone';
+        
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Camera/microphone permission denied. Please allow access.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'No camera or microphone found on this device.';
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = 'Camera/microphone is in use by another application.';
+        }
+        
+        console.error("❌ Error getting user media:", error.name, error.message);
         setConnectionPhase('error');
-        setConnectionError('Failed to access camera/microphone');
+        setConnectionError(errorMessage);
         return;
       }
     }
@@ -803,33 +920,39 @@ export const useStream = (navigation = null) => {
   }
 
   function toggleMute() {
-    if (localStreamRef.current) {
-      const audioTracks = localStreamRef.current.getAudioTracks();
-      
-      if (audioTracks.length === 0) {
-        console.warn('⚠️ No audio tracks to toggle mute');
-        return;
-      }
-      
-      audioTracks.forEach((track) => {
-        const newEnabled = !track.enabled;
-        track.enabled = newEnabled;
-        console.log(`🎤 Audio track ${newEnabled ? 'unmuted' : 'muted'}:`, {
-          label: track.label,
-          enabled: track.enabled,
-          readyState: track.readyState
-        });
-        setIsMuted(!newEnabled);
-      });
-    } else {
+    if (!localStreamRef.current) {
       console.warn('⚠️ No local stream to toggle mute');
+      return false;
     }
+    
+    const audioTracks = localStreamRef.current.getAudioTracks();
+    
+    if (audioTracks.length === 0) {
+      console.warn('⚠️ No audio tracks to toggle mute');
+      return false;
+    }
+    
+    // Toggle all audio tracks
+    let newMutedState = !isMuted;
+    audioTracks.forEach((track) => {
+      track.enabled = !newMutedState; // enabled = opposite of muted
+      console.log(`🎤 Audio track ${track.enabled ? 'UNMUTED' : 'MUTED'}:`, {
+        label: track.label,
+        enabled: track.enabled,
+        readyState: track.readyState,
+        id: track.id
+      });
+    });
+    
+    setIsMuted(newMutedState);
+    return true;
   }
 
   function toggleVideo() {
     if (localStreamRef.current) {
       localStreamRef.current.getVideoTracks().forEach((track) => {
         track.enabled = !track.enabled;
+        console.log(`📹 Video track ${track.enabled ? 'enabled' : 'disabled'}`);
       });
     }
   }
@@ -855,24 +978,61 @@ export const useStream = (navigation = null) => {
     try {
       console.log(`📤 Publishing viewer stream (type: ${type})...`);
       
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
+      // Determine media constraints based on type
+      const isAudioOnly = type === "mic" || type === "audio";
+      const isVideoOnly = type === "video";
+      
+      const constraints: MediaStreamConstraints = {
+        audio: isVideoOnly ? false : {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
           sampleRate: { ideal: 48000 },
+          channelCount: { ideal: 1 },
         },
-        video: type === "camera" ? { facingMode: 'user' } : false,
-      });
+        video: isAudioOnly ? false : { 
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
+      };
+      
+      console.log('🎤 Requesting media with constraints:', constraints);
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // Ensure audio track is enabled immediately after acquisition
-      stream.getAudioTracks().forEach(track => {
+      // Wait a tick for track initialization (mobile fix)
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Process audio tracks
+      const audioTracks = stream.getAudioTracks();
+      audioTracks.forEach(track => {
+        // Force enable audio track
         track.enabled = true;
+        
+        // Setup event listeners for debugging
+        track.onended = () => console.log('🎤 Viewer audio track ended');
+        track.onmute = () => console.log('🎤 Viewer audio track muted by system');
+        track.onunmute = () => console.log('🎤 Viewer audio track unmuted by system');
+        
         console.log('🎤 Viewer audio track acquired:', {
+          id: track.id,
           label: track.label,
           enabled: track.enabled,
           readyState: track.readyState,
           muted: track.muted
+        });
+      });
+
+      // Process video tracks
+      const videoTracks = stream.getVideoTracks();
+      videoTracks.forEach(track => {
+        track.enabled = true;
+        console.log('📹 Viewer video track acquired:', {
+          id: track.id,
+          label: track.label,
+          enabled: track.enabled,
+          readyState: track.readyState
         });
       });
 
@@ -885,43 +1045,80 @@ export const useStream = (navigation = null) => {
         if (socketRef.current) {
           socketRef.current.emit("createTransport", peerId.current);
         }
-      } else {
-        const videoTrack = stream.getVideoTracks()[0];
-        const audioTrack = stream.getAudioTracks()[0];
+        // Transport will be created and tracks produced when transport is ready
+        return stream;
+      }
+      
+      // Produce tracks to SFU
+      const audioTrack = audioTracks[0];
+      const videoTrack = videoTracks[0];
 
-        if (audioTrack) {
-          // Verify audio track is ready
-          if (audioTrack.readyState !== 'live') {
-            console.error('❌ Viewer audio track not live:', audioTrack.readyState);
-          } else {
+      // PRODUCE AUDIO FIRST (critical for communication)
+      if (audioTrack) {
+        if (audioTrack.readyState !== 'live') {
+          console.error('❌ Viewer audio track not live:', audioTrack.readyState);
+        } else {
+          try {
             console.log('🎤 Producing viewer audio track to SFU...');
             await produceTransport.current.produce({
               track: audioTrack,
-              appData: { type: roleRef.current, peerId: peerId.current, displayName },
+              appData: { 
+                type: 'viewer', 
+                peerId: peerId.current, 
+                displayName,
+                mediaType: 'audio'
+              },
             });
-            console.log('✅ Viewer audio track produced successfully');
+            console.log('✅ Viewer audio track produced to SFU');
+          } catch (audioError) {
+            console.error('❌ Failed to produce viewer audio:', audioError);
           }
         }
-        if (videoTrack) {
-          console.log('📹 Producing viewer video track to SFU...');
-          await produceTransport.current.produce({
-            track: videoTrack,
-            encodings: [
-              {
-                ssrc: 111110,
-                scalabilityMode: "L3T3_KEY",
-                maxBitrate: 1000000,
+      }
+      
+      // PRODUCE VIDEO
+      if (videoTrack) {
+        if (videoTrack.readyState !== 'live') {
+          console.error('❌ Viewer video track not live:', videoTrack.readyState);
+        } else {
+          try {
+            console.log('📹 Producing viewer video track to SFU...');
+            await produceTransport.current.produce({
+              track: videoTrack,
+              encodings: [
+                {
+                  ssrc: 111110,
+                  scalabilityMode: "L3T3_KEY",
+                  maxBitrate: 1000000,
+                },
+              ],
+              appData: { 
+                type: 'viewer', 
+                peerId: peerId.current, 
+                displayName,
+                mediaType: 'video'
               },
-            ],
-            appData: { type: roleRef.current, peerId: peerId.current, displayName },
-          });
-          console.log('✅ Viewer video track produced successfully');
+            });
+            console.log('✅ Viewer video track produced to SFU');
+          } catch (videoError) {
+            console.error('❌ Failed to produce viewer video:', videoError);
+          }
         }
       }
       
       return stream;
-    } catch (error) {
-      console.error("❌ Error publishing viewer stream:", error);
+    } catch (error: any) {
+      let errorMessage = 'Failed to access media devices';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Permission denied. Please allow camera/microphone access.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera or microphone found.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Device is in use by another app.';
+      }
+      
+      console.error("❌ Error publishing viewer stream:", error.name, error.message, errorMessage);
       return null;
     }
   }
