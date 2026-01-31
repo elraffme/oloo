@@ -252,7 +252,7 @@ const LandingPage = () => {
       {/* Join the Movement Section */}
       <section id="get-started" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
-          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading font-bold text-foreground px-2 text-xl">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-foreground px-2 text-xl font-semibold">
             Ready to Experience a Connection Like No Other?
           </h2>
           <p className="text-base sm:text-lg lg:text-xl text-muted-foreground px-4">
