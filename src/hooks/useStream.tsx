@@ -47,6 +47,7 @@ export const useStream = (navigation = null) => {
   const roleRef = useRef("viewer");
   const socketRef = useRef<any>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const hostStreamRef = useRef<MediaStream | null>(null); // CRITICAL: Persistent host stream for audio continuity
   const remotePeerId = useRef("");
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
@@ -193,6 +194,17 @@ export const useStream = (navigation = null) => {
         console.log(`🛑 Stopped ${track.kind} track:`, track.label);
       });
       localStreamRef.current = null;
+    }
+    
+    // CRITICAL: Reset host stream ref for clean rejoin
+    if (hostStreamRef.current) {
+      hostStreamRef.current.getTracks().forEach((track) => {
+        track.onended = null;
+        track.onmute = null;
+        track.onunmute = null;
+      });
+      hostStreamRef.current = null;
+      console.log('🧹 Cleared host stream reference');
     }
     
     // Disconnect socket
@@ -491,6 +503,7 @@ export const useStream = (navigation = null) => {
     }
   }
 
+
   async function handleNewConsumer(data) {
     const {
       producerId,
@@ -514,18 +527,20 @@ export const useStream = (navigation = null) => {
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
 
-    // CRITICAL: Log and ensure audio tracks are properly configured
-    console.log(`📥 New consumer created: ${consumer.kind} from ${appData?.type}`, {
+    // CRITICAL: Log consumer details
+    console.log(`📥 New consumer created: ${consumer.kind} from ${appData?.type || 'host'}`, {
       consumerId: consumer.id,
       producerId,
       trackId: consumer.track.id,
       trackEnabled: consumer.track.enabled,
       trackReadyState: consumer.track.readyState,
-      trackMuted: consumer.track.muted
+      trackMuted: consumer.track.muted,
+      totalConsumers: consumers.current.size
     });
 
     // For audio consumers, ensure track is enabled and setup event listeners
     if (consumer.kind === 'audio') {
+      // CRITICAL: Force-enable audio track immediately
       consumer.track.enabled = true;
       
       consumer.track.onended = () => {
@@ -534,16 +549,24 @@ export const useStream = (navigation = null) => {
       
       consumer.track.onmute = () => {
         console.log(`🔇 Audio consumer track muted by system: ${consumer.id}`);
+        // Try to re-enable if system mutes it
+        setTimeout(() => {
+          if (consumer.track.readyState === 'live') {
+            consumer.track.enabled = true;
+            console.log(`🔊 Re-enabled audio track after system mute`);
+          }
+        }, 100);
       };
       
       consumer.track.onunmute = () => {
         console.log(`🔊 Audio consumer track unmuted by system: ${consumer.id}`);
       };
       
-      console.log(`🔊 Audio consumer ready: enabled=${consumer.track.enabled}, state=${consumer.track.readyState}`);
+      console.log(`🔊 Audio consumer ready: enabled=${consumer.track.enabled}, state=${consumer.track.readyState}, muted=${consumer.track.muted}`);
     }
 
     if (appData?.type === "viewer") {
+      // VIEWER TRACK: Rebuild viewer streams map (this is fine to rebuild)
       const viewerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type === "viewer"
       );
@@ -557,24 +580,56 @@ export const useStream = (navigation = null) => {
         viewerStreamsMap.get(pId)!.stream.addTrack(c.track);
       });
       setViewerStreams(
-        Array.from(viewerStreamsMap.entries()).map(([id, data]) => ({
-          id,
-          stream: data.stream,
-          displayName: data.displayName,
+        Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
+          id: vid,
+          stream: vdata.stream,
+          displayName: vdata.displayName,
         }))
       );
+      console.log(`👥 Viewer streams updated: ${viewerStreamsMap.size} viewers`);
     } else {
-      // This is the host/streamer - track their peerId for disconnect detection
+      // HOST/STREAMER TRACK: Add track to persistent stream instead of recreating
       hostPeerId.current = remPeerId;
-      console.log('📺 Host connected, tracking peerId:', remPeerId);
       
-      const streamerConsumers = Array.from(consumers.current.values()).filter(
-        (c) => c.appData?.type !== "viewer"
-      );
-      const newStream = new MediaStream(
-        streamerConsumers.map((c) => c.track)
-      );
-      setRemoteStream(newStream);
+      // CRITICAL FIX: Don't recreate the entire MediaStream, ADD tracks to existing one
+      // This prevents audio track loss when video or subsequent audio tracks arrive
+      
+      if (!hostStreamRef.current) {
+        // First track from host - create the stream
+        hostStreamRef.current = new MediaStream();
+        console.log('📺 Created new host MediaStream');
+      }
+      
+      // Check if this track is already in the stream
+      const existingTrackIds = hostStreamRef.current.getTracks().map(t => t.id);
+      if (!existingTrackIds.includes(consumer.track.id)) {
+        hostStreamRef.current.addTrack(consumer.track);
+        console.log(`📺 Added ${consumer.kind} track to host stream. Total tracks:`, 
+          hostStreamRef.current.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, state: t.readyState }))
+        );
+      } else {
+        console.log(`📺 Track ${consumer.track.id} already in host stream, skipping`);
+      }
+      
+      // Set the remote stream state - this triggers UI update
+      // IMPORTANT: Always set the same stream reference to avoid React re-rendering issues
+      setRemoteStream(hostStreamRef.current);
+      
+      // Log audio status specifically
+      const audioTracks = hostStreamRef.current.getAudioTracks();
+      const videoTracks = hostStreamRef.current.getVideoTracks();
+      console.log(`📺 Host stream status: ${audioTracks.length} audio, ${videoTracks.length} video tracks`);
+      
+      if (audioTracks.length > 0) {
+        console.log(`🔊 HOST AUDIO ACTIVE:`, audioTracks.map(t => ({
+          id: t.id,
+          enabled: t.enabled,
+          muted: t.muted,
+          state: t.readyState
+        })));
+      } else {
+        console.warn(`⚠️ HOST HAS NO AUDIO TRACKS YET - waiting for audio producer`);
+      }
       
       // Successfully streaming - clear all timers and update phase
       setConnectionPhase('streaming');

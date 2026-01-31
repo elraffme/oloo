@@ -53,7 +53,35 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
   const tiles: VideoTile[] = [];
   const seenSessionTokens = new Set<string>();
 
+  // CRITICAL: Log stream state for debugging participant-count audio issues
+  useEffect(() => {
+    console.log('🎥 VideoCallGrid render:', {
+      hasHostStream: !!hostStream,
+      hostAudioTracks: hostStream?.getAudioTracks().length || 0,
+      hostVideoTracks: hostStream?.getVideoTracks().length || 0,
+      viewerCamerasCount: viewerCameras.size,
+      viewerStreamExists: !!viewerStream,
+      relayedCount: relayedViewerCameras?.size || 0
+    });
+    
+    // Log each audio track status
+    if (hostStream) {
+      const audioTracks = hostStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        console.log('🔊 Host audio tracks in grid:', audioTracks.map(t => ({
+          id: t.id,
+          enabled: t.enabled,
+          muted: t.muted,
+          state: t.readyState
+        })));
+      } else {
+        console.warn('⚠️ VideoCallGrid: Host stream has NO audio tracks!');
+      }
+    }
+  }, [hostStream, viewerCameras, viewerStream, relayedViewerCameras]);
+
   // Add host tile only if host stream is available
+  // IMPORTANT: Audio is part of hostStream, layout changes should NOT affect audio
   if (hostStream) {
     tiles.push({
       id: 'host',
@@ -98,6 +126,9 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
       isMuted,
     });
   }
+
+  // Log tile count for debugging
+  console.log(`📊 VideoCallGrid tiles: ${tiles.length} (host: ${tiles.some(t => t.isHost)}, viewers: ${tiles.filter(t => !t.isHost && !t.isYou).length})`);
 
   const layoutConfig = getLayoutConfig(tiles.length, tiles.some(t => t.isHost));
 
@@ -172,11 +203,46 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       return;
     }
 
+    const audioTracks = tile.stream.getAudioTracks();
+    const videoTracks = tile.stream.getVideoTracks();
+    
     console.log(`📹 VideoTile: Attaching stream for ${tile.displayName}`, {
       streamId: tile.stream.id,
-      tracks: tile.stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, readyState: t.readyState })),
+      audioTracks: audioTracks.map(t => ({ 
+        id: t.id, 
+        kind: t.kind, 
+        enabled: t.enabled, 
+        readyState: t.readyState,
+        muted: t.muted 
+      })),
+      videoTracks: videoTracks.map(t => ({ 
+        id: t.id,
+        kind: t.kind, 
+        enabled: t.enabled, 
+        readyState: t.readyState 
+      })),
       isHost: tile.isHost,
       isYou: tile.isYou
+    });
+    
+    // CRITICAL: Force-enable all audio tracks before attaching to video element
+    // This ensures audio works regardless of participant count or layout
+    audioTracks.forEach(track => {
+      if (!track.enabled) {
+        console.log(`🔊 VideoTile: Force-enabling disabled audio track for ${tile.displayName}`);
+        track.enabled = true;
+      }
+      
+      // Add track event listeners for debugging
+      track.onmute = () => {
+        console.log(`🔇 VideoTile: Audio track muted for ${tile.displayName}`);
+      };
+      track.onunmute = () => {
+        console.log(`🔊 VideoTile: Audio track unmuted for ${tile.displayName}`);
+      };
+      track.onended = () => {
+        console.log(`❌ VideoTile: Audio track ended for ${tile.displayName}`);
+      };
     });
     
     videoRef.current.srcObject = tile.stream;
@@ -190,6 +256,16 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
             await videoRef.current.play();
             setPlaybackBlocked(false);
             console.log(`✅ Video playback started for ${tile.displayName} on attempt ${i + 1}`);
+            
+            // Log audio output state after successful play
+            const currentAudioTracks = tile.stream?.getAudioTracks() || [];
+            if (currentAudioTracks.length > 0 && !tile.isYou) {
+              console.log(`🔊 Audio should be playing for ${tile.displayName}:`, {
+                videoMuted: videoRef.current?.muted,
+                audioTrackEnabled: currentAudioTracks[0].enabled,
+                audioTrackState: currentAudioTracks[0].readyState
+              });
+            }
             return;
           }
         } catch (err) {
@@ -205,14 +281,43 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
     playWithRetry();
 
     // Listen for track additions (for streams that add tracks later)
-    const handleTrackAdded = () => {
-      console.log(`🎬 VideoTile: Track added to stream for ${tile.displayName}`);
+    // CRITICAL: This ensures audio works even if video arrives first
+    const handleTrackAdded = (event: MediaStreamTrackEvent) => {
+      console.log(`🎬 VideoTile: Track added to stream for ${tile.displayName}:`, {
+        kind: event.track.kind,
+        enabled: event.track.enabled,
+        readyState: event.track.readyState
+      });
+      
+      // Force-enable newly added audio tracks
+      if (event.track.kind === 'audio') {
+        event.track.enabled = true;
+        console.log(`🔊 VideoTile: Force-enabled newly added audio track for ${tile.displayName}`);
+      }
+      
       playWithRetry();
     };
     tile.stream.addEventListener('addtrack', handleTrackAdded);
+    
+    // Also listen for track removal
+    const handleTrackRemoved = (event: MediaStreamTrackEvent) => {
+      console.log(`❌ VideoTile: Track removed from stream for ${tile.displayName}:`, {
+        kind: event.track.kind
+      });
+    };
+    tile.stream.addEventListener('removetrack', handleTrackRemoved);
 
     return () => {
       tile.stream?.removeEventListener('addtrack', handleTrackAdded);
+      tile.stream?.removeEventListener('removetrack', handleTrackRemoved);
+      
+      // Cleanup track event listeners
+      tile.stream?.getAudioTracks().forEach(track => {
+        track.onmute = null;
+        track.onunmute = null;
+        track.onended = null;
+      });
+      
       if (videoRef.current) {
         console.log(`🧹 VideoTile: Cleaning up stream for ${tile.displayName}`);
         videoRef.current.srcObject = null;
