@@ -22,6 +22,7 @@ import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
 import { ViewerCameraThumbnails } from '@/components/ViewerCameraThumbnails';
+import { ViewerAudioPlayer } from '@/components/ViewerAudioPlayer';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
 import { useStreamQueue } from '@/hooks/useStreamQueue';
 import { useStreamViewers } from '@/hooks/useStreamViewers';
@@ -2162,6 +2163,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
               {/* Live Chat & Viewers (only when streaming) */}
               {isStreaming && activeStreamId && <div className="space-y-4 lg:row-span-2">
+                  {/* Hidden audio player for host to hear all viewers */}
+                  <ViewerAudioPlayer viewerStreams={viewerStreams} />
+                  
                   {/* All Viewers Card */}
                   <ViewerCameraThumbnails viewerCameras={viewerCameras} allViewers={activeViewers} className="max-h-[400px]" />
                   
