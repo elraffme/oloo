@@ -18,15 +18,14 @@ interface ViewerAudioPlayerProps {
  * Key features:
  * - Plays audio independently of visual layout
  * - Handles dynamic viewer join/leave
- * - Recovers from autoplay restrictions
- * - Re-enables muted tracks
+ * - Recovers from autoplay restrictions via user interaction
+ * - Re-enables muted tracks automatically
  * - Works on mobile and desktop
- * - Triggers user-interaction-based playback on first interaction
  */
 export const ViewerAudioPlayer: React.FC<ViewerAudioPlayerProps> = ({ viewerStreams }) => {
   const [playingStreams, setPlayingStreams] = useState<Set<string>>(new Set());
   const [userInteracted, setUserInteracted] = useState(false);
-  const pendingPlaybackRef = useRef<Set<string>>(new Set());
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Filter to only streams with audio tracks
   const streamsWithAudio = useMemo(() => {
@@ -38,50 +37,65 @@ export const ViewerAudioPlayer: React.FC<ViewerAudioPlayerProps> = ({ viewerStre
 
   // Log stream composition on every update
   useEffect(() => {
-    console.log(`[ViewerAudioPlayer] 🎧 Total streams: ${viewerStreams.length}, with audio: ${streamsWithAudio.length}`);
+    console.log(`[ViewerAudioPlayer] 🎧 Total: ${viewerStreams.length}, with audio: ${streamsWithAudio.length}`);
     
-    viewerStreams.forEach((viewer, idx) => {
-      const audioTracks = viewer.stream?.getAudioTracks() || [];
-      const videoTracks = viewer.stream?.getVideoTracks() || [];
-      
-      if (audioTracks.length > 0) {
-        console.log(`[ViewerAudioPlayer] ✅ Viewer ${idx} (${viewer.id.slice(0,8)}): ${audioTracks.length} audio track(s)`);
-        audioTracks.forEach((track, i) => {
-          console.log(`  └─ Audio track ${i}: id=${track.id.slice(0,8)}, enabled=${track.enabled}, state=${track.readyState}, muted=${track.muted}`);
-        });
-      } else {
-        console.log(`[ViewerAudioPlayer] ⚠️ Viewer ${idx} (${viewer.id.slice(0,8)}): NO audio tracks (video: ${videoTracks.length})`);
-      }
+    streamsWithAudio.forEach((viewer, idx) => {
+      const audioTracks = viewer.stream.getAudioTracks();
+      audioTracks.forEach((track, i) => {
+        console.log(`[ViewerAudioPlayer] ✅ Viewer ${viewer.id.slice(0,8)} audio[${i}]: enabled=${track.enabled}, state=${track.readyState}`);
+      });
     });
   }, [viewerStreams, streamsWithAudio]);
 
-  // Listen for user interaction to enable audio playback
+  // Listen for user interaction to enable audio playback (autoplay bypass)
   useEffect(() => {
     if (userInteracted) return;
 
     const enablePlayback = () => {
-      console.log('[ViewerAudioPlayer] 🖱️ User interaction detected, enabling audio playback');
+      console.log('[ViewerAudioPlayer] 🖱️ User interaction detected, unlocking audio');
       setUserInteracted(true);
+      
+      // Resume audio context if suspended
+      if (audioContextRef.current?.state === 'suspended') {
+        audioContextRef.current.resume().catch(console.error);
+      }
     };
 
-    // Add multiple event listeners for user interaction
-    window.addEventListener('click', enablePlayback, { once: true });
-    window.addEventListener('touchstart', enablePlayback, { once: true });
-    window.addEventListener('keydown', enablePlayback, { once: true });
+    const events = ['click', 'touchstart', 'keydown', 'touchend', 'mousedown'];
+    events.forEach(event => {
+      window.addEventListener(event, enablePlayback, { once: true, passive: true });
+    });
 
     return () => {
-      window.removeEventListener('click', enablePlayback);
-      window.removeEventListener('touchstart', enablePlayback);
-      window.removeEventListener('keydown', enablePlayback);
+      events.forEach(event => {
+        window.removeEventListener(event, enablePlayback);
+      });
     };
   }, [userInteracted]);
+
+  // Initialize AudioContext for reliable playback
+  useEffect(() => {
+    if (!audioContextRef.current) {
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        console.log('[ViewerAudioPlayer] AudioContext created:', audioContextRef.current.state);
+      } catch (e) {
+        console.warn('[ViewerAudioPlayer] AudioContext creation failed:', e);
+      }
+    }
+
+    return () => {
+      audioContextRef.current?.close().catch(console.error);
+      audioContextRef.current = null;
+    };
+  }, []);
 
   const handlePlayStateChange = useCallback((viewerId: string, isPlaying: boolean) => {
     setPlayingStreams(prev => {
       const next = new Set(prev);
       if (isPlaying) {
         next.add(viewerId);
-        console.log(`[ViewerAudioPlayer] 🔊 Now playing audio for viewer: ${viewerId.slice(0,8)}`);
+        console.log(`[ViewerAudioPlayer] 🔊 Now playing: ${viewerId.slice(0,8)}`);
       } else {
         next.delete(viewerId);
       }
@@ -103,12 +117,12 @@ export const ViewerAudioPlayer: React.FC<ViewerAudioPlayerProps> = ({ viewerStre
       data-audio-count={streamsWithAudio.length}
       data-playing-count={playingStreams.size}
     >
-      {/* Only render audio elements for streams that have audio tracks */}
       {streamsWithAudio.map((viewer) => (
         <ViewerAudioElement 
-          key={`audio-${viewer.id}-${viewer.stream?.id || 'no-stream'}`} 
+          key={`audio-${viewer.id}`} 
           viewer={viewer}
           userInteracted={userInteracted}
+          audioContext={audioContextRef.current}
           onPlayStateChange={(playing) => handlePlayStateChange(viewer.id, playing)}
         />
       ))}
@@ -117,23 +131,27 @@ export const ViewerAudioPlayer: React.FC<ViewerAudioPlayerProps> = ({ viewerStre
 };
 
 /**
- * Individual audio element for a single viewer.
- * Uses video element to properly handle MediaStream with both audio and video tracks.
+ * Individual audio element for a single viewer with robust playback handling.
  */
 const ViewerAudioElement: React.FC<{ 
   viewer: ViewerStream;
   userInteracted: boolean;
+  audioContext: AudioContext | null;
   onPlayStateChange?: (playing: boolean) => void;
-}> = ({ viewer, userInteracted, onPlayStateChange }) => {
+}> = ({ viewer, userInteracted, audioContext, onPlayStateChange }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const retryCountRef = useRef(0);
-  const maxRetries = 15; // Increased retries
+  const maxRetries = 20;
   const streamIdRef = useRef<string | null>(null);
   const isPlayingRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  // Attempt to play audio with retry logic
+  // Attempt to play audio with comprehensive retry logic
   const playAudio = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
@@ -143,9 +161,9 @@ const ViewerAudioElement: React.FC<{
       retryTimeoutRef.current = null;
     }
 
-    // If user hasn't interacted yet, queue for later
+    // If user hasn't interacted yet, set up for later play
     if (!userInteracted) {
-      console.log(`[ViewerAudioPlayer] ⏳ Waiting for user interaction to play ${viewer.id.slice(0,8)}`);
+      console.log(`[ViewerAudioPlayer] ⏳ Queued for user interaction: ${viewer.id.slice(0,8)}`);
       return;
     }
 
@@ -156,7 +174,6 @@ const ViewerAudioElement: React.FC<{
       
       // Check if already playing
       if (!videoElement.paused && !videoElement.ended) {
-        console.log(`[ViewerAudioPlayer] ✅ Already playing for ${viewer.id.slice(0,8)}`);
         if (!isPlayingRef.current) {
           isPlayingRef.current = true;
           onPlayStateChange?.(true);
@@ -165,30 +182,29 @@ const ViewerAudioElement: React.FC<{
       }
       
       await videoElement.play();
-      console.log(`[ViewerAudioPlayer] ✅ Successfully playing audio for viewer ${viewer.id.slice(0,8)}`);
+      console.log(`[ViewerAudioPlayer] ✅ Playing audio: ${viewer.id.slice(0,8)}`);
       isPlayingRef.current = true;
       onPlayStateChange?.(true);
       retryCountRef.current = 0;
     } catch (error: any) {
-      console.warn(`[ViewerAudioPlayer] ⚠️ Play failed for ${viewer.id.slice(0,8)}:`, error.name, error.message);
+      console.warn(`[ViewerAudioPlayer] ⚠️ Play failed for ${viewer.id.slice(0,8)}:`, error.name);
       
       if (!isPlayingRef.current) {
         onPlayStateChange?.(false);
       }
       
       // Retry with exponential backoff
-      if (retryCountRef.current < maxRetries) {
+      if (retryCountRef.current < maxRetries && mountedRef.current) {
         retryCountRef.current++;
-        const delay = Math.min(200 * Math.pow(1.3, retryCountRef.current - 1), 3000);
-        console.log(`[ViewerAudioPlayer] 🔄 Retry ${retryCountRef.current}/${maxRetries} in ${delay}ms for ${viewer.id.slice(0,8)}`);
+        const delay = Math.min(150 * Math.pow(1.2, retryCountRef.current - 1), 2000);
         
         retryTimeoutRef.current = setTimeout(() => {
-          if (videoRef.current && videoRef.current.paused) {
+          if (mountedRef.current && videoRef.current?.paused) {
             playAudio();
           }
         }, delay);
       } else {
-        console.error(`[ViewerAudioPlayer] ❌ Max retries reached for ${viewer.id.slice(0,8)} - audio may require user interaction`);
+        console.error(`[ViewerAudioPlayer] ❌ Max retries for ${viewer.id.slice(0,8)}`);
       }
     }
   }, [viewer.id, userInteracted, onPlayStateChange]);
@@ -196,21 +212,23 @@ const ViewerAudioElement: React.FC<{
   // Retry playback when user interaction is detected
   useEffect(() => {
     if (userInteracted && videoRef.current?.paused) {
-      console.log(`[ViewerAudioPlayer] 🖱️ User interacted, attempting playback for ${viewer.id.slice(0,8)}`);
+      console.log(`[ViewerAudioPlayer] 🖱️ User interacted, playing ${viewer.id.slice(0,8)}`);
       playAudio();
     }
   }, [userInteracted, playAudio, viewer.id]);
 
   // Setup and manage stream
   useEffect(() => {
+    mountedRef.current = true;
+    
     const videoElement = videoRef.current;
     if (!videoElement || !viewer.stream) {
-      console.log(`[ViewerAudioPlayer] No element or stream for ${viewer.id}`);
+      console.log(`[ViewerAudioPlayer] No element/stream for ${viewer.id}`);
       onPlayStateChange?.(false);
       return;
     }
 
-    // Skip if same stream (prevent unnecessary re-attachments)
+    // Skip if same stream and already playing
     if (streamIdRef.current === viewer.stream.id && !videoElement.paused) {
       return;
     }
@@ -219,40 +237,36 @@ const ViewerAudioElement: React.FC<{
     isPlayingRef.current = false;
     retryCountRef.current = 0;
 
-    console.log(`[ViewerAudioPlayer] Setting up audio for ${viewer.id}`, {
+    const audioTracks = viewer.stream.getAudioTracks();
+    console.log(`[ViewerAudioPlayer] Setup for ${viewer.id.slice(0,8)}:`, {
       streamId: viewer.stream.id,
-      audioTracks: viewer.stream.getAudioTracks().length,
-      videoTracks: viewer.stream.getVideoTracks().length
+      audioTracks: audioTracks.length,
+      trackStates: audioTracks.map(t => ({ id: t.id.slice(0,8), enabled: t.enabled, state: t.readyState }))
     });
 
     // Attach stream
     videoElement.srcObject = viewer.stream;
 
     // Force-enable and monitor all audio tracks
-    const audioTracks = viewer.stream.getAudioTracks();
     audioTracks.forEach((track, index) => {
       // Force enable
-      if (!track.enabled) {
-        track.enabled = true;
-        console.log(`[ViewerAudioPlayer] Force-enabled track ${index} for ${viewer.id}`);
-      }
+      track.enabled = true;
 
       // Monitor mute events
       track.onmute = () => {
-        console.warn(`[ViewerAudioPlayer] Track ${index} muted for ${viewer.id}, re-enabling...`);
+        console.warn(`[ViewerAudioPlayer] Track ${index} muted for ${viewer.id.slice(0,8)}, re-enabling...`);
         track.enabled = true;
-        // Retry play if needed
         if (videoElement.paused) {
           playAudio();
         }
       };
 
       track.onunmute = () => {
-        console.log(`[ViewerAudioPlayer] Track ${index} unmuted for ${viewer.id}`);
+        console.log(`[ViewerAudioPlayer] Track ${index} unmuted for ${viewer.id.slice(0,8)}`);
       };
       
       track.onended = () => {
-        console.log(`[ViewerAudioPlayer] Track ${index} ended for ${viewer.id}`);
+        console.log(`[ViewerAudioPlayer] Track ${index} ended for ${viewer.id.slice(0,8)}`);
         isPlayingRef.current = false;
         onPlayStateChange?.(false);
       };
@@ -261,13 +275,12 @@ const ViewerAudioElement: React.FC<{
     // Start playing
     playAudio();
 
-    // Handle dynamically added tracks
+    // Handle dynamically added tracks (viewer enables mic mid-stream)
     const handleTrackAdded = (event: MediaStreamTrackEvent) => {
-      console.log(`[ViewerAudioPlayer] Track added for ${viewer.id}:`, event.track.kind);
+      console.log(`[ViewerAudioPlayer] Track added for ${viewer.id.slice(0,8)}:`, event.track.kind);
       if (event.track.kind === 'audio') {
         event.track.enabled = true;
         
-        // Setup monitoring
         event.track.onmute = () => {
           event.track.enabled = true;
           if (videoElement.paused) playAudio();
@@ -280,7 +293,7 @@ const ViewerAudioElement: React.FC<{
     };
 
     const handleTrackRemoved = (event: MediaStreamTrackEvent) => {
-      console.log(`[ViewerAudioPlayer] Track removed for ${viewer.id}:`, event.track.kind);
+      console.log(`[ViewerAudioPlayer] Track removed for ${viewer.id.slice(0,8)}:`, event.track.kind);
     };
 
     viewer.stream.addEventListener('addtrack', handleTrackAdded);
@@ -288,7 +301,8 @@ const ViewerAudioElement: React.FC<{
 
     // Cleanup function
     return () => {
-      console.log(`[ViewerAudioPlayer] Cleaning up for ${viewer.id}`);
+      console.log(`[ViewerAudioPlayer] Cleanup for ${viewer.id.slice(0,8)}`);
+      mountedRef.current = false;
       
       // Clear retry timeout
       if (retryTimeoutRef.current) {
@@ -312,24 +326,40 @@ const ViewerAudioElement: React.FC<{
         videoElement.srcObject = null;
       }
       
+      // Clean up audio source node
+      if (sourceNodeRef.current) {
+        try {
+          sourceNodeRef.current.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+        sourceNodeRef.current = null;
+      }
+      
       isPlayingRef.current = false;
       onPlayStateChange?.(false);
       streamIdRef.current = null;
     };
-  }, [viewer.id, viewer.stream, playAudio, onPlayStateChange]);
+  }, [viewer.id, viewer.stream, playAudio, onPlayStateChange, audioContext]);
 
   // Handle visibility changes (mobile backgrounding)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && videoRef.current?.paused) {
-        console.log(`[ViewerAudioPlayer] Page visible, resuming audio for ${viewer.id}`);
+      if (document.visibilityState === 'visible' && videoRef.current?.paused && mountedRef.current) {
+        console.log(`[ViewerAudioPlayer] Page visible, resuming ${viewer.id.slice(0,8)}`);
+        
+        // Re-enable tracks in case they got disabled
+        viewer.stream?.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+        
         playAudio();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [viewer.id, playAudio]);
+  }, [viewer.id, viewer.stream, playAudio]);
 
   return (
     <video
