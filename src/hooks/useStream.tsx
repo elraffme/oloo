@@ -1109,7 +1109,16 @@ export const useStream = (navigation = null) => {
         
         // Setup event listeners for debugging
         track.onended = () => console.log('🎤 Viewer audio track ended');
-        track.onmute = () => console.log('🎤 Viewer audio track muted by system');
+        track.onmute = () => {
+          console.log('🎤 Viewer audio track muted by system');
+          // Re-enable after system mute
+          setTimeout(() => {
+            if (track.readyState === 'live') {
+              track.enabled = true;
+              console.log('🎤 Viewer audio track re-enabled after system mute');
+            }
+          }, 100);
+        };
         track.onunmute = () => console.log('🎤 Viewer audio track unmuted by system');
         
         console.log('🎤 Viewer audio track acquired:', {
@@ -1137,12 +1146,50 @@ export const useStream = (navigation = null) => {
       setLocalStream(stream);
       setIsMuted(false);
 
+      // CRITICAL: Wait for transport to be created if not available
       if (!produceTransport.current) {
-        console.log('📤 No produce transport yet, requesting one...');
-        if (socketRef.current) {
-          socketRef.current.emit("createTransport", peerId.current);
+        console.log('📤 No produce transport yet, requesting and waiting for one...');
+        
+        if (!socketRef.current) {
+          console.error('❌ No socket connection available');
+          return stream;
         }
-        // Transport will be created and tracks produced when transport is ready
+        
+        // Create a promise that resolves when transport is ready
+        const transportPromise = new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Transport creation timed out'));
+          }, 10000); // 10 second timeout
+          
+          const checkTransport = () => {
+            if (produceTransport.current) {
+              clearTimeout(timeout);
+              resolve();
+            } else {
+              setTimeout(checkTransport, 100);
+            }
+          };
+          
+          // Start checking after emitting the request
+          socketRef.current!.emit("createTransport", peerId.current);
+          setTimeout(checkTransport, 100);
+        });
+        
+        try {
+          await transportPromise;
+          console.log('✅ Producer transport is now ready');
+          
+          // Wait a bit for transport to stabilize
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (err) {
+          console.error('❌ Failed to create producer transport:', err);
+          return stream;
+        }
+      }
+      
+      // Double-check transport is available
+      if (!produceTransport.current) {
+        console.error('❌ Producer transport still not available after wait');
         return stream;
       }
       
@@ -1166,11 +1213,13 @@ export const useStream = (navigation = null) => {
                 mediaType: 'audio'
               },
             });
-            console.log('✅ Viewer audio track produced to SFU');
+            console.log('✅ Viewer audio track produced to SFU successfully');
           } catch (audioError) {
             console.error('❌ Failed to produce viewer audio:', audioError);
           }
         }
+      } else {
+        console.warn('⚠️ No audio track to produce');
       }
       
       // PRODUCE VIDEO
@@ -1196,7 +1245,7 @@ export const useStream = (navigation = null) => {
                 mediaType: 'video'
               },
             });
-            console.log('✅ Viewer video track produced to SFU');
+            console.log('✅ Viewer video track produced to SFU successfully');
           } catch (videoError) {
             console.error('❌ Failed to produce viewer video:', videoError);
           }
