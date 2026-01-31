@@ -163,7 +163,11 @@ const LandingPage = () => {
               <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Shared Events</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Attend exclusive online and offline cultural events: film festivals, music festivals, poetry slams, or even regional festivals. Meet your match while immersing yourself in art, culture, and history.</p>
             </div>
-            
+            <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
+              <Music className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
+              <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Curated Playlists</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">Enjoy curated playlists designed around different cultural genres.</p>
+            </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <MessageCircle className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Intellectual & Artistic Dialogue</h3>
