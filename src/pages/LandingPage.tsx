@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
 import landingImage from "@/assets/landing-couple-hero.png";
-import cultureSectionImage from "@/assets/culture-section-image.jpg";
 import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
@@ -153,13 +152,6 @@ const LandingPage = () => {
               <Globe className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Global Networks</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Connect with people from all corners of the globe. Whether you're into classical art, traditional dance, ancient literature, or contemporary global movements—find your tribe.</p>
-            </div>
-            <div className="sm:col-span-2 lg:col-span-1 rounded-lg overflow-hidden border border-border">
-              <img 
-                src={cultureSectionImage} 
-                alt="Global cultural connections with diverse people across continents" 
-                className="w-full h-48 sm:h-56 lg:h-full object-cover"
-              />
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
