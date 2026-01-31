@@ -225,20 +225,22 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           }))
         });
         
-        // CRITICAL: Force-enable ALL audio tracks - not just disabled ones
-        // This is the key fix for participant-count audio bug
+        // CRITICAL: Force-enable ALL audio tracks
         audioTracks.forEach(track => {
           track.enabled = true;
           console.log(`🔊 TikTok: Ensured audio track enabled: ${track.id}`);
           
-          // Add event listeners to catch system-level muting
+          // Monitor and recover from system-level muting
           track.onmute = () => {
             console.log(`🔇 TikTok: Audio track muted by system: ${track.id}`);
-            // Re-enable after system mute
             setTimeout(() => {
               if (track.readyState === 'live') {
                 track.enabled = true;
                 console.log(`🔊 TikTok: Re-enabled audio track after mute`);
+                // Force video element to resume if paused
+                if (videoRef.current?.paused) {
+                  videoRef.current.play().catch(e => console.error('Resume failed:', e));
+                }
               }
             }, 50);
           };
@@ -247,13 +249,37 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         // Update host stream for VideoCallGrid
         setHostStream(remoteStream);
         
-        // Attach to video element and play
+        // Attach to video element
         if (videoRef.current) {
            videoRef.current.srcObject = remoteStream;
-           if (!isMuted) {
-             videoRef.current.muted = false;
-             videoRef.current.play().catch(e => console.error('TikTok: Error playing remote stream:', e));
-           }
+           
+           // CRITICAL: Unmute and play with retry for reliable audio
+           const playWithAudio = async () => {
+             if (!videoRef.current) return;
+             
+             // Set audio state based on user preference
+             videoRef.current.muted = isMuted;
+             videoRef.current.volume = 1.0;
+             
+             try {
+               await videoRef.current.play();
+               console.log('🔊 TikTok: Video playing, muted:', videoRef.current.muted);
+             } catch (e: any) {
+               console.warn('TikTok: Autoplay failed, will retry:', e.name);
+               // Retry after user interaction or after delay
+               setTimeout(async () => {
+                 try {
+                   if (videoRef.current) {
+                     await videoRef.current.play();
+                   }
+                 } catch (retryError) {
+                   console.error('TikTok: Retry play failed:', retryError);
+                 }
+               }, 500);
+             }
+           };
+           
+           playWithAudio();
         }
      }
   }, [remoteStream, remoteStream?.id, isMuted]); // CRITICAL: Also depend on stream ID for new reference detection
@@ -728,6 +754,32 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     };
   }, []);
 
+  // CRITICAL: Resume audio playback when page becomes visible (mobile backgrounding fix)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && videoRef.current) {
+        console.log('🎥 TikTok: Page visible, resuming playback...');
+        
+        // Re-sync audio state
+        videoRef.current.muted = isMuted;
+        videoRef.current.volume = 1.0;
+        
+        // Resume if paused
+        if (videoRef.current.paused && videoRef.current.srcObject) {
+          try {
+            await videoRef.current.play();
+            console.log('🎥 TikTok: Resumed playback after visibility change');
+          } catch (e) {
+            console.warn('TikTok: Resume playback failed:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isMuted]);
+
   return (
     <TooltipProvider>
     <div 
@@ -767,6 +819,20 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           playsInline
           autoPlay
           muted={isMuted}
+          onLoadedMetadata={() => {
+            console.log('🎥 TikTok: Video metadata loaded');
+            // Ensure proper audio state after metadata loads
+            if (videoRef.current) {
+              videoRef.current.muted = isMuted;
+              videoRef.current.volume = 1.0;
+            }
+          }}
+          onPlay={() => {
+            console.log('🎥 TikTok: Video playing, muted:', videoRef.current?.muted);
+          }}
+          onPause={() => {
+            console.log('🎥 TikTok: Video paused');
+          }}
         />
         
         {/* Connection Status Overlay */}
@@ -1084,7 +1150,32 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           </DropdownMenu>
 
           <button
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={async () => {
+              const newMutedState = !isMuted;
+              setIsMuted(newMutedState);
+              
+              // CRITICAL: Actively control audio on video element
+              if (videoRef.current) {
+                videoRef.current.muted = newMutedState;
+                videoRef.current.volume = 1.0;
+                
+                // If unmuting, ensure playback
+                if (!newMutedState) {
+                  try {
+                    await videoRef.current.play();
+                    console.log('🔊 TikTok: Audio unmuted and playing');
+                  } catch (e: any) {
+                    console.warn('TikTok: Play after unmute failed:', e.name);
+                    // On mobile, we may need to mute first then try again
+                    if (e.name === 'NotAllowedError') {
+                      toast.info('Tap again to unmute audio');
+                    }
+                  }
+                } else {
+                  console.log('🔇 TikTok: Audio muted');
+                }
+              }
+            }}
             className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center"
           >
             {isMuted ? (
