@@ -48,7 +48,7 @@ const LandingPage = () => {
       <LanguageSelectionModal />
       
       {/* Top Header - Fixed */}
-      <header className="bg-black/95 py-2 sm:py-3 lg:py-5 relative z-50 border-b border-primary/20">
+      <header className="bg-black/95 py-2 sm:py-3 relative z-50 border-b border-primary/20 lg:py-[10px]">
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2" aria-label="Toggle menu">
           {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Menu size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
         </button>
