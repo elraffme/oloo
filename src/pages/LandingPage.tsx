@@ -186,7 +186,7 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mt-8 sm:mt-12">
             <div className="text-center space-y-3 sm:space-y-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full nsibidi-gradient flex items-center justify-center text-primary-foreground text-xl sm:text-2xl font-bold">1</div>
-              <h3 className="text-lg sm:text-xl lg:text-2xl font-afro-heading font-semibold text-foreground px-2">Cultural Compatibility Quiz</h3>
+              <h3 className="text-lg sm:text-xl lg:text-2xl font-afro-heading text-foreground px-2 font-medium">Cultural Compatibility Quiz</h3>
               <p className="text-sm sm:text-base text-muted-foreground px-2">Find out which cultural experiences resonate with your soul through a simple yet thoughtful quiz that reflects your values, interests, and artistic tastes.</p>
             </div>
             <div className="text-center space-y-3 sm:space-y-4">
