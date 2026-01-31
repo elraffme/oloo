@@ -104,13 +104,9 @@ const LandingPage = () => {
         <div className="absolute inset-0">
         <div 
           ref={videoRef} 
-          data-landing-hero
-          className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} 
+          className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'} bg-cover bg-no-repeat bg-[center_15%] sm:bg-[center_20%]`} 
           style={{
             backgroundImage: `url(${landingImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 20%',
-            backgroundRepeat: 'no-repeat',
             backgroundAttachment: 'scroll'
           }} 
         />
