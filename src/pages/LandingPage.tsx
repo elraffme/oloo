@@ -165,7 +165,7 @@ const LandingPage = () => {
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Music className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Curated Playlists</h3>
+              <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Curated Playlists</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Each week, enjoy curated playlists designed around different cultural genres. Find someone to vibe with over an Afrobeat playlist or discover classical Eastern music together.</p>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
