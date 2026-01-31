@@ -102,13 +102,18 @@ const LandingPage = () => {
       <div className="relative min-h-[70vh] sm:min-h-[80vh] lg:min-h-screen flex flex-col">
         {/* Background Image Layer */}
         <div className="absolute inset-0">
-          <div ref={videoRef} className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} style={{
-          backgroundImage: `url(${landingImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'scroll'
-        }} />
+        <div 
+          ref={videoRef} 
+          data-landing-hero
+          className={`w-full h-full transition-all duration-1000 ${isVideoPlaying ? 'scale-105' : 'scale-100'}`} 
+          style={{
+            backgroundImage: `url(${landingImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center 20%',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'scroll'
+          }} 
+        />
           {/* Dark overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-primary/30 to-transparent" />
         </div>
