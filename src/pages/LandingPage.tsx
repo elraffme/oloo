@@ -180,7 +180,7 @@ const LandingPage = () => {
       {/* How It Works Section */}
       <section id="discover" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-secondary/10">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-3 sm:mb-4 text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 text-xl font-semibold">
             Discover Meaningful Connections
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mt-8 sm:mt-12">
