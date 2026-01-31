@@ -203,13 +203,21 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   }, [streamId, user]);
 
   // Handle remote stream updates with audio logging
+  // CRITICAL: This effect runs when remoteStream changes (new object reference from useStream fix)
   useEffect(() => {
      if (remoteStream) {
+        console.log('🎥 TikTok: Setting remote stream (new reference):', remoteStream.id);
+        
         // Log audio track state for debugging
         const audioTracks = remoteStream.getAudioTracks();
-        console.log('🔊 Remote stream audio state:', {
-          trackCount: audioTracks.length,
+        const videoTracks = remoteStream.getVideoTracks();
+        
+        console.log('🔊 TikTok: Remote stream audio state:', {
+          streamId: remoteStream.id,
+          audioTrackCount: audioTracks.length,
+          videoTrackCount: videoTracks.length,
           tracks: audioTracks.map(t => ({
+            id: t.id,
             label: t.label,
             enabled: t.enabled,
             muted: t.muted,
@@ -217,24 +225,38 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           }))
         });
         
-        // Ensure audio tracks are enabled
+        // CRITICAL: Force-enable ALL audio tracks - not just disabled ones
+        // This is the key fix for participant-count audio bug
         audioTracks.forEach(track => {
-          if (!track.enabled) {
-            console.log('⚠️ Remote audio track was disabled, enabling...');
-            track.enabled = true;
-          }
+          track.enabled = true;
+          console.log(`🔊 TikTok: Ensured audio track enabled: ${track.id}`);
+          
+          // Add event listeners to catch system-level muting
+          track.onmute = () => {
+            console.log(`🔇 TikTok: Audio track muted by system: ${track.id}`);
+            // Re-enable after system mute
+            setTimeout(() => {
+              if (track.readyState === 'live') {
+                track.enabled = true;
+                console.log(`🔊 TikTok: Re-enabled audio track after mute`);
+              }
+            }, 50);
+          };
         });
         
+        // Update host stream for VideoCallGrid
         setHostStream(remoteStream);
+        
+        // Attach to video element and play
         if (videoRef.current) {
            videoRef.current.srcObject = remoteStream;
            if (!isMuted) {
              videoRef.current.muted = false;
-             videoRef.current.play().catch(e => console.error(e));
+             videoRef.current.play().catch(e => console.error('TikTok: Error playing remote stream:', e));
            }
         }
      }
-  }, [remoteStream, isMuted]);
+  }, [remoteStream, remoteStream?.id, isMuted]); // CRITICAL: Also depend on stream ID for new reference detection
 
   useEffect(() => {
       const viewerMap = new Map<string, any>();

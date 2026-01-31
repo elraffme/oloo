@@ -195,6 +195,9 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
   const videoRef = tile.videoRef || localVideoRef;
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
+  // CRITICAL: Track stream ID to detect when stream object changes
+  const lastStreamIdRef = useRef<string | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
 
   useEffect(() => {
     if (!tile.stream || !videoRef.current) {
@@ -203,11 +206,17 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       return;
     }
 
+    const currentStreamId = tile.stream.id;
+    const isNewStream = lastStreamIdRef.current !== currentStreamId;
+    lastStreamIdRef.current = currentStreamId;
+
     const audioTracks = tile.stream.getAudioTracks();
     const videoTracks = tile.stream.getVideoTracks();
     
-    console.log(`📹 VideoTile: Attaching stream for ${tile.displayName}`, {
-      streamId: tile.stream.id,
+    console.log(`📹 VideoTile: ${isNewStream ? 'NEW' : 'EXISTING'} stream for ${tile.displayName}`, {
+      streamId: currentStreamId,
+      audioTrackCount: audioTracks.length,
+      videoTrackCount: videoTracks.length,
       audioTracks: audioTracks.map(t => ({ 
         id: t.id, 
         kind: t.kind, 
@@ -215,36 +224,46 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
         readyState: t.readyState,
         muted: t.muted 
       })),
-      videoTracks: videoTracks.map(t => ({ 
-        id: t.id,
-        kind: t.kind, 
-        enabled: t.enabled, 
-        readyState: t.readyState 
-      })),
       isHost: tile.isHost,
       isYou: tile.isYou
     });
     
-    // CRITICAL: Force-enable all audio tracks before attaching to video element
+    // CRITICAL: Force-enable ALL audio tracks before attaching to video element
     // This ensures audio works regardless of participant count or layout
     audioTracks.forEach(track => {
-      if (!track.enabled) {
-        console.log(`🔊 VideoTile: Force-enabling disabled audio track for ${tile.displayName}`);
-        track.enabled = true;
-      }
+      // ALWAYS enable audio tracks, don't just check if disabled
+      track.enabled = true;
+      setAudioReady(true);
+      
+      console.log(`🔊 VideoTile: Audio track enabled for ${tile.displayName}:`, {
+        id: track.id,
+        enabled: track.enabled,
+        readyState: track.readyState,
+        muted: track.muted
+      });
       
       // Add track event listeners for debugging
       track.onmute = () => {
         console.log(`🔇 VideoTile: Audio track muted for ${tile.displayName}`);
+        // CRITICAL: Re-enable on mute (mobile/participant change fix)
+        setTimeout(() => {
+          if (track.readyState === 'live') {
+            track.enabled = true;
+            console.log(`🔊 VideoTile: Re-enabled muted audio track`);
+          }
+        }, 50);
       };
       track.onunmute = () => {
         console.log(`🔊 VideoTile: Audio track unmuted for ${tile.displayName}`);
       };
       track.onended = () => {
         console.log(`❌ VideoTile: Audio track ended for ${tile.displayName}`);
+        setAudioReady(false);
       };
     });
     
+    // CRITICAL: Attach stream to video element
+    // Always re-attach on stream change to ensure audio is picked up
     videoRef.current.srcObject = tile.stream;
     setIsConnecting(false);
     
@@ -253,6 +272,11 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       for (let i = 0; i < retries; i++) {
         try {
           if (videoRef.current) {
+            // Ensure video element is not muted for host audio (but muted for self)
+            if (!tile.isYou) {
+              videoRef.current.muted = false;
+            }
+            
             await videoRef.current.play();
             setPlaybackBlocked(false);
             console.log(`✅ Video playback started for ${tile.displayName} on attempt ${i + 1}`);
@@ -263,7 +287,8 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
               console.log(`🔊 Audio should be playing for ${tile.displayName}:`, {
                 videoMuted: videoRef.current?.muted,
                 audioTrackEnabled: currentAudioTracks[0].enabled,
-                audioTrackState: currentAudioTracks[0].readyState
+                audioTrackState: currentAudioTracks[0].readyState,
+                audioTrackMuted: currentAudioTracks[0].muted
               });
             }
             return;
@@ -292,10 +317,15 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       // Force-enable newly added audio tracks
       if (event.track.kind === 'audio') {
         event.track.enabled = true;
+        setAudioReady(true);
         console.log(`🔊 VideoTile: Force-enabled newly added audio track for ${tile.displayName}`);
+        
+        // Re-attach stream and play to pick up new audio
+        if (videoRef.current) {
+          videoRef.current.srcObject = tile.stream;
+          playWithRetry();
+        }
       }
-      
-      playWithRetry();
     };
     tile.stream.addEventListener('addtrack', handleTrackAdded);
     
@@ -304,6 +334,9 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       console.log(`❌ VideoTile: Track removed from stream for ${tile.displayName}:`, {
         kind: event.track.kind
       });
+      if (event.track.kind === 'audio') {
+        setAudioReady(false);
+      }
     };
     tile.stream.addEventListener('removetrack', handleTrackRemoved);
 
@@ -323,7 +356,7 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
         videoRef.current.srcObject = null;
       }
     };
-  }, [tile.stream, tile.displayName, tile.isYou, tile.isHost]);
+  }, [tile.stream, tile.stream?.id, tile.displayName, tile.isYou, tile.isHost]);
   
   const handleTapToPlay = async () => {
     if (videoRef.current) {

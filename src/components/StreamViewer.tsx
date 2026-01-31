@@ -326,15 +326,21 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   }, [streamId, user]);
 
   // Handle remote stream updates with audio logging
+  // CRITICAL: This effect runs when remoteStream changes (new object reference from useStream fix)
   useEffect(() => {
     if (videoRef.current && remoteStream) {
-      console.log('🎥 Setting remote stream', remoteStream.id);
+      console.log('🎥 Setting remote stream (new reference):', remoteStream.id);
       
       // Log audio track state for debugging
       const audioTracks = remoteStream.getAudioTracks();
+      const videoTracks = remoteStream.getVideoTracks();
+      
       console.log('🔊 Remote stream audio state:', {
-        trackCount: audioTracks.length,
+        streamId: remoteStream.id,
+        audioTrackCount: audioTracks.length,
+        videoTrackCount: videoTracks.length,
         tracks: audioTracks.map(t => ({
+          id: t.id,
           label: t.label,
           enabled: t.enabled,
           muted: t.muted,
@@ -342,20 +348,34 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         }))
       });
       
-      // Ensure audio tracks are enabled
+      // CRITICAL: Force-enable ALL audio tracks - not just disabled ones
+      // This is the key fix for participant-count audio bug
       audioTracks.forEach(track => {
-        if (!track.enabled) {
-          console.log('⚠️ Remote audio track was disabled, enabling...');
-          track.enabled = true;
-        }
+        track.enabled = true;
+        console.log(`🔊 StreamViewer: Ensured audio track enabled: ${track.id}`);
+        
+        // Add event listeners to catch system-level muting
+        track.onmute = () => {
+          console.log(`🔇 StreamViewer: Audio track muted by system: ${track.id}`);
+          // Re-enable after system mute
+          setTimeout(() => {
+            if (track.readyState === 'live') {
+              track.enabled = true;
+              console.log(`🔊 StreamViewer: Re-enabled audio track after mute`);
+            }
+          }, 50);
+        };
       });
       
+      // Update host stream for VideoCallGrid
+      setHostStream(remoteStream);
+      
+      // Attach to video element and play
       videoRef.current.srcObject = remoteStream;
       videoRef.current.play().catch(e => console.error('Error playing remote stream:', e));
       setHasVideo(true);
-      // connectionPhase is now managed by useStream hook
     }
-  }, [remoteStream]);
+  }, [remoteStream, remoteStream?.id]); // CRITICAL: Also depend on stream ID for new reference detection
 
 
 
