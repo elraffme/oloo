@@ -519,67 +519,72 @@ export const useStream = (navigation = null) => {
       appData,
     } = data;
     const transport = consumeTransports.current.get(storageId);
-    if (!transport) return;
+    if (!transport) {
+      console.error('❌ No transport found for storageId:', storageId);
+      return;
+    }
 
-    const consumer = await transport.consume({
-      id,
-      producerId,
-      kind,
-      rtpParameters,
-      appData: { ...appData, peerId: remPeerId },
-    });
+    let consumer;
+    try {
+      consumer = await transport.consume({
+        id,
+        producerId,
+        kind,
+        rtpParameters,
+        appData: { ...appData, peerId: remPeerId },
+      });
+    } catch (err: any) {
+      console.error('❌ Failed to create consumer:', err.message);
+      return;
+    }
+    
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
 
-    // CRITICAL: Log consumer details
-    console.log(`📥 New consumer created: ${consumer.kind} from ${appData?.type || 'host'}`, {
+    // Log consumer details
+    console.log(`📥 New consumer: ${consumer.kind} from ${appData?.type || 'host'}`, {
       consumerId: consumer.id,
       producerId,
       trackId: consumer.track.id,
       trackEnabled: consumer.track.enabled,
       trackReadyState: consumer.track.readyState,
-      trackMuted: consumer.track.muted,
       totalConsumers: consumers.current.size
     });
 
-    // For audio consumers, ensure track is enabled and setup event listeners
-    // CRITICAL: This must happen BEFORE attaching to any MediaStream
+    // CRITICAL: For audio consumers, ensure track is enabled and setup recovery handlers
     if (consumer.kind === 'audio') {
-      // CRITICAL: Force-enable audio track immediately - this is the key fix
-      // Audio tracks must be enabled at the consumer level, not just the stream level
+      // Force-enable audio track immediately
       consumer.track.enabled = true;
       
-      console.log(`🔊 AUDIO CONSUMER CONFIGURED: track=${consumer.track.id}, enabled=${consumer.track.enabled}, state=${consumer.track.readyState}`);
+      console.log(`🔊 AUDIO CONSUMER: track=${consumer.track.id.slice(0,8)}, enabled=${consumer.track.enabled}, state=${consumer.track.readyState}`);
       
+      // Monitor and auto-recover from system-level muting
       consumer.track.onended = () => {
         console.log(`🔇 Audio consumer track ended: ${consumer.id}`);
       };
       
       consumer.track.onmute = () => {
         console.log(`🔇 Audio consumer track muted by system: ${consumer.id}`);
-        // CRITICAL: Re-enable audio on system mute (happens on mobile/participant changes)
-        setTimeout(() => {
-          if (consumer.track.readyState === 'live') {
-            consumer.track.enabled = true;
-            console.log(`🔊 Re-enabled audio track after system mute`);
-            setStreamUpdateCounter(c => c + 1); // Force UI update
-          }
-        }, 100);
+        // Re-enable immediately (common on mobile/participant changes)
+        if (consumer.track.readyState === 'live') {
+          consumer.track.enabled = true;
+          console.log(`🔊 Re-enabled audio track after system mute`);
+          setStreamUpdateCounter(c => c + 1);
+        }
       };
       
       consumer.track.onunmute = () => {
-        console.log(`🔊 Audio consumer track unmuted by system: ${consumer.id}`);
+        console.log(`🔊 Audio consumer track unmuted: ${consumer.id}`);
       };
     }
 
     if (appData?.type === "viewer") {
-      // VIEWER TRACK: Rebuild viewer streams map with proper audio handling
+      // VIEWER TRACK: Rebuild viewer streams map
       const viewerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type === "viewer"
       );
       
       // Group consumers by peerId and create new MediaStream instances
-      // CRITICAL: Create fresh MediaStream each time to ensure React detects changes
       const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string; hasAudio: boolean; hasVideo: boolean }>();
       
       viewerConsumers.forEach((c) => {
@@ -597,19 +602,19 @@ export const useStream = (navigation = null) => {
         
         const viewerData = viewerStreamsMap.get(pId)!;
         
-        // CRITICAL: Force-enable track and add to stream
+        // Force-enable track before adding
         c.track.enabled = true;
         
-        // Check if track already exists in stream (avoid duplicates)
-        const existingTracks = viewerData.stream.getTracks().map(t => t.id);
-        if (!existingTracks.includes(c.track.id)) {
+        // Check for duplicates
+        const existingTrackIds = viewerData.stream.getTracks().map(t => t.id);
+        if (!existingTrackIds.includes(c.track.id)) {
           viewerData.stream.addTrack(c.track);
           
           if (c.kind === 'audio') {
             viewerData.hasAudio = true;
-            console.log(`🔊 VIEWER AUDIO TRACK ADDED to host's viewerStreams:`, {
-              viewerId: pId,
-              trackId: c.track.id,
+            console.log(`🔊 VIEWER AUDIO ADDED:`, {
+              viewerId: pId.slice(0,8),
+              trackId: c.track.id.slice(0,8),
               enabled: c.track.enabled,
               readyState: c.track.readyState
             });
@@ -619,11 +624,10 @@ export const useStream = (navigation = null) => {
         }
       });
       
-      // Log final viewer stream composition
+      // Log final composition
       viewerStreamsMap.forEach((data, viewerId) => {
         const audioTracks = data.stream.getAudioTracks();
-        const videoTracks = data.stream.getVideoTracks();
-        console.log(`👤 Viewer ${viewerId}: audio=${audioTracks.length} (enabled=${audioTracks.map(t => t.enabled).join(',')}), video=${videoTracks.length}`);
+        console.log(`👤 Viewer ${viewerId.slice(0,8)}: audio=${audioTracks.length}`);
       });
       
       // Update state with new stream instances
@@ -634,88 +638,55 @@ export const useStream = (navigation = null) => {
       }));
       
       setViewerStreams(newViewerStreams);
-      console.log(`👥 Viewer streams updated: ${viewerStreamsMap.size} viewers, triggering ViewerAudioPlayer update`);
+      console.log(`👥 Viewer streams updated: ${newViewerStreams.length} viewers`);
       
-      // Force UI update to ensure ViewerAudioPlayer re-renders
+      // Force UI update for ViewerAudioPlayer
       setStreamUpdateCounter(c => c + 1);
     } else {
-      // HOST/STREAMER TRACK: Handle with special care for audio continuity
+      // HOST/STREAMER TRACK
       hostPeerId.current = remPeerId;
-      
-      // CRITICAL FIX FOR PARTICIPANT-COUNT BUG:
-      // The issue was that when adding tracks to an existing MediaStream,
-      // React doesn't detect the change because the object reference stays the same.
-      // Solution: Create a NEW MediaStream and copy all tracks (old + new) to it.
-      // This ensures React sees a new object and re-renders properly.
       
       const isFirstTrack = !hostStreamRef.current;
       
       if (isFirstTrack) {
-        // First track from host - create the stream
         hostStreamRef.current = new MediaStream();
-        console.log('📺 Created new host MediaStream for first track');
+        console.log('📺 Created new host MediaStream');
       }
       
-      // Check if this track is already in the stream
+      // Check for duplicates
       const existingTrackIds = hostStreamRef.current.getTracks().map(t => t.id);
       const isNewTrack = !existingTrackIds.includes(consumer.track.id);
       
       if (isNewTrack) {
-        // CRITICAL: Ensure the track is enabled before adding
         consumer.track.enabled = true;
-        
-        // Add the new track to the existing stream
         hostStreamRef.current.addTrack(consumer.track);
         
-        console.log(`📺 Added ${consumer.kind} track to host stream. All tracks:`, 
-          hostStreamRef.current.getTracks().map(t => ({ 
-            kind: t.kind, 
-            id: t.id,
-            enabled: t.enabled, 
-            state: t.readyState 
-          }))
-        );
+        console.log(`📺 Added ${consumer.kind} track to host stream`);
         
-        // CRITICAL FIX: Create a new MediaStream instance to trigger React re-render
-        // Copy all tracks from the ref to a new stream
+        // CRITICAL: Create new MediaStream instance for React to detect change
         const newStream = new MediaStream();
         hostStreamRef.current.getTracks().forEach(track => {
-          // Double-ensure all tracks are enabled
           track.enabled = true;
           newStream.addTrack(track);
         });
         
-        // Update the ref with the new stream
         hostStreamRef.current = newStream;
-        
-        // Set the new stream to state - React will now see this as a change
         setRemoteStream(newStream);
-        
-        // Force a UI update counter increment to ensure downstream components re-render
         setStreamUpdateCounter(c => c + 1);
         
-        console.log(`📺 Created new MediaStream instance for React update. Stream ID: ${newStream.id}`);
-      } else {
-        console.log(`📺 Track ${consumer.track.id} already in host stream, skipping`);
+        console.log(`📺 New MediaStream created: ${newStream.id}`);
       }
       
-      // Log audio status specifically
+      // Log audio status
       const audioTracks = hostStreamRef.current.getAudioTracks();
-      const videoTracks = hostStreamRef.current.getVideoTracks();
-      console.log(`📺 Host stream status: ${audioTracks.length} audio, ${videoTracks.length} video tracks`);
-      
       if (audioTracks.length > 0) {
         console.log(`🔊 HOST AUDIO ACTIVE:`, audioTracks.map(t => ({
-          id: t.id,
+          id: t.id.slice(0,8),
           enabled: t.enabled,
-          muted: t.muted,
           state: t.readyState
         })));
-      } else {
-        console.warn(`⚠️ HOST HAS NO AUDIO TRACKS YET - waiting for audio producer`);
       }
       
-      // Successfully streaming - clear all timers and update phase
       setConnectionPhase('streaming');
       clearAllTimers();
     }
@@ -1120,7 +1091,20 @@ export const useStream = (navigation = null) => {
       // CRITICAL: Ensure we have a socket connection first
       if (!socketRef.current || !socketRef.current.connected) {
         console.error('❌ No socket connection - cannot publish');
-        return null;
+        
+        // Attempt to reconnect if disconnected
+        if (socketRef.current && !socketRef.current.connected) {
+          console.log('🔄 Attempting socket reconnection...');
+          socketRef.current.connect();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          if (!socketRef.current.connected) {
+            console.error('❌ Reconnection failed - aborting publish');
+            return null;
+          }
+        } else {
+          return null;
+        }
       }
       
       // Determine media constraints based on type
@@ -1146,28 +1130,35 @@ export const useStream = (navigation = null) => {
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-      // Wait a tick for track initialization (mobile fix)
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // CRITICAL: Wait for track stabilization (mobile devices need this)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Process audio tracks
+      // Process audio tracks with comprehensive handling
       const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0 && !isVideoOnly) {
+        console.error('❌ No audio tracks acquired despite requesting audio!');
+      }
+      
       audioTracks.forEach(track => {
-        // Force enable audio track
+        // Force enable audio track immediately
         track.enabled = true;
         
-        // Setup event listeners for debugging
-        track.onended = () => console.log('🎤 Viewer audio track ended');
+        // Setup comprehensive event listeners
+        track.onended = () => {
+          console.log('🎤 Viewer audio track ended');
+          setIsMuted(true);
+        };
         track.onmute = () => {
           console.log('🎤 Viewer audio track muted by system');
-          // Re-enable after system mute
+          // CRITICAL: Re-enable immediately after system mute (mobile bg/fg)
           setTimeout(() => {
             if (track.readyState === 'live') {
               track.enabled = true;
               console.log('🎤 Viewer audio track re-enabled after system mute');
             }
-          }, 100);
+          }, 50);
         };
-        track.onunmute = () => console.log('🎤 Viewer audio track unmuted by system');
+        track.onunmute = () => console.log('🎤 Viewer audio track unmuted');
         
         console.log('🎤 Viewer audio track acquired:', {
           id: track.id,
@@ -1194,78 +1185,58 @@ export const useStream = (navigation = null) => {
       setLocalStream(stream);
       setIsMuted(false);
 
-      // CRITICAL: Wait for transport to be created if not available
-      if (!produceTransport.current) {
-        console.log('📤 No produce transport yet, requesting and waiting for one...');
+      // CRITICAL: Robust transport creation with multiple fallbacks
+      let transportReady = !!produceTransport.current;
+      
+      if (!transportReady) {
+        console.log('📤 No produce transport yet, requesting...');
         
-        if (!socketRef.current || !socketRef.current.connected) {
-          console.error('❌ No socket connection available');
+        // Request transport creation
+        socketRef.current!.emit("createTransport", peerId.current);
+        
+        // Wait for transport with polling and timeout
+        const maxWaitMs = 10000;
+        const pollIntervalMs = 100;
+        const startTime = Date.now();
+        
+        while (!produceTransport.current && (Date.now() - startTime) < maxWaitMs) {
+          await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+        }
+        
+        transportReady = !!produceTransport.current;
+        
+        if (!transportReady) {
+          console.error('❌ Transport creation timed out after', maxWaitMs, 'ms');
+          // Still return stream so caller can retry later
           return stream;
         }
         
-        // Create a promise that resolves when transport is ready
-        const transportPromise = new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('Transport creation timed out after 15s'));
-          }, 15000); // 15 second timeout (increased for reliability)
-          
-          let checkCount = 0;
-          const maxChecks = 150; // 15 seconds worth of checks
-          
-          const checkTransport = () => {
-            checkCount++;
-            if (produceTransport.current) {
-              clearTimeout(timeout);
-              console.log(`✅ Transport ready after ${checkCount} checks`);
-              resolve();
-            } else if (checkCount >= maxChecks) {
-              clearTimeout(timeout);
-              reject(new Error('Max transport checks exceeded'));
-            } else {
-              setTimeout(checkTransport, 100);
-            }
-          };
-          
-          // Request transport creation
-          console.log('📤 Emitting createTransport request...');
-          socketRef.current!.emit("createTransport", peerId.current);
-          
-          // Start checking after a short delay
-          setTimeout(checkTransport, 150);
-        });
+        console.log('✅ Producer transport created after', Date.now() - startTime, 'ms');
         
-        try {
-          await transportPromise;
-          console.log('✅ Producer transport is now ready');
-          
-          // Wait for transport to fully stabilize
-          await new Promise(resolve => setTimeout(resolve, 150));
-        } catch (err) {
-          console.error('❌ Failed to create producer transport:', err);
-          // Don't return here - let caller know stream was acquired but not published
-          return stream;
-        }
+        // Wait for transport to fully stabilize
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Final transport check
-      if (!produceTransport.current) {
-        console.error('❌ Producer transport still not available after wait');
-        return stream;
-      }
+      console.log('✅ Producer transport confirmed ready, producing tracks...');
       
-      console.log('✅ Producer transport confirmed ready, proceeding to produce tracks...');
-      
-      // Produce tracks to SFU
+      // Produce tracks to SFU with retry logic
       const audioTrack = audioTracks[0];
       const videoTrack = videoTracks[0];
 
-      // PRODUCE AUDIO FIRST (critical for communication)
-      if (audioTrack) {
-        if (audioTrack.readyState !== 'live') {
-          console.error('❌ Viewer audio track not live:', audioTrack.readyState);
-        } else {
+      // PRODUCE AUDIO FIRST (priority for two-way communication)
+      if (audioTrack && audioTrack.readyState === 'live') {
+        let audioProduced = false;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!audioProduced && attempts < maxAttempts) {
+          attempts++;
           try {
-            console.log('🎤 Producing viewer audio track to SFU...');
+            console.log(`🎤 Producing viewer audio (attempt ${attempts}/${maxAttempts})...`);
+            
+            // Ensure track is still enabled
+            audioTrack.enabled = true;
+            
             await produceTransport.current.produce({
               track: audioTrack,
               appData: { 
@@ -1275,42 +1246,48 @@ export const useStream = (navigation = null) => {
                 mediaType: 'audio'
               },
             });
-            console.log('✅ Viewer audio track produced to SFU successfully');
-          } catch (audioError) {
-            console.error('❌ Failed to produce viewer audio:', audioError);
+            audioProduced = true;
+            console.log('✅ Viewer audio produced to SFU successfully');
+          } catch (audioError: any) {
+            console.error(`❌ Audio produce attempt ${attempts} failed:`, audioError.message);
+            
+            if (attempts < maxAttempts) {
+              // Wait before retry
+              await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+            }
           }
         }
-      } else {
-        console.warn('⚠️ No audio track to produce');
+        
+        if (!audioProduced) {
+          console.error('❌ Failed to produce audio after', maxAttempts, 'attempts');
+        }
+      } else if (!isVideoOnly) {
+        console.warn('⚠️ No live audio track to produce');
       }
       
       // PRODUCE VIDEO
-      if (videoTrack) {
-        if (videoTrack.readyState !== 'live') {
-          console.error('❌ Viewer video track not live:', videoTrack.readyState);
-        } else {
-          try {
-            console.log('📹 Producing viewer video track to SFU...');
-            await produceTransport.current.produce({
-              track: videoTrack,
-              encodings: [
-                {
-                  ssrc: 111110,
-                  scalabilityMode: "L3T3_KEY",
-                  maxBitrate: 1000000,
-                },
-              ],
-              appData: { 
-                type: 'viewer', 
-                peerId: peerId.current, 
-                displayName,
-                mediaType: 'video'
+      if (videoTrack && videoTrack.readyState === 'live') {
+        try {
+          console.log('📹 Producing viewer video track to SFU...');
+          await produceTransport.current.produce({
+            track: videoTrack,
+            encodings: [
+              {
+                ssrc: 111110,
+                scalabilityMode: "L3T3_KEY",
+                maxBitrate: 1000000,
               },
-            });
-            console.log('✅ Viewer video track produced to SFU successfully');
-          } catch (videoError) {
-            console.error('❌ Failed to produce viewer video:', videoError);
-          }
+            ],
+            appData: { 
+              type: 'viewer', 
+              peerId: peerId.current, 
+              displayName,
+              mediaType: 'video'
+            },
+          });
+          console.log('✅ Viewer video produced to SFU successfully');
+        } catch (videoError: any) {
+          console.error('❌ Failed to produce video:', videoError.message);
         }
       }
       
