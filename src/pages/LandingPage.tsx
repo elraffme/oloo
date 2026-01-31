@@ -156,7 +156,10 @@ const LandingPage = () => {
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
               <Video className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
               <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Virtual Dates & Shared Events </h3>
-              <p className="text-sm sm:text-base text-muted-foreground">Explore new ways to connect, like cooking a dish together over video call, sharing your favorite poetry, or showing each other local art galleries.</p>
+              <p className="text-sm sm:text-base text-muted-foreground">Explore new ways to connect, like cooking a dish together over video calls,  attend cultural events, film/music festivals, poetry slams. Meet your match while immersing yourself in art, culture, and history.
+
+
+            </p>
             </div>
             
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-2 sm:space-y-3">
