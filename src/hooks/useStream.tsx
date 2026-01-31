@@ -504,6 +504,10 @@ export const useStream = (navigation = null) => {
   }
 
 
+  // CRITICAL: State to force re-render when tracks are added to streams
+  // This counter increments when new tracks are added to trigger React updates
+  const [streamUpdateCounter, setStreamUpdateCounter] = useState(0);
+
   async function handleNewConsumer(data) {
     const {
       producerId,
@@ -539,9 +543,13 @@ export const useStream = (navigation = null) => {
     });
 
     // For audio consumers, ensure track is enabled and setup event listeners
+    // CRITICAL: This must happen BEFORE attaching to any MediaStream
     if (consumer.kind === 'audio') {
-      // CRITICAL: Force-enable audio track immediately
+      // CRITICAL: Force-enable audio track immediately - this is the key fix
+      // Audio tracks must be enabled at the consumer level, not just the stream level
       consumer.track.enabled = true;
+      
+      console.log(`🔊 AUDIO CONSUMER CONFIGURED: track=${consumer.track.id}, enabled=${consumer.track.enabled}, state=${consumer.track.readyState}`);
       
       consumer.track.onended = () => {
         console.log(`🔇 Audio consumer track ended: ${consumer.id}`);
@@ -549,11 +557,12 @@ export const useStream = (navigation = null) => {
       
       consumer.track.onmute = () => {
         console.log(`🔇 Audio consumer track muted by system: ${consumer.id}`);
-        // Try to re-enable if system mutes it
+        // CRITICAL: Re-enable audio on system mute (happens on mobile/participant changes)
         setTimeout(() => {
           if (consumer.track.readyState === 'live') {
             consumer.track.enabled = true;
             console.log(`🔊 Re-enabled audio track after system mute`);
+            setStreamUpdateCounter(c => c + 1); // Force UI update
           }
         }, 100);
       };
@@ -561,12 +570,10 @@ export const useStream = (navigation = null) => {
       consumer.track.onunmute = () => {
         console.log(`🔊 Audio consumer track unmuted by system: ${consumer.id}`);
       };
-      
-      console.log(`🔊 Audio consumer ready: enabled=${consumer.track.enabled}, state=${consumer.track.readyState}, muted=${consumer.track.muted}`);
     }
 
     if (appData?.type === "viewer") {
-      // VIEWER TRACK: Rebuild viewer streams map (this is fine to rebuild)
+      // VIEWER TRACK: Rebuild viewer streams map
       const viewerConsumers = Array.from(consumers.current.values()).filter(
         (c) => c.appData?.type === "viewer"
       );
@@ -577,6 +584,8 @@ export const useStream = (navigation = null) => {
         if (!viewerStreamsMap.has(pId)) {
           viewerStreamsMap.set(pId, { stream: new MediaStream(), displayName });
         }
+        // Ensure track is enabled before adding
+        c.track.enabled = true;
         viewerStreamsMap.get(pId)!.stream.addTrack(c.track);
       });
       setViewerStreams(
@@ -588,32 +597,65 @@ export const useStream = (navigation = null) => {
       );
       console.log(`👥 Viewer streams updated: ${viewerStreamsMap.size} viewers`);
     } else {
-      // HOST/STREAMER TRACK: Add track to persistent stream instead of recreating
+      // HOST/STREAMER TRACK: Handle with special care for audio continuity
       hostPeerId.current = remPeerId;
       
-      // CRITICAL FIX: Don't recreate the entire MediaStream, ADD tracks to existing one
-      // This prevents audio track loss when video or subsequent audio tracks arrive
+      // CRITICAL FIX FOR PARTICIPANT-COUNT BUG:
+      // The issue was that when adding tracks to an existing MediaStream,
+      // React doesn't detect the change because the object reference stays the same.
+      // Solution: Create a NEW MediaStream and copy all tracks (old + new) to it.
+      // This ensures React sees a new object and re-renders properly.
       
-      if (!hostStreamRef.current) {
+      const isFirstTrack = !hostStreamRef.current;
+      
+      if (isFirstTrack) {
         // First track from host - create the stream
         hostStreamRef.current = new MediaStream();
-        console.log('📺 Created new host MediaStream');
+        console.log('📺 Created new host MediaStream for first track');
       }
       
       // Check if this track is already in the stream
       const existingTrackIds = hostStreamRef.current.getTracks().map(t => t.id);
-      if (!existingTrackIds.includes(consumer.track.id)) {
+      const isNewTrack = !existingTrackIds.includes(consumer.track.id);
+      
+      if (isNewTrack) {
+        // CRITICAL: Ensure the track is enabled before adding
+        consumer.track.enabled = true;
+        
+        // Add the new track to the existing stream
         hostStreamRef.current.addTrack(consumer.track);
-        console.log(`📺 Added ${consumer.kind} track to host stream. Total tracks:`, 
-          hostStreamRef.current.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, state: t.readyState }))
+        
+        console.log(`📺 Added ${consumer.kind} track to host stream. All tracks:`, 
+          hostStreamRef.current.getTracks().map(t => ({ 
+            kind: t.kind, 
+            id: t.id,
+            enabled: t.enabled, 
+            state: t.readyState 
+          }))
         );
+        
+        // CRITICAL FIX: Create a new MediaStream instance to trigger React re-render
+        // Copy all tracks from the ref to a new stream
+        const newStream = new MediaStream();
+        hostStreamRef.current.getTracks().forEach(track => {
+          // Double-ensure all tracks are enabled
+          track.enabled = true;
+          newStream.addTrack(track);
+        });
+        
+        // Update the ref with the new stream
+        hostStreamRef.current = newStream;
+        
+        // Set the new stream to state - React will now see this as a change
+        setRemoteStream(newStream);
+        
+        // Force a UI update counter increment to ensure downstream components re-render
+        setStreamUpdateCounter(c => c + 1);
+        
+        console.log(`📺 Created new MediaStream instance for React update. Stream ID: ${newStream.id}`);
       } else {
         console.log(`📺 Track ${consumer.track.id} already in host stream, skipping`);
       }
-      
-      // Set the remote stream state - this triggers UI update
-      // IMPORTANT: Always set the same stream reference to avoid React re-rendering issues
-      setRemoteStream(hostStreamRef.current);
       
       // Log audio status specifically
       const audioTracks = hostStreamRef.current.getAudioTracks();
