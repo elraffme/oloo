@@ -7,10 +7,11 @@ import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
 import { useTranslation } from "react-i18next";
-
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [isVideoPlaying, setIsVideoPlaying] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
@@ -51,7 +52,7 @@ const LandingPage = () => {
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2" aria-label="Toggle menu">
           {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Menu size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
         </button>
-        <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl px-10 sm:px-12">Òloo</h1>
+        <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl px-10 sm:px-12 lg:text-5xl">Òloo</h1>
         <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">{t('landing.tagline')}</p>
         
         {/* Dropdown Menu */}
