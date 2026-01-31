@@ -481,32 +481,70 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   };
 
   const toggleViewerMic = async () => {
+    console.log('🎤 Toggle viewer mic called:', { 
+      viewerMicEnabled, 
+      viewerCameraEnabled,
+      hasLocalStream: !!localStream 
+    });
+    
     if (!sessionToken) {
       toast.error('Not connected to stream');
       return;
     }
 
     if (viewerMicEnabled) {
+      // DISABLE microphone
       if (viewerCameraEnabled) {
-         toggleSFUMute(); 
+        // Camera is on, just mute the audio track
+        toggleSFUMute();
+        console.log('🔇 Muted audio track (camera still on)');
       } else {
-         unpublishStream();
+        // Only mic was on, stop fully
+        unpublishStream();
+        console.log('🛑 Unpublished stream (no camera)');
       }
       setViewerMicEnabled(false);
       toast.success('Microphone disabled');
     } else {
+      // ENABLE microphone
+      setIsMicRequesting(true);
       try {
-        setIsMicRequesting(true);
-        if (viewerCameraEnabled) {
-            toggleSFUMute();
+        if (viewerCameraEnabled && localStream) {
+          // Camera already on, just unmute
+          toggleSFUMute();
+          console.log('🔊 Unmuted audio track');
+          setViewerMicEnabled(true);
+          toast.success('Microphone enabled - Host can hear you!');
         } else {
-            await publishStream('mic');
+          // Start audio only stream
+          console.log('🎤 Starting audio-only stream for viewer...');
+          const stream = await publishStream('mic');
+          
+          if (stream && stream.getAudioTracks().length > 0) {
+            const audioTrack = stream.getAudioTracks()[0];
+            console.log('✅ Viewer mic stream started:', {
+              trackId: audioTrack.id,
+              enabled: audioTrack.enabled,
+              readyState: audioTrack.readyState
+            });
+            setViewerMicEnabled(true);
+            toast.success('Microphone enabled - Host can hear you!');
+          } else {
+            console.error('❌ No audio track acquired');
+            toast.error('Failed to start microphone');
+          }
         }
-        setViewerMicEnabled(true);
-        toast.success('Microphone enabled! Host can hear you.');
-      } catch (error) {
-        console.error('Error enabling microphone:', error);
-        toast.error('Failed to enable microphone. Please check permissions.');
+      } catch (error: any) {
+        console.error('❌ Error enabling microphone:', error);
+        
+        let errorMessage = 'Failed to enable microphone';
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Microphone permission denied. Please allow access.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'No microphone found on this device.';
+        }
+        
+        toast.error(errorMessage);
       } finally {
         setIsMicRequesting(false);
       }

@@ -635,38 +635,71 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     }
   };
 
-  // Toggle viewer microphone
+  // Toggle viewer microphone with proper state sync
   const toggleViewerMic = async () => {
+    console.log('🎤 Toggle viewer mic called:', { 
+      viewerMicEnabled, 
+      viewerCameraEnabled,
+      hasLocalStream: !!localStream 
+    });
+    
     if (viewerMicEnabled) {
+      // DISABLE microphone
       if (viewerCameraEnabled) {
-         // If camera is on, just mute audio tracks
-         toggleSFUMute(); 
+        // Camera is on, just mute the audio track
+        toggleSFUMute();
+        console.log('🔇 Muted audio track (camera still on)');
       } else {
-         // If only mic was on, stop fully
-         unpublishStream();
+        // Only mic was on, stop fully
+        unpublishStream();
+        console.log('🛑 Unpublished stream (no camera)');
       }
       setViewerMicEnabled(false);
       toast.success('Microphone disabled');
     } else {
-       // Enable microphone
-       setIsMicRequesting(true);
-       try {
-         if (viewerCameraEnabled) {
-            // Unmute
-            toggleSFUMute();
-         } else {
-             // Start audio only
-             const displayName = user?.email?.split('@')[0] || 'Viewer';
-             await publishStream('mic', displayName);
+      // ENABLE microphone
+      setIsMicRequesting(true);
+      try {
+        if (viewerCameraEnabled && localStream) {
+          // Camera already on, just unmute
+          toggleSFUMute();
+          console.log('🔊 Unmuted audio track');
+          setViewerMicEnabled(true);
+          toast.success('Microphone enabled');
+        } else {
+          // Start audio only stream
+          const displayName = user?.email?.split('@')[0] || 'Viewer';
+          console.log('🎤 Starting audio-only stream for viewer...');
+          const stream = await publishStream('mic', displayName);
+          
+          if (stream && stream.getAudioTracks().length > 0) {
+            const audioTrack = stream.getAudioTracks()[0];
+            console.log('✅ Viewer mic stream started:', {
+              trackId: audioTrack.id,
+              enabled: audioTrack.enabled,
+              readyState: audioTrack.readyState
+            });
+            setViewerMicEnabled(true);
+            toast.success('Microphone enabled - Host can hear you!');
+          } else {
+            console.error('❌ No audio track acquired');
+            toast.error('Failed to start microphone');
           }
-         setViewerMicEnabled(true);
-         toast.success('Microphone enabled');
-       } catch (error) {
-          console.error('Error enabling mic:', error);
-          toast.error('Failed to enable microphone');
-       } finally {
-          setIsMicRequesting(false);
-       }
+        }
+      } catch (error: any) {
+        console.error('❌ Error enabling mic:', error);
+        
+        let errorMessage = 'Failed to enable microphone';
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Microphone permission denied. Please allow access.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'No microphone found on this device.';
+        }
+        
+        toast.error(errorMessage);
+      } finally {
+        setIsMicRequesting(false);
+      }
     }
   };
 
