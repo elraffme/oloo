@@ -1,8 +1,48 @@
+import { useState } from "react";
 import { Instagram, Facebook, Twitter, Linkedin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Footer = () => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubscribe = async () => {
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    // Simulate subscription (replace with actual API call)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    toast({
+      title: "Subscribed!",
+      description: "Thank you for subscribing to our newsletter",
+    });
+    
+    setEmail("");
+    setIsSubmitting(false);
+  };
+
   return (
     <footer className="mt-auto py-12 px-6 bg-secondary/10 border-t border-border">
       <div className="max-w-6xl mx-auto">
@@ -41,9 +81,16 @@ const Footer = () => {
               type="email" 
               placeholder="Enter your email" 
               className="bg-background"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
             />
-            <Button className="nsibidi-gradient text-primary-foreground">
-              Subscribe
+            <Button 
+              className="nsibidi-gradient text-primary-foreground"
+              onClick={handleSubscribe}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "..." : "Subscribe"}
             </Button>
           </div>
         </div>
