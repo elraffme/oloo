@@ -206,7 +206,7 @@ const LandingPage = () => {
       {/* Community Testimonials Section */}
       <section className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-afro-heading font-bold text-center mb-8 sm:mb-12 text-foreground px-2">
+          <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-8 sm:mb-12 text-foreground px-2 text-xl font-semibold">
             Our Members' Stories
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
