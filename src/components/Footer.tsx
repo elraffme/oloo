@@ -80,7 +80,7 @@ const Footer = () => {
             <Input 
               type="email" 
               placeholder="Enter your email" 
-              className="bg-background"
+              className="bg-background text-white placeholder:text-white/70"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
