@@ -234,7 +234,7 @@ const LandingPage = () => {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
-              <h3 className="text-lg sm:text-xl font-afro-heading font-semibold text-foreground">Discover Cultural Curiosity Quizzes</h3>
+              <h3 className="text-lg sm:text-xl font-afro-heading text-foreground font-medium">Discover Cultural Curiosity Quizzes</h3>
               <p className="text-sm sm:text-base text-muted-foreground">Which traditional music genre is your spirit song?</p>
             </div>
             <div className="bg-card p-5 sm:p-6 lg:p-8 rounded-lg border border-border text-center space-y-2 sm:space-y-3 hover:border-primary transition-colors">
