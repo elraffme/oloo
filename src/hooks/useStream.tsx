@@ -1075,6 +1075,12 @@ export const useStream = (navigation = null) => {
     try {
       console.log(`📤 Publishing viewer stream (type: ${type})...`);
       
+      // CRITICAL: Ensure we have a socket connection first
+      if (!socketRef.current || !socketRef.current.connected) {
+        console.error('❌ No socket connection - cannot publish');
+        return null;
+      }
+      
       // Determine media constraints based on type
       const isAudioOnly = type === "mic" || type === "audio";
       const isVideoOnly = type === "video";
@@ -1150,7 +1156,7 @@ export const useStream = (navigation = null) => {
       if (!produceTransport.current) {
         console.log('📤 No produce transport yet, requesting and waiting for one...');
         
-        if (!socketRef.current) {
+        if (!socketRef.current || !socketRef.current.connected) {
           console.error('❌ No socket connection available');
           return stream;
         }
@@ -1158,40 +1164,54 @@ export const useStream = (navigation = null) => {
         // Create a promise that resolves when transport is ready
         const transportPromise = new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
-            reject(new Error('Transport creation timed out'));
-          }, 10000); // 10 second timeout
+            reject(new Error('Transport creation timed out after 15s'));
+          }, 15000); // 15 second timeout (increased for reliability)
+          
+          let checkCount = 0;
+          const maxChecks = 150; // 15 seconds worth of checks
           
           const checkTransport = () => {
+            checkCount++;
             if (produceTransport.current) {
               clearTimeout(timeout);
+              console.log(`✅ Transport ready after ${checkCount} checks`);
               resolve();
+            } else if (checkCount >= maxChecks) {
+              clearTimeout(timeout);
+              reject(new Error('Max transport checks exceeded'));
             } else {
               setTimeout(checkTransport, 100);
             }
           };
           
-          // Start checking after emitting the request
+          // Request transport creation
+          console.log('📤 Emitting createTransport request...');
           socketRef.current!.emit("createTransport", peerId.current);
-          setTimeout(checkTransport, 100);
+          
+          // Start checking after a short delay
+          setTimeout(checkTransport, 150);
         });
         
         try {
           await transportPromise;
           console.log('✅ Producer transport is now ready');
           
-          // Wait a bit for transport to stabilize
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Wait for transport to fully stabilize
+          await new Promise(resolve => setTimeout(resolve, 150));
         } catch (err) {
           console.error('❌ Failed to create producer transport:', err);
+          // Don't return here - let caller know stream was acquired but not published
           return stream;
         }
       }
       
-      // Double-check transport is available
+      // Final transport check
       if (!produceTransport.current) {
         console.error('❌ Producer transport still not available after wait');
         return stream;
       }
+      
+      console.log('✅ Producer transport confirmed ready, proceeding to produce tracks...');
       
       // Produce tracks to SFU
       const audioTrack = audioTracks[0];

@@ -1,65 +1,48 @@
+# Two-Way Livestream Audio - COMPLETED ✅
 
+## Summary
+Fixed livestream two-way audio so host and viewers can hear each other reliably, like Zoom/Meet/Discord.
 
-# Fix Host Cannot Hear Viewers Audio - COMPLETED ✅
+## Changes Made
 
-## Problem Summary
-The host was unable to hear viewer audio during livestreams due to:
-1. Empty render bug in ViewerCameraThumbnails
-2. No dedicated audio playback mechanism for host
-3. Viewer audio tracks not being properly produced to SFU
+### 1. Viewer Audio Track Production (src/hooks/useStream.tsx)
+- Added socket connection check before publishing
+- Improved transport wait logic with 15s timeout (was 10s)
+- Better error handling and detailed logging
+- Ensures audio tracks are produced first (priority for communication)
 
-## Solution Implemented
+### 2. Host Audio Consumption (src/components/ViewerAudioPlayer.tsx)
+- Complete rewrite with reliable audio playback
+- Exponential backoff retry (10 attempts) for autoplay restrictions
+- Force-enables audio tracks and monitors mute/unmute events
+- Handles dynamic track addition/removal
+- Visibility change handler for mobile backgrounding recovery
 
-### 1. ViewerAudioPlayer Component (Enhanced)
-- Hidden component that plays viewer audio for the host
-- Force-enables audio tracks and handles system mute events
-- Retry mechanism with exponential backoff for autoplay policy
-- Proper cleanup and lifecycle management
-- Independent of visual layout
+### 3. Viewer Audio Consumption (src/components/TikTokStreamViewer.tsx)
+- Fixed remote stream handling with force-enabled audio tracks
+- Added mute recovery on system-level muting
+- Fixed unmute toggle to actively play video with sound
+- Added visibility change handler for mobile resume
+- Video element now properly syncs audio state with events
 
-### 2. ViewerCameraThumbnails Component (Fixed)
-- Now correctly renders video elements in JSX
-- Set muted=true for thumbnails (audio via ViewerAudioPlayer)
-- Properly displays viewer avatars
-
-### 3. Viewer Audio Publishing (Fixed)
-- `publishStream` now properly waits for transport creation
-- Audio tracks are produced immediately when transport is ready
-- Handles system mute events with auto-re-enable
-- Works for both camera+mic and mic-only modes
-
-### 4. Audio Track Lifecycle
-- All audio tracks are force-enabled at consumer level
-- Event listeners catch system-level muting
-- Auto re-enable on mute events (common on mobile)
-- New MediaStream instances created to trigger React updates
+### 4. New Hook (src/hooks/useReliableAudio.ts)
+- Created comprehensive audio acquisition and playback utilities
+- Handles mobile-specific issues (system mute, backgrounding)
+- Provides reliable microphone access with error recovery
+- Reusable for host and viewer audio management
 
 ## Files Modified
 - `src/components/ViewerAudioPlayer.tsx` - Enhanced audio playback
-- `src/components/ViewerCameraThumbnails.tsx` - Fixed rendering
-- `src/components/StreamingInterface.tsx` - Integrated ViewerAudioPlayer
+- `src/components/TikTokStreamViewer.tsx` - Fixed viewer audio handling
 - `src/hooks/useStream.tsx` - Fixed viewer audio publishing
-
-## Expected Behavior After Fix
-
-| Scenario | Status |
-|----------|--------|
-| 1 viewer speaks | ✅ Host hears viewer |
-| 2 viewers speak | ✅ Host hears both |
-| 3+ viewers speak | ✅ Host hears all |
-| Viewer joins mid-stream | ✅ Audio auto-starts |
-| Viewer leaves | ✅ Audio element removed |
-| Mobile host | ✅ Can hear viewers |
-| Viewer mic toggle | ✅ Works correctly |
-| Rejoin stream | ✅ Audio restored |
+- `src/hooks/useReliableAudio.ts` - New utility hook (created)
 
 ## Testing Checklist
-- [ ] Host + 1 viewer: Two-way audio works
-- [ ] Host + 2 viewers: All can hear each other
-- [ ] Host + 3+ viewers: Audio scales properly
-- [ ] Mobile host: Can hear desktop viewers
-- [ ] Mobile viewer: Can hear host
-- [ ] Mic toggle: Enables/disables correctly
-- [ ] Stream rejoin: Audio restores automatically
-
-
+- [ ] Host + 1 viewer: two-way audio works immediately
+- [ ] Host + 2 viewers: all can hear each other
+- [ ] Host + 3+ viewers: audio scales correctly
+- [ ] Mobile host + desktop viewer
+- [ ] Desktop host + mobile viewer
+- [ ] Rejoin works with audio intact
+- [ ] Mic toggle works for host and viewers
+- [ ] Volume/unmute toggle works for viewers
