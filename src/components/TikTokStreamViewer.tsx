@@ -532,7 +532,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     console.log('🎤 Toggle viewer mic called:', { 
       viewerMicEnabled, 
       viewerCameraEnabled,
-      hasLocalStream: !!localStream 
+      hasLocalStream: !!localStream,
+      connectionPhase
     });
     
     if (!sessionToken) {
@@ -564,22 +565,47 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           setViewerMicEnabled(true);
           toast.success('Microphone enabled - Host can hear you!');
         } else {
-          // Start audio only stream
+          // Start audio only stream with retry logic
           console.log('🎤 Starting audio-only stream for viewer...');
-          const stream = await publishStream('mic');
+          
+          let stream: MediaStream | null = null;
+          let attempts = 0;
+          const maxAttempts = 3;
+          
+          while (!stream && attempts < maxAttempts) {
+            attempts++;
+            console.log(`🎤 Publish attempt ${attempts}/${maxAttempts}...`);
+            stream = await publishStream('mic');
+            
+            if (!stream || stream.getAudioTracks().length === 0) {
+              console.warn(`⚠️ Attempt ${attempts} failed - no audio track`);
+              stream = null;
+              
+              if (attempts < maxAttempts) {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
+            }
+          }
           
           if (stream && stream.getAudioTracks().length > 0) {
             const audioTrack = stream.getAudioTracks()[0];
-            console.log('✅ Viewer mic stream started:', {
+            
+            // Ensure track is enabled
+            audioTrack.enabled = true;
+            
+            console.log('✅ Viewer mic stream started and published to SFU:', {
               trackId: audioTrack.id,
               enabled: audioTrack.enabled,
-              readyState: audioTrack.readyState
+              readyState: audioTrack.readyState,
+              label: audioTrack.label
             });
+            
             setViewerMicEnabled(true);
             toast.success('Microphone enabled - Host can hear you!');
           } else {
-            console.error('❌ No audio track acquired');
-            toast.error('Failed to start microphone');
+            console.error('❌ Failed to start microphone after all attempts');
+            toast.error('Failed to start microphone - please try again');
           }
         }
       } catch (error: any) {
