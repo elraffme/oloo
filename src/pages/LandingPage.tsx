@@ -144,7 +144,7 @@ const LandingPage = () => {
       </div>
 
       {/* Features Section */}
-      <section id="culture" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background -mt-32 sm:-mt-40 lg:-mt-48 relative z-20 rounded-t-3xl">
+      <section id="culture" className="py-12 sm:py-16 lg:py-24 px-3 sm:px-6 lg:px-8 bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="sm:text-3xl lg:text-5xl font-afro-heading text-center mb-3 sm:mb-4 text-foreground px-2 font-semibold text-xl">Why "The Culture" Is Different</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
