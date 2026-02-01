@@ -754,13 +754,18 @@ export const useStream = (navigation = null) => {
           // Request fresh media stream
           console.log('🎤 Requesting fresh media stream for host...');
           
+          // ENHANCED AUDIO CONSTRAINTS for crystal-clear host audio
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
+              // Core voice processing
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true,
-              sampleRate: { ideal: 48000 },
-              channelCount: { ideal: 1 },
+              
+              // High quality sampling
+              sampleRate: { ideal: 48000, min: 44100 },
+              sampleSize: { ideal: 16 },
+              channelCount: { ideal: 1 }, // Mono for voice
             },
             video: {
               width: { ideal: 1080 },
@@ -1111,14 +1116,21 @@ export const useStream = (navigation = null) => {
       const isAudioOnly = type === "mic" || type === "audio";
       const isVideoOnly = type === "video";
       
+      // ENHANCED AUDIO CONSTRAINTS for crystal-clear viewer audio
+      const audioConstraints: MediaTrackConstraints | boolean = isVideoOnly ? false : {
+        // Core voice processing (all enabled for best quality)
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        
+        // High quality sampling for clear audio
+        sampleRate: { ideal: 48000, min: 44100 },
+        sampleSize: { ideal: 16 },
+        channelCount: { ideal: 1 }, // Mono for voice (better quality, less bandwidth)
+      };
+      
       const constraints: MediaStreamConstraints = {
-        audio: isVideoOnly ? false : {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: { ideal: 48000 },
-          channelCount: { ideal: 1 },
-        },
+        audio: audioConstraints,
         video: isAudioOnly ? false : { 
           facingMode: 'user',
           width: { ideal: 640 },
