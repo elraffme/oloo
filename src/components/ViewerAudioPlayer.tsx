@@ -133,6 +133,10 @@ export const ViewerAudioPlayer: React.FC<ViewerAudioPlayerProps> = ({ viewerStre
 /**
  * Individual audio element for a single viewer with robust playback handling.
  */
+/**
+ * Individual audio element for a single viewer with enhanced audio processing.
+ * Applies gain boosting and ensures crystal-clear playback for the host.
+ */
 const ViewerAudioElement: React.FC<{ 
   viewer: ViewerStream;
   userInteracted: boolean;
@@ -141,12 +145,78 @@ const ViewerAudioElement: React.FC<{
 }> = ({ viewer, userInteracted, audioContext, onPlayStateChange }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const localContextRef = useRef<AudioContext | null>(null);
   const retryCountRef = useRef(0);
   const maxRetries = 20;
   const streamIdRef = useRef<string | null>(null);
   const isPlayingRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
+  
+  // AUDIO GAIN BOOST for viewer clarity (1.5x = 50% louder)
+  const VIEWER_GAIN_BOOST = 1.5;
+  
+  /**
+   * Setup Web Audio API processing for enhanced playback quality.
+   * Adds gain boost and compression for consistent, clear audio.
+   */
+  const setupAudioProcessing = useCallback((stream: MediaStream) => {
+    try {
+      // Create or reuse audio context
+      if (!localContextRef.current || localContextRef.current.state === 'closed') {
+        localContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+          sampleRate: 48000,
+          latencyHint: 'interactive',
+        });
+      }
+      
+      const ctx = localContextRef.current;
+      
+      // Resume if suspended
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(console.error);
+      }
+      
+      // Disconnect previous nodes
+      if (sourceNodeRef.current) {
+        try { sourceNodeRef.current.disconnect(); } catch (e) {}
+      }
+      
+      // Create processing chain
+      const source = ctx.createMediaStreamSource(stream);
+      
+      // Gain node for volume boost
+      const gain = ctx.createGain();
+      gain.gain.value = VIEWER_GAIN_BOOST;
+      
+      // Compressor for consistent levels (makes quiet voices louder, prevents clipping)
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -20;   // Start compressing at -20dB
+      compressor.knee.value = 10;         // Soft knee for natural sound
+      compressor.ratio.value = 3;         // 3:1 compression
+      compressor.attack.value = 0.003;    // 3ms attack (fast for voice)
+      compressor.release.value = 0.1;     // 100ms release
+      
+      // Connect: source -> compressor -> gain -> speakers
+      source.connect(compressor);
+      compressor.connect(gain);
+      gain.connect(ctx.destination);
+      
+      // Store refs
+      sourceNodeRef.current = source;
+      gainNodeRef.current = gain;
+      compressorRef.current = compressor;
+      
+      console.log(`[ViewerAudioPlayer] 🔊 Audio processing setup for ${viewer.id.slice(0,8)} with ${VIEWER_GAIN_BOOST}x gain`);
+      
+      return true;
+    } catch (error) {
+      console.error('[ViewerAudioPlayer] Audio processing setup failed:', error);
+      return false;
+    }
+  }, [viewer.id]);
 
   // Attempt to play audio with comprehensive retry logic
   const playAudio = useCallback(async () => {
@@ -272,7 +342,10 @@ const ViewerAudioElement: React.FC<{
       };
     });
 
-    // Start playing
+    // Setup enhanced audio processing (gain boost + compression)
+    setupAudioProcessing(viewer.stream);
+
+    // Start playing (video element as fallback, Web Audio for quality)
     playAudio();
 
     // Handle dynamically added tracks (viewer enables mic mid-stream)
@@ -326,21 +399,29 @@ const ViewerAudioElement: React.FC<{
         videoElement.srcObject = null;
       }
       
-      // Clean up audio source node
+      // Clean up audio processing nodes
       if (sourceNodeRef.current) {
-        try {
-          sourceNodeRef.current.disconnect();
-        } catch (e) {
-          // Ignore disconnect errors
-        }
+        try { sourceNodeRef.current.disconnect(); } catch (e) {}
         sourceNodeRef.current = null;
+      }
+      if (gainNodeRef.current) {
+        try { gainNodeRef.current.disconnect(); } catch (e) {}
+        gainNodeRef.current = null;
+      }
+      if (compressorRef.current) {
+        try { compressorRef.current.disconnect(); } catch (e) {}
+        compressorRef.current = null;
+      }
+      if (localContextRef.current && localContextRef.current.state !== 'closed') {
+        localContextRef.current.close().catch(() => {});
+        localContextRef.current = null;
       }
       
       isPlayingRef.current = false;
       onPlayStateChange?.(false);
       streamIdRef.current = null;
     };
-  }, [viewer.id, viewer.stream, playAudio, onPlayStateChange, audioContext]);
+  }, [viewer.id, viewer.stream, playAudio, onPlayStateChange, audioContext, setupAudioProcessing]);
 
   // Handle visibility changes (mobile backgrounding)
   useEffect(() => {
