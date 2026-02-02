@@ -63,7 +63,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. Data Security</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               We implement industry-standard security measures to protect your information, including encryption, 
               secure servers, and regular security audits. However, no method of transmission over the internet is 
               100% secure. We cannot guarantee absolute security but are committed to protecting your data.
