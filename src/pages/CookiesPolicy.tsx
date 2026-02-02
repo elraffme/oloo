@@ -46,7 +46,7 @@ const CookiesPolicy = () => {
                 <p className="leading-relaxed text-[#afaa9d]">
                   These cookies remember your preferences and choices to provide an enhanced, personalized experience.
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Language and region preferences</li>
                   <li>Display settings (light/dark mode)</li>
                   <li>Notification preferences</li>
