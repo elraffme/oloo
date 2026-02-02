@@ -90,7 +90,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">8. Disclaimers</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Òloo is provided "as is" without warranties of any kind. We do not guarantee that the Service will be 
               uninterrupted, secure, or error-free. We are not responsible for the conduct of users or the accuracy 
               of profile information. You assume all risks associated with meeting people online.
