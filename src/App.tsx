@@ -33,6 +33,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CookiesPolicy from "./pages/CookiesPolicy";
 import Faq from "./pages/Faq";
+import Support from "./pages/Support";
 import ResetPassword from "./pages/ResetPassword";
 import ResetPasswordConfirm from "./pages/ResetPasswordConfirm";
 import BrowseByInterest from "./pages/BrowseByInterest";
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/cookies" element={<CookiesPolicy />} />
             <Route path="/faq" element={<Faq />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/video-call" element={<VideoCallPage />} />
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Feed />} />

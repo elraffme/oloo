@@ -70,9 +70,12 @@ const Faq = () => {
             <p className="text-muted-foreground mb-4">
               Still have questions?
             </p>
-            <a className="inline-flex items-center justify-center px-6 nsibidi-gradient text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity py-[10px]" href="mailto:support@oloo.media">
+            <Link 
+              to="/support" 
+              className="inline-flex items-center justify-center px-6 nsibidi-gradient text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity py-[10px]"
+            >
               Contact Support
-            </a>
+            </Link>
           </div>
         </div>
       </main>
