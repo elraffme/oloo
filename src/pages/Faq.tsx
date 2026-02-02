@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import {
@@ -6,8 +7,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { ReactNode } from "react";
 
-const faqItems = [
+interface FaqItem {
+  question: string;
+  answer: ReactNode;
+}
+
+const faqItems: FaqItem[] = [
   {
     question: "What is Òloo?",
     answer: "Òloo is a dating platform designed specifically for the African diaspora, celebrating cultural connections and helping you find meaningful relationships rooted in shared heritage."
@@ -18,7 +25,14 @@ const faqItems = [
   },
   {
     question: "Is Òloo free to use?",
-    answer: "Òloo offers a free tier with basic features. Premium memberships unlock additional features like unlimited likes, advanced filters, and priority visibility."
+    answer: (
+      <>
+        Òloo offers a free tier with basic features. Premium memberships unlock additional features like unlimited likes, advanced filters, and priority visibility.{" "}
+        <Link to="/app/premium" className="text-primary underline hover:opacity-80">
+          View Premium plans →
+        </Link>
+      </>
+    )
   },
   {
     question: "How does the matching system work?",
