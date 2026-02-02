@@ -86,7 +86,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. Data Retention</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               We retain your information as long as your account is active or as needed to provide services. 
               After account deletion, we may retain certain data for legal compliance, fraud prevention, and 
               dispute resolution purposes. Most data is deleted within 90 days of account deletion.
