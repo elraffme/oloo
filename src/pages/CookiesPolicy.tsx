@@ -116,7 +116,7 @@ const CookiesPolicy = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold mb-2">Browser Settings</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   Most browsers allow you to block or delete cookies through their settings. However, disabling cookies 
                   may affect website functionality. Consult your browser's help documentation for specific instructions:
                 </p>
