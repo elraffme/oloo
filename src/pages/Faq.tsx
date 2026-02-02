@@ -40,7 +40,7 @@ const faqItems: FaqItem[] = [{
   answer: "Yes, you can delete your account anytime from Settings > Account > Delete Account. This action is permanent and all your data will be removed."
 }, {
   question: "How do I contact support?",
-  answer: "For any issues or questions, email us at support@oloo.app or use the in-app chat support available in your profile settings."
+  answer: "For any issues or questions, email us at support@oloo.media or use the in-app chat support available in your profile settings."
 }];
 const Faq = () => {
   return <div className="min-h-screen bg-background flex flex-col">
