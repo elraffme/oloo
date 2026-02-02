@@ -49,7 +49,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">3. Information Sharing</h2>
-            <p className="leading-relaxed mb-4">
+            <p className="leading-relaxed mb-4 text-[#afaa9d]">
               We do not sell your personal information. We may share your information in these situations:
             </p>
             <ul className="list-disc pl-6 space-y-2">
