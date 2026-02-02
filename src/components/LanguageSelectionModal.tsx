@@ -89,7 +89,7 @@ export const LanguageSelectionModal: React.FC = () => {
     setIsOpen(false);
   };
   return <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0f]/90 backdrop-blur-md border border-white/10 shadow-2xl shadow-black/50 p-0 overflow-hidden" onPointerDownOutside={e => e.preventDefault()} onEscapeKeyDown={e => e.preventDefault()}>
+      <DialogContent className="sm:max-w-lg bg-transparent backdrop-blur-md border border-white/10 shadow-2xl shadow-black/50 p-0 overflow-hidden" onPointerDownOutside={e => e.preventDefault()} onEscapeKeyDown={e => e.preventDefault()}>
         {/* Subtle gradient overlay at top */}
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
         
