@@ -188,7 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('[AuthContext] signUp called with email:', email);
     
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       console.log('[AuthContext] Calling supabase.auth.signUp with redirect:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
