@@ -103,7 +103,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">8. International Users</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Your information may be transferred to and processed in countries other than your own. We comply with 
               applicable data protection laws and implement appropriate safeguards for international transfers.
             </p>
