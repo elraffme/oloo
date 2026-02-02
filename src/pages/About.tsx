@@ -10,7 +10,7 @@ const About = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-amber-50 text-lg font-medium">About Òloo</h1>
+          <h1 className="text-lg font-medium text-[#afaa9d]">About Òloo</h1>
         </div>
       </header>
 
