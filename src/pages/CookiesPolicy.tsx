@@ -133,7 +133,7 @@ const CookiesPolicy = () => {
                 <p className="leading-relaxed text-[#afaa9d]">
                   You can opt out of certain advertising cookies using:
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Digital Advertising Alliance (DAA): www.aboutads.info/choices</li>
                   <li>Network Advertising Initiative (NAI): www.networkadvertising.org/choices</li>
                   <li>European Interactive Digital Advertising Alliance: www.youronlinechoices.eu</li>
