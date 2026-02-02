@@ -81,9 +81,7 @@ const PrivacyPolicy = () => {
               <li><strong>Data Portability:</strong> Receive your data in a machine-readable format</li>
               <li><strong>Restrict Processing:</strong> Limit how we use your information</li>
             </ul>
-            <p className="leading-relaxed mt-4">
-              To exercise these rights, contact us at privacy@oloo.app or through your account settings.
-            </p>
+            <p className="leading-relaxed mt-4 text-[#afaa9d]">To exercise these rights, contact us at privacy@oloo.media or through your account settings.</p>
           </section>
 
           <section>
