@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import Footer from "@/components/Footer";
+import Navigation from "@/components/Navigation";
 
 const supportSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
@@ -50,7 +51,8 @@ const Support = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 pt-8 pb-16 px-4 sm:px-6 lg:px-8">
+      <Navigation />
+      <main className="flex-1 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
           <Button
             variant="ghost"
