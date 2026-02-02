@@ -120,7 +120,7 @@ const CookiesPolicy = () => {
                   Most browsers allow you to block or delete cookies through their settings. However, disabling cookies 
                   may affect website functionality. Consult your browser's help documentation for specific instructions:
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Chrome: Settings → Privacy and security → Cookies</li>
                   <li>Firefox: Settings → Privacy & Security → Cookies and Site Data</li>
                   <li>Safari: Preferences → Privacy → Cookies and website data</li>
