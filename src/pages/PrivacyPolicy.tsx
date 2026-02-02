@@ -10,7 +10,7 @@ const PrivacyPolicy = () => {
           Back
         </Button>
 
-        <h1 className="text-4xl font-bold mb-2">Privacy Policy</h1>
+        <h1 className="font-bold mb-2 text-3xl text-yellow-900">Privacy Policy</h1>
         <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString()}</p>
 
         <div className="space-y-8 text-foreground">
