@@ -34,7 +34,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. How We Use Your Information</h2>
             <p className="leading-relaxed mb-2">We use your information to:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li>Provide and improve our dating services</li>
               <li>Match you with compatible users based on preferences and location</li>
               <li>Enable communication between users</li>
