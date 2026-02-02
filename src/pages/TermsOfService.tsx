@@ -28,7 +28,7 @@ const TermsOfService = () => {
             <p className="leading-relaxed mb-2">
               You must be at least 18 years old to use Òloo. By creating an account, you represent and warrant that:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li>You are at least 18 years of age</li>
               <li>You have the legal capacity to enter into this agreement</li>
               <li>You will comply with all applicable laws and regulations</li>
