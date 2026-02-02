@@ -72,7 +72,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. Premium Services</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Premium subscriptions are billed in advance on a recurring basis. You may cancel at any time, but no 
               refunds will be provided for partial periods. Premium features are subject to change, and we reserve 
               the right to modify pricing with advance notice.
