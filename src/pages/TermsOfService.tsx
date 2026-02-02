@@ -16,7 +16,7 @@ const TermsOfService = () => {
         <div className="space-y-8 text-foreground">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               By creating an account and using Òloo ("the Service"), you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our service. We reserve the right to modify these 
               terms at any time, and your continued use constitutes acceptance of any changes.
