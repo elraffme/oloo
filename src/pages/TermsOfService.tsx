@@ -116,7 +116,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Contact</h2>
-            <p className="leading-relaxed">For questions about these Terms of Service, please contact us at legal@oloo.media</p>
+            <p className="leading-relaxed text-[#afaa9d]">For questions about these Terms of Service, please contact us at legal@oloo.media</p>
           </section>
         </div>
       </div>
