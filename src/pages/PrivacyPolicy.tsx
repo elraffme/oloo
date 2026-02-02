@@ -20,7 +20,7 @@ const PrivacyPolicy = () => {
               We collect information you provide directly to us when you create an account, complete your profile, 
               and use Òloo. This includes:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li><strong>Profile Information:</strong> Name, age, gender, location, photos, bio, interests, and preferences</li>
               <li><strong>Account Data:</strong> Email address, phone number (optional), password</li>
               <li><strong>Communication:</strong> Messages sent through the platform, interactions with other users</li>
