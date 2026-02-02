@@ -38,7 +38,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">3. Account Security</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               You are responsible for maintaining the confidentiality of your account credentials. You agree to notify 
               us immediately of any unauthorized access or security breach. Òloo cannot be held liable for losses 
               resulting from unauthorized use of your account.
