@@ -32,7 +32,7 @@ const About = () => {
           </section>
 
           <section>
-            <h3 className="text-2xl font-semibold mb-4">What Makes Us Different</h3>
+            <h3 className="text-2xl font-semibold mb-4 text-yellow-900">What Makes Us Different</h3>
             <ul className="space-y-3">
               <li className="flex items-start">
                 <span className="text-primary mr-2">•</span>
