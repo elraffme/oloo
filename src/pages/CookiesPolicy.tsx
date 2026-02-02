@@ -29,7 +29,7 @@ const CookiesPolicy = () => {
             <div className="space-y-4">
               <div className="">
                 <h3 className="text-xl font-semibold mb-2">Essential Cookies</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   These cookies are necessary for the website to function properly. They enable core features like 
                   account authentication, security, and basic navigation. You cannot opt out of essential cookies 
                   as the service would not work without them.
