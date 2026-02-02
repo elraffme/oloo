@@ -214,7 +214,10 @@ const LandingPage = () => {
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-3 sm:space-y-4">
               <p className="text-sm sm:text-base text-muted-foreground italic">"I was looking for a partner who could appreciate my heritage and traditions, and I found that with someone who shares my love for North African poetry."</p>
-              <p className="text-sm sm:text-base text-foreground font-semibold">– Ahmed</p>
+              <div>
+                <p className="text-sm sm:text-base text-foreground font-semibold">– Ahmed</p>
+                <p className="text-sm sm:text-base text-muted-foreground italic">Marrakesh, Morocco</p>
+              </div>
             </div>
           </div>
         </div>
