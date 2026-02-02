@@ -101,6 +101,7 @@ const Footer = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+              required
             />
             <Button 
               className="nsibidi-gradient text-primary-foreground"
