@@ -16,7 +16,7 @@ const CookiesPolicy = () => {
         <div className="space-y-8 text-foreground">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. What Are Cookies</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Cookies are small text files stored on your device when you visit Òloo. They help us provide, protect, 
               and improve our service by remembering your preferences, analyzing usage patterns, and enabling essential 
               features. Similar technologies like web beacons, pixels, and local storage may also be used.
