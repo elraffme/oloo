@@ -72,7 +72,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">5. Your Privacy Rights</h2>
-            <p className="leading-relaxed mb-2">You have the right to:</p>
+            <p className="leading-relaxed mb-2 text-[#afaa9d]">You have the right to:</p>
             <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li><strong>Access:</strong> Request a copy of your personal data</li>
               <li><strong>Correction:</strong> Update or correct inaccurate information</li>
