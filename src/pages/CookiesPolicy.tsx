@@ -34,7 +34,7 @@ const CookiesPolicy = () => {
                   account authentication, security, and basic navigation. You cannot opt out of essential cookies 
                   as the service would not work without them.
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Session management and login authentication</li>
                   <li>Security and fraud prevention</li>
                   <li>Load balancing</li>
