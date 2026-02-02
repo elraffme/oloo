@@ -25,7 +25,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Eligibility</h2>
-            <p className="leading-relaxed mb-2">
+            <p className="leading-relaxed mb-2 text-[#afaa9d]">
               You must be at least 18 years old to use Òloo. By creating an account, you represent and warrant that:
             </p>
             <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
