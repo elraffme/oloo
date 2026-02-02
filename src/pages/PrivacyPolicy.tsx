@@ -111,7 +111,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">9. Changes to This Policy</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               We may update this Privacy Policy periodically. We will notify you of significant changes via email 
               or in-app notification. Your continued use after changes constitutes acceptance of the updated policy.
             </p>
