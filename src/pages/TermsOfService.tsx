@@ -81,7 +81,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Termination</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               We reserve the right to suspend or terminate your account at any time for violation of these terms, 
               illegal activity, or behavior that harms other users or the Service. You may delete your account at 
               any time through your profile settings.
