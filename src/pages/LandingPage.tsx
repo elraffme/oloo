@@ -209,7 +209,7 @@ const LandingPage = () => {
               <p className="text-sm sm:text-base text-muted-foreground italic">"We connected over shared knowledge of zulu art, and now we travel to galleries together. I've never felt so understood!"</p>
               <div>
                 <p className="text-sm sm:text-base text-foreground font-semibold">– Vusi</p>
-                <p className="text-sm sm:text-base text-muted-foreground italic">Joburg South Africa</p>
+                <p className="text-sm sm:text-base text-muted-foreground italic">Joburg, South Africa</p>
               </div>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-3 sm:space-y-4">
