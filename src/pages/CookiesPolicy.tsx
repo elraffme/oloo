@@ -43,7 +43,7 @@ const CookiesPolicy = () => {
 
               <div>
                 <h3 className="text-xl font-semibold mb-2">Functional Cookies</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   These cookies remember your preferences and choices to provide an enhanced, personalized experience.
                 </p>
                 <ul className="list-disc pl-6 mt-2 space-y-1">
