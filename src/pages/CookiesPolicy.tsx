@@ -56,7 +56,7 @@ const CookiesPolicy = () => {
 
               <div>
                 <h3 className="text-xl font-semibold mb-2">Analytics Cookies</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   These cookies help us understand how users interact with Òloo, allowing us to improve the service.
                 </p>
                 <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
