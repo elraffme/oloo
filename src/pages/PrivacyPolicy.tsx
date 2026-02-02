@@ -95,7 +95,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Children's Privacy</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Òloo is not intended for users under 18 years of age. We do not knowingly collect information from 
               minors. If we discover that a user is underage, we will immediately delete their account and data.
             </p>
