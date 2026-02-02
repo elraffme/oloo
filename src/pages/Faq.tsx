@@ -16,7 +16,7 @@ interface FaqItem {
 const faqItems: FaqItem[] = [
   {
     question: "What is Òloo?",
-    answer: "Òloo is a dating platform designed specifically for the African diaspora, celebrating cultural connections and helping you find meaningful relationships rooted in shared heritage."
+    answer: "Òloo is a dating platform designed specifically for the African diaspora, celebrating cultural connections and helping you find meaningful relationships rooted in shared embrace of culture and heritage."
   },
   {
     question: "How do I create an account?",
