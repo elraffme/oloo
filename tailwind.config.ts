@@ -87,7 +87,9 @@ export default {
 					500: 'hsl(var(--orange-verified))',
 					600: 'hsl(var(--orange-verified))',
 					foreground: 'hsl(var(--orange-verified-foreground))'
-				}
+				},
+				// FAQ question color
+				'faq-question': 'hsl(var(--faq-question))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
