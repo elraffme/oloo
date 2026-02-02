@@ -108,7 +108,7 @@ const Support = () => {
                   name="issue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Describe Your Issue</FormLabel>
+                      <FormLabel className="text-faq-question">Describe Your Issue</FormLabel>
                       <FormControl>
                         <Textarea 
                           placeholder="Please describe your issue or question in detail..."
