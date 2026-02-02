@@ -99,7 +99,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">9. Limitation of Liability</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               To the maximum extent permitted by law, Òloo shall not be liable for any indirect, incidental, special, 
               or consequential damages arising from your use of the Service. Our total liability shall not exceed the 
               amount you paid to us in the past 12 months.
