@@ -62,7 +62,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">5. Content Guidelines</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               You retain ownership of content you post on Òloo, but grant us a worldwide, non-exclusive license to use, 
               display, and distribute your content within the Service. You represent that you have all necessary rights 
               to post your content. We reserve the right to remove any content that violates these terms or community 
