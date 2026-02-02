@@ -87,7 +87,7 @@ const CookiesPolicy = () => {
             <p className="leading-relaxed mb-4 text-[#afaa9d]">
               We work with trusted third-party services that may place cookies on your device:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li><strong>Analytics Providers:</strong> Google Analytics, Mixpanel (for usage insights)</li>
               <li><strong>Payment Processors:</strong> Stripe, PayPal (for secure transactions)</li>
               <li><strong>Social Media:</strong> Facebook, Instagram, Twitter (for social features)</li>
