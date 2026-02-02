@@ -60,7 +60,7 @@ export const LanguageSelectionModal: React.FC = () => {
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent 
-        className="sm:max-w-lg bg-[#0a0a0f] border border-white/10 shadow-2xl shadow-black/50 p-0 overflow-hidden"
+        className="sm:max-w-lg bg-[#0a0a0f]/90 backdrop-blur-md border border-white/10 shadow-2xl shadow-black/50 p-0 overflow-hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
