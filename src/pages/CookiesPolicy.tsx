@@ -59,7 +59,7 @@ const CookiesPolicy = () => {
                 <p className="leading-relaxed">
                   These cookies help us understand how users interact with Òloo, allowing us to improve the service.
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Page views and navigation patterns</li>
                   <li>Feature usage and engagement metrics</li>
                   <li>Error tracking and performance monitoring</li>
