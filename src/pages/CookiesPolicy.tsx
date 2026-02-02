@@ -155,7 +155,7 @@ const CookiesPolicy = () => {
             <p className="leading-relaxed text-[#afaa9d]">
               Mobile devices may use advertising identifiers instead of cookies. You can limit ad tracking on:
             </p>
-            <ul className="list-disc pl-6 mt-2 space-y-1">
+            <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
               <li><strong>iOS:</strong> Settings → Privacy → Advertising → Limit Ad Tracking</li>
               <li><strong>Android:</strong> Settings → Google → Ads → Opt out of Ads Personalization</li>
             </ul>
