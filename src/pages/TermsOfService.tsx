@@ -47,7 +47,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. User Conduct</h2>
-            <p className="leading-relaxed mb-2">You agree not to:</p>
+            <p className="leading-relaxed mb-2 text-[#afaa9d]">You agree not to:</p>
             <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li>Use the Service for any illegal or unauthorized purpose</li>
               <li>Harass, abuse, or harm other users</li>
