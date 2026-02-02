@@ -69,7 +69,7 @@ const CookiesPolicy = () => {
 
               <div>
                 <h3 className="text-xl font-semibold mb-2">Marketing Cookies</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   These cookies track your activity to show relevant advertisements and measure campaign effectiveness.
                 </p>
                 <ul className="list-disc pl-6 mt-2 space-y-1">
