@@ -119,7 +119,7 @@ const PrivacyPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">10. Contact Us</h2>
-            <p className="leading-relaxed">For questions or concerns about privacy, contact our Data Protection Officer at privacy@oloo.media</p>
+            <p className="leading-relaxed text-[#afaa9d]">For questions or concerns about privacy, contact our Data Protection Officer at privacy@oloo.media</p>
           </section>
         </div>
       </div>
