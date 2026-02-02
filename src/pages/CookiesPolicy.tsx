@@ -72,7 +72,7 @@ const CookiesPolicy = () => {
                 <p className="leading-relaxed text-[#afaa9d]">
                   These cookies track your activity to show relevant advertisements and measure campaign effectiveness.
                 </p>
-                <ul className="list-disc pl-6 mt-2 space-y-1">
+                <ul className="list-disc pl-6 mt-2 space-y-1 text-[#afaa9d]">
                   <li>Targeted advertising based on interests</li>
                   <li>Retargeting campaigns</li>
                   <li>Social media integration</li>
