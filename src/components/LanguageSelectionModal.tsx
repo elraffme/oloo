@@ -87,7 +87,7 @@ export const LanguageSelectionModal: React.FC = () => {
               <button
                 key={language.code}
                 onClick={() => handleLanguageSelect(language.code)}
-                className={`group flex items-center justify-between p-3.5 rounded-xl border transition-all duration-200 text-left ${
+                className={`group flex items-center justify-between p-2.5 rounded-xl border transition-all duration-200 text-left ${
                   selectedLanguage === language.code
                     ? 'border-primary/50 bg-primary/10 shadow-lg shadow-primary/5'
                     : 'border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]'
