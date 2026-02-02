@@ -16,7 +16,7 @@ const PrivacyPolicy = () => {
         <div className="space-y-8 text-foreground">
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Information We Collect</h2>
-            <p className="leading-relaxed mb-4">
+            <p className="leading-relaxed mb-4 text-[#afaa9d]">
               We collect information you provide directly to us when you create an account, complete your profile, 
               and use Òloo. This includes:
             </p>
