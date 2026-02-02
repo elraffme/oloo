@@ -84,7 +84,7 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">3. Third-Party Cookies</h2>
-            <p className="leading-relaxed mb-4">
+            <p className="leading-relaxed mb-4 text-[#afaa9d]">
               We work with trusted third-party services that may place cookies on your device:
             </p>
             <ul className="list-disc pl-6 space-y-2">
