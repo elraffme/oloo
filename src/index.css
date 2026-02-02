@@ -46,6 +46,9 @@
     --platinum: 280 30% 60%;
     --platinum-foreground: 0 0% 100%;
     
+    /* FAQ Question Color */
+    --faq-question: 45 92% 24%;
+    
     /* Verification Darkest Dark Juniper Green */
     --orange-verified: 135 75% 8%;
     --orange-verified-foreground: 0 0% 98%;
