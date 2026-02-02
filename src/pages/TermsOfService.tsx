@@ -108,7 +108,7 @@ const TermsOfService = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">10. Governing Law</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               These Terms shall be governed by and construed in accordance with applicable laws. Any disputes shall be 
               resolved through binding arbitration, except where prohibited by law.
             </p>
