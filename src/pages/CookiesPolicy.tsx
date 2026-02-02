@@ -130,7 +130,7 @@ const CookiesPolicy = () => {
 
               <div>
                 <h3 className="text-lg font-semibold mb-2">Opt-Out Tools</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   You can opt out of certain advertising cookies using:
                 </p>
                 <ul className="list-disc pl-6 mt-2 space-y-1">
