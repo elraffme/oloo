@@ -94,7 +94,7 @@ const Support = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel className="text-faq-question">Email Address</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="your@email.com" {...field} />
                       </FormControl>
