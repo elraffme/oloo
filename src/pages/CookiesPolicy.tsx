@@ -163,7 +163,7 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Updates to This Policy</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               We may update this Cookies Policy to reflect changes in technology, legislation, or our practices. 
               We will notify you of significant changes and update the "Last updated" date at the top of this page.
             </p>
@@ -171,7 +171,7 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">8. Contact Us</h2>
-            <p className="leading-relaxed">For questions about our use of cookies, contact us at privacy@oloo.media</p>
+            <p className="leading-relaxed text-[#afaa9d]">For questions about our use of cookies, contact us at privacy@oloo.media</p>
           </section>
         </div>
       </div>
