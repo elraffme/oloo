@@ -8,36 +8,50 @@ import { supabase } from "@/integrations/supabase/client";
 const Footer = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const { toast } = useToast();
 
-  const handleSubscribe = async () => {
-    if (!email.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address",
-        variant: "destructive",
-      });
-      return;
+  const validateEmail = (value: string) => {
+    if (!value.trim()) {
+      return "Email is required";
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
+    if (!emailRegex.test(value)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    if (emailError) {
+      setEmailError(validateEmail(value));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    if (email) {
+      setEmailError(validateEmail(email));
+    }
+  };
+
+  const handleSubscribe = async () => {
+    const error = validateEmail(email);
+    if (error) {
+      setEmailError(error);
       return;
     }
 
+    setEmailError("");
     setIsSubmitting(true);
     
-    const { error } = await supabase
+    const { error: dbError } = await supabase
       .from('newsletter_subscriptions')
       .insert({ email: email.toLowerCase().trim(), source: 'footer' });
 
-    if (error) {
-      if (error.code === '23505') {
+    if (dbError) {
+      if (dbError.code === '23505') {
         toast({
           title: "Already subscribed",
           description: "This email is already on our newsletter list",
@@ -94,15 +108,21 @@ const Footer = () => {
             Stay up to date with exclusive cultural events and matchmaking tips. Sign up for our newsletter
           </p>
           <div className="flex gap-2">
-            <Input 
-              type="email" 
-              placeholder="Enter your email" 
-              className="bg-background text-white placeholder:text-white/70"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
-              required
-            />
+            <div className="flex-1">
+              <Input 
+                type="email" 
+                placeholder="Enter your email" 
+                className={`bg-background text-white placeholder:text-white/70 ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                value={email}
+                onChange={handleEmailChange}
+                onBlur={handleEmailBlur}
+                onKeyDown={(e) => e.key === "Enter" && handleSubscribe()}
+                required
+              />
+              {emailError && (
+                <p className="text-destructive text-xs mt-1">{emailError}</p>
+              )}
+            </div>
             <Button 
               className="nsibidi-gradient text-primary-foreground"
               onClick={handleSubscribe}
