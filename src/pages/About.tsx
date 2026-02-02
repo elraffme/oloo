@@ -54,7 +54,7 @@ const About = () => {
           </section>
 
           <section>
-            <h3 className="text-2xl font-semibold mb-4">Contact Us</h3>
+            <h3 className="text-2xl font-semibold mb-4 text-yellow-900">Contact Us</h3>
             <p className="leading-relaxed text-muted-foreground">
               Have questions or feedback? We'd love to hear from you at{' '}
               <a href="mailto:hello@oloo.media" className="text-primary hover:underline">
