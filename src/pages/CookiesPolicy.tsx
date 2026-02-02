@@ -27,7 +27,7 @@ const CookiesPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">2. Types of Cookies We Use</h2>
             
             <div className="space-y-4">
-              <div>
+              <div className="">
                 <h3 className="text-xl font-semibold mb-2">Essential Cookies</h3>
                 <p className="leading-relaxed">
                   These cookies are necessary for the website to function properly. They enable core features like 
