@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Footer from "@/components/Footer";
+import Navigation from "@/components/Navigation";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ReactNode } from "react";
 interface FaqItem {
@@ -44,7 +45,8 @@ const faqItems: FaqItem[] = [{
 }];
 const Faq = () => {
   return <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 pt-8 pb-16 px-4 sm:px-6 lg:px-8">
+      <Navigation />
+      <main className="flex-1 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl font-bold font-afro-heading text-center mb-4">
             <span className="nsibidi-gradient bg-clip-text text-transparent">
