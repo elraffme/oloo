@@ -94,7 +94,7 @@ const CookiesPolicy = () => {
               <li><strong>Advertising Networks:</strong> Google Ads, Meta Ads (for targeted advertising)</li>
               <li><strong>Infrastructure:</strong> CDN providers for faster content delivery</li>
             </ul>
-            <p className="leading-relaxed mt-4">
+            <p className="leading-relaxed mt-4 text-[#afaa9d]">
               These third parties have their own privacy policies governing their use of cookies.
             </p>
           </section>
