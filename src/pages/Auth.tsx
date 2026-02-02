@@ -455,7 +455,7 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  {formError && <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-white">
+                  {formError && <div className="p-3 rounded-lg border border-destructive/20 text-sm text-white bg-red-900">
                       {formError}
                     </div>}
 
