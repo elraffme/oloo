@@ -101,8 +101,8 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. Cookie Duration</h2>
-            <p className="leading-relaxed mb-4">Cookies may be temporary or persistent:</p>
-            <ul className="list-disc pl-6 space-y-2">
+            <p className="leading-relaxed mb-4 text-[#afaa9d]">Cookies may be temporary or persistent:</p>
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li><strong>Session Cookies:</strong> Deleted when you close your browser</li>
               <li><strong>Persistent Cookies:</strong> Remain on your device for a set period (typically 30 days to 2 years) 
               or until you delete them</li>
@@ -111,7 +111,7 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">5. Managing Cookie Preferences</h2>
-            <p className="leading-relaxed mb-4">You have several options to manage cookies:</p>
+            <p className="leading-relaxed mb-4 text-[#afaa9d]">You have several options to manage cookies:</p>
             
             <div className="space-y-4">
               <div>
