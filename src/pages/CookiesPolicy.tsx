@@ -142,7 +142,7 @@ const CookiesPolicy = () => {
 
               <div>
                 <h3 className="text-lg font-semibold mb-2">Do Not Track</h3>
-                <p className="leading-relaxed">
+                <p className="leading-relaxed text-[#afaa9d]">
                   Some browsers offer "Do Not Track" signals. Currently, there is no industry standard for responding 
                   to these signals, so we do not respond to Do Not Track requests.
                 </p>
