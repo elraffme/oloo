@@ -2,20 +2,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/Footer";
-
 const About = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
+  return <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-14 items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="mr-2"
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold">About Òloo</h1>
@@ -32,7 +24,7 @@ const About = () => {
           </section>
 
           <section>
-            <h3 className="text-2xl font-semibold mb-4">Our Mission</h3>
+            <h3 className="text-2xl font-semibold mb-4 text-yellow-900">Our Mission</h3>
             <p className="leading-relaxed text-muted-foreground">
               We believe in bringing people together through shared values, cultural appreciation, and authentic connections. 
               Òloo provides a safe, secure, and culturally-rich environment for individuals to find meaningful relationships.
@@ -74,8 +66,6 @@ const About = () => {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default About;
