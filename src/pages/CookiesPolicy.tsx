@@ -152,7 +152,7 @@ const CookiesPolicy = () => {
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">6. Mobile Devices</h2>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-[#afaa9d]">
               Mobile devices may use advertising identifiers instead of cookies. You can limit ad tracking on:
             </p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
