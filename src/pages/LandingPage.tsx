@@ -203,7 +203,10 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-3 sm:space-y-4">
               <p className="text-sm sm:text-base text-muted-foreground italic">"I met someone who shares my passion for classical Indian dance. We're collaborating on a project now, and it's the most inspiring relationship I've ever had."</p>
-              <p className="text-sm sm:text-base text-foreground font-semibold">– Priye</p>
+              <div>
+                <p className="text-sm sm:text-base text-foreground font-semibold">– Priye</p>
+                <p className="text-sm sm:text-base text-muted-foreground italic">Port-Harcourt, Nigeria</p>
+              </div>
             </div>
             <div className="bg-card p-4 sm:p-6 rounded-lg border border-border space-y-3 sm:space-y-4">
               <p className="text-sm sm:text-base text-muted-foreground italic">"We connected over shared knowledge of zulu art, and now we travel to galleries together. I've never felt so understood!"</p>
