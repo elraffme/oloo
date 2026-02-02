@@ -52,7 +52,7 @@ const PrivacyPolicy = () => {
             <p className="leading-relaxed mb-4 text-[#afaa9d]">
               We do not sell your personal information. We may share your information in these situations:
             </p>
-            <ul className="list-disc pl-6 space-y-2">
+            <ul className="list-disc pl-6 space-y-2 text-[#afaa9d]">
               <li><strong>With Other Users:</strong> Your profile information is visible to users who match your preferences</li>
               <li><strong>Service Providers:</strong> Third-party companies that help us operate our service (hosting, analytics, payment processing)</li>
               <li><strong>Legal Requirements:</strong> When required by law, court order, or to protect rights and safety</li>
