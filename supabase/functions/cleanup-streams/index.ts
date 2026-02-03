@@ -61,17 +61,65 @@ Deno.serve(async (req) => {
     }
 
     // 2. Clean up orphaned viewer sessions for ended/non-live streams
-    const { data: orphanedSessions, error: orphanError } = await supabase
-      .from('stream_viewer_sessions')
-      .update({ left_at: now.toISOString() })
-      .is('left_at', null)
-      .not('stream_id', 'in', `(SELECT id FROM streaming_sessions WHERE status = 'live')`)
+    // First, get IDs of all live streams
+    const { data: liveStreams, error: liveError } = await supabase
+      .from('streaming_sessions')
       .select('id')
+      .eq('status', 'live')
 
-    if (orphanError) {
-      console.error('Error cleaning orphaned sessions:', orphanError)
+    if (liveError) {
+      console.error('Error fetching live streams:', liveError)
+    }
+
+    // Get orphaned sessions (sessions for streams that are no longer live)
+    const liveStreamIds = (liveStreams || []).map(s => s.id)
+    
+    let orphanedSessionsCleaned = 0
+    if (liveStreamIds.length === 0) {
+      // No live streams - all active sessions are orphaned
+      const { data: orphanedSessions, error: orphanError } = await supabase
+        .from('stream_viewer_sessions')
+        .update({ left_at: now.toISOString() })
+        .is('left_at', null)
+        .select('id')
+
+      if (orphanError) {
+        console.error('Error cleaning orphaned sessions:', orphanError)
+      } else {
+        orphanedSessionsCleaned = orphanedSessions?.length ?? 0
+        console.log(`Cleaned up ${orphanedSessionsCleaned} orphaned viewer sessions (no live streams)`)
+      }
     } else {
-      console.log(`Cleaned up ${orphanedSessions?.length ?? 0} orphaned viewer sessions`)
+      // Clean sessions for streams NOT in the live list
+      // Supabase doesn't support NOT IN with arrays directly, so we need to use a different approach
+      // Get all active sessions first, then filter
+      const { data: activeSessions, error: activeError } = await supabase
+        .from('stream_viewer_sessions')
+        .select('id, stream_id')
+        .is('left_at', null)
+
+      if (activeError) {
+        console.error('Error fetching active sessions:', activeError)
+      } else if (activeSessions && activeSessions.length > 0) {
+        // Find orphaned sessions (stream_id not in live streams)
+        const orphanedIds = activeSessions
+          .filter(s => !liveStreamIds.includes(s.stream_id))
+          .map(s => s.id)
+
+        if (orphanedIds.length > 0) {
+          const { error: updateError } = await supabase
+            .from('stream_viewer_sessions')
+            .update({ left_at: now.toISOString() })
+            .in('id', orphanedIds)
+
+          if (updateError) {
+            console.error('Error updating orphaned sessions:', updateError)
+          } else {
+            orphanedSessionsCleaned = orphanedIds.length
+            console.log(`Cleaned up ${orphanedSessionsCleaned} orphaned viewer sessions`)
+          }
+        }
+      }
     }
 
     // 3. Optionally delete old archived streams
@@ -126,7 +174,7 @@ Deno.serve(async (req) => {
       success: true,
       timestamp: now.toISOString(),
       staleStreamsEnded: staleStreams?.length ?? 0,
-      orphanedSessionsCleaned: orphanedSessions?.length ?? 0,
+      orphanedSessionsCleaned,
       archivedStreamsDeleted: deletedArchivedCount,
       config: {
         staleMinutes,
