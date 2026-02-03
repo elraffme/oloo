@@ -227,8 +227,8 @@ const AppLayout = () => {
 
         {/* Bottom Navigation - Mobile */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border">
-          <div className="grid grid-cols-6 h-16">
-            {navItems.map(item => {
+          <div className="grid grid-cols-5 h-16">
+        {navItems.map(item => {
               const isActive = item.end ? location.pathname === item.path : location.pathname.startsWith(item.path);
               return (
                 <NavLink key={item.path} to={item.path} className="flex flex-col items-center justify-center space-y-1">
@@ -239,9 +239,6 @@ const AppLayout = () => {
                 </NavLink>
               );
             })}
-            <div className="flex flex-col items-center justify-center">
-              <LanguageSelector variant="ghost" className="p-1 h-auto" />
-            </div>
           </div>
         </nav>
       </div>
