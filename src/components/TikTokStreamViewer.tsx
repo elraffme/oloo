@@ -24,7 +24,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { useStream, ConnectionPhase } from '@/hooks/useStream';
+import { useStream, ConnectionPhase, STALE_STREAM_THRESHOLD_SECONDS } from '@/hooks/useStream';
 
 interface ChatMessage {
   id: string;
@@ -124,6 +124,47 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       videoEl.autoplay = true;
       videoEl.playsInline = true;
       videoEl.muted = true;
+
+      // STEP 1: Check if host is still actively streaming (stale detection)
+      console.log('🔍 Checking stream freshness before joining...');
+      const { data: streamStatus, error: streamStatusError } = await supabase
+        .from('streaming_sessions')
+        .select('status, last_activity_at, host_user_id')
+        .eq('id', streamId)
+        .single();
+
+      if (streamStatusError) {
+        console.error('❌ Error checking stream status:', streamStatusError);
+        toast.error('Stream not found');
+        onClose();
+        return;
+      }
+
+      if (streamStatus.status !== 'live') {
+        console.log('⚠️ Stream is no longer live, status:', streamStatus.status);
+        toast.error('This stream has ended');
+        onClose();
+        return;
+      }
+
+      // Check staleness - warn if host hasn't sent heartbeat recently
+      const lastActivityTime = new Date(streamStatus.last_activity_at).getTime();
+      const currentTime = Date.now();
+      const inactiveSeconds = (currentTime - lastActivityTime) / 1000;
+      
+      console.log('📊 Stream activity check:', {
+        lastActivity: streamStatus.last_activity_at,
+        inactiveSeconds: Math.floor(inactiveSeconds),
+        threshold: STALE_STREAM_THRESHOLD_SECONDS
+      });
+
+      if (inactiveSeconds > STALE_STREAM_THRESHOLD_SECONDS) {
+        console.warn(`⚠️ Stream appears stale - no host activity for ${Math.floor(inactiveSeconds)}s`);
+        toast.warning('Host may have disconnected. Stream might not be available.', {
+          duration: 5000
+        });
+        // Continue anyway - let the SFU connection determine if stream is truly dead
+      }
 
       const displayName = user?.email?.split('@')[0] || 'Guest';
       
@@ -864,19 +905,25 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         {/* Connection Status Overlay */}
         {connectionPhase !== 'streaming' && connectionPhase !== 'idle' && (
           <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
-            {connectionPhase === 'timeout' || connectionPhase === 'error' ? (
+            {connectionPhase === 'timeout' || connectionPhase === 'error' || connectionPhase === 'stale_host' ? (
               <div className="flex flex-col items-center gap-4 text-center">
                 <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
                   <AlertCircle className="w-8 h-8 text-destructive" />
                 </div>
                 <h3 className="text-white font-semibold text-lg">
-                  {connectionPhase === 'timeout' ? 'Connection Timed Out' : 'Connection Error'}
+                  {connectionPhase === 'timeout' ? 'Connection Timed Out' : 
+                   connectionPhase === 'stale_host' ? 'Host Disconnected' : 
+                   'Connection Error'}
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-xs">
-                  {connectionError || 'The host may not be streaming yet, or there was a network issue.'}
+                  {connectionError || (connectionPhase === 'timeout' 
+                    ? 'Could not find host video. The host may have ended their stream or lost connection.'
+                    : connectionPhase === 'stale_host'
+                    ? 'The host appears to have disconnected. The stream may have ended.'
+                    : 'There was a network issue connecting to this stream.')}
                 </p>
                 <p className="text-muted-foreground/60 text-xs">
-                  Waited {elapsedTime} seconds
+                  {connectionPhase === 'timeout' ? `Waited ${elapsedTime} seconds` : 'Please try another stream'}
                 </p>
                 <div className="flex gap-3 mt-2">
                   <Button
@@ -887,13 +934,15 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                     <Home className="w-4 h-4" />
                     Leave
                   </Button>
-                  <Button
-                    onClick={retryConnection}
-                    className="gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Retry
-                  </Button>
+                  {connectionPhase !== 'stale_host' && (
+                    <Button
+                      onClick={retryConnection}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Retry
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -901,6 +950,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                 <Loader2 className="h-12 w-12 animate-spin text-white" />
                 <p className="text-white font-medium text-sm">
                   {connectionPhase === 'connecting' && 'Connecting to server...'}
+                  {connectionPhase === 'health_check' && 'Checking server availability...'}
                   {connectionPhase === 'device_loading' && 'Loading media device...'}
                   {connectionPhase === 'joining_room' && 'Joining stream...'}
                   {connectionPhase === 'awaiting_producers' && `Waiting for host video... (${elapsedTime}s)`}

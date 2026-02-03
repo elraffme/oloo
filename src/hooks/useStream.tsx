@@ -5,22 +5,25 @@ import { io } from "socket.io-client";
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
-// Connection timing constants
-const PRODUCER_TIMEOUT_MS = 10000; // 10 seconds before showing timeout
-const PRODUCER_POLL_INTERVAL_MS = 3000; // Poll every 3 seconds
-const MAX_PRODUCER_POLLS = 3; // Maximum polling attempts
+// Connection timing constants - increased for reliability
+const PRODUCER_TIMEOUT_MS = 15000; // 15 seconds before showing timeout (was 10s)
+const PRODUCER_POLL_INTERVAL_MS = 2000; // Initial poll every 2 seconds (with backoff)
+const MAX_PRODUCER_POLLS = 5; // Maximum polling attempts (was 3)
+const STALE_STREAM_THRESHOLD_SECONDS = 120; // Warn if host hasn't sent heartbeat in 2 minutes
 
 // Connection phase type for granular state tracking
 export type ConnectionPhase = 
   | 'idle' 
   | 'connecting' 
+  | 'health_check'
   | 'device_loading' 
   | 'joining_room' 
   | 'awaiting_producers' 
   | 'consuming' 
   | 'streaming' 
   | 'timeout' 
-  | 'error';
+  | 'error'
+  | 'stale_host';
 
 export const useStream = (navigation = null) => {
   const [socket, setSocket] = useState(null);
@@ -97,25 +100,35 @@ export const useStream = (navigation = null) => {
     }, 1000);
   }, []);
 
-  // Request current producers from SFU
+  // Request current producers from SFU with enhanced logging
   const requestProducers = useCallback(() => {
     if (socketRef.current && roomId.current) {
-      console.log(`🔄 Polling for producers (attempt ${producerPollCount.current + 1}/${MAX_PRODUCER_POLLS})`);
-      socketRef.current.emit('getCurrentProducers', { room: roomId.current });
+      const attempt = producerPollCount.current + 1;
+      console.log(`🔄 [Producer Poll ${attempt}/${MAX_PRODUCER_POLLS}] Requesting producers for room: ${roomId.current}`);
+      console.log(`🔄 [Producer Poll ${attempt}] Socket connected: ${socketRef.current.connected}, ID: ${socketRef.current.id}`);
+      
+      socketRef.current.emit('getCurrentProducers', { room: roomId.current }, (response: any) => {
+        // Handle acknowledgement if server sends one
+        if (response) {
+          console.log(`📡 [Producer Poll ${attempt}] Server acknowledged request:`, response);
+        }
+      });
+    } else {
+      console.warn('⚠️ Cannot request producers: socket or roomId not ready', {
+        hasSocket: !!socketRef.current,
+        roomId: roomId.current
+      });
     }
   }, []);
 
-  // Start producer polling
+  // Start producer polling with exponential backoff
   const startProducerPolling = useCallback(() => {
     producerPollCount.current = 0;
+    let currentInterval = PRODUCER_POLL_INTERVAL_MS;
     
-    producerPollInterval.current = setInterval(() => {
+    const pollWithBackoff = () => {
       if (hasReceivedProducers.current) {
-        // Producers received, stop polling
-        if (producerPollInterval.current) {
-          clearInterval(producerPollInterval.current);
-          producerPollInterval.current = null;
-        }
+        console.log('✅ Producers received, stopping polling');
         return;
       }
       
@@ -123,27 +136,77 @@ export const useStream = (navigation = null) => {
       requestProducers();
       
       if (producerPollCount.current >= MAX_PRODUCER_POLLS) {
-        // Max polls reached, stop polling but wait for timeout
-        if (producerPollInterval.current) {
-          clearInterval(producerPollInterval.current);
-          producerPollInterval.current = null;
-        }
-        console.log('⏱️ Max producer polls reached, waiting for timeout...');
+        console.log(`⏱️ Max producer polls (${MAX_PRODUCER_POLLS}) reached, waiting for timeout...`);
+        return;
       }
-    }, PRODUCER_POLL_INTERVAL_MS);
+      
+      // Exponential backoff: 2s, 3s, 4s, 5s...
+      currentInterval = Math.min(currentInterval + 1000, 5000);
+      console.log(`⏱️ Next poll in ${currentInterval}ms`);
+      producerPollInterval.current = setTimeout(pollWithBackoff, currentInterval);
+    };
+    
+    // Start first poll after initial interval
+    producerPollInterval.current = setTimeout(pollWithBackoff, PRODUCER_POLL_INTERVAL_MS);
   }, [requestProducers]);
 
-  // Start connection timeout
+  // Start connection timeout with enhanced logging
   const startConnectionTimeout = useCallback(() => {
+    console.log(`⏱️ Starting connection timeout: ${PRODUCER_TIMEOUT_MS / 1000}s`);
     connectionTimeout.current = setTimeout(() => {
       if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
-        console.log('⏰ Connection timeout - no producers found');
+        console.log('⏰ Connection timeout - no producers found after all attempts');
+        console.log('⏰ Timeout diagnostics:', {
+          pollCount: producerPollCount.current,
+          maxPolls: MAX_PRODUCER_POLLS,
+          socketConnected: socketRef.current?.connected,
+          roomId: roomId.current
+        });
         setConnectionPhase('timeout');
-        setConnectionError('Could not find host video. The host may not be streaming yet.');
+        setConnectionError('Could not find host video. The host may not be streaming, or their connection was lost.');
         clearAllTimers();
       }
     }, PRODUCER_TIMEOUT_MS);
   }, [clearAllTimers]);
+
+  // Check SFU server health before connecting
+  const checkSFUHealth = useCallback(async (): Promise<{ healthy: boolean; latency?: number; error?: string }> => {
+    const startTime = Date.now();
+    try {
+      console.log('🏥 Checking SFU server health:', SERVER_URL);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${SERVER_URL}/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      const latency = Date.now() - startTime;
+      
+      if (response.ok) {
+        console.log(`✅ SFU server healthy (${latency}ms)`);
+        return { healthy: true, latency };
+      } else {
+        console.warn(`⚠️ SFU server returned ${response.status}`);
+        return { healthy: false, error: `Server returned ${response.status}` };
+      }
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      if (error.name === 'AbortError') {
+        console.error('❌ SFU health check timed out after 5s');
+        return { healthy: false, error: 'Server health check timed out' };
+      }
+      console.error('❌ SFU health check failed:', error.message);
+      // Don't fail on 404 - server might not have health endpoint
+      if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+        console.log('ℹ️ Health endpoint not available, proceeding anyway');
+        return { healthy: true, latency };
+      }
+      return { healthy: false, error: error.message };
+    }
+  }, []);
 
   // Retry connection - re-poll for producers
   const retryConnection = useCallback(() => {
@@ -692,12 +755,26 @@ export const useStream = (navigation = null) => {
     }
   }
 
-  async function initialize(role, options = {}, liveId, existingStream = null) {
-    console.log('🚀 Initializing stream...', { role, liveId });
+  async function initialize(role, options = {}, liveId, existingStream = null, skipHealthCheck = false) {
+    console.log('🚀 Initializing stream...', { role, liveId, skipHealthCheck });
     
     // Set initial connection phase
-    setConnectionPhase('connecting');
+    setConnectionPhase('health_check');
     setConnectionError(null);
+    
+    // Health check for viewers (skip for hosts to reduce latency)
+    if (role === 'viewer' && !skipHealthCheck) {
+      const health = await checkSFUHealth();
+      if (!health.healthy) {
+        console.error('❌ SFU server unhealthy, aborting connection');
+        setConnectionPhase('error');
+        setConnectionError(`Streaming server unavailable: ${health.error || 'Unknown error'}. Please try again later.`);
+        return;
+      }
+      console.log(`✅ SFU health check passed in ${health.latency}ms`);
+    }
+    
+    setConnectionPhase('connecting');
     
     // Clean up any existing connection before reinitializing
     if (socketRef.current) {
@@ -1368,6 +1445,13 @@ export const useStream = (navigation = null) => {
     retryConnection,
     // Production tracking
     isProducingReady,
-    onProductionReady
+    onProductionReady,
+    // Health check
+    checkSFUHealth,
+    // Constants for UI display
+    STALE_STREAM_THRESHOLD_SECONDS
   };
 };
+
+// Export the stale threshold for use in other components
+export { STALE_STREAM_THRESHOLD_SECONDS };
