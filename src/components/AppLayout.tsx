@@ -179,9 +179,6 @@ const AppLayout = () => {
 
               {/* Right Actions */}
               <div className="flex items-center space-x-2">
-                {/* Language Selector */}
-                <LanguageSelector variant="ghost" className="text-sm hidden sm:flex" />
-                
                 {/* Quick Actions */}
                 <Tooltip>
                   <TooltipTrigger asChild>
