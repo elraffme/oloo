@@ -59,81 +59,82 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Handle OAuth redirect - check profile onboarding_completed status
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(async () => {
-            try {
-              // Check if this is an OAuth user (automatically verified) or email user
-              const isOAuthUser = session.user.app_metadata?.provider && 
-                                  session.user.app_metadata.provider !== 'email';
+            // Check if this is an OAuth user (automatically verified) or email user
+            const isOAuthUser = session.user.app_metadata?.provider && 
+                                session.user.app_metadata.provider !== 'email';
+            
+            // For email sign-ups, check if email is verified
+            if (!isOAuthUser && !session.user.email_confirmed_at) {
+              const currentPath = window.location.pathname;
+              const authPages = ['/signin', '/auth', '/'];
               
-              // For email sign-ups, check if email is verified
-              if (!isOAuthUser && !session.user.email_confirmed_at) {
-                const currentPath = window.location.pathname;
-                const authPages = ['/signin', '/auth', '/'];
-                
-                if (authPages.includes(currentPath)) {
-                  // Redirect unverified email users to verify page
-                  window.location.href = '/auth/verify';
-                }
-                return;
+              if (authPages.includes(currentPath)) {
+                window.location.href = '/auth/verify';
               }
-              
-              const { data: profile } = await supabase
+              return;
+            }
+            
+            // Profile check - isolated try/catch so failures don't cause wrong redirects
+            let profile = null;
+            try {
+              const { data } = await supabase
                 .from('profiles')
                 .select('onboarding_completed')
                 .eq('user_id', session.user.id)
-                .single();
-              
-              // Check for pending onboarding data (from email verification flow)
-              const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
-              
-              if (pendingOnboardingData) {
-                try {
-                  const onboardingData = JSON.parse(pendingOnboardingData);
-                  await supabase.from('profiles').update({
-                    display_name: onboardingData.displayName || '',
-                    age: onboardingData.age || 0,
-                    bio: onboardingData.bio || 'Hello, I\'m new to Òloo!',
-                    height_cm: onboardingData.height || null,
-                    gender: onboardingData.gender || null,
-                    interests: onboardingData.interests || [],
-                    relationship_goals: onboardingData.relationshipGoal || null,
-                    profile_photos: onboardingData.photos || [],
-                    prompt_responses: onboardingData.promptResponses || {}
-                  }).eq('user_id', session.user.id);
-                } catch (error) {
-                  console.error('Error applying pending onboarding data:', error);
-                }
+                .maybeSingle();
+              profile = data;
+            } catch (error) {
+              console.error('Failed to check profile:', error);
+              // Don't redirect on error - stay on current page
+              return;
+            }
+            
+            // Check for pending onboarding data (from email verification flow)
+            const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
+            
+            if (pendingOnboardingData) {
+              try {
+                const onboardingData = JSON.parse(pendingOnboardingData);
+                await supabase.from('profiles').update({
+                  display_name: onboardingData.displayName || '',
+                  age: onboardingData.age || 0,
+                  bio: onboardingData.bio || 'Hello, I\'m new to Òloo!',
+                  height_cm: onboardingData.height || null,
+                  gender: onboardingData.gender || null,
+                  interests: onboardingData.interests || [],
+                  relationship_goals: onboardingData.relationshipGoal || null,
+                  profile_photos: onboardingData.photos || [],
+                  prompt_responses: onboardingData.promptResponses || {}
+                }).eq('user_id', session.user.id);
+              } catch (error) {
+                console.error('Error applying pending onboarding data:', error);
               }
-              
-              // Clear all pending states after processing
-              clearPendingStates();
-              
-              // Only redirect if we're on a page that should handle auth redirects
-              const currentPath = window.location.pathname;
-              const authPages = ['/signin', '/auth', '/', '/auth/verify'];
-              
-              if (authPages.includes(currentPath)) {
-                if (profile?.onboarding_completed === true) {
-                  // Returning user with completed onboarding - go to app
-                  window.location.href = '/app';
-                } else {
-                  // New user or onboarding not completed - go to onboarding
-                  window.location.href = '/onboarding';
-                }
+            }
+            
+            // Clear all pending states after processing
+            clearPendingStates();
+            
+            // Only redirect if we're on a page that should handle auth redirects
+            const currentPath = window.location.pathname;
+            const authPages = ['/signin', '/auth', '/', '/auth/verify'];
+            
+            if (authPages.includes(currentPath)) {
+              if (profile?.onboarding_completed === true) {
+                window.location.href = '/app';
+              } else {
+                window.location.href = '/onboarding';
               }
-              
-              // Log security event
+            }
+            
+            // Log security event separately - failure won't affect redirects
+            try {
               await supabase.rpc('log_security_event', {
                 p_action: 'login',
                 p_resource_type: 'auth',
                 p_details: { event, timestamp: new Date().toISOString() }
               });
-            } catch (error) {
-              console.error('Failed to check profile:', error);
-              // If profile check fails, redirect to onboarding as safe default
-              const currentPath = window.location.pathname;
-              if (['/signin', '/auth', '/'].includes(currentPath)) {
-                window.location.href = '/onboarding';
-              }
+            } catch (e) {
+              console.error('Failed to log security event:', e);
             }
           }, 0);
         }
