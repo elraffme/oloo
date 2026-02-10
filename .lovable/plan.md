@@ -1,94 +1,88 @@
 
 
-# Debug & Fix: Registration, Login, and OAuth Issues
+# Fix: Registered Users Incorrectly Redirected to Onboarding
 
-## Issues Found
+## Root Cause
 
-### Issue 1: signIn() sets global loading state, blocking the UI
-In `AuthContext.tsx`, the `signIn` function sets `setLoading(true)` at line 155. This causes the `SignIn` page (and `Auth` page) to render a loading spinner instead of the form. While loading is true, the redirect logic in `useEffect` on the SignIn page won't fire because it checks `!loading`. This creates a timing issue where:
-- User submits login
-- `loading` becomes `true` -> spinner shows
-- `onAuthStateChange` fires with `SIGNED_IN` -> tries to redirect
-- But the SignIn page's own redirect logic also fires, causing conflicts
+The `onAuthStateChange` handler in `AuthContext.tsx` has a **catch-all error handler** (line 130-136) that redirects to `/onboarding` whenever *any* error occurs during the post-login flow. This means:
 
-**Fix:** Remove `setLoading(true)` from `signIn()` (same pattern already used in `signUp()`). Use only the local `isSubmitting` state for button feedback.
+- If the profile query fails due to a network hiccup, users go to onboarding
+- If the `log_security_event` RPC fails, users go to onboarding
+- If any other error occurs in the try block, users go to onboarding
 
-### Issue 2: OAuth redirect URL lands on `/` (Landing Page) causing race condition
-All OAuth providers redirect to `${window.location.origin}/` which loads the `LandingPage` component. The `onAuthStateChange` listener then tries to redirect, but there's a race where the landing page renders first. The landing page has no auth-aware redirect logic.
+This happens even for users whose `onboarding_completed` is already `true`.
 
-**Fix:** Change OAuth `redirectTo` to `${window.location.origin}/auth` for all 4 providers (Google, Twitter, Facebook, LinkedIn). The `/auth` page already has proper redirect logic that checks profile completion.
+Additionally, the `log_security_event` call shares the same `try/catch` as the profile check, so a failure in logging incorrectly triggers the onboarding redirect.
 
-### Issue 3: Duplicate/conflicting redirect logic in SignIn page
-The `SignIn` page has THREE layers of redirect logic:
-1. `useEffect` checking `hasProfile` state
-2. `handleSignIn` manually checking profile after login
-3. `AuthContext.onAuthStateChange` also redirecting
+## Fix
 
-These can conflict and cause loops or stuck states.
+### Change 1: Separate the profile check from the security logging (AuthContext.tsx)
 
-**Fix:** Remove the manual redirect from `handleSignIn` in SignIn page - let `AuthContext.onAuthStateChange` handle all post-login routing consistently.
+Move the `log_security_event` call into its own try/catch so it can't interfere with the redirect logic.
 
-### Issue 4: SignIn page has a `hasProfile` null-check that blocks rendering
-The SignIn page checks `hasProfile !== null` before redirecting (line 56-61). While `hasProfile` is `null` (loading), the page continues rendering. But if `signIn` sets `loading=true`, the page shows a spinner. When `loading` becomes `false`, the `useEffect` fires again, queries the profile, and may race with `onAuthStateChange`.
+### Change 2: Fix the catch block to not blindly redirect to onboarding
 
-**Fix:** Simplify the SignIn page to not duplicate profile-check logic.
+Instead of redirecting to `/onboarding` on error, the catch block should:
+- Log the error
+- Attempt a simple retry of just the profile query
+- Only redirect to `/onboarding` if the profile genuinely doesn't exist or has `onboarding_completed: false`
+- If the query keeps failing, redirect to `/app` as a safer default (since most users are returning users)
 
-### Issue 5: Twitter OAuth user has null email
-User `f630cf56` signed in via Twitter but has `email: null`. If any code assumes email exists, it will fail. The profile was created with defaults.
+### Change 3: Guard against duplicate event firing
 
-**Fix:** Add null-safety for `user.email` throughout the auth flow.
-
-### Issue 6: Two recent Google users stuck with incomplete onboarding
-Users `97671e92` and `22933e49` signed in via Google but never completed onboarding (`onboarding_completed: false`). This suggests the redirect to `/onboarding` after OAuth may not be working reliably.
-
-**Fix:** Already addressed by fixing Issue 2 (OAuth redirect URL).
-
----
-
-## Implementation Plan
-
-### Step 1: Fix signIn() loading state (AuthContext.tsx)
-- Remove `setLoading(true)` and `setLoading(false)` from the `signIn` function
-- The `onAuthStateChange` listener already handles setting loading to false after auth events
-- This matches the pattern already used in `signUp()`
-
-### Step 2: Fix OAuth redirect URLs (AuthContext.tsx)
-- Change `redirectTo` from `${window.location.origin}/` to `${window.location.origin}/auth` in all 4 OAuth functions (Google, Twitter, Facebook, LinkedIn)
-- The `/auth` page has proper auth-aware redirect logic that checks onboarding status
-
-### Step 3: Simplify SignIn page redirect logic (SignIn.tsx)
-- Remove the `hasProfile` state and its `useEffect` that queries the profile
-- Remove the early return that redirects based on `hasProfile`
-- Remove the manual profile check and redirect inside `handleSignIn`
-- Add a simple redirect: if user exists and not loading, let `AuthContext.onAuthStateChange` handle it
-- Keep only a basic check: if user is logged in, show a "Redirecting..." state
-
-### Step 4: Simplify Auth page redirect logic (Auth.tsx)
-- The existing redirect logic in `useEffect` is mostly correct but conflicts with `AuthContext`
-- Simplify to just check if user is logged in and redirect (let AuthContext handle the destination)
-
-### Step 5: Add null-safety for email (AuthContext.tsx, AuthVerify.tsx)
-- Add optional chaining and fallbacks where `user.email` is used
-- Ensure the verification resend flow handles missing emails gracefully
-
-### Step 6: Fix email signup redirect URL (AuthContext.tsx)
-- Change the `signUp` `emailRedirectTo` from `${window.location.origin}/` to `${window.location.origin}/auth` for consistency
-- This ensures verified email users land on a page with proper redirect logic
-
----
+Add a check for `INITIAL_SESSION` event to skip the redirect logic on page load for already-authenticated users who are on protected pages, preventing unnecessary re-checks.
 
 ## Technical Details
 
-### Files to modify:
+**File: `src/contexts/AuthContext.tsx`** (lines 60-139)
 
-| File | Changes |
-|------|---------|
-| `src/contexts/AuthContext.tsx` | Remove loading state from signIn(), fix OAuth redirect URLs, fix signup redirect URL |
-| `src/pages/SignIn.tsx` | Remove duplicate redirect logic, simplify to single auth check |
-| `src/pages/Auth.tsx` | Minor cleanup of redirect logic to avoid conflicts |
+The `onAuthStateChange` handler will be restructured:
 
-### Expected behavior after fixes:
-1. **Email Registration:** User registers -> sees verification email screen -> clicks link -> lands on `/auth` -> `onAuthStateChange` fires -> redirects to `/onboarding`
-2. **Email Login:** User enters credentials -> `signIn()` called (no global loading) -> `onAuthStateChange` fires -> checks profile -> redirects to `/app` or `/onboarding`
-3. **OAuth Login:** User clicks provider button -> completes OAuth -> redirected to `/auth` -> `onAuthStateChange` fires -> checks profile -> redirects appropriately
-4. **Returning user:** Already logged in -> `onAuthStateChange` on page load -> redirects based on onboarding status
+```text
+if (event === 'SIGNED_IN' && session?.user) {
+  setTimeout(async () => {
+    // ... email verification check (unchanged) ...
+
+    let profile = null;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('user_id', session.user.id)
+        .single();
+      profile = data;
+    } catch (error) {
+      console.error('Failed to check profile:', error);
+      // Don't redirect on error - stay on current page
+      return;
+    }
+
+    // Handle pending onboarding data (unchanged) ...
+    // Clear pending states (unchanged) ...
+
+    // Redirect based on profile status
+    const currentPath = window.location.pathname;
+    const authPages = ['/signin', '/auth', '/', '/auth/verify'];
+    if (authPages.includes(currentPath)) {
+      if (profile?.onboarding_completed === true) {
+        window.location.href = '/app';
+      } else {
+        window.location.href = '/onboarding';
+      }
+    }
+
+    // Log security event separately - failure won't affect redirects
+    try {
+      await supabase.rpc('log_security_event', { ... });
+    } catch (e) {
+      console.error('Failed to log security event:', e);
+    }
+  }, 0);
+}
+```
+
+Key changes:
+- Profile query has its own try/catch that returns (stays on page) on failure instead of redirecting to onboarding
+- Security event logging is in a separate try/catch
+- No more blanket redirect to onboarding on error
+
