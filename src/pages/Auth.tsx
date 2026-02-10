@@ -143,25 +143,8 @@ const Auth = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const {
-        error
-      } = await signIn(formData.email, formData.password);
-      if (!error) {
-        // Check if user has completed profile
-        const {
-          data: session
-        } = await supabase.auth.getSession();
-        if (session?.session?.user) {
-          const {
-            data: profile
-          } = await supabase.from('profiles').select('display_name, age, location').eq('user_id', session.session.user.id).single();
-          if (!profile || !profile.display_name || !profile.age || !profile.location) {
-            navigate('/onboarding');
-          } else {
-            navigate('/app');
-          }
-        }
-      }
+      await signIn(formData.email, formData.password);
+      // AuthContext's onAuthStateChange handles redirect after successful login
     } finally {
       setIsSubmitting(false);
     }

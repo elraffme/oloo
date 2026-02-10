@@ -152,7 +152,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -178,8 +177,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       return { error };
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      toast({
+        title: "Sign In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error };
     }
   };
 
@@ -188,7 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     console.log('[AuthContext] signUp called with email:', email);
     
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       console.log('[AuthContext] Calling supabase.auth.signUp with redirect:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
@@ -430,7 +434,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -460,7 +464,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithTwitter = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'twitter',
@@ -490,7 +494,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithFacebook = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
@@ -520,7 +524,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithLinkedIn = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',

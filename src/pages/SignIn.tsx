@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 
 const SignIn = () => {
@@ -27,42 +26,23 @@ const SignIn = () => {
     password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [emailError, setEmailError] = useState<string>('');
 
-  // Check if user has completed onboarding
-  useEffect(() => {
-    const checkProfile = async () => {
-      if (user && !loading) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('onboarding_completed')
-            .eq('user_id', user.id)
-            .single();
-          
-          if (error || !data || data.onboarding_completed !== true) {
-            setHasProfile(false);
-          } else {
-            setHasProfile(true);
-          }
-        } catch (error) {
-          console.error('Error checking profile:', error);
-          setHasProfile(false);
-        }
-      }
-    };
-    checkProfile();
-  }, [user, loading]);
-
-  // Redirect authenticated users based on profile completion
-  if (user && !loading && hasProfile !== null) {
-    if (hasProfile) {
-      return <Navigate to="/app" replace />;
-    } else {
-      return <Navigate to="/onboarding" replace />;
-    }
+  // If user is already logged in, show redirecting state
+  // AuthContext's onAuthStateChange handles the actual redirect
+  if (user && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+        <div className="animate-pulse">
+          <div className="heart-logo mx-auto mb-4">
+            <span className="logo-text">Ò</span>
+          </div>
+          <p className="text-muted-foreground text-center">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
+
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
@@ -76,66 +56,44 @@ const SignIn = () => {
     setEmailError('');
     return true;
   };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (name === 'email') {
       validateEmail(value);
     }
   };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    if (!validateEmail(formData.email)) return;
 
-    // Validate email before submission
-    if (!validateEmail(formData.email)) {
-      return;
-    }
     setIsSubmitting(true);
     try {
-      const {
-        error
-      } = await signIn(formData.email, formData.password);
-      if (!error) {
-        // Check if user has completed onboarding
-        const { data: session } = await supabase.auth.getSession();
-        if (session?.session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('onboarding_completed')
-            .eq('user_id', session.session.user.id)
-            .single();
-          
-          if (!profile || profile.onboarding_completed !== true) {
-            navigate('/onboarding');
-          } else {
-            navigate('/app');
-          }
-        }
-      }
+      await signIn(formData.email, formData.password);
+      // AuthContext's onAuthStateChange handles redirect after successful login
     } finally {
       setIsSubmitting(false);
     }
   };
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">
           <div className="heart-logo mx-auto mb-4">
             <span className="logo-text">Ò</span>
           </div>
           <p className="text-muted-foreground text-center">Loading Òloo...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen" style={{
-    backgroundColor: '#f7f4e8'
-  }}>
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#f7f4e8' }}>
       <div className="relative z-10 container mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -156,14 +114,12 @@ const SignIn = () => {
         <div className="max-w-md mx-auto">
           <Card className="backdrop-blur-md bg-card/80 border-primary/20 shadow-2xl shadow-primary/20 cultural-card hover:shadow-primary/30 transition-all duration-500">
             <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg">
-              
               <CardDescription className="text-base text-muted-foreground/90">
                 {t('auth.continueJourney')}
               </CardDescription>
             </CardHeader>
             
             <CardContent className="relative">
-              {/* Subtle glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 rounded-b-lg pointer-events-none"></div>
               
               <div className="relative z-10">
@@ -261,6 +217,8 @@ const SignIn = () => {
           </Card>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default SignIn;
