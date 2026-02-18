@@ -906,7 +906,15 @@ export const useStream = (navigation = null) => {
     }
 
     console.log('🔌 Creating new socket connection to:', SERVER_URL);
-    const newSocket = io(SERVER_URL);
+    const newSocket = io(SERVER_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: true,
+    });
     socketRef.current = newSocket;
     setSocket(newSocket);
     
