@@ -762,16 +762,15 @@ export const useStream = (navigation = null) => {
     setConnectionPhase('health_check');
     setConnectionError(null);
     
-    // Health check for viewers (skip for hosts to reduce latency)
+    // Health check for viewers - soft check only (don't block on failure)
     if (role === 'viewer' && !skipHealthCheck) {
       const health = await checkSFUHealth();
       if (!health.healthy) {
-        console.error('❌ SFU server unhealthy, aborting connection');
-        setConnectionPhase('error');
-        setConnectionError(`Streaming server unavailable: ${health.error || 'Unknown error'}. Please try again later.`);
-        return;
+        console.warn('⚠️ SFU health check failed, attempting socket connection anyway:', health.error);
+        // Don't block - the socket.io connection has its own timeout/retry logic
+      } else {
+        console.log(`✅ SFU health check passed in ${health.latency}ms`);
       }
-      console.log(`✅ SFU health check passed in ${health.latency}ms`);
     }
     
     setConnectionPhase('connecting');
