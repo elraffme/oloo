@@ -982,10 +982,22 @@ export const useStream = (navigation = null) => {
       }
     };
     
+    let connectErrorCount = 0;
+    const MAX_CONNECT_ERRORS = 5;
+    
     const handleConnectError = (error: Error) => {
-      console.error("❌ Socket connection error:", error);
-      setConnectionPhase('error');
-      setConnectionError('Failed to connect to streaming server: ' + error.message);
+      connectErrorCount++;
+      console.warn(`⚠️ Socket connection attempt ${connectErrorCount}/${MAX_CONNECT_ERRORS} failed:`, error.message);
+      
+      if (connectErrorCount >= MAX_CONNECT_ERRORS) {
+        console.error("❌ All connection attempts exhausted");
+        setConnectionPhase('error');
+        setConnectionError('Could not reach streaming server after multiple attempts. Please check your connection and try again.');
+      } else {
+        // Show reconnecting state while socket.io retries
+        setConnectionPhase('connecting');
+        setConnectionError(null);
+      }
     };
 
     currentSocket.on("connect", handleConnect);
