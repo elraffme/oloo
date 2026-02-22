@@ -5,13 +5,13 @@ import { io } from "socket.io-client";
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
-// Connection timing constants - tuned for reliability
-const PRODUCER_TIMEOUT_MS = 12000; // 12 seconds before retry
-const PRODUCER_POLL_INTERVAL_MS = 1500; // Poll every 1.5 seconds (with backoff)
-const MAX_PRODUCER_POLLS = 6; // Maximum polling attempts per cycle
+// Connection timing constants - tuned for fast connection
+const PRODUCER_TIMEOUT_MS = 8000; // 8 seconds before retry
+const PRODUCER_POLL_INTERVAL_MS = 1000; // Poll every 1 second
+const MAX_PRODUCER_POLLS = 8; // Maximum polling attempts per cycle
 const STALE_STREAM_THRESHOLD_SECONDS = 120;
 const MAX_AUTO_RETRIES = 3; // Auto-retry connection up to 3 times
-const MASTER_DEADLINE_MS = 30000; // Hard deadline: fail after 30s total
+const MASTER_DEADLINE_MS = 20000; // Hard deadline: fail after 20s total
 
 // Connection phase type for granular state tracking
 export type ConnectionPhase = 
@@ -108,19 +108,16 @@ export const useStream = (navigation = null) => {
     }, 1000);
   }, []);
 
-  // Request current producers from SFU with enhanced logging
+  // Request current producers from SFU - fire-and-forget (no ack callback)
+  // Response comes via the 'currentProducers' event handler
   const requestProducers = useCallback(() => {
     if (socketRef.current && roomId.current) {
       const attempt = producerPollCount.current + 1;
       console.log(`🔄 [Producer Poll ${attempt}/${MAX_PRODUCER_POLLS}] Requesting producers for room: ${roomId.current}`);
-      console.log(`🔄 [Producer Poll ${attempt}] Socket connected: ${socketRef.current.connected}, ID: ${socketRef.current.id}`);
       
-      socketRef.current.emit('getCurrentProducers', { room: roomId.current }, (response: any) => {
-        // Handle acknowledgement if server sends one
-        if (response) {
-          console.log(`📡 [Producer Poll ${attempt}] Server acknowledged request:`, response);
-        }
-      });
+      // CRITICAL: Fire-and-forget - do NOT use ack callback.
+      // The SFU server responds via 'currentProducers' event, not via ack.
+      socketRef.current.emit('getCurrentProducers', { room: roomId.current });
     } else {
       console.warn('⚠️ Cannot request producers: socket or roomId not ready', {
         hasSocket: !!socketRef.current,
@@ -129,33 +126,29 @@ export const useStream = (navigation = null) => {
     }
   }, []);
 
-  // Start producer polling with exponential backoff
+  // Start producer polling - fixed interval (no backoff, speed matters)
   const startProducerPolling = useCallback(() => {
     producerPollCount.current = 0;
-    let currentInterval = PRODUCER_POLL_INTERVAL_MS;
     
-    const pollWithBackoff = () => {
+    const poll = () => {
       if (hasReceivedProducers.current) {
         console.log('✅ Producers received, stopping polling');
         return;
       }
       
       producerPollCount.current++;
-      requestProducers();
       
       if (producerPollCount.current >= MAX_PRODUCER_POLLS) {
-        console.log(`⏱️ Max producer polls (${MAX_PRODUCER_POLLS}) reached, waiting for timeout...`);
+        console.log(`⏱️ Max producer polls (${MAX_PRODUCER_POLLS}) reached`);
         return;
       }
       
-      // Exponential backoff: 2s, 3s, 4s, 5s...
-      currentInterval = Math.min(currentInterval + 1000, 5000);
-      console.log(`⏱️ Next poll in ${currentInterval}ms`);
-      producerPollInterval.current = setTimeout(pollWithBackoff, currentInterval);
+      requestProducers();
+      producerPollInterval.current = setTimeout(poll, PRODUCER_POLL_INTERVAL_MS);
     };
     
-    // Start first poll after initial interval
-    producerPollInterval.current = setTimeout(pollWithBackoff, PRODUCER_POLL_INTERVAL_MS);
+    // Start first poll after 1 second (initial request already sent)
+    producerPollInterval.current = setTimeout(poll, PRODUCER_POLL_INTERVAL_MS);
   }, [requestProducers]);
 
   // Start connection timeout with auto-retry logic
@@ -169,9 +162,9 @@ export const useStream = (navigation = null) => {
         console.log(`⏰ Connection timeout - attempt ${autoRetryCount.current}/${MAX_AUTO_RETRIES}`);
         
         if (autoRetryCount.current < MAX_AUTO_RETRIES) {
-          // Auto-retry: re-poll for producers
-          console.log('🔄 Auto-retrying producer poll...');
-          setConnectionPhase('awaiting_producers');
+          // Auto-retry: re-join room and re-request producers
+          console.log('🔄 Auto-retrying: re-joining room and requesting producers...');
+          setConnectionPhase('joining_room');
           setConnectionError(null);
           hasReceivedProducers.current = false;
           producerPollCount.current = 0;
@@ -182,13 +175,23 @@ export const useStream = (navigation = null) => {
             producerPollInterval.current = null;
           }
           
-          // Re-request producers immediately then resume polling
-          requestProducers();
-          startProducerPolling();
-          // Schedule next timeout cycle
-          if (startConnectionTimeoutRef.current) {
-            startConnectionTimeoutRef.current();
-          }
+          // Re-join room then request producers
+          socketRef.current?.emit("addUserCall", {
+            room: roomId.current,
+            peerId: peerId.current,
+            username: "User",
+            type: roleRef.current,
+          });
+          
+          setTimeout(() => {
+            setConnectionPhase('awaiting_producers');
+            requestProducers();
+            startProducerPolling();
+            // Schedule next timeout cycle
+            if (startConnectionTimeoutRef.current) {
+              startConnectionTimeoutRef.current();
+            }
+          }, 300);
         } else {
           console.log('❌ All auto-retry attempts exhausted');
           setConnectionPhase('timeout');
@@ -1047,7 +1050,7 @@ export const useStream = (navigation = null) => {
           type: roleRef.current,
         });
         
-        console.log('🚪 Room join emitted, waiting 500ms for server processing...');
+        console.log('🚪 Room join emitted, waiting for server processing...');
         
         // Wait for server to process the room join before proceeding
         setTimeout(() => {
@@ -1064,7 +1067,7 @@ export const useStream = (navigation = null) => {
             startProducerPolling();
             startConnectionTimeout();
           }
-        }, 500);
+        }, 200); // 200ms - enough for server to process room join
       });
     };
     
@@ -1134,12 +1137,12 @@ export const useStream = (navigation = null) => {
     if (role === 'viewer') {
       startElapsedTimeCounter();
       
-      // Master deadline: hard-fail after 30s total to prevent infinite "Connecting..."
+      // Master deadline: hard-fail after 20s total to prevent infinite "Connecting..."
       masterDeadlineTimer.current = setTimeout(() => {
         if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
-          console.error('❌ Master deadline reached (30s) - connection failed');
+          console.error('❌ Master deadline reached (20s) - connection failed');
           setConnectionPhase('error');
-          setConnectionError('Connection failed after 30 seconds. Please try again.');
+          setConnectionError('Connection failed. Please try again.');
           clearAllTimers();
           socketRef.current?.disconnect();
         }
