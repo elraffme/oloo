@@ -647,90 +647,66 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }, [isStreaming, isCameraOn]);
 
   // Fetch live streams from database (archived/ended sessions excluded)
-  useEffect(() => {
-    const fetchLiveStreams = async () => {
-      try {
-        // Fetch only live streaming sessions - ended/archived sessions are hidden
-        const {
-          data: streamsData,
-          error: streamsError
-        } = await supabase.from('streaming_sessions').select('*').eq('status', 'live').eq('is_private', false).order('created_at', {
-          ascending: false
-        });
-        if (streamsError) throw streamsError;
-        if (!streamsData || streamsData.length === 0) {
-          setLiveStreams([]);
-          return;
-        }
-
-        // Fetch profiles for all hosts in one query
-        const hostIds = [...new Set(streamsData.map(s => s.host_user_id))];
-        const {
-          data: profilesData,
-          error: profilesError
-        } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', hostIds);
-        if (profilesError) console.warn('Error fetching profiles:', profilesError);
-
-        // Create a map of user_id to profile for quick lookup
-        const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-        const formattedStreams: StreamData[] = streamsData.map((stream: any) => {
-          const profile = profilesMap.get(stream.host_user_id);
-          return {
-            id: stream.id,
-            title: stream.title,
-            description: stream.description || '',
-            host_user_id: stream.host_user_id,
-            host_name: profile?.display_name || 'Anonymous',
-            current_viewers: stream.current_viewers || 0,
-            status: stream.status,
-            created_at: stream.created_at,
-            started_at: stream.started_at,
-            category: stream.ar_space_data?.category || 'General',
-            thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-          };
-        });
-        setLiveStreams(formattedStreams);
-      } catch (error) {
-        console.error('Error fetching live streams:', error);
-        // Show mock data if fetch fails
-        const mockStreams: StreamData[] = [{
-          id: '1',
-          title: 'Cultural Music Session 🎵',
-          description: 'Live performance of traditional African songs',
-          host_user_id: 'host1',
-          host_name: 'Kemi Adebayo',
-          current_viewers: 234,
-          status: 'live',
-          created_at: new Date().toISOString(),
-          category: 'Music',
-          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
-        }, {
-          id: '2',
-          title: 'Dating Tips & Cultural Values 💝',
-          description: 'Discussion on modern dating with traditional values',
-          host_user_id: 'host2',
-          host_name: 'Amara Johnson',
-          current_viewers: 156,
-          status: 'live',
-          created_at: new Date().toISOString(),
-          category: 'Lifestyle',
-          thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop'
-        }];
-        setLiveStreams(mockStreams);
+  const fetchLiveStreams = async () => {
+    try {
+      console.log('📡 Fetching live streams...');
+      // Fetch only live streaming sessions - ended/archived sessions are hidden
+      const {
+        data: streamsData,
+        error: streamsError
+      } = await supabase.from('streaming_sessions').select('*').eq('status', 'live').eq('is_private', false).order('created_at', {
+        ascending: false
+      });
+      if (streamsError) throw streamsError;
+      if (!streamsData || streamsData.length === 0) {
+        console.log('📡 No live streams found');
+        setLiveStreams([]);
+        return;
       }
-    };
+
+      console.log(`📡 Found ${streamsData.length} live streams`);
+
+      // Fetch profiles for all hosts in one query
+      const hostIds = [...new Set(streamsData.map(s => s.host_user_id))];
+      const {
+        data: profilesData,
+        error: profilesError
+      } = await supabase.from('profiles').select('user_id, display_name, avatar_url').in('user_id', hostIds);
+      if (profilesError) console.warn('Error fetching profiles:', profilesError);
+
+      // Create a map of user_id to profile for quick lookup
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+      const formattedStreams: StreamData[] = streamsData.map((stream: any) => {
+        const profile = profilesMap.get(stream.host_user_id);
+        return {
+          id: stream.id,
+          title: stream.title,
+          description: stream.description || '',
+          host_user_id: stream.host_user_id,
+          host_name: profile?.display_name || 'Anonymous',
+          current_viewers: stream.current_viewers || 0,
+          status: stream.status,
+          created_at: stream.created_at,
+          started_at: stream.started_at,
+          category: stream.ar_space_data?.category || 'General',
+          thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+        };
+      });
+      setLiveStreams(formattedStreams);
+    } catch (error) {
+      console.error('Error fetching live streams:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchLiveStreams();
 
     // Phase 4: Less aggressive cleanup - only cleanup very old streams (24+ hours)
-    // This prevents accidentally archiving active streams
     const cleanupStaleStreams = async () => {
       try {
-        // Call the database function for standard cleanup
         await supabase.rpc('cleanup_stale_live_streams');
         console.log('✅ Stale streams cleanup completed via RPC');
 
-        // Only archive streams that are VERY old (24+ hours) to avoid killing active streams
-        // Reduced from 6 hours to 24 hours to be much safer
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const {
           error: immediateCleanupError
@@ -738,7 +714,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           status: 'archived',
           ended_at: new Date().toISOString(),
           current_viewers: 0
-        }).eq('status', 'live').lt('started_at', twentyFourHoursAgo); // Only streams older than 24 hours
+        }).eq('status', 'live').lt('started_at', twentyFourHoursAgo);
 
         if (immediateCleanupError) {
           console.warn('Failed immediate cleanup:', immediateCleanupError);
@@ -751,13 +727,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     };
     cleanupStaleStreams();
 
-    // Phase 2: Set up real-time subscription with debounced refetch
+    // AUTO-REFRESH: Poll every 10 seconds for fresh live stream data
+    const autoRefreshInterval = setInterval(() => {
+      fetchLiveStreams();
+    }, 10000);
+
+    // Real-time subscription for instant updates
     let refetchTimeout: NodeJS.Timeout | null = null;
     const debouncedRefetch = () => {
       if (refetchTimeout) clearTimeout(refetchTimeout);
       refetchTimeout = setTimeout(() => {
         fetchLiveStreams();
-      }, 500); // Only refetch once every 500ms max
+      }, 300);
     };
     const channel = supabase.channel('streaming_sessions_changes').on('postgres_changes', {
       event: '*',
@@ -765,54 +746,68 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       table: 'streaming_sessions',
       filter: 'is_private=eq.false'
     }, payload => {
+      console.log('📡 Real-time stream event:', payload.eventType, payload.new ? (payload.new as any).status : '');
+
       // Handle DELETE - always remove from UI
       if (payload.eventType === 'DELETE' && payload.old) {
         setLiveStreams(prev => prev.filter(s => s.id !== (payload.old as any).id));
         return;
       }
 
-      // Handle UPDATE - optimize state updates
+      // Handle UPDATE
       if (payload.eventType === 'UPDATE' && payload.new) {
         const updatedStream = payload.new as any;
 
-        // If stream ended/archived, remove immediately without refetch
+        // If stream ended/archived, remove immediately
         if (updatedStream.status === 'ended' || updatedStream.status === 'archived') {
+          console.log('📡 Stream ended/archived, removing:', updatedStream.id);
           setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
           return;
         }
 
-        // If stream is now live, add/update optimistically
+        // If stream just went live, immediately add/update AND refetch for full profile data
         if (updatedStream.status === 'live') {
           setLiveStreams(prev => {
             const exists = prev.find(s => s.id === updatedStream.id);
             if (exists) {
-              // Update existing stream
               return prev.map(s => s.id === updatedStream.id ? {
                 ...s,
-                current_viewers: updatedStream.current_viewers,
-                total_likes: updatedStream.total_likes
+                current_viewers: updatedStream.current_viewers || 0,
+                total_likes: updatedStream.total_likes || 0
               } : s);
             }
-            // Don't auto-add, let the debounced refetch handle it
-            return prev;
+            // OPTIMISTICALLY add new live stream immediately
+            console.log('📡 New live stream detected, adding optimistically:', updatedStream.id);
+            return [...prev, {
+              id: updatedStream.id,
+              title: updatedStream.title || 'Live Stream',
+              description: updatedStream.description || '',
+              host_user_id: updatedStream.host_user_id,
+              host_name: 'Loading...',
+              current_viewers: updatedStream.current_viewers || 0,
+              status: 'live' as const,
+              created_at: updatedStream.created_at,
+              started_at: updatedStream.started_at,
+              category: updatedStream.ar_space_data?.category || 'General',
+              thumbnail: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop'
+            }];
           });
-        }
-
-        // Only trigger debounced refetch for meaningful updates
-        // (avoid refetch on minor updates like viewer count changes)
-        const oldStream = payload.old as any;
-        if (oldStream && oldStream.status !== updatedStream.status) {
+          // Also refetch to get full profile data
           debouncedRefetch();
         }
         return;
       }
 
-      // Handle INSERT - new stream created, refetch
+      // Handle INSERT - new stream created, refetch to check if it's live
       if (payload.eventType === 'INSERT') {
-        debouncedRefetch();
+        const newStream = payload.new as any;
+        if (newStream.status === 'live') {
+          debouncedRefetch();
+        }
       }
     }).subscribe();
     return () => {
+      clearInterval(autoRefreshInterval);
       if (refetchTimeout) clearTimeout(refetchTimeout);
       supabase.removeChannel(channel);
     };
@@ -1309,31 +1304,47 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       console.log('✅ SFU stream initialized, waiting for production confirmation...');
       setChannelStatus('connecting');
 
-      // Register callback for when production is ready
-      onProductionReady(() => {
-        console.log('🎉 Production ready callback triggered - updating DB to live');
+      // Helper to set stream live in DB
+      let hasGoneLive = false;
+      const setStreamLive = async (source: string) => {
+        if (hasGoneLive) return;
+        hasGoneLive = true;
+        console.log(`🎉 Setting stream live (source: ${source})`);
         
-        // Update stream to live NOW that SFU has confirmed production
-        supabase.from('streaming_sessions').update({
+        const { error: updateError } = await supabase.from('streaming_sessions').update({
           status: 'live',
           started_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString()
-        }).eq('id', data.id).then(({ error: updateError }) => {
-          if (updateError) {
-            console.error('Error updating stream to live:', updateError);
-          } else {
-            console.log('✅ Stream is now live and ready for viewers');
-            setStreamLifecycle('live');
-            setIsBroadcastReady(true);
-            setChannelStatus('connected');
-            
-            toast({
-              title: "🎥 You're Live!",
-              description: "Viewers can now join your stream"
-            });
-          }
-        });
+        }).eq('id', data.id);
+        
+        if (updateError) {
+          console.error('Error updating stream to live:', updateError);
+        } else {
+          console.log('✅ Stream is now live and visible to viewers');
+          setStreamLifecycle('live');
+          setIsBroadcastReady(true);
+          setChannelStatus('connected');
+          
+          toast({
+            title: "🎥 You're Live!",
+            description: "Viewers can now join your stream"
+          });
+        }
+      };
+
+      // Register callback for when SFU production is ready
+      onProductionReady(() => {
+        setStreamLive('sfu_production_ready');
       });
+
+      // FALLBACK: If SFU doesn't confirm within 8 seconds, go live anyway
+      // This ensures the stream appears in discover even if SFU is slow
+      const sfuFallbackTimeout = setTimeout(() => {
+        if (!hasGoneLive) {
+          console.warn('⚠️ SFU did not confirm production in 8s, going live via fallback');
+          setStreamLive('sfu_timeout_fallback');
+        }
+      }, 8000);
 
       // Fetch ICE servers to check TURN availability
       try {
