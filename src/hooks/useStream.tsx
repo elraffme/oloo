@@ -13,6 +13,39 @@ const STALE_STREAM_THRESHOLD_SECONDS = 120;
 const MAX_AUTO_RETRIES = 3; // Auto-retry connection up to 3 times
 const MASTER_DEADLINE_MS = 15000; // Hard deadline: fail after 15s total
 const RTP_CAPABILITIES_TIMEOUT_MS = 5000; // Timeout for getRTPCapabilites ack
+const CONSUME_TIMEOUT_MS = 8000; // Timeout for startConsuming → consumerCreated
+
+// Build client-side ICE servers from environment variables
+// This supplements whatever the SFU server provides
+function getClientIceServers(): RTCIceServer[] {
+  const iceServers: RTCIceServer[] = [
+    // Always include public STUN servers as fallback
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
+  // Add TURN servers from environment if configured
+  const turnUrls = import.meta.env.VITE_TURN_URLS;
+  const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+
+  if (turnUrls && turnUsername && turnCredential) {
+    const urls = turnUrls.split(',').map((u: string) => u.trim());
+    iceServers.push({
+      urls,
+      username: turnUsername,
+      credential: turnCredential,
+    });
+    console.log('🧊 Client-side TURN servers configured:', urls);
+  } else {
+    console.warn('⚠️ No TURN server configured (VITE_TURN_URLS). Connections behind strict NAT will fail.');
+    console.warn('⚠️ Set VITE_TURN_URLS, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env for reliable connections.');
+  }
+
+  return iceServers;
+}
+
+const CLIENT_ICE_SERVERS = getClientIceServers();
 
 // Connection phase type for granular state tracking
 export type ConnectionPhase = 
@@ -54,6 +87,7 @@ export const useStream = (navigation = null) => {
   const socketRef = useRef<any>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const hostStreamRef = useRef<MediaStream | null>(null); // CRITICAL: Persistent host stream for audio continuity
+  const consumeTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const remotePeerId = useRef("");
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
@@ -293,6 +327,10 @@ export const useStream = (navigation = null) => {
     consumers.current.forEach((consumer) => consumer?.close());
     consumers.current.clear();
     
+    // Clear consume timeouts
+    consumeTimeouts.current.forEach((t) => clearTimeout(t));
+    consumeTimeouts.current.clear();
+    
     // CRITICAL: Stop and cleanup local stream tracks properly
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
@@ -371,7 +409,16 @@ export const useStream = (navigation = null) => {
   async function handleProducerTransport(data) {
     try {
       console.log('📤 Creating producer transport...', data);
-      produceTransport.current = device.current.createSendTransport(data.data);
+      
+      // Supplement server ICE servers with client-side TURN config
+      const transportData = { ...data.data };
+      if (transportData.iceServers) {
+        transportData.iceServers = [...transportData.iceServers, ...CLIENT_ICE_SERVERS];
+      } else {
+        transportData.iceServers = CLIENT_ICE_SERVERS;
+      }
+      
+      produceTransport.current = device.current.createSendTransport(transportData);
 
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Producer transport connecting...');
@@ -578,11 +625,28 @@ export const useStream = (navigation = null) => {
   async function consume(data) {
     try {
       console.log('📥 Creating receive transport for consumption...');
-      const transport = device.current.createRecvTransport(data.data);
+      
+      // CRITICAL: Supplement server-provided ICE servers with client-side TURN config
+      // This ensures viewers behind strict NATs can connect even if SFU doesn't provide TURN
+      const transportData = { ...data.data };
+      if (transportData.iceServers) {
+        // Merge: keep server ICE servers + add client ones
+        transportData.iceServers = [...transportData.iceServers, ...CLIENT_ICE_SERVERS];
+        console.log('🧊 Merged ICE servers (server + client):', transportData.iceServers.length);
+      } else {
+        // Server didn't provide any ICE servers, use client-side ones
+        transportData.iceServers = CLIENT_ICE_SERVERS;
+        console.log('🧊 Using client-side ICE servers only:', CLIENT_ICE_SERVERS.length);
+      }
+      
+      // Log the ICE server configuration for debugging
+      console.log('🧊 ICE servers for consumer transport:', JSON.stringify(transportData.iceServers?.map((s: any) => s.urls || s.url)));
+      
+      const transport = device.current.createRecvTransport(transportData);
       consumeTransports.current.set(data.storageId, transport);
 
       transport.on("connect", ({ dtlsParameters }, callback) => {
-        console.log('🔗 Consumer transport connecting...');
+        console.log('🔗 Consumer transport connecting (DTLS handshake)...');
         socketRef.current?.emit(
           "transportConnect",
           { dtlsParameters, storageId: data.storageId },
@@ -600,12 +664,12 @@ export const useStream = (navigation = null) => {
         
         // Log detailed ICE info from underlying RTCPeerConnection
         try {
-          const pc = transport._handler?._pc;
+          const pc = (transport as any)._handler?._pc;
           if (pc) {
             console.log(`🧊 ICE connection: ${pc.iceConnectionState}, ICE gathering: ${pc.iceGatheringState}, signaling: ${pc.signalingState}`);
             // Log ICE candidates
-            pc.getStats().then(stats => {
-              stats.forEach(report => {
+            pc.getStats().then((stats: any) => {
+              stats.forEach((report: any) => {
                 if (report.type === 'local-candidate') {
                   console.log(`🧊 Local ICE candidate: ${report.candidateType} ${report.protocol} ${report.address}:${report.port}`);
                 }
@@ -633,7 +697,8 @@ export const useStream = (navigation = null) => {
             }
             break;
           case "failed":
-            console.log("❌ Consumer connection failed, restarting ICE...");
+            console.error("❌ Consumer transport ICE FAILED — likely missing TURN server or wrong announcedIp on SFU");
+            console.error("❌ To fix: Configure TURN server in .env (VITE_TURN_URLS) and ensure SFU has correct announcedIp");
             socketRef.current?.emit(
               "consumerRestartIce",
               data.storageId,
@@ -679,6 +744,19 @@ export const useStream = (navigation = null) => {
       });
 
       console.log('📡 Starting to consume producer:', data.producer.producerId);
+      
+      // CRITICAL: Add timeout for startConsuming → consumerCreated
+      // If server never responds, we don't hang forever
+      const consumeTimeoutId = setTimeout(() => {
+        console.error(`❌ startConsuming timed out after ${CONSUME_TIMEOUT_MS}ms for producer ${data.producer.producerId}`);
+        console.error('❌ Server did not respond with consumerCreated. Check SFU server logs.');
+        // Don't set error state here — other producers may still work
+      }, CONSUME_TIMEOUT_MS);
+      
+      // Store timeout so handleNewConsumer can clear it
+      if (!consumeTimeouts.current) consumeTimeouts.current = new Map();
+      consumeTimeouts.current.set(data.producer.producerId, consumeTimeoutId);
+      
       socketRef.current?.emit("startConsuming", {
         rtpCapabilities: device.current.rtpCapabilities,
         storageId: data.storageId,
@@ -731,6 +809,14 @@ export const useStream = (navigation = null) => {
     
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
+    
+    // Clear consume timeout for this producer
+    const timeoutId = consumeTimeouts.current.get(producerId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      consumeTimeouts.current.delete(producerId);
+      console.log(`✅ Cleared consume timeout for producer ${producerId}`);
+    }
 
     // Log consumer details
     console.log(`📥 New consumer: ${consumer.kind} from ${appData?.type || 'host'}`, {
