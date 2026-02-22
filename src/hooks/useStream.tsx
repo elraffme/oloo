@@ -1038,24 +1038,42 @@ export const useStream = (navigation = null) => {
         
         console.log('🚪 Joining room:', roomId.current, 'as', roleRef.current);
         setConnectionPhase('joining_room');
+        
+        // CRITICAL: Wait for server to acknowledge room join before requesting producers
+        // Previously this was fire-and-forget, causing producer requests to arrive
+        // before the viewer was fully joined to the room (server returned empty producers)
         newSocket.emit("addUserCall", {
           room: roomId.current,
           peerId: peerId.current,
           username: "User",
           type: roleRef.current,
+        }, (ack: any) => {
+          console.log('✅ Room join acknowledged by server:', ack);
+          
+          if (roleRef.current === "streamer") {
+            console.log('📤 Requesting producer transport for streaming...');
+            newSocket.emit("createTransport", peerId.current);
+          } else {
+            // Viewer: NOW safe to request producers since we're in the room
+            setConnectionPhase('awaiting_producers');
+            console.log('👁️ Viewer joined room - requesting producers...');
+            requestProducers();
+            startProducerPolling();
+            startConnectionTimeout();
+          }
         });
         
-        if (roleRef.current === "streamer") {
-          console.log('📤 Requesting producer transport for streaming...');
-          newSocket.emit("createTransport", peerId.current);
-        } else {
-          // Viewer: start polling and timeout
-          setConnectionPhase('awaiting_producers');
-          console.log('👁️ Viewer mode - requesting producers immediately...');
-          requestProducers();
-          startProducerPolling();
-          startConnectionTimeout();
-        }
+        // Fallback: if server doesn't support ack callback, proceed after 1s
+        // Use producerPollCount as indicator that polling hasn't started yet
+        setTimeout(() => {
+          if (roleRef.current === 'viewer' && !hasReceivedProducers.current && producerPollCount.current === 0) {
+            console.warn('⚠️ No room join ack received, proceeding with producer request...');
+            setConnectionPhase('awaiting_producers');
+            requestProducers();
+            startProducerPolling();
+            startConnectionTimeout();
+          }
+        }, 1000);
       });
     };
     
