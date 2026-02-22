@@ -387,7 +387,6 @@ export const useStream = (navigation = null) => {
             break;
           case "connected":
             console.log("✅ Producer transport connected!");
-            // Don't set streaming phase here - wait for production confirmation
             break;
           case "failed":
             console.log("❌ Producer transport failed, restarting ICE...");
@@ -441,11 +440,19 @@ export const useStream = (navigation = null) => {
         }
       );
 
+      // CRITICAL: For viewers, transport creation is enough - don't try to produce yet.
+      // Viewers will produce later when they enable camera/mic via publishStream().
       const stream = localStreamRef.current;
       if (!stream) {
-        console.error("❌ Local stream not initialized - cannot produce");
-        setConnectionPhase('error');
-        setConnectionError('Local stream not available');
+        console.log("ℹ️ No local stream yet - transport created but not producing (viewer mode)");
+        // For viewers: now that we have a sendTransport, request producers
+        if (roleRef.current === 'viewer') {
+          console.log('👁️ Viewer transport ready, requesting producers...');
+          setConnectionPhase('awaiting_producers');
+          requestProducers();
+          startProducerPolling();
+          startConnectionTimeout();
+        }
         return;
       }
 
@@ -1056,12 +1063,25 @@ export const useStream = (navigation = null) => {
             console.log('📤 Requesting producer transport for streaming...');
             newSocket.emit("createTransport", peerId.current);
           } else {
-            // Viewer: request producers after server has had time to register us
+            // CRITICAL FIX: Viewer MUST also create a transport first.
+            // Many SFU servers require the peer to have a transport before allowing consumption.
+            // The transport creation triggers "transportCreated" → handleProducerTransport,
+            // which will then request producers (since no localStream exists yet).
+            console.log('👁️ Viewer creating transport (required by SFU before consuming)...');
             setConnectionPhase('awaiting_producers');
-            console.log('👁️ Viewer requesting producers...');
-            requestProducers();
-            startProducerPolling();
-            startConnectionTimeout();
+            newSocket.emit("createTransport", peerId.current);
+            
+            // Also request producers directly as a parallel path
+            // This ensures we don't miss producers even if the transport creation
+            // takes a different code path on the server
+            setTimeout(() => {
+              if (!hasReceivedProducers.current) {
+                console.log('👁️ Parallel producer request (backup path)...');
+                requestProducers();
+                startProducerPolling();
+                startConnectionTimeout();
+              }
+            }, 1000);
           }
         }, 500);
       });
