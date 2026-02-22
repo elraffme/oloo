@@ -469,15 +469,33 @@ export const useStream = (navigation = null) => {
       if (videoTrack) {
         try {
           console.log('📹 Producing video track to SFU...');
+          // SIMULCAST: 3 encoding layers for adaptive quality
+          // SFU selects the best layer per viewer based on their bandwidth
           await produceTransport.current.produce({ 
             track: videoTrack,
             encodings: [
-              {
-                ssrc: 111110,
-                scalabilityMode: "L3T3_KEY",
-                maxBitrate: 1000000,
+              { 
+                rid: 'r0', 
+                maxBitrate: 100000,   // 100kbps - low quality fallback
+                scaleResolutionDownBy: 4,
+                scalabilityMode: 'L1T3',
+              },
+              { 
+                rid: 'r1', 
+                maxBitrate: 300000,   // 300kbps - medium quality
+                scaleResolutionDownBy: 2,
+                scalabilityMode: 'L1T3',
+              },
+              { 
+                rid: 'r2', 
+                maxBitrate: 900000,   // 900kbps - high quality
+                scaleResolutionDownBy: 1,
+                scalabilityMode: 'L1T3',
               },
             ],
+            codecOptions: {
+              videoGoogleStartBitrate: 300, // Start at medium
+            },
             appData: { 
               type: roleRef.current, 
               peerId: peerId.current,
@@ -1377,15 +1395,18 @@ export const useStream = (navigation = null) => {
       if (videoTrack && videoTrack.readyState === 'live') {
         try {
           console.log('📹 Producing viewer video track to SFU...');
+          // Viewer video: lower bitrate, no simulcast needed
           await produceTransport.current.produce({
             track: videoTrack,
             encodings: [
               {
-                ssrc: 111110,
-                scalabilityMode: "L3T3_KEY",
-                maxBitrate: 1000000,
+                maxBitrate: 500000, // 500kbps max for viewer camera
+                scaleResolutionDownBy: 1,
               },
             ],
+            codecOptions: {
+              videoGoogleStartBitrate: 200,
+            },
             appData: { 
               type: 'viewer', 
               peerId: peerId.current, 
@@ -1439,6 +1460,53 @@ export const useStream = (navigation = null) => {
     }
   }, [isProducingReady]);
 
+  // Adaptive bitrate: reduce host encoding quality when viewers increase
+  const adjustBitrateForViewerCount = useCallback((viewerCount: number) => {
+    if (!produceTransport.current || roleRef.current !== 'streamer') return;
+    
+    // Get the video sender
+    const senders = (produceTransport.current as any)?._handler?._pc?.getSenders?.();
+    if (!senders) return;
+    
+    const videoSender = senders.find((s: any) => s.track?.kind === 'video');
+    if (!videoSender) return;
+    
+    const params = videoSender.getParameters();
+    if (!params.encodings || params.encodings.length === 0) return;
+    
+    // Scale max bitrate per encoding layer based on viewer count
+    // With simulcast the SFU handles per-viewer layer selection,
+    // but we can cap the top layer to reduce host upload burden
+    let topLayerMaxBitrate: number;
+    if (viewerCount <= 2) {
+      topLayerMaxBitrate = 900000; // 900kbps
+    } else if (viewerCount <= 5) {
+      topLayerMaxBitrate = 700000; // 700kbps
+    } else if (viewerCount <= 10) {
+      topLayerMaxBitrate = 500000; // 500kbps 
+    } else {
+      topLayerMaxBitrate = 400000; // 400kbps for 10+ viewers
+    }
+    
+    // Only update if the top encoding exists
+    const topEncoding = params.encodings[params.encodings.length - 1];
+    if (topEncoding && topEncoding.maxBitrate !== topLayerMaxBitrate) {
+      topEncoding.maxBitrate = topLayerMaxBitrate;
+      videoSender.setParameters(params).then(() => {
+        console.log(`📊 Adaptive bitrate: ${viewerCount} viewers → top layer capped at ${topLayerMaxBitrate / 1000}kbps`);
+      }).catch((e: any) => {
+        console.warn('⚠️ Failed to set adaptive bitrate:', e.message);
+      });
+    }
+  }, []);
+
+  // Auto-adjust bitrate when viewer count changes
+  useEffect(() => {
+    if (roleRef.current === 'streamer') {
+      adjustBitrateForViewerCount(viewerStreams.length);
+    }
+  }, [viewerStreams.length, adjustBitrateForViewerCount]);
+
   return {
     initialize,
     cleanup,
@@ -1467,6 +1535,9 @@ export const useStream = (navigation = null) => {
     onProductionReady,
     // Health check
     checkSFUHealth,
+    // Transport refs for WebRTC stats
+    produceTransportRef: produceTransport,
+    consumeTransportsRef: consumeTransports,
     // Constants for UI display
     STALE_STREAM_THRESHOLD_SECONDS
   };

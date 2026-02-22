@@ -155,12 +155,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     style: 'sepia(40%) contrast(90%) brightness(95%)'
   }];
   // Derived map for VideoCallGrid compatibility from SFU streams
-  const viewerCameras = new Map(viewerStreams.map(vs => [vs.id, {
-    stream: vs.stream,
-    displayName: 'Viewer',
-    sessionToken: vs.id
-  }]));
-  console.log(viewerCameras, 'viewer cameras');
+  // Memoize to prevent VideoCallGrid re-renders on every parent render
+  const viewerCamerasRef = useRef(new Map<string, { stream: MediaStream; displayName: string; sessionToken: string }>());
+  
+  useEffect(() => {
+    const newMap = new Map(viewerStreams.map(vs => [vs.id, {
+      stream: vs.stream,
+      displayName: 'Viewer',
+      sessionToken: vs.id
+    }]));
+    viewerCamerasRef.current = newMap;
+  }, [viewerStreams]);
+  
+  const viewerCameras = viewerCamerasRef.current;
 
   // Debug: Log viewer cameras updates
   useEffect(() => {
