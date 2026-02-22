@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Volume2 } from 'lucide-react';
 
@@ -190,7 +190,8 @@ interface VideoTileProps {
   isFeatureHost?: boolean;
 }
 
-const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) => {
+// Memoize VideoTile to prevent re-mount when sibling tiles change
+const VideoTile: React.FC<VideoTileProps> = memo(({ tile, isFeatureHost = false }) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = tile.videoRef || localVideoRef;
   const [playbackBlocked, setPlaybackBlocked] = useState(false);
@@ -456,4 +457,12 @@ const VideoTile: React.FC<VideoTileProps> = ({ tile, isFeatureHost = false }) =>
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Only re-render if the stream object or key props change
+  return prevProps.tile.id === nextProps.tile.id &&
+    prevProps.tile.stream?.id === nextProps.tile.stream?.id &&
+    prevProps.tile.isHost === nextProps.tile.isHost &&
+    prevProps.tile.isYou === nextProps.tile.isYou &&
+    prevProps.tile.isMuted === nextProps.tile.isMuted &&
+    prevProps.isFeatureHost === nextProps.isFeatureHost;
+});
