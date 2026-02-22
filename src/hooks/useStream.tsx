@@ -590,14 +590,42 @@ export const useStream = (navigation = null) => {
         );
       });
 
+      // Log ICE candidates for debugging network issues
+      transport.on("icegatheringstatechange", (state) => {
+        console.log(`🧊 Consumer ICE gathering state: ${state}`);
+      });
+
       transport.on("connectionstatechange", (state) => {
         console.log(`📥 Consumer transport ${data.storageId} state:`, state);
+        
+        // Log detailed ICE info from underlying RTCPeerConnection
+        try {
+          const pc = transport._handler?._pc;
+          if (pc) {
+            console.log(`🧊 ICE connection: ${pc.iceConnectionState}, ICE gathering: ${pc.iceGatheringState}, signaling: ${pc.signalingState}`);
+            // Log ICE candidates
+            pc.getStats().then(stats => {
+              stats.forEach(report => {
+                if (report.type === 'local-candidate') {
+                  console.log(`🧊 Local ICE candidate: ${report.candidateType} ${report.protocol} ${report.address}:${report.port}`);
+                }
+                if (report.type === 'remote-candidate') {
+                  console.log(`🧊 Remote ICE candidate: ${report.candidateType} ${report.protocol} ${report.address}:${report.port}`);
+                }
+                if (report.type === 'candidate-pair' && report.nominated) {
+                  console.log(`🧊 Active candidate pair: local=${report.localCandidateId} remote=${report.remoteCandidateId} state=${report.state}`);
+                }
+              });
+            }).catch(() => {});
+          }
+        } catch (e) { /* ignore */ }
+
         switch (state) {
           case "connecting":
-            console.log("🔄 Connecting to stream...");
+            console.log("🔄 Connecting to stream (ICE checking)...");
             break;
           case "connected":
-            console.log("✅ Subscribed to stream!");
+            console.log("✅ Subscribed to stream! WebRTC media flowing.");
             // Clear master deadline on successful connection
             if (masterDeadlineTimer.current) {
               clearTimeout(masterDeadlineTimer.current);
