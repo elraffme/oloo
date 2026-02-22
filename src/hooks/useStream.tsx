@@ -858,60 +858,10 @@ export const useStream = (navigation = null) => {
     // Reset retry counter for fresh initialization
     autoRetryCount.current = 0;
     
-    // Set initial connection phase
-    setConnectionPhase('health_check');
-    setConnectionError(null);
-    
-    // For viewers: validate that the stream session is actually active before connecting
-    if (role === 'viewer' && liveId) {
-      try {
-        const { data: sessionData, error: sessionError } = await (await import('@/integrations/supabase/client')).supabase
-          .from('streaming_sessions')
-          .select('status, last_activity_at, host_user_id')
-          .eq('id', liveId)
-          .single();
-        
-        if (sessionError || !sessionData) {
-          console.error('❌ Stream session not found:', sessionError?.message);
-          setConnectionPhase('error');
-          setConnectionError('Stream session not found. It may have ended.');
-          return;
-        }
-        
-        if (sessionData.status !== 'live') {
-          console.error('❌ Stream is not live, status:', sessionData.status);
-          setConnectionPhase('error');
-          setConnectionError('This stream is no longer live.');
-          return;
-        }
-        
-        // Check for stale host
-        if (sessionData.last_activity_at) {
-          const lastActivity = new Date(sessionData.last_activity_at).getTime();
-          const staleMs = STALE_STREAM_THRESHOLD_SECONDS * 1000;
-          if (Date.now() - lastActivity > staleMs) {
-            console.warn('⚠️ Host appears stale (last activity:', sessionData.last_activity_at, ')');
-            // Don't block - just warn, host might still be reachable via SFU
-          }
-        }
-        
-        console.log('✅ Stream session validated: status=live');
-      } catch (e) {
-        console.warn('⚠️ Could not validate stream session, proceeding anyway');
-      }
-    }
-    
-    // Health check for viewers - soft check only (don't block on failure)
-    if (role === 'viewer' && !skipHealthCheck) {
-      const health = await checkSFUHealth();
-      if (!health.healthy) {
-        console.warn('⚠️ SFU health check failed, attempting socket connection anyway:', health.error);
-      } else {
-        console.log(`✅ SFU health check passed in ${health.latency}ms`);
-      }
-    }
-    
+    // Set initial connection phase - go straight to connecting (skip redundant validation)
+    // NOTE: StreamViewer already validates stream status before calling initialize
     setConnectionPhase('connecting');
+    setConnectionError(null);
     
     // Clean up any existing connection before reinitializing
     if (socketRef.current) {
@@ -1049,9 +999,101 @@ export const useStream = (navigation = null) => {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      timeout: 20000,
+      timeout: 15000, // Reduced from 20s for faster failure detection
       forceNew: true,
     });
+    
+    // Socket connection timeout - fail fast if socket can't connect within 10s
+    let socketConnectionTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      if (!newSocket.connected) {
+        console.error('❌ Socket connection timed out after 10s');
+        setConnectionPhase('error');
+        setConnectionError('Could not connect to streaming server. Please try again.');
+        newSocket.disconnect();
+      }
+    }, 10000);
+    
+    // CRITICAL: Register event handlers BEFORE setting state to avoid race condition
+    // The socket might connect before React's useEffect runs, so we register inline
+    const handleInlineConnect = () => {
+      console.log('✅ Socket connected to SFU server (inline handler)');
+      if (socketConnectionTimeout) {
+        clearTimeout(socketConnectionTimeout);
+        socketConnectionTimeout = null;
+      }
+      
+      setIsConnected(true);
+      
+      console.log('📡 Requesting RTP capabilities from SFU...');
+      newSocket.emit("getRTPCapabilites", async (data: any) => {
+        if (!data?.capabilities) {
+          console.error('❌ Invalid RTP capabilities received:', data);
+          setConnectionPhase('error');
+          setConnectionError('Server returned invalid capabilities');
+          return;
+        }
+        
+        console.log('📡 RTP capabilities received, loading device...');
+        await loadDevice(data.capabilities);
+        
+        console.log('🚪 Joining room:', roomId.current, 'as', roleRef.current);
+        setConnectionPhase('joining_room');
+        newSocket.emit("addUserCall", {
+          room: roomId.current,
+          peerId: peerId.current,
+          username: "User",
+          type: roleRef.current,
+        });
+        
+        if (roleRef.current === "streamer") {
+          console.log('📤 Requesting producer transport for streaming...');
+          newSocket.emit("createTransport", peerId.current);
+        } else {
+          // Viewer: start polling and timeout
+          setConnectionPhase('awaiting_producers');
+          console.log('👁️ Viewer mode - requesting producers immediately...');
+          requestProducers();
+          startProducerPolling();
+          startConnectionTimeout();
+        }
+      });
+    };
+    
+    const handleInlineDisconnect = (reason: string) => {
+      console.log("❌ Socket disconnected:", reason);
+      setIsConnected(false);
+      setIsProducingReady(false);
+      
+      if (reason === "io server disconnect" || reason === "transport close" || reason === "ping timeout") {
+        console.log("🔄 Attempting socket reconnect...");
+        setTimeout(() => {
+          if (newSocket && !newSocket.connected) {
+            newSocket.connect();
+          }
+        }, 1000);
+      }
+    };
+    
+    let connectErrorCount = 0;
+    const handleInlineConnectError = (error: Error) => {
+      connectErrorCount++;
+      console.warn(`⚠️ Socket connection attempt ${connectErrorCount}/5 failed:`, error.message);
+      
+      if (connectErrorCount >= 5) {
+        console.error("❌ All socket connection attempts exhausted");
+        if (socketConnectionTimeout) {
+          clearTimeout(socketConnectionTimeout);
+          socketConnectionTimeout = null;
+        }
+        setConnectionPhase('error');
+        setConnectionError('Could not reach streaming server. Please check your connection.');
+      }
+    };
+    
+    newSocket.on("connect", handleInlineConnect);
+    newSocket.on("disconnect", handleInlineDisconnect);
+    newSocket.on("connect_error", handleInlineConnectError);
+    
     socketRef.current = newSocket;
     setSocket(newSocket);
     
@@ -1061,112 +1103,19 @@ export const useStream = (navigation = null) => {
       
       // Master deadline: hard-fail after 30s total to prevent infinite "Connecting..."
       masterDeadlineTimer.current = setTimeout(() => {
-        // Check if still not streaming (use hasReceivedProducers ref to avoid stale closure)
         if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
           console.error('❌ Master deadline reached (30s) - connection failed');
           setConnectionPhase('error');
           setConnectionError('Connection failed after 30 seconds. Please try again.');
           clearAllTimers();
-          // Disconnect socket to stop all activity
           socketRef.current?.disconnect();
         }
       }, MASTER_DEADLINE_MS);
     }
   }
 
-  useEffect(() => {
-    const currentSocket = socketRef.current;
-    if (!currentSocket) return;
-
-    const handleConnect = () => {
-      console.log("✅ Socket connected to SFU server");
-      setIsConnected(true);
-      
-      console.log('📡 Requesting RTP capabilities from SFU...');
-      // Use socketRef.current for stable reference in async callback
-      socketRef.current?.emit("getRTPCapabilites", async (data) => {
-        console.log('📡 RTP capabilities received, loading device...');
-        await loadDevice(data.capabilities);
-        
-        console.log('🚪 Joining room:', roomId.current, 'as', roleRef.current);
-        setConnectionPhase('joining_room');
-        socketRef.current?.emit("addUserCall", {
-          room: roomId.current,
-          peerId: peerId.current,
-          username: "User",
-          type: roleRef.current,
-        });
-        
-        if (roleRef.current === "streamer") {
-          console.log('📤 Requesting producer transport for streaming...');
-          socketRef.current?.emit("createTransport", peerId.current);
-        } else {
-          // Viewer: start polling and timeout
-          setConnectionPhase('awaiting_producers');
-          console.log('👁️ Viewer mode - requesting producers immediately...');
-          // Request producers immediately (don't wait for first poll interval)
-          requestProducers();
-          // Then start polling for subsequent attempts
-          startProducerPolling();
-          startConnectionTimeout();
-        }
-      });
-    };
-    
-    const handleDisconnect = (reason: string) => {
-      console.log("❌ Socket disconnected:", reason);
-      setIsConnected(false);
-      setIsProducingReady(false);
-      
-      if (reason === "io server disconnect") {
-        // Server disconnected, try to reconnect
-        console.log("🔄 Server initiated disconnect, attempting reconnect...");
-        socketRef.current?.connect();
-      } else if (reason === "transport close" || reason === "ping timeout") {
-        // Network issue, try to reconnect
-        console.log("🔄 Network issue detected, attempting reconnect...");
-        setTimeout(() => {
-          if (socketRef.current && !socketRef.current.connected) {
-            socketRef.current.connect();
-          }
-        }, 1000);
-      }
-    };
-    
-    let connectErrorCount = 0;
-    const MAX_CONNECT_ERRORS = 5;
-    
-    const handleConnectError = (error: Error) => {
-      connectErrorCount++;
-      console.warn(`⚠️ Socket connection attempt ${connectErrorCount}/${MAX_CONNECT_ERRORS} failed:`, error.message);
-      
-      if (connectErrorCount >= MAX_CONNECT_ERRORS) {
-        console.error("❌ All connection attempts exhausted");
-        setConnectionPhase('error');
-        setConnectionError('Could not reach streaming server after multiple attempts. Please check your connection and try again.');
-      } else {
-        // Show reconnecting state while socket.io retries
-        setConnectionPhase('connecting');
-        setConnectionError(null);
-      }
-    };
-
-    currentSocket.on("connect", handleConnect);
-    currentSocket.on("disconnect", handleDisconnect);
-    currentSocket.on("connect_error", handleConnectError);
-
-    // If socket is already connected (e.g., from a previous effect run), trigger connect handler
-    if (currentSocket.connected) {
-      console.log("🔄 Socket already connected, triggering connect handler");
-      handleConnect();
-    }
-
-    return () => {
-      currentSocket.off("connect", handleConnect);
-      currentSocket.off("disconnect", handleDisconnect);
-      currentSocket.off("connect_error", handleConnectError);
-    };
-  }, [socket, startProducerPolling, startConnectionTimeout, requestProducers]);
+  // NOTE: connect/disconnect/connect_error handlers are registered inline in initialize()
+  // This avoids race conditions where socket connects before React's useEffect runs.
 
   useEffect(() => {
     return () => {
@@ -1174,64 +1123,51 @@ export const useStream = (navigation = null) => {
     };
   }, []);
 
+  // Register SFU media event handlers when socket changes
+  // These handle transport/producer/consumer lifecycle events
   useEffect(() => {
-    if (!socket) return;
-    socket.on("transportCreated", handleProducerTransport);
-    return () => {
-      socket.off("transportCreated");
-    };
-  }, [socket]);
+    const s = socketRef.current;
+    if (!s) return;
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("currentProducers", (producers) => {
+    const onTransportCreated = (data: any) => handleProducerTransport(data);
+    
+    const onCurrentProducers = (producers: any[]) => {
       console.log(`📡 Received currentProducers: ${producers.length} producer(s)`);
-      
       if (producers.length > 0) {
-        // Found producers! Mark as received and consume them
         hasReceivedProducers.current = true;
         clearAllTimers();
         setConnectionPhase('consuming');
         producers.forEach((producer) => startConsumeProducer(producer));
       } else {
-        // Empty response - polling will continue if still active
         console.log('📭 No producers yet, waiting...');
       }
-    });
-    return () => {
-      socket.off("currentProducers");
     };
-  }, [socket, clearAllTimers]);
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("newProducer", (producer) => {
+    
+    const onNewProducer = (producer: any) => {
       console.log('🆕 New producer arrived');
       hasReceivedProducers.current = true;
       clearAllTimers();
       setConnectionPhase('consuming');
       startConsumeProducer(producer);
-    });
+    };
+    
+    const onConsumeTransportCreated = (data: any) => consume(data);
+    const onConsumerCreated = (data: any) => handleNewConsumer(data);
+
+    s.on("transportCreated", onTransportCreated);
+    s.on("currentProducers", onCurrentProducers);
+    s.on("newProducer", onNewProducer);
+    s.on("ConsumeTransportCreated", onConsumeTransportCreated);
+    s.on("consumerCreated", onConsumerCreated);
+
     return () => {
-      socket.off("newProducer");
+      s.off("transportCreated", onTransportCreated);
+      s.off("currentProducers", onCurrentProducers);
+      s.off("newProducer", onNewProducer);
+      s.off("ConsumeTransportCreated", onConsumeTransportCreated);
+      s.off("consumerCreated", onConsumerCreated);
     };
   }, [socket, clearAllTimers]);
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("ConsumeTransportCreated", consume);
-    return () => {
-      socket.off("ConsumeTransportCreated");
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("consumerCreated", handleNewConsumer);
-    return () => {
-      socket.off("consumerCreated");
-    };
-  }, [socket]);
 
   useEffect(() => {
     if (!socket) return;
