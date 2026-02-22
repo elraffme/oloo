@@ -224,6 +224,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   // Initialize viewer and load like status - AUTO-CONNECT immediately
   useEffect(() => {
+    let cancelled = false;
+    
     const initViewer = async () => {
       if (!videoRef.current) return;
       
@@ -233,6 +235,22 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       videoEl.playsInline = true;
       videoEl.muted = true;
 
+      // Validate stream is still live before joining
+      const { data: streamCheck, error: streamCheckError } = await supabase
+        .from('streaming_sessions')
+        .select('status')
+        .eq('id', streamId)
+        .single();
+      
+      if (cancelled) return;
+      
+      if (streamCheckError || !streamCheck || streamCheck.status !== 'live') {
+        console.error('❌ Stream not live or not found');
+        toast.error('This stream is no longer available.');
+        onClose();
+        return;
+      }
+
       // Join stream and get session token
       const displayName = user?.email?.split('@')[0] || 'Guest';
       
@@ -241,6 +259,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         p_display_name: displayName,
         p_is_guest: !user
       });
+
+      if (cancelled) return;
 
       if (joinError) {
         console.error('Error joining stream:', joinError);
@@ -253,13 +273,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       
       setSessionToken(token);
 
-      // Initialize SFU connection
+      // Initialize SFU connection (stream validation is also done inside initialize)
       console.log('🔌 Connecting to SFU stream...');
-      // Connection phase is now managed by useStream hook
       await initialize('viewer', {}, streamId);
 
-      setIsConnected(true);
-      // Connection phase is now managed by useStream hook
+      if (!cancelled) {
+        setIsConnected(true);
+      }
 
       // Load initial like status and count
       if (user) {
@@ -288,6 +308,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     
     // Cleanup on unmount - CRITICAL for rejoin to work
     return () => {
+      cancelled = true;
       console.log('🧹 StreamViewer unmounting, cleaning up...');
       
       // Always cleanup stream resources

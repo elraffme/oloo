@@ -5,11 +5,13 @@ import { io } from "socket.io-client";
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
-// Connection timing constants - increased for reliability
-const PRODUCER_TIMEOUT_MS = 15000; // 15 seconds before showing timeout (was 10s)
-const PRODUCER_POLL_INTERVAL_MS = 2000; // Initial poll every 2 seconds (with backoff)
-const MAX_PRODUCER_POLLS = 5; // Maximum polling attempts (was 3)
-const STALE_STREAM_THRESHOLD_SECONDS = 120; // Warn if host hasn't sent heartbeat in 2 minutes
+// Connection timing constants - tuned for reliability
+const PRODUCER_TIMEOUT_MS = 12000; // 12 seconds before retry
+const PRODUCER_POLL_INTERVAL_MS = 1500; // Poll every 1.5 seconds (with backoff)
+const MAX_PRODUCER_POLLS = 6; // Maximum polling attempts per cycle
+const STALE_STREAM_THRESHOLD_SECONDS = 120;
+const MAX_AUTO_RETRIES = 3; // Auto-retry connection up to 3 times
+const MASTER_DEADLINE_MS = 30000; // Hard deadline: fail after 30s total
 
 // Connection phase type for granular state tracking
 export type ConnectionPhase = 
@@ -55,6 +57,8 @@ export const useStream = (navigation = null) => {
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 3;
+  const autoRetryCount = useRef(0);
+  const masterDeadlineTimer = useRef<NodeJS.Timeout | null>(null);
   
 // New refs for connection timing
   const connectionStartTime = useRef<number | null>(null);
@@ -83,6 +87,10 @@ export const useStream = (navigation = null) => {
     if (elapsedTimeInterval.current) {
       clearInterval(elapsedTimeInterval.current);
       elapsedTimeInterval.current = null;
+    }
+    if (masterDeadlineTimer.current) {
+      clearTimeout(masterDeadlineTimer.current);
+      masterDeadlineTimer.current = null;
     }
     producerPollCount.current = 0;
     hasReceivedProducers.current = false;
@@ -150,24 +158,49 @@ export const useStream = (navigation = null) => {
     producerPollInterval.current = setTimeout(pollWithBackoff, PRODUCER_POLL_INTERVAL_MS);
   }, [requestProducers]);
 
-  // Start connection timeout with enhanced logging
+  // Start connection timeout with auto-retry logic
+  const startConnectionTimeoutRef = useRef<(() => void) | null>(null);
+  
   const startConnectionTimeout = useCallback(() => {
-    console.log(`⏱️ Starting connection timeout: ${PRODUCER_TIMEOUT_MS / 1000}s`);
+    console.log(`⏱️ Starting connection timeout: ${PRODUCER_TIMEOUT_MS / 1000}s (retry ${autoRetryCount.current}/${MAX_AUTO_RETRIES})`);
     connectionTimeout.current = setTimeout(() => {
       if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
-        console.log('⏰ Connection timeout - no producers found after all attempts');
-        console.log('⏰ Timeout diagnostics:', {
-          pollCount: producerPollCount.current,
-          maxPolls: MAX_PRODUCER_POLLS,
-          socketConnected: socketRef.current?.connected,
-          roomId: roomId.current
-        });
-        setConnectionPhase('timeout');
-        setConnectionError('Could not find host video. The host may not be streaming, or their connection was lost.');
-        clearAllTimers();
+        autoRetryCount.current++;
+        console.log(`⏰ Connection timeout - attempt ${autoRetryCount.current}/${MAX_AUTO_RETRIES}`);
+        
+        if (autoRetryCount.current < MAX_AUTO_RETRIES) {
+          // Auto-retry: re-poll for producers
+          console.log('🔄 Auto-retrying producer poll...');
+          setConnectionPhase('awaiting_producers');
+          setConnectionError(null);
+          hasReceivedProducers.current = false;
+          producerPollCount.current = 0;
+          
+          // Clear poll timer only (keep master deadline and elapsed counter)
+          if (producerPollInterval.current) {
+            clearInterval(producerPollInterval.current);
+            producerPollInterval.current = null;
+          }
+          
+          // Re-request producers immediately then resume polling
+          requestProducers();
+          startProducerPolling();
+          // Schedule next timeout cycle
+          if (startConnectionTimeoutRef.current) {
+            startConnectionTimeoutRef.current();
+          }
+        } else {
+          console.log('❌ All auto-retry attempts exhausted');
+          setConnectionPhase('timeout');
+          setConnectionError('Could not find host video after multiple attempts. The host may not be streaming.');
+          clearAllTimers();
+        }
       }
     }, PRODUCER_TIMEOUT_MS);
-  }, [clearAllTimers]);
+  }, [clearAllTimers, requestProducers, startProducerPolling]);
+  
+  // Keep ref in sync for self-referencing
+  startConnectionTimeoutRef.current = startConnectionTimeout;
 
   // Check SFU server health before connecting
   const checkSFUHealth = useCallback(async (): Promise<{ healthy: boolean; latency?: number; error?: string }> => {
@@ -210,10 +243,11 @@ export const useStream = (navigation = null) => {
 
   // Retry connection - re-poll for producers
   const retryConnection = useCallback(() => {
-    console.log('🔄 Retrying connection...');
+    console.log('🔄 Manual retry requested...');
     setConnectionPhase('awaiting_producers');
     setConnectionError(null);
     hasReceivedProducers.current = false;
+    autoRetryCount.current = 0; // Reset auto-retry on manual retry
     reconnectAttempts.current++;
     
     // Clear existing timers
@@ -224,9 +258,19 @@ export const useStream = (navigation = null) => {
     startProducerPolling();
     startConnectionTimeout();
     
+    // Set a new master deadline
+    masterDeadlineTimer.current = setTimeout(() => {
+      if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
+        console.error('❌ Master deadline reached on retry');
+        setConnectionPhase('error');
+        setConnectionError('Connection failed. Please try again later.');
+        clearAllTimers();
+      }
+    }, MASTER_DEADLINE_MS);
+    
     // Request producers immediately
     requestProducers();
-  }, [clearAllTimers, startElapsedTimeCounter, startProducerPolling, startConnectionTimeout, requestProducers]);
+  }, [clearAllTimers, startElapsedTimeCounter, startProducerPolling, startConnectionTimeout, requestProducers, connectionPhase]);
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
@@ -285,6 +329,7 @@ export const useStream = (navigation = null) => {
     // CRITICAL: Reset production tracking refs for restart
     producedTracksCount.current = 0;
     expectedTracksCount.current = 0;
+    autoRetryCount.current = 0;
     onProductionReadyCallback.current = null;
     
     // Reset state - critical for rejoin
@@ -543,13 +588,18 @@ export const useStream = (navigation = null) => {
       });
 
       transport.on("connectionstatechange", (state) => {
-        console.log('📥 Consumer transport state:', state);
+        console.log(`📥 Consumer transport ${data.storageId} state:`, state);
         switch (state) {
           case "connecting":
             console.log("🔄 Connecting to stream...");
             break;
           case "connected":
             console.log("✅ Subscribed to stream!");
+            // Clear master deadline on successful connection
+            if (masterDeadlineTimer.current) {
+              clearTimeout(masterDeadlineTimer.current);
+              masterDeadlineTimer.current = null;
+            }
             break;
           case "failed":
             console.log("❌ Consumer connection failed, restarting ICE...");
@@ -557,11 +607,40 @@ export const useStream = (navigation = null) => {
               "consumerRestartIce",
               data.storageId,
               async (params) => {
-                await transport.restartIce({
-                  iceParameters: params,
-                });
+                if (params) {
+                  try {
+                    await transport.restartIce({ iceParameters: params });
+                    console.log('✅ ICE restart completed for consumer');
+                  } catch (e) {
+                    console.error('❌ ICE restart failed:', e);
+                  }
+                } else {
+                  console.error('❌ No ICE params returned for restart');
+                }
               }
             );
+            break;
+          case "disconnected":
+            console.warn("⚠️ Consumer transport disconnected, may recover...");
+            // Give it 5s to recover before attempting ICE restart
+            setTimeout(() => {
+              if (transport.connectionState === 'disconnected') {
+                console.log('🔄 Consumer still disconnected, restarting ICE...');
+                socketRef.current?.emit(
+                  "consumerRestartIce",
+                  data.storageId,
+                  async (params) => {
+                    if (params) {
+                      try {
+                        await transport.restartIce({ iceParameters: params });
+                      } catch (e) {
+                        console.warn('⚠️ ICE restart on disconnect recovery failed:', e);
+                      }
+                    }
+                  }
+                );
+              }
+            }, 5000);
             break;
           default:
             break;
@@ -776,16 +855,57 @@ export const useStream = (navigation = null) => {
   async function initialize(role, options = {}, liveId, existingStream = null, skipHealthCheck = false) {
     console.log('🚀 Initializing stream...', { role, liveId, skipHealthCheck });
     
+    // Reset retry counter for fresh initialization
+    autoRetryCount.current = 0;
+    
     // Set initial connection phase
     setConnectionPhase('health_check');
     setConnectionError(null);
+    
+    // For viewers: validate that the stream session is actually active before connecting
+    if (role === 'viewer' && liveId) {
+      try {
+        const { data: sessionData, error: sessionError } = await (await import('@/integrations/supabase/client')).supabase
+          .from('streaming_sessions')
+          .select('status, last_activity_at, host_user_id')
+          .eq('id', liveId)
+          .single();
+        
+        if (sessionError || !sessionData) {
+          console.error('❌ Stream session not found:', sessionError?.message);
+          setConnectionPhase('error');
+          setConnectionError('Stream session not found. It may have ended.');
+          return;
+        }
+        
+        if (sessionData.status !== 'live') {
+          console.error('❌ Stream is not live, status:', sessionData.status);
+          setConnectionPhase('error');
+          setConnectionError('This stream is no longer live.');
+          return;
+        }
+        
+        // Check for stale host
+        if (sessionData.last_activity_at) {
+          const lastActivity = new Date(sessionData.last_activity_at).getTime();
+          const staleMs = STALE_STREAM_THRESHOLD_SECONDS * 1000;
+          if (Date.now() - lastActivity > staleMs) {
+            console.warn('⚠️ Host appears stale (last activity:', sessionData.last_activity_at, ')');
+            // Don't block - just warn, host might still be reachable via SFU
+          }
+        }
+        
+        console.log('✅ Stream session validated: status=live');
+      } catch (e) {
+        console.warn('⚠️ Could not validate stream session, proceeding anyway');
+      }
+    }
     
     // Health check for viewers - soft check only (don't block on failure)
     if (role === 'viewer' && !skipHealthCheck) {
       const health = await checkSFUHealth();
       if (!health.healthy) {
         console.warn('⚠️ SFU health check failed, attempting socket connection anyway:', health.error);
-        // Don't block - the socket.io connection has its own timeout/retry logic
       } else {
         console.log(`✅ SFU health check passed in ${health.latency}ms`);
       }
@@ -935,9 +1055,22 @@ export const useStream = (navigation = null) => {
     socketRef.current = newSocket;
     setSocket(newSocket);
     
-    // Start elapsed time counter for viewers
+    // Start elapsed time counter and master deadline for viewers
     if (role === 'viewer') {
       startElapsedTimeCounter();
+      
+      // Master deadline: hard-fail after 30s total to prevent infinite "Connecting..."
+      masterDeadlineTimer.current = setTimeout(() => {
+        // Check if still not streaming (use hasReceivedProducers ref to avoid stale closure)
+        if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
+          console.error('❌ Master deadline reached (30s) - connection failed');
+          setConnectionPhase('error');
+          setConnectionError('Connection failed after 30 seconds. Please try again.');
+          clearAllTimers();
+          // Disconnect socket to stop all activity
+          socketRef.current?.disconnect();
+        }
+      }, MASTER_DEADLINE_MS);
     }
   }
 
