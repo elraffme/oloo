@@ -5,13 +5,14 @@ import { io } from "socket.io-client";
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
 
-// Connection timing constants - tuned for fast connection
-const PRODUCER_TIMEOUT_MS = 8000; // 8 seconds before retry
-const PRODUCER_POLL_INTERVAL_MS = 1000; // Poll every 1 second
-const MAX_PRODUCER_POLLS = 8; // Maximum polling attempts per cycle
+// Connection timing constants - tuned for FAST connection (Google Meet-level)
+const PRODUCER_TIMEOUT_MS = 5000; // 5 seconds before retry cycle
+const PRODUCER_POLL_INTERVAL_MS = 500; // Poll every 500ms for speed
+const MAX_PRODUCER_POLLS = 16; // 16 polls × 500ms = 8s max polling
 const STALE_STREAM_THRESHOLD_SECONDS = 120;
 const MAX_AUTO_RETRIES = 3; // Auto-retry connection up to 3 times
-const MASTER_DEADLINE_MS = 20000; // Hard deadline: fail after 20s total
+const MASTER_DEADLINE_MS = 15000; // Hard deadline: fail after 15s total
+const RTP_CAPABILITIES_TIMEOUT_MS = 5000; // Timeout for getRTPCapabilites ack
 
 // Connection phase type for granular state tracking
 export type ConnectionPhase = 
@@ -1026,23 +1027,29 @@ export const useStream = (navigation = null) => {
       
       setIsConnected(true);
       
-      console.log('📡 Requesting RTP capabilities from SFU...');
-      newSocket.emit("getRTPCapabilites", async (data: any) => {
-        if (!data?.capabilities) {
-          console.error('❌ Invalid RTP capabilities received:', data);
+      // CRITICAL: getRTPCapabilites with timeout + event fallback
+      // Some SFU servers respond via ack callback, others via event.
+      // We handle BOTH and use whichever responds first.
+      let rtpHandled = false;
+      
+      const handleRtpCapabilities = async (capabilities: any) => {
+        if (rtpHandled) return;
+        rtpHandled = true;
+        
+        if (!capabilities) {
+          console.error('❌ Invalid RTP capabilities received');
           setConnectionPhase('error');
           setConnectionError('Server returned invalid capabilities');
           return;
         }
         
         console.log('📡 RTP capabilities received, loading device...');
-        await loadDevice(data.capabilities);
+        await loadDevice(capabilities);
         
         console.log('🚪 Joining room:', roomId.current, 'as', roleRef.current);
         setConnectionPhase('joining_room');
         
-        // Fire-and-forget room join - most SFU servers don't support ack callbacks
-        // We add a small delay after joining to let the server process before requesting resources
+        // Fire-and-forget room join
         newSocket.emit("addUserCall", {
           room: roomId.current,
           peerId: peerId.current,
@@ -1050,25 +1057,41 @@ export const useStream = (navigation = null) => {
           type: roleRef.current,
         });
         
-        console.log('🚪 Room join emitted, waiting for server processing...');
-        
-        // Wait for server to process the room join before proceeding
-        setTimeout(() => {
-          if (roleRef.current === "streamer") {
-            console.log('📤 Requesting producer transport for streaming...');
-            newSocket.emit("createTransport", peerId.current);
-          } else {
-            // VIEWER: Go straight to requesting producers. Do NOT create a sendTransport here.
-            // Viewers only need recvTransport (created per-producer via createConsumeTransport).
-            // sendTransport is created on-demand only when the viewer enables camera/mic.
-            console.log('👁️ Viewer joined room - requesting host producers...');
-            setConnectionPhase('awaiting_producers');
-            requestProducers();
-            startProducerPolling();
-            startConnectionTimeout();
-          }
-        }, 200); // 200ms - enough for server to process room join
+        // Proceed IMMEDIATELY — no artificial delay
+        if (roleRef.current === "streamer") {
+          console.log('📤 Requesting producer transport for streaming...');
+          newSocket.emit("createTransport", peerId.current);
+        } else {
+          // VIEWER: request producers immediately + start aggressive polling
+          console.log('👁️ Viewer joined room - requesting host producers...');
+          setConnectionPhase('awaiting_producers');
+          requestProducers();
+          startProducerPolling();
+          startConnectionTimeout();
+        }
+      };
+      
+      // Strategy 1: Ack callback (works on most SFU servers)
+      console.log('📡 Requesting RTP capabilities from SFU...');
+      newSocket.emit("getRTPCapabilites", (data: any) => {
+        console.log('📡 RTP capabilities received via ack callback');
+        handleRtpCapabilities(data?.capabilities || data?.routerRtpCapabilities);
       });
+      
+      // Strategy 2: Event-based fallback (some servers emit an event instead)
+      newSocket.once("routerRTPCapabilities", (data: any) => {
+        console.log('📡 RTP capabilities received via event');
+        handleRtpCapabilities(data?.capabilities || data?.routerRtpCapabilities || data);
+      });
+      
+      // Strategy 3: Timeout — if neither responds, fail fast
+      setTimeout(() => {
+        if (!rtpHandled) {
+          console.error('❌ getRTPCapabilites timed out after', RTP_CAPABILITIES_TIMEOUT_MS, 'ms');
+          setConnectionPhase('error');
+          setConnectionError('Server did not respond with media capabilities. Please retry.');
+        }
+      }, RTP_CAPABILITIES_TIMEOUT_MS);
     };
     
     const handleInlineDisconnect = (reason: string) => {
@@ -1137,10 +1160,10 @@ export const useStream = (navigation = null) => {
     if (role === 'viewer') {
       startElapsedTimeCounter();
       
-      // Master deadline: hard-fail after 20s total to prevent infinite "Connecting..."
+      // Master deadline: hard-fail after 15s total to prevent infinite "Connecting..."
       masterDeadlineTimer.current = setTimeout(() => {
         if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
-          console.error('❌ Master deadline reached (20s) - connection failed');
+          console.error('❌ Master deadline reached (15s) - connection failed');
           setConnectionPhase('error');
           setConnectionError('Connection failed. Please try again.');
           clearAllTimers();
