@@ -1094,6 +1094,30 @@ export const useStream = (navigation = null) => {
     newSocket.on("disconnect", handleInlineDisconnect);
     newSocket.on("connect_error", handleInlineConnectError);
     
+    // CRITICAL: Register SFU media event handlers INLINE before setSocket
+    // to prevent race condition where server responds before useEffect runs
+    newSocket.on("transportCreated", (data: any) => handleProducerTransport(data));
+    newSocket.on("currentProducers", (producers: any[]) => {
+      console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s)`);
+      if (producers.length > 0) {
+        hasReceivedProducers.current = true;
+        clearAllTimers();
+        setConnectionPhase('consuming');
+        producers.forEach((producer) => startConsumeProducer(producer));
+      } else {
+        console.log('📭 No producers yet, waiting...');
+      }
+    });
+    newSocket.on("newProducer", (producer: any) => {
+      console.log('🆕 [INLINE] New producer arrived');
+      hasReceivedProducers.current = true;
+      clearAllTimers();
+      setConnectionPhase('consuming');
+      startConsumeProducer(producer);
+    });
+    newSocket.on("ConsumeTransportCreated", (data: any) => consume(data));
+    newSocket.on("consumerCreated", (data: any) => handleNewConsumer(data));
+    
     socketRef.current = newSocket;
     setSocket(newSocket);
     
@@ -1123,51 +1147,9 @@ export const useStream = (navigation = null) => {
     };
   }, []);
 
-  // Register SFU media event handlers when socket changes
-  // These handle transport/producer/consumer lifecycle events
-  useEffect(() => {
-    const s = socketRef.current;
-    if (!s) return;
-
-    const onTransportCreated = (data: any) => handleProducerTransport(data);
-    
-    const onCurrentProducers = (producers: any[]) => {
-      console.log(`📡 Received currentProducers: ${producers.length} producer(s)`);
-      if (producers.length > 0) {
-        hasReceivedProducers.current = true;
-        clearAllTimers();
-        setConnectionPhase('consuming');
-        producers.forEach((producer) => startConsumeProducer(producer));
-      } else {
-        console.log('📭 No producers yet, waiting...');
-      }
-    };
-    
-    const onNewProducer = (producer: any) => {
-      console.log('🆕 New producer arrived');
-      hasReceivedProducers.current = true;
-      clearAllTimers();
-      setConnectionPhase('consuming');
-      startConsumeProducer(producer);
-    };
-    
-    const onConsumeTransportCreated = (data: any) => consume(data);
-    const onConsumerCreated = (data: any) => handleNewConsumer(data);
-
-    s.on("transportCreated", onTransportCreated);
-    s.on("currentProducers", onCurrentProducers);
-    s.on("newProducer", onNewProducer);
-    s.on("ConsumeTransportCreated", onConsumeTransportCreated);
-    s.on("consumerCreated", onConsumerCreated);
-
-    return () => {
-      s.off("transportCreated", onTransportCreated);
-      s.off("currentProducers", onCurrentProducers);
-      s.off("newProducer", onNewProducer);
-      s.off("ConsumeTransportCreated", onConsumeTransportCreated);
-      s.off("consumerCreated", onConsumerCreated);
-    };
-  }, [socket, clearAllTimers]);
+  // NOTE: SFU media event handlers (transportCreated, currentProducers, newProducer,
+  // ConsumeTransportCreated, consumerCreated) are now registered INLINE in initialize()
+  // to prevent race conditions where the server responds before useEffect runs.
 
   useEffect(() => {
     if (!socket) return;
