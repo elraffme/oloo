@@ -19,7 +19,7 @@ const CONSUME_TIMEOUT_MS = 8000; // Timeout for startConsuming → consumerCreat
 // This supplements whatever the SFU server provides
 function getClientIceServers(): RTCIceServer[] {
   const iceServers: RTCIceServer[] = [
-    // Always include public STUN servers as fallback
+    // Always include public STUN servers
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
   ];
@@ -38,8 +38,31 @@ function getClientIceServers(): RTCIceServer[] {
     });
     console.log('🧊 Client-side TURN servers configured:', urls);
   } else {
-    console.warn('⚠️ No TURN server configured (VITE_TURN_URLS). Connections behind strict NAT will fail.');
-    console.warn('⚠️ Set VITE_TURN_URLS, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env for reliable connections.');
+    console.warn('⚠️ No custom TURN configured. Using free OpenRelay TURN servers as fallback.');
+    // FREE PUBLIC TURN SERVERS from OpenRelay Project (metered.ca/tools/openrelay)
+    // These provide 20GB/month free TURN relay traffic — enough for development & testing.
+    // For production, provision your own TURN server and set VITE_TURN_URLS in .env.
+    iceServers.push(
+      {
+        urls: 'stun:openrelay.metered.ca:80',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+    );
+    console.log('🧊 Using OpenRelay free TURN servers (UDP + TCP)');
   }
 
   return iceServers;
@@ -279,36 +302,25 @@ export const useStream = (navigation = null) => {
     }
   }, []);
 
-  // Retry connection - re-poll for producers
+  // Retry connection - FULL teardown and re-initialize (not just re-poll)
   const retryConnection = useCallback(() => {
-    console.log('🔄 Manual retry requested...');
-    setConnectionPhase('awaiting_producers');
-    setConnectionError(null);
-    hasReceivedProducers.current = false;
-    autoRetryCount.current = 0; // Reset auto-retry on manual retry
-    reconnectAttempts.current++;
+    console.log('🔄 Full retry: tearing down everything and reconnecting...');
     
-    // Clear existing timers
-    clearAllTimers();
+    // Save current room/role before cleanup
+    const savedRoomId = roomId.current;
+    const savedRole = roleRef.current;
     
-    // Start fresh polling and timeout
-    startElapsedTimeCounter();
-    startProducerPolling();
-    startConnectionTimeout();
+    // Full cleanup - close transports, socket, everything
+    cleanup();
     
-    // Set a new master deadline
-    masterDeadlineTimer.current = setTimeout(() => {
-      if (!hasReceivedProducers.current && roleRef.current === 'viewer') {
-        console.error('❌ Master deadline reached on retry');
-        setConnectionPhase('error');
-        setConnectionError('Connection failed. Please try again later.');
-        clearAllTimers();
+    // Short delay to let cleanup finish, then re-initialize from scratch
+    setTimeout(() => {
+      if (savedRoomId && savedRole) {
+        console.log(`🔄 Re-initializing: room=${savedRoomId}, role=${savedRole}`);
+        initialize(savedRole, {}, savedRoomId, null, true);
       }
-    }, MASTER_DEADLINE_MS);
-    
-    // Request producers immediately
-    requestProducers();
-  }, [clearAllTimers, startElapsedTimeCounter, startProducerPolling, startConnectionTimeout, requestProducers, connectionPhase]);
+    }, 500);
+  }, []);
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
@@ -697,8 +709,7 @@ export const useStream = (navigation = null) => {
             }
             break;
           case "failed":
-            console.error("❌ Consumer transport ICE FAILED — likely missing TURN server or wrong announcedIp on SFU");
-            console.error("❌ To fix: Configure TURN server in .env (VITE_TURN_URLS) and ensure SFU has correct announcedIp");
+            console.error("❌ Consumer transport ICE FAILED — attempting ICE restart, then full reconnect if needed");
             socketRef.current?.emit(
               "consumerRestartIce",
               data.storageId,
@@ -708,10 +719,12 @@ export const useStream = (navigation = null) => {
                     await transport.restartIce({ iceParameters: params });
                     console.log('✅ ICE restart completed for consumer');
                   } catch (e) {
-                    console.error('❌ ICE restart failed:', e);
+                    console.error('❌ ICE restart failed, triggering full reconnect in 2s...', e);
+                    setTimeout(() => retryConnection(), 2000);
                   }
                 } else {
-                  console.error('❌ No ICE params returned for restart');
+                  console.error('❌ No ICE params for restart — full reconnect in 2s...');
+                  setTimeout(() => retryConnection(), 2000);
                 }
               }
             );
