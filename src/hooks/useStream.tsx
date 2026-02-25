@@ -576,32 +576,25 @@ export const useStream = (navigation = null) => {
       if (videoTrack) {
         try {
           console.log('📹 Producing video track to SFU...');
-          // SIMULCAST: 3 encoding layers for adaptive quality
-          // SFU selects the best layer per viewer based on their bandwidth
+          // No simulcast — VP9 does not support simulcast in mediasoup
+          // Force VP8 codec preference to avoid VP9 simulcast crash
+          let codec: any;
+          if (device.current) {
+            const routerCodecs = device.current.rtpCapabilities?.codecs || [];
+            codec = routerCodecs.find(
+              (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
+            );
+            console.log('🎯 Forcing VP8 codec:', codec ? 'found' : 'fallback to default');
+          }
+
           await produceTransport.current.produce({ 
             track: videoTrack,
+            ...(codec ? { codec } : {}),
             encodings: [
-              { 
-                rid: 'r0', 
-                maxBitrate: 100000,   // 100kbps - low quality fallback
-                scaleResolutionDownBy: 4,
-                scalabilityMode: 'L1T3',
-              },
-              { 
-                rid: 'r1', 
-                maxBitrate: 300000,   // 300kbps - medium quality
-                scaleResolutionDownBy: 2,
-                scalabilityMode: 'L1T3',
-              },
-              { 
-                rid: 'r2', 
-                maxBitrate: 900000,   // 900kbps - high quality
-                scaleResolutionDownBy: 1,
-                scalabilityMode: 'L1T3',
-              },
+              { maxBitrate: 900000, scaleResolutionDownBy: 1 },
             ],
             codecOptions: {
-              videoGoogleStartBitrate: 300, // Start at medium
+              videoGoogleStartBitrate: 300,
             },
             appData: { 
               type: roleRef.current, 
