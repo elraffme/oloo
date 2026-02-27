@@ -1566,12 +1566,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         (document as any).mozFullScreenElement ||
         (document as any).msFullscreenElement
       );
-      // Only sync if native fullscreen was exited via hardware key (Escape)
-      if (!isNativeFullscreen && isHostFullscreen) {
-        // Check if this was a native exit (not CSS-only mode)
-        if (document.fullscreenElement === null && hostVideoContainerRef.current) {
-          setIsHostFullscreen(false);
-        }
+      // Always sync state when native fullscreen exits (Escape key, etc.)
+      if (!isNativeFullscreen) {
+        setIsHostFullscreen(false);
       }
     };
 
@@ -1936,9 +1933,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Video Preview */}
-              <Card className={`cultural-card ${isStreaming ? 'lg:row-span-2' : ''}`}>
-                <CardHeader className="py-2 px-4">
+               {/* Video Preview */}
+              <Card className={`cultural-card ${isStreaming ? 'lg:row-span-2 flex flex-col' : ''}`}>
+                <CardHeader className="py-2 px-4 shrink-0">
                   <CardTitle className="flex items-center justify-between text-sm">
                     <span>Preview</span>
                     {isStreaming && <Badge variant="secondary" className="text-xs">
@@ -1946,21 +1943,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </Badge>}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-2">
-                  <div className="flex flex-col items-center space-y-3">
+                <CardContent className={`p-2 ${isStreaming ? 'flex-1 flex flex-col min-h-0' : ''}`}>
+                  <div className={`flex flex-col items-center ${isStreaming ? 'flex-1 min-h-0' : 'space-y-3'}`}>
                     {/* When streaming: use the SAME VideoCallGrid as viewer side */}
                     {isStreaming ? (
                       <div 
                         ref={hostVideoContainerRef}
-                        className={`video-fullscreen-container relative w-full bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : 'rounded-lg'}`}
-                        style={isHostFullscreen ? {
-                          position: 'fixed',
-                          top: 0, left: 0, right: 0, bottom: 0,
-                          width: '100vw', height: '100vh',
-                          zIndex: 9999, borderRadius: 0,
+                        className="video-fullscreen-container flex-1 flex flex-col relative"
+                        data-fullscreen={isHostFullscreen ? "true" : "false"}
+                        style={{
                           backgroundColor: '#000',
-                        } : { minHeight: '400px', height: '60vh', maxHeight: '80vh' }}
-                        data-fullscreen={isHostFullscreen ? 'true' : 'false'}
+                          display: 'flex',
+                          visibility: 'visible',
+                          opacity: 1,
+                          width: isHostFullscreen ? '100vw' : '100%',
+                          height: isHostFullscreen ? '100vh' : '100%',
+                          position: isHostFullscreen ? 'fixed' : 'relative',
+                          top: isHostFullscreen ? 0 : undefined,
+                          left: isHostFullscreen ? 0 : undefined,
+                          right: isHostFullscreen ? 0 : undefined,
+                          bottom: isHostFullscreen ? 0 : undefined,
+                          zIndex: isHostFullscreen ? 9999 : 10,
+                          minHeight: '400px',
+                        }}
                       >
                         {/* Hidden video element to keep the stream ref alive */}
                         <video 
@@ -2047,12 +2052,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         ref={hostVideoContainerRef}
                         className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]"
                       >
-                        <video 
+                       <video 
                           ref={videoRef} 
                           autoPlay 
                           muted 
                           playsInline 
-                          className={`absolute inset-0 w-full h-full object-contain bg-black ${!isCameraOn ? 'hidden' : ''}`}
+                          className={`absolute inset-0 w-full h-full object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`}
                           style={{
                             filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined,
                             display: isCameraOn ? 'block' : 'none',
