@@ -1825,7 +1825,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
           {/* Go Live Tab */}
           <TabsContent value="go-live" className="space-y-6">
-            <div className={`grid gap-6 ${isStreaming ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1 lg:grid-cols-2'}`}>
+            <div className={`grid gap-4 ${isStreaming ? 'grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)]' : 'grid-cols-1 lg:grid-cols-2'}`}>
               {/* Stream Setup */}
               <Card className="cultural-card">
                 <CardHeader>
@@ -1937,21 +1937,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </Card>
 
               {/* Video Preview */}
-              <Card className="cultural-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+              <Card className={`cultural-card ${isStreaming ? 'lg:row-span-2' : ''}`}>
+                <CardHeader className="py-2 px-4">
+                  <CardTitle className="flex items-center justify-between text-sm">
                     <span>Preview</span>
                     {isStreaming && <Badge variant="secondary" className="text-xs">
                         🔴 Broadcasting to {activeViewers.length} viewers
                       </Badge>}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center space-y-4">
-                    {/* Compact Camera Preview - with hybrid fullscreen support */}
+                <CardContent className="p-2">
+                  <div className="flex flex-col items-center space-y-3">
+                    {/* Camera Preview - Large when streaming, compact when setting up */}
                     <div 
                       ref={hostVideoContainerRef}
-                      className={`video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}
+                      className={`video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : isStreaming ? 'rounded-lg aspect-[9/16] w-full max-h-[80vh]' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}
                       style={isHostFullscreen ? {
                         position: 'fixed',
                         top: 0,
@@ -2180,7 +2180,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               </Card>
 
               {/* Live Chat & Viewers (only when streaming) */}
-              {isStreaming && activeStreamId && <div className="space-y-4 lg:row-span-2">
+              {isStreaming && activeStreamId && <div className="space-y-4">
                   {/* Hidden audio player for host to hear all viewers */}
                   <ViewerAudioPlayer viewerStreams={viewerStreams} />
                   
