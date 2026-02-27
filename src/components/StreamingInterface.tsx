@@ -1948,122 +1948,125 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent className="p-2">
                   <div className="flex flex-col items-center space-y-3">
-                    {/* Camera Preview - Large when streaming, compact when setting up */}
-                    <div 
-                      ref={hostVideoContainerRef}
-                      className={`video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : isStreaming ? 'rounded-lg aspect-[9/16] w-full max-h-[80vh]' : 'rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]'}`}
-                      style={isHostFullscreen ? {
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        width: '100vw',
-                        height: '100vh',
-                        zIndex: 9999,
-                        borderRadius: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#000',
-                      } : undefined}
-                      data-fullscreen={isHostFullscreen ? 'true' : 'false'}
-                    >
-                      {/* Video element always in DOM - hidden when camera off */}
-                      <video 
-                        ref={videoRef} 
-                        autoPlay 
-                        muted 
-                        playsInline 
-                        className={`${isHostFullscreen ? 'w-full h-full' : 'absolute inset-0 w-full h-full'} object-cover bg-black ${!isCameraOn ? 'hidden' : ''}`} 
-                        style={{
-                          filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined,
-                          display: isCameraOn ? 'block' : 'none',
-                          visibility: 'visible',
-                        }} 
-                      />
-                      {/* Stream active indicator */}
-                      {isCameraOn && isStreaming && <div className="absolute bottom-2 left-2 z-10 text-xs text-white/70 bg-black/50 px-2 py-1 rounded">
-                          Stream Active
-                        </div>}
-                      {/* Keep video visible with placeholder when camera off */}
-                      {!isCameraOn && <div className="absolute inset-0 bg-black flex items-center justify-center">
-                          <VideoOff className="w-12 h-12 text-muted-foreground" />
-                        </div>}
-                      
-                      {/* Mobile Exit Fullscreen Button - Always visible in fullscreen */}
-                      {isHostFullscreen && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-4 right-4 z-[10000] bg-black/60 hover:bg-black/80 text-white h-12 w-12 rounded-full"
-                          onClick={toggleHostFullscreen}
-                        >
-                          <Minimize2 className="w-6 h-6" />
-                        </Button>
-                      )}
-                      
-                      {/* Fullscreen Toggle Button - Mobile Only (when NOT fullscreen) */}
-                      {!isHostFullscreen && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white md:hidden" 
-                                onClick={toggleHostFullscreen}
-                              >
-                                <Maximize2 className="w-5 h-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Fullscreen Preview</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                      
-                      {isStreaming && <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
+                    {/* When streaming: use the SAME VideoCallGrid as viewer side */}
+                    {isStreaming ? (
+                      <div 
+                        ref={hostVideoContainerRef}
+                        className={`video-fullscreen-container relative w-full bg-black overflow-hidden border border-border shadow-lg ${isHostFullscreen ? '' : 'rounded-lg'}`}
+                        style={isHostFullscreen ? {
+                          position: 'fixed',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          width: '100vw', height: '100vh',
+                          zIndex: 9999, borderRadius: 0,
+                          backgroundColor: '#000',
+                        } : { minHeight: '400px', height: '60vh', maxHeight: '80vh' }}
+                        data-fullscreen={isHostFullscreen ? 'true' : 'false'}
+                      >
+                        {/* Hidden video element to keep the stream ref alive */}
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          muted 
+                          playsInline 
+                          className="hidden"
+                          style={{ display: 'none' }}
+                        />
+                        
+                        {/* Shared VideoCallGrid — identical to viewer side */}
+                        <VideoCallGrid
+                          hostStream={hostStream}
+                          hostName="You (Host)"
+                          viewerCameras={viewerCameras}
+                          viewerStream={undefined}
+                          viewerCameraEnabled={false}
+                          viewerName="You"
+                          isMuted={false}
+                          isHost={true}
+                          isFullscreen={isHostFullscreen}
+                        />
+                        
+                        {/* LIVE Badge */}
+                        <Badge className="absolute top-2 left-2 bg-red-500 text-white z-30">
                           <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse" />
                           LIVE
-                        </Badge>}
+                        </Badge>
+                        
+                        {/* Like Animation Overlay */}
+                        <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />
 
-                      {/* Viewer count indicator overlay (thumbnails moved to sidebar grid) */}
-                      {isStreaming && activeViewers.length > 0 && (
-                        <div className="absolute top-10 left-2 z-20">
-                          <Badge variant="secondary" className="text-xs bg-black/60 text-white border-none">
-                            {activeViewers.length} viewer{activeViewers.length !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                      )}
-
-                      {/* Like Animation Overlay */}
-                      {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
-
-                      {/* Floating Chat Messages Overlay */}
-                      {isStreaming && <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
-                          {floatingChatMessages.map(msg => <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs">
+                        {/* Floating Chat Messages Overlay */}
+                        <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                          {floatingChatMessages.map(msg => (
+                            <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs">
                               <span className="text-white font-semibold text-sm">{msg.username}: </span>
                               <span className="text-white text-sm">{msg.message}</span>
-                            </div>)}
-                        </div>}
+                            </div>
+                          ))}
+                        </div>
 
-                      {/* Gift Notifications Overlay */}
-                      {isStreaming && giftNotifications.length > 0 && <div className="absolute top-16 right-4 space-y-2 z-10">
-                          {giftNotifications.map(notification => <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
-                              <span className="text-3xl">{notification.giftEmoji}</span>
-                              <div>
-                                <p className="font-semibold text-sm">{notification.senderName}</p>
-                                <p className="text-xs text-gray-300">sent {notification.giftName}</p>
+                        {/* Gift Notifications Overlay */}
+                        {giftNotifications.length > 0 && (
+                          <div className="absolute top-16 right-4 space-y-2 z-10">
+                            {giftNotifications.map(notification => (
+                              <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
+                                <span className="text-3xl">{notification.giftEmoji}</span>
+                                <div>
+                                  <p className="font-semibold text-sm">{notification.senderName}</p>
+                                  <p className="text-xs text-gray-300">sent {notification.giftName}</p>
+                                </div>
+                                <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
                               </div>
-                              <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                            </div>)}
-                        </div>}
-                    </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Fullscreen controls */}
+                        {isHostFullscreen ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-4 right-4 z-[10000] bg-black/60 hover:bg-black/80 text-white h-12 w-12 rounded-full"
+                            onClick={toggleHostFullscreen}
+                          >
+                            <Minimize2 className="w-6 h-6" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 z-40 bg-black/50 hover:bg-black/70 text-white" 
+                            onClick={toggleHostFullscreen}
+                          >
+                            <Maximize2 className="w-5 h-5" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      /* Pre-stream setup: compact camera preview */
+                      <div 
+                        ref={hostVideoContainerRef}
+                        className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]"
+                      >
+                        <video 
+                          ref={videoRef} 
+                          autoPlay 
+                          muted 
+                          playsInline 
+                          className={`absolute inset-0 w-full h-full object-contain bg-black ${!isCameraOn ? 'hidden' : ''}`}
+                          style={{
+                            filter: activeFilter !== 'none' ? filters.find(f => f.id === activeFilter)?.style : undefined,
+                            display: isCameraOn ? 'block' : 'none',
+                            visibility: 'visible',
+                          }} 
+                        />
+                        {!isCameraOn && <div className="absolute inset-0 bg-black flex items-center justify-center">
+                            <VideoOff className="w-12 h-12 text-muted-foreground" />
+                          </div>}
+                      </div>
+                    )}
 
                     {/* Camera Status Indicator */}
-                    {!isCameraOn && <div className="flex items-center gap-2 text-muted-foreground">
+                    {!isCameraOn && !isStreaming && <div className="flex items-center gap-2 text-muted-foreground">
                         <span className="text-sm">Camera Off</span>
                       </div>}
 
@@ -2134,9 +2137,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </div>
                     </div>
                     
-                    {/* Helper Text */}
-                    
-                    
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
                       {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || !streamCategory || isLoading} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
@@ -2158,42 +2158,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   {/* Hidden audio player for host to hear all viewers */}
                   <ViewerAudioPlayer viewerStreams={viewerStreams} />
                   
-                  {/* Viewer Video Grid — same sizing as viewer-side layout */}
-                  {viewerCameras.size > 0 && (
-                    <Card className="cultural-card overflow-hidden">
-                      <CardHeader className="py-2 px-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Video className="h-4 w-4 text-primary" />
-                          Viewer Cameras
-                          <Badge variant="secondary" className="ml-auto text-xs">{viewerCameras.size}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-1">
-                        <div className={`grid gap-1 ${
-                          viewerCameras.size === 1 ? 'grid-cols-1' :
-                          viewerCameras.size <= 4 ? 'grid-cols-2' :
-                          'grid-cols-2 lg:grid-cols-3'
-                        }`}>
-                          {Array.from(viewerCameras.values()).map(camera => (
-                            <div key={camera.sessionToken} className="relative aspect-video min-h-[120px] rounded-md overflow-hidden bg-muted border border-border/50">
-                              <video
-                                autoPlay
-                                playsInline
-                                muted
-                                className="w-full h-full object-contain bg-black"
-                                ref={el => { if (el && camera.stream) el.srcObject = camera.stream; }}
-                              />
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1">
-                                <span className="text-white text-xs font-medium truncate drop-shadow-lg">
-                                  {camera.displayName}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
                   {/* Viewers without cameras */}
                   {activeViewers.filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id)).length > 0 && (
                     <Card className="cultural-card">
@@ -2212,16 +2176,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </CardContent>
                     </Card>
                   )}
-                  
-                  {/* Active Viewers Card */}
-                  <Card className="cultural-card">
-                    
-                    
-                  </Card>
 
                   {/* Live Chat Card */}
                   <Card className="cultural-card flex flex-col h-[500px]">
-                    
                     <CardContent className="flex-1 p-0 overflow-hidden">
                       {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
                     </CardContent>
