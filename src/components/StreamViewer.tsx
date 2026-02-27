@@ -845,12 +845,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   return (
     <TooltipProvider>
     <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-black/80 p-3 md:p-4 flex items-center justify-between text-white">
-        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+      {/* Header - Compact */}
+      <div className="bg-black/80 px-3 py-1.5 md:py-2 flex items-center justify-between text-white">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm md:text-lg font-semibold truncate">{streamTitle}</h2>
-            <p className="text-xs md:text-sm text-muted-foreground truncate">{hostName}</p>
+            <h2 className="text-xs md:text-sm font-semibold truncate">{streamTitle}</h2>
+            <p className="text-[10px] md:text-xs text-muted-foreground truncate">{hostName}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
@@ -992,15 +992,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             isFullscreen={isFullscreen}
           />
 
-          {/* Floating Chat Messages */}
-          <div className="absolute bottom-20 left-4 right-16 space-y-2 z-20 pointer-events-none">
+          {/* Floating Chat Messages - Compact */}
+          <div className="absolute bottom-16 left-3 right-14 space-y-1 z-20 pointer-events-none">
             {floatingMessages.map((msg) => (
               <div
                 key={msg.id}
-                className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
+                className="bg-black/50 backdrop-blur-sm rounded-xl px-2.5 py-1.5 animate-slide-in-right max-w-[280px]"
               >
-                <span className="text-white font-semibold text-sm">{msg.username}: </span>
-                <span className="text-white text-sm">{msg.message}</span>
+                <span className="text-white font-medium text-xs">{msg.username}: </span>
+                <span className="text-white/90 text-xs">{msg.message}</span>
               </div>
             ))}
           </div>
@@ -1017,9 +1017,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           )}
         </div>
         
-        {/* Chat Below Video - Desktop Only */}
+        {/* Chat Below Video - Desktop Only - Compact */}
         {showChat && !isMobile && (
-          <div className="h-48 border-t border-border bg-background">
+          <div className="h-40 border-t border-border bg-background">
             <LiveStreamChat streamId={streamId} isMobile={false} />
           </div>
         )}

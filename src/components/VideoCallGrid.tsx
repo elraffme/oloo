@@ -139,7 +139,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
     
     return (
       <div 
-        className="flex flex-col h-full w-full p-2 gap-2"
+        className="flex flex-col h-full w-full p-1 gap-1"
         style={{
           backgroundColor: isFullscreen ? '#000' : 'hsl(var(--background))',
           display: 'flex',
@@ -148,14 +148,14 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
           height: isFullscreen ? '100vh' : '100%',
         }}
       >
-        {/* Host takes 60% of vertical space with fixed aspect ratio */}
+        {/* Host takes 70% of vertical space */}
         {hostTile && (
-          <div className="flex-[3] min-h-0">
+          <div className="flex-[4] min-h-0">
             <VideoTile key={hostTile.id} tile={hostTile} isFeatureHost />
           </div>
         )}
-        {/* Viewers share remaining 40% in a scrollable row */}
-        <div className="flex-[2] min-h-0 flex gap-2 overflow-x-auto">
+        {/* Viewers share remaining 30% in a scrollable row */}
+        <div className="flex-[1.5] min-h-0 flex gap-1 overflow-x-auto">
           {otherTiles.map((tile) => (
             <div key={tile.id} className="flex-shrink-0 h-full aspect-video">
               <VideoTile tile={tile} />
@@ -169,7 +169,7 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
   // Standard grid for 1-2 participants
   return (
     <div 
-      className={`grid ${layoutConfig.gridClass} gap-2 p-2 h-full w-full`}
+      className={`grid ${layoutConfig.gridClass} gap-1 p-1 h-full w-full`}
       style={{
         backgroundColor: isFullscreen ? '#000' : 'hsl(var(--background))',
         display: 'grid',
@@ -384,7 +384,7 @@ const VideoTile: React.FC<VideoTileProps> = memo(({ tile, isFeatureHost = false 
   const objectFitClass = 'object-contain';
 
   return (
-    <div className={`relative w-full h-full min-h-[150px] md:min-h-[200px] rounded-lg overflow-hidden bg-muted border border-border shadow-lg ${isFeatureHost ? 'ring-2 ring-primary' : ''}`}>
+    <div className={`relative w-full h-full min-h-[200px] md:min-h-[300px] rounded-md overflow-hidden bg-muted border border-border/50 ${isFeatureHost ? 'ring-1 ring-primary/50' : ''}`}>
       {hasStream ? (
         <video
           ref={videoRef}
@@ -426,10 +426,10 @@ const VideoTile: React.FC<VideoTileProps> = memo(({ tile, isFeatureHost = false 
         </div>
       )}
       
-      {/* Name Label and Badges - Always Visible */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background/90 p-3 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-foreground text-sm font-semibold truncate drop-shadow-lg">
+      {/* Name Label and Badges - Compact overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-white text-xs font-medium truncate drop-shadow-lg">
             {tile.displayName}
           </span>
           
