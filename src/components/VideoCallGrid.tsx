@@ -379,9 +379,9 @@ const VideoTile: React.FC<VideoTileProps> = memo(({ tile, isFeatureHost = false 
   // Check if stream has active audio track
   const hasAudioTrack = tile.stream?.getAudioTracks().some(t => t.enabled) || false;
 
-  // Use object-contain for consistent framing - no cropping/zooming
-  // This ensures host and viewer cameras display identically regardless of container size
-  const objectFitClass = 'object-contain';
+  // Use object-cover for natural full-frame video — fills container without letterboxing
+  // Both host and viewer cameras display identically regardless of container size
+  const objectFitClass = 'object-cover';
 
   return (
     <div className={`relative w-full h-full min-h-[200px] md:min-h-[300px] rounded-md overflow-hidden bg-muted border border-border/50 ${isFeatureHost ? 'ring-1 ring-primary/50' : ''}`}>
