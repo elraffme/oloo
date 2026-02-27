@@ -2029,40 +2029,14 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           LIVE
                         </Badge>}
 
-                      {/* Viewer Camera Thumbnails Overlay */}
-                      {isStreaming && (activeViewers.length > 0 || viewerCameras.size > 0) && <div className="absolute top-10 left-2 right-12 z-20 overflow-x-auto">
-                          <div className="flex gap-1.5 pb-1">
-                            {/* Viewers with active cameras */}
-                            {Array.from(viewerCameras.values()).map(camera => <div key={camera.sessionToken} className="relative w-12 h-16 rounded-lg overflow-hidden border-2 border-primary/50 shadow-lg flex-shrink-0 bg-black">
-                                <video autoPlay playsInline muted className="w-full h-full object-cover" ref={el => {
-                            if (el && camera.stream) el.srcObject = camera.stream;
-                          }} />
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-0.5">
-                                  <span className="text-[8px] text-white truncate block text-center">
-                                    {camera.displayName?.slice(0, 6) || 'Viewer'}
-                                  </span>
-                                </div>
-                                <div className="absolute top-0.5 right-0.5">
-                                  <Video className="w-2.5 h-2.5 text-green-400" />
-                                </div>
-                              </div>)}
-                            {/* Viewers without cameras - show avatar */}
-                            {activeViewers.filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id)).map(viewer => <div key={viewer.session_id} className="relative w-12 h-16 rounded-lg overflow-hidden border border-border/50 bg-black/60 flex flex-col items-center justify-center flex-shrink-0">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarImage src={viewer.avatar_url} />
-                                    <AvatarFallback className="text-[10px] bg-muted">
-                                      {viewer.viewer_display_name?.[0]?.toUpperCase() || '?'}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-[8px] text-white/80 mt-0.5 truncate max-w-[40px] text-center">
-                                    {viewer.viewer_display_name?.slice(0, 6) || 'Guest'}
-                                  </span>
-                                  {viewer.is_guest && <span className="absolute top-0.5 left-0.5 text-[6px] bg-muted/80 px-0.5 rounded text-muted-foreground">
-                                      G
-                                    </span>}
-                                </div>)}
-                          </div>
-                        </div>}
+                      {/* Viewer count indicator overlay (thumbnails moved to sidebar grid) */}
+                      {isStreaming && activeViewers.length > 0 && (
+                        <div className="absolute top-10 left-2 z-20">
+                          <Badge variant="secondary" className="text-xs bg-black/60 text-white border-none">
+                            {activeViewers.length} viewer{activeViewers.length !== 1 ? 's' : ''}
+                          </Badge>
+                        </div>
+                      )}
 
                       {/* Like Animation Overlay */}
                       {isStreaming && <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />}
@@ -2184,8 +2158,60 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   {/* Hidden audio player for host to hear all viewers */}
                   <ViewerAudioPlayer viewerStreams={viewerStreams} />
                   
-                  {/* All Viewers Card */}
-                  <ViewerCameraThumbnails viewerCameras={viewerCameras} allViewers={activeViewers} className="max-h-[400px]" />
+                  {/* Viewer Video Grid — same sizing as viewer-side layout */}
+                  {viewerCameras.size > 0 && (
+                    <Card className="cultural-card overflow-hidden">
+                      <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Video className="h-4 w-4 text-primary" />
+                          Viewer Cameras
+                          <Badge variant="secondary" className="ml-auto text-xs">{viewerCameras.size}</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-1">
+                        <div className={`grid gap-1 ${
+                          viewerCameras.size === 1 ? 'grid-cols-1' :
+                          viewerCameras.size <= 4 ? 'grid-cols-2' :
+                          'grid-cols-2 lg:grid-cols-3'
+                        }`}>
+                          {Array.from(viewerCameras.values()).map(camera => (
+                            <div key={camera.sessionToken} className="relative aspect-video min-h-[120px] rounded-md overflow-hidden bg-muted border border-border/50">
+                              <video
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-contain bg-black"
+                                ref={el => { if (el && camera.stream) el.srcObject = camera.stream; }}
+                              />
+                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1">
+                                <span className="text-white text-xs font-medium truncate drop-shadow-lg">
+                                  {camera.displayName}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                  {/* Viewers without cameras */}
+                  {activeViewers.filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id)).length > 0 && (
+                    <Card className="cultural-card">
+                      <CardContent className="p-3">
+                        <div className="flex flex-wrap gap-2">
+                          {activeViewers.filter(v => !Array.from(viewerCameras.keys()).includes(v.session_id)).map(viewer => (
+                            <div key={viewer.session_id} className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2 py-1">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={viewer.avatar_url} />
+                                <AvatarFallback className="text-[10px]">{viewer.viewer_display_name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs text-muted-foreground">{viewer.viewer_display_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                   
                   {/* Active Viewers Card */}
                   <Card className="cultural-card">
