@@ -1255,12 +1255,12 @@ export const useStream = (navigation = null) => {
     // to prevent race condition where server responds before useEffect runs
     newSocket.on("transportCreated", (data: any) => handleProducerTransport(data));
     newSocket.on("currentProducers", (producers: any[]) => {
-      console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s)`);
+      console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s), alreadyStreaming: ${hasReceivedProducers.current}`);
       if (producers.length > 0) {
+        const wasAlreadyStreaming = hasReceivedProducers.current;
         hasReceivedProducers.current = true;
-        // CRITICAL: Only clear timers if we haven't started streaming yet
-        // Clearing timers while streaming would disrupt an active connection
-        if (connectionPhase !== 'streaming') {
+        // CRITICAL: Only clear timers on first producer arrival
+        if (!wasAlreadyStreaming) {
           clearAllTimers();
         }
         producers.forEach((producer) => startConsumeProducer(producer));
