@@ -432,6 +432,10 @@ export const useStream = (navigation = null) => {
       
       produceTransport.current = device.current.createSendTransport(transportData);
 
+      // DIAGNOSTIC: Log producer transport close to debug multi-viewer issues
+      produceTransport.current.on("close", () => {
+        console.error('🚨 PRODUCER TRANSPORT CLOSED — this should NOT happen while streaming!');
+      });
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Producer transport connecting...');
         // Use socketRef for stable reference
@@ -619,7 +623,9 @@ export const useStream = (navigation = null) => {
 
   function startConsumeProducer(producer) {
     console.log("🎬 New producer received, creating consume transport...", producer);
-    setConnectionPhase('consuming');
+    // CRITICAL: Only set phase to 'consuming' if not already streaming
+    // This prevents resetting viewer 1's UI when viewer 2 joins
+    setConnectionPhase(prev => prev === 'streaming' ? 'streaming' : 'consuming');
     socketRef.current?.emit("createConsumeTransport", {
       producer,
       id: peerId.current,
@@ -649,6 +655,12 @@ export const useStream = (navigation = null) => {
       
       const transport = device.current.createRecvTransport(transportData);
       consumeTransports.current.set(data.storageId, transport);
+
+      // DIAGNOSTIC: Log transport close events to debug multi-viewer issues
+      transport.on("close", () => {
+        console.warn(`⚠️ Consumer transport CLOSED: storageId=${data.storageId}`);
+        consumeTransports.current.delete(data.storageId);
+      });
 
       transport.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Consumer transport connecting (DTLS handshake)...');
@@ -815,7 +827,16 @@ export const useStream = (navigation = null) => {
     
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
-    
+
+    // DIAGNOSTIC: Log consumer lifecycle events
+    consumer.on('transportclose', () => {
+      console.warn(`⚠️ Consumer ${consumer.id} transport closed (${consumer.kind} from ${appData?.type})`);
+    });
+    consumer.on('close', () => {
+      console.warn(`⚠️ Consumer ${consumer.id} closed (${consumer.kind} from ${appData?.type})`);
+      consumers.current.delete(consumer.id);
+    });
+
     // Clear consume timeout for this producer
     const timeoutId = consumeTimeouts.current.get(producerId);
     if (timeoutId) {
@@ -1253,21 +1274,28 @@ export const useStream = (navigation = null) => {
     // to prevent race condition where server responds before useEffect runs
     newSocket.on("transportCreated", (data: any) => handleProducerTransport(data));
     newSocket.on("currentProducers", (producers: any[]) => {
-      console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s)`);
+      console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s), alreadyStreaming: ${hasReceivedProducers.current}`);
       if (producers.length > 0) {
+        const wasAlreadyStreaming = hasReceivedProducers.current;
         hasReceivedProducers.current = true;
-        clearAllTimers();
-        setConnectionPhase('consuming');
+        // CRITICAL: Only clear timers on first producer arrival
+        if (!wasAlreadyStreaming) {
+          clearAllTimers();
+        }
         producers.forEach((producer) => startConsumeProducer(producer));
       } else {
         console.log('📭 No producers yet, waiting...');
       }
     });
     newSocket.on("newProducer", (producer: any) => {
-      console.log('🆕 [INLINE] New producer arrived');
+      console.log('🆕 [INLINE] New producer arrived (already streaming:', hasReceivedProducers.current, ')');
+      const wasAlreadyStreaming = hasReceivedProducers.current;
       hasReceivedProducers.current = true;
-      clearAllTimers();
-      setConnectionPhase('consuming');
+      // CRITICAL: Only clear timers on first producer connection, not subsequent ones
+      // This prevents disrupting viewer 1 when viewer 2 joins
+      if (!wasAlreadyStreaming) {
+        clearAllTimers();
+      }
       startConsumeProducer(producer);
     });
     newSocket.on("ConsumeTransportCreated", (data: any) => consume(data));
