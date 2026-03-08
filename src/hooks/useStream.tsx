@@ -827,7 +827,16 @@ export const useStream = (navigation = null) => {
     
     consumers.current.set(consumer.id, consumer);
     remotePeerId.current = remPeerId;
-    
+
+    // DIAGNOSTIC: Log consumer lifecycle events
+    consumer.on('transportclose', () => {
+      console.warn(`⚠️ Consumer ${consumer.id} transport closed (${consumer.kind} from ${appData?.type})`);
+    });
+    consumer.on('close', () => {
+      console.warn(`⚠️ Consumer ${consumer.id} closed (${consumer.kind} from ${appData?.type})`);
+      consumers.current.delete(consumer.id);
+    });
+
     // Clear consume timeout for this producer
     const timeoutId = consumeTimeouts.current.get(producerId);
     if (timeoutId) {
