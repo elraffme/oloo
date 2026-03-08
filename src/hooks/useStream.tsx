@@ -1258,18 +1258,25 @@ export const useStream = (navigation = null) => {
       console.log(`📡 [INLINE] Received currentProducers: ${producers.length} producer(s)`);
       if (producers.length > 0) {
         hasReceivedProducers.current = true;
-        clearAllTimers();
-        setConnectionPhase('consuming');
+        // CRITICAL: Only clear timers if we haven't started streaming yet
+        // Clearing timers while streaming would disrupt an active connection
+        if (connectionPhase !== 'streaming') {
+          clearAllTimers();
+        }
         producers.forEach((producer) => startConsumeProducer(producer));
       } else {
         console.log('📭 No producers yet, waiting...');
       }
     });
     newSocket.on("newProducer", (producer: any) => {
-      console.log('🆕 [INLINE] New producer arrived');
+      console.log('🆕 [INLINE] New producer arrived (already streaming:', hasReceivedProducers.current, ')');
+      const wasAlreadyStreaming = hasReceivedProducers.current;
       hasReceivedProducers.current = true;
-      clearAllTimers();
-      setConnectionPhase('consuming');
+      // CRITICAL: Only clear timers on first producer connection, not subsequent ones
+      // This prevents disrupting viewer 1 when viewer 2 joins
+      if (!wasAlreadyStreaming) {
+        clearAllTimers();
+      }
       startConsumeProducer(producer);
     });
     newSocket.on("ConsumeTransportCreated", (data: any) => consume(data));
