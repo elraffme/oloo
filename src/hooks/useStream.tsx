@@ -619,7 +619,9 @@ export const useStream = (navigation = null) => {
 
   function startConsumeProducer(producer) {
     console.log("🎬 New producer received, creating consume transport...", producer);
-    setConnectionPhase('consuming');
+    // CRITICAL: Only set phase to 'consuming' if not already streaming
+    // This prevents resetting viewer 1's UI when viewer 2 joins
+    setConnectionPhase(prev => prev === 'streaming' ? 'streaming' : 'consuming');
     socketRef.current?.emit("createConsumeTransport", {
       producer,
       id: peerId.current,
