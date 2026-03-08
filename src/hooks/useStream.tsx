@@ -652,6 +652,12 @@ export const useStream = (navigation = null) => {
       const transport = device.current.createRecvTransport(transportData);
       consumeTransports.current.set(data.storageId, transport);
 
+      // DIAGNOSTIC: Log transport close events to debug multi-viewer issues
+      transport.on("close", () => {
+        console.warn(`⚠️ Consumer transport CLOSED: storageId=${data.storageId}`);
+        consumeTransports.current.delete(data.storageId);
+      });
+
       transport.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Consumer transport connecting (DTLS handshake)...');
         socketRef.current?.emit(
