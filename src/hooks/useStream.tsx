@@ -432,6 +432,10 @@ export const useStream = (navigation = null) => {
       
       produceTransport.current = device.current.createSendTransport(transportData);
 
+      // DIAGNOSTIC: Log producer transport close to debug multi-viewer issues
+      produceTransport.current.on("close", () => {
+        console.error('🚨 PRODUCER TRANSPORT CLOSED — this should NOT happen while streaming!');
+      });
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Producer transport connecting...');
         // Use socketRef for stable reference
