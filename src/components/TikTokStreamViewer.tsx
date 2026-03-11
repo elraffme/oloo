@@ -96,25 +96,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const swipeRef = useSwipeGesture({
-    onSwipeUp: () => {
-      if (hasNext && onNext) {
-        onNext();
-      }
-    },
-    onSwipeDown: () => {
-      if (hasPrevious && onPrevious) {
-        onPrevious();
-      }
-    },
-    minDistance: 50,
-    velocityThreshold: 0.3
-  });
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setShowUI(false), 3000);
-    return () => clearTimeout(timeout);
-  }, [showUI]);
+  // UI is always visible - no auto-hide for standard livestream experience
 
   useEffect(() => {
     const initViewer = async () => {
