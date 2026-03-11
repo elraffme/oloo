@@ -473,41 +473,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!user || !chatInput.trim()) return;
-
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name')
-        .eq('id', user.id)
-        .single();
-
-      await supabase
-        .from('stream_chat_messages')
-        .insert({
-          stream_id: streamId,
-          user_id: user.id,
-          username: profile?.display_name || 'Anonymous',
-          message: chatInput.trim()
-        });
-
-      setChatInput('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-    }
-  };
-
-  const handleFollow = async () => {
-    if (!user) {
-      toast.error('Please sign in to follow');
-      return;
-    }
-
-    setIsFollowing(!isFollowing);
-    toast.success(isFollowing ? 'Unfollowed' : 'Following!');
-  };
+  // Chat is handled by LiveStreamChat component directly
 
   const toggleViewerCamera = async () => {
     if (!sessionToken) {
