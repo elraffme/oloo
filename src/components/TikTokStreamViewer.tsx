@@ -804,7 +804,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden relative">
         {/* Video Container */}
         <div 
           ref={videoContainerRef}
