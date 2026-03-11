@@ -923,7 +923,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       </div>
 
       {/* Bottom Controls Bar - Always visible, works on all devices */}
-      <div className="bg-black/90 border-t border-white/10 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
+      <div className="bg-black/90 border-t border-white/10 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-2 shrink-0 z-50">
         <div className="flex items-center gap-2">
           {/* Mute/Unmute Speaker */}
           <Tooltip>
