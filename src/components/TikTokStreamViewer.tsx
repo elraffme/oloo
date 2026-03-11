@@ -630,24 +630,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     }
   };
 
-  const handleReport = async () => {
-    toast.info('Report submitted. Thank you for keeping our community safe!');
-    setShowMoreOptions(false);
-  };
-
-  const handleBlock = async () => {
-    if (!user) {
-      toast.error('Please sign in to block users');
-      return;
-    }
-    toast.success(`You will no longer see streams from ${hostName}`);
-    setShowMoreOptions(false);
-  };
-
-  const handleNotInterested = () => {
-    toast.info("We'll show you fewer streams like this");
-    setShowMoreOptions(false);
-  };
+  // Report/block handlers removed - now using standard layout
 
   const handlePiP = async () => {
     try {
