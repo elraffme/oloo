@@ -65,14 +65,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [isLiked, setIsLiked] = useState(false);
   const [likes, setLikes] = useState(totalLikes);
   const [viewers, setViewers] = useState(currentViewers);
-  const [showUI, setShowUI] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
   
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
   const [showFullChat, setShowFullChat] = useState(false);
-  const [showMoreOptions, setShowMoreOptions] = useState(false);
   
   const [showGiftSelector, setShowGiftSelector] = useState(false);
   const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
