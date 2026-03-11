@@ -832,443 +832,278 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   return (
     <TooltipProvider>
     <div 
-      ref={(node) => {
-        // Merge refs: swipeRef and containerRef
-        (swipeRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-        (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }}
-      className="fixed inset-0 bg-black z-50 overflow-hidden"
-      onClick={() => setShowUI(true)}
+      ref={containerRef}
+      className="fixed inset-0 bg-black z-50 flex flex-col"
     >
-      {/* Video Container - This is the ONLY fullscreen target */}
-      {/* Using inline styles to ensure visibility on mobile where :fullscreen pseudo-class may not work */}
-      <div 
-        ref={videoContainerRef}
-        id="video-container" 
-        className="video-fullscreen-container absolute inset-0 flex items-center justify-center"
-        data-fullscreen={isFullscreen ? "true" : "false"}
-        style={{
-          backgroundColor: '#000',
-          display: 'flex',
-          visibility: 'visible',
-          opacity: 1,
-          width: isFullscreen ? '100vw' : '100%',
-          height: isFullscreen ? '100vh' : '100%',
-          position: isFullscreen ? 'fixed' : 'absolute',
-          top: isFullscreen ? 0 : undefined,
-          left: isFullscreen ? 0 : undefined,
-          right: isFullscreen ? 0 : undefined,
-          bottom: isFullscreen ? 0 : undefined,
-          zIndex: isFullscreen ? 9999 : 10,
-        }}
-      >
-        <video
-          ref={videoRef}
-          className="hidden"
-          playsInline
-          autoPlay
-          muted={isMuted}
-          onLoadedMetadata={() => {
-            console.log('🎥 TikTok: Video metadata loaded');
-            // Ensure proper audio state after metadata loads
-            if (videoRef.current) {
-              videoRef.current.muted = isMuted;
-              videoRef.current.volume = 1.0;
-            }
-          }}
-          onPlay={() => {
-            console.log('🎥 TikTok: Video playing, muted:', videoRef.current?.muted);
-          }}
-          onPause={() => {
-            console.log('🎥 TikTok: Video paused');
-          }}
-        />
-        
-        {/* Connection Status Overlay */}
-        {connectionPhase !== 'streaming' && connectionPhase !== 'idle' && (
-          <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
-            {connectionPhase === 'timeout' || connectionPhase === 'error' || connectionPhase === 'stale_host' ? (
-              <div className="flex flex-col items-center gap-4 text-center">
-                <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-destructive" />
-                </div>
-                <h3 className="text-white font-semibold text-lg">
-                  {connectionPhase === 'timeout' ? 'Connection Timed Out' : 
-                   connectionPhase === 'stale_host' ? 'Host Disconnected' : 
-                   'Connection Error'}
-                </h3>
-                <p className="text-muted-foreground text-sm max-w-xs">
-                  {connectionError || (connectionPhase === 'timeout' 
-                    ? 'Could not find host video. The host may have ended their stream or lost connection.'
-                    : connectionPhase === 'stale_host'
-                    ? 'The host appears to have disconnected. The stream may have ended.'
-                    : 'There was a network issue connecting to this stream.')}
-                </p>
-                <p className="text-muted-foreground/60 text-xs">
-                  {connectionPhase === 'timeout' ? `Waited ${elapsedTime} seconds` : 'Please try another stream'}
-                </p>
-                <div className="flex gap-3 mt-2">
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    className="gap-2"
-                  >
-                    <Home className="w-4 h-4" />
-                    Leave
-                  </Button>
-                  {connectionPhase !== 'stale_host' && (
-                    <Button
-                      onClick={retryConnection}
-                      className="gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Retry
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <Loader2 className="h-12 w-12 animate-spin text-white" />
-                <p className="text-white font-medium text-sm">
-                  {connectionPhase === 'connecting' && 'Connecting to server...'}
-                  {connectionPhase === 'health_check' && 'Checking server availability...'}
-                  {connectionPhase === 'device_loading' && 'Loading media device...'}
-                  {connectionPhase === 'joining_room' && 'Joining stream...'}
-                  {connectionPhase === 'awaiting_producers' && `Waiting for host video... (${elapsedTime}s)`}
-                  {connectionPhase === 'consuming' && 'Receiving video stream...'}
-                </p>
-                {connectionPhase === 'awaiting_producers' && (
-                  <p className="text-muted-foreground text-xs">
-                    Searching for host video stream...
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        )}
-        
-        <VideoCallGrid
-          hostStream={hostStream}
-          hostName={hostName}
-          viewerStream={localStream || undefined}
-          viewerCameraEnabled={viewerCameraEnabled}
-          viewerName={user?.email?.split('@')[0] || 'You'}
-          viewerCameras={new Map()}
-          relayedViewerCameras={relayedViewerCameras}
-          isHost={false}
-          isFullscreen={isFullscreen}
-        />
-        
-        {/* LIVE Badge */}
-        {connectionPhase === 'streaming' && (
-          <Badge 
-            variant="destructive"
-            className="absolute top-4 left-4 z-30 animate-pulse"
-          >
-            <div className="w-2 h-2 bg-white rounded-full mr-2" />
-            LIVE
-          </Badge>
-        )}
-        
-        {/* Mobile fullscreen exit button - appears inside the fullscreen container */}
-        {isFullscreen && (
-          <button
-            onClick={toggleFullscreen}
-            className="absolute top-4 right-4 z-[10000] bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 transition-colors"
-          >
-            <Minimize2 className="w-4 h-4" />
-            Exit Fullscreen
-          </button>
-        )}
-      </div>
-
-      <div 
-        className={cn(
-          "absolute inset-0 transition-opacity duration-300",
-          showUI ? "opacity-100" : "opacity-0"
-        )}
-      >
-        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white"
-              onClick={onClose}
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </Button>
-
-            <Badge className="bg-destructive text-white px-3 py-1 flex items-center gap-2 animate-pulse">
-              <div className="w-2 h-2 bg-white rounded-full"></div>
-              LIVE
-            </Badge>
-
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1">
-              <Eye className="w-4 h-4 text-white" />
-              <span className="text-white text-sm font-medium">{viewers}</span>
-            </div>
+      {/* Header - Always visible */}
+      <div className="bg-black/80 px-3 py-2 flex items-center justify-between text-white shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-white shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <Avatar className="w-8 h-8 border border-white/30 shrink-0">
+            <AvatarImage src={hostAvatar} />
+            <AvatarFallback>{hostName[0]}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold truncate">{streamTitle}</h2>
+            <p className="text-xs text-white/70 truncate">{hostName}</p>
           </div>
         </div>
-
-        <div className="absolute bottom-20 left-4 right-20 space-y-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12 border-2 border-white">
-              <AvatarImage src={hostAvatar} />
-              <AvatarFallback>{hostName[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-white font-semibold truncate">{hostName}</h3>
-              <p className="text-white/80 text-sm truncate">{streamTitle}</p>
-            </div>
-            <Button
-              size="sm"
-              onClick={handleFollow}
-              className={cn(
-                "rounded-full",
-                isFollowing ? "bg-white/20" : "bg-primary"
-              )}
-            >
-              {isFollowing ? 'Following' : <UserPlus className="w-4 h-4" />}
-            </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge className="bg-destructive text-white px-2 py-0.5 text-xs flex items-center gap-1.5 animate-pulse">
+            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            LIVE
+          </Badge>
+          <div className="flex items-center gap-1.5 bg-white/10 rounded-full px-2.5 py-1">
+            <Eye className="w-3.5 h-3.5 text-white" />
+            <span className="text-white text-xs font-medium">{viewers}</span>
           </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-white shrink-0">
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
 
-          <div className="space-y-2">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+        {/* Video Container */}
+        <div 
+          ref={videoContainerRef}
+          className="video-fullscreen-container flex-1 relative bg-black"
+          data-fullscreen={isFullscreen ? "true" : "false"}
+          style={{
+            backgroundColor: '#000',
+            ...(isFullscreen ? {
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 9999,
+            } : {}),
+          }}
+        >
+          <video
+            ref={videoRef}
+            className="hidden"
+            playsInline
+            autoPlay
+            muted={isMuted}
+            onLoadedMetadata={() => {
+              if (videoRef.current) {
+                videoRef.current.muted = isMuted;
+                videoRef.current.volume = 1.0;
+              }
+            }}
+          />
+
+          {/* Connection Status Overlay */}
+          {connectionPhase !== 'streaming' && connectionPhase !== 'idle' && (
+            <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
+              {connectionPhase === 'timeout' || connectionPhase === 'error' || connectionPhase === 'stale_host' ? (
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-destructive" />
+                  </div>
+                  <h3 className="text-white font-semibold text-lg">
+                    {connectionPhase === 'timeout' ? 'Connection Timed Out' : 
+                     connectionPhase === 'stale_host' ? 'Host Disconnected' : 
+                     'Connection Error'}
+                  </h3>
+                  <p className="text-muted-foreground text-sm max-w-xs">
+                    {connectionError || 'The host may have ended their stream or lost connection.'}
+                  </p>
+                  <div className="flex gap-3 mt-2">
+                    <Button variant="outline" onClick={onClose} className="gap-2">
+                      <Home className="w-4 h-4" /> Leave
+                    </Button>
+                    {connectionPhase !== 'stale_host' && (
+                      <Button onClick={retryConnection} className="gap-2">
+                        <RefreshCw className="w-4 h-4" /> Retry
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Loader2 className="h-12 w-12 animate-spin text-white" />
+                  <p className="text-white font-medium text-sm">
+                    {connectionPhase === 'connecting' && 'Connecting to server...'}
+                    {connectionPhase === 'health_check' && 'Checking server availability...'}
+                    {connectionPhase === 'device_loading' && 'Loading media device...'}
+                    {connectionPhase === 'joining_room' && 'Joining stream...'}
+                    {connectionPhase === 'awaiting_producers' && `Waiting for host video... (${elapsedTime}s)`}
+                    {connectionPhase === 'consuming' && 'Receiving video stream...'}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* VideoCallGrid - always visible, shows all participants */}
+          <VideoCallGrid
+            hostStream={hostStream}
+            hostName={hostName}
+            viewerStream={localStream || undefined}
+            viewerCameraEnabled={viewerCameraEnabled}
+            viewerName={user?.email?.split('@')[0] || 'You'}
+            viewerCameras={new Map()}
+            relayedViewerCameras={relayedViewerCameras}
+            isHost={false}
+            isFullscreen={isFullscreen}
+          />
+
+          {/* Floating Chat Messages - always visible overlay */}
+          <div className="absolute bottom-4 left-3 right-3 space-y-1.5 z-20 pointer-events-none max-h-[30%] overflow-hidden">
             {floatingMessages.map((msg) => (
               <div
                 key={msg.id}
-                className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs"
+                className="bg-black/50 backdrop-blur-sm rounded-xl px-3 py-1.5 animate-slide-in-right max-w-[85%]"
               >
-                <div className="flex items-baseline gap-2">
-                  <span className="text-white font-semibold text-sm">{msg.username}</span>
-                </div>
-                <p className="text-white text-sm break-words">{msg.message}</p>
+                <span className="text-white font-medium text-xs">{msg.username}: </span>
+                <span className="text-white/90 text-xs">{msg.message}</span>
               </div>
             ))}
           </div>
 
-          {user && (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Add a comment..."
-                className="flex-1 bg-black/40 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-white placeholder:text-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-white/40"
-              />
-            </div>
+          {/* Fullscreen exit button */}
+          {isFullscreen && (
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-4 right-4 z-[10000] bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 transition-colors"
+            >
+              <Minimize2 className="w-4 h-4" />
+              Exit Fullscreen
+            </button>
           )}
         </div>
 
-        <div className="absolute bottom-32 right-4 flex flex-col items-center gap-6">
-          {/* Camera Toggle */}
-          <button
-            onClick={toggleViewerCamera}
-            disabled={isCameraRequesting}
-            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
-          >
-            <div className={cn(
-              "w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center",
-              viewerCameraEnabled ? "bg-primary" : "bg-black/40"
-            )}>
-              {isCameraRequesting ? (
-                <Loader2 className="w-7 h-7 text-white animate-spin" />
-              ) : viewerCameraEnabled ? (
-                <Video className="w-7 h-7 text-white" />
-              ) : (
-                <VideoOff className="w-7 h-7 text-white" />
-              )}
-            </div>
-            <span className="text-white text-xs font-medium">Camera</span>
-          </button>
-
-          {/* Mic Toggle */}
-          <button
-            onClick={toggleViewerMic}
-            disabled={isMicRequesting}
-            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
-          >
-            <div className={cn(
-              "w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center",
-              viewerMicEnabled ? "bg-primary" : "bg-black/40"
-            )}>
-              {isMicRequesting ? (
-                <Loader2 className="w-7 h-7 text-white animate-spin" />
-              ) : viewerMicEnabled ? (
-                <Mic className="w-7 h-7 text-white" />
-              ) : (
-                <MicOff className="w-7 h-7 text-white" />
-              )}
-            </div>
-            <span className="text-white text-xs font-medium">Mic</span>
-          </button>
-
-          {/* Like Button */}
-          <button
-            onClick={handleLike}
-            className="flex flex-col items-center gap-1 transition-transform active:scale-90"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Heart 
-                className={cn(
-                  "w-7 h-7 transition-colors",
-                  isLiked ? "fill-destructive text-destructive" : "text-white"
-                )}
-              />
-            </div>
-            <span className="text-white text-xs font-medium">{likes}</span>
-          </button>
-
-          <button
-            onClick={() => setShowFullChat(!showFullChat)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <MessageCircle className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-white text-xs font-medium">Chat</span>
-          </button>
-
-          <button 
-            onClick={() => setShowGiftSelector(true)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Gift className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-white text-xs font-medium">Gift</span>
-          </button>
-
-          {/* Fullscreen Button - Clearly labeled */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button 
-                onClick={toggleFullscreen}
-                className="flex flex-col items-center gap-1"
-              >
-                <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                  {isFullscreen ? (
-                    <Minimize2 className="w-7 h-7 text-white" />
-                  ) : (
-                    <Maximize2 className="w-7 h-7 text-white" />
-                  )}
-                </div>
-                <span className="text-white text-xs font-medium">
-                  {isFullscreen ? 'Exit' : 'Fullscreen'}
-                </span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>{isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <button 
-            onClick={handleShare}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Share2 className="w-7 h-7 text-white" />
-            </div>
-          </button>
-
-          <DropdownMenu open={showMoreOptions} onOpenChange={setShowMoreOptions}>
-            <DropdownMenuTrigger asChild>
-              <button className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                  <MoreVertical className="w-7 h-7 text-white" />
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-background/95 backdrop-blur-sm">
-              <DropdownMenuItem onClick={toggleFullscreen}>
-                {isFullscreen ? (
-                  <><Minimize2 className="w-4 h-4 mr-2" /> Exit Fullscreen</>
-                ) : (
-                  <><Maximize2 className="w-4 h-4 mr-2" /> Fullscreen</>
-                )}
-              </DropdownMenuItem>
-              {document.pictureInPictureEnabled && (
-                <DropdownMenuItem onClick={handlePiP}>
-                  <Minimize2 className="w-4 h-4 mr-2" /> Picture-in-Picture
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleReport}>
-                <Flag className="w-4 h-4 mr-2" /> Report Stream
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleBlock}>
-                <Ban className="w-4 h-4 mr-2" /> Block Host
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleNotInterested}>
-                <EyeOff className="w-4 h-4 mr-2" /> Not Interested
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <button
-            onClick={async () => {
-              const newMutedState = !isMuted;
-              setIsMuted(newMutedState);
-              
-              // CRITICAL: Actively control audio on video element
-              if (videoRef.current) {
-                videoRef.current.muted = newMutedState;
-                videoRef.current.volume = 1.0;
-                
-                // If unmuting, ensure playback
-                if (!newMutedState) {
-                  try {
-                    await videoRef.current.play();
-                    console.log('🔊 TikTok: Audio unmuted and playing');
-                  } catch (e: any) {
-                    console.warn('TikTok: Play after unmute failed:', e.name);
-                    // On mobile, we may need to mute first then try again
-                    if (e.name === 'NotAllowedError') {
-                      toast.info('Tap again to unmute audio');
-                    }
-                  }
-                } else {
-                  console.log('🔇 TikTok: Audio muted');
-                }
-              }
-            }}
-            className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center"
-          >
-            {isMuted ? (
-              <VolumeX className="w-7 h-7 text-white" />
-            ) : (
-              <Volume2 className="w-7 h-7 text-white" />
-            )}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 rounded-full bg-destructive/80 backdrop-blur-sm flex items-center justify-center">
-              <LogOut className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-white text-xs font-medium">Leave</span>
-          </button>
+        {/* Desktop Chat Panel - always visible on desktop */}
+        <div className="hidden md:flex flex-col w-80 border-l border-white/10 bg-black/90">
+          <LiveStreamChat streamId={streamId} isMobile={false} />
         </div>
-
       </div>
 
+      {/* Bottom Controls Bar - Always visible, works on all devices */}
+      <div className="bg-black/90 border-t border-white/10 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Mute/Unmute Speaker */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isMuted ? "destructive" : "ghost"}
+                size="icon"
+                onClick={async () => {
+                  const newMutedState = !isMuted;
+                  setIsMuted(newMutedState);
+                  if (videoRef.current) {
+                    videoRef.current.muted = newMutedState;
+                    videoRef.current.volume = 1.0;
+                    if (!newMutedState) {
+                      try { await videoRef.current.play(); } catch (e) {}
+                    }
+                  }
+                }}
+                className="h-9 w-9 rounded-full"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{isMuted ? 'Unmute' : 'Mute'}</p></TooltipContent>
+          </Tooltip>
+
+          {/* Camera Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={viewerCameraEnabled ? "default" : "ghost"}
+                size="icon"
+                onClick={toggleViewerCamera}
+                disabled={isCameraRequesting}
+                className="h-9 w-9 rounded-full"
+              >
+                {isCameraRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerCameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{viewerCameraEnabled ? 'Disable Camera' : 'Enable Camera'}</p></TooltipContent>
+          </Tooltip>
+
+          {/* Mic Toggle */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={viewerMicEnabled ? "default" : "ghost"}
+                size="icon"
+                onClick={toggleViewerMic}
+                disabled={isMicRequesting}
+                className="h-9 w-9 rounded-full"
+              >
+                {isMicRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerMicEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{viewerMicEnabled ? 'Disable Mic' : 'Enable Mic'}</p></TooltipContent>
+          </Tooltip>
+
+          {/* Fullscreen */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-9 w-9 rounded-full">
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p></TooltipContent>
+          </Tooltip>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Like */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            className={cn("gap-1.5 rounded-full", isLiked && "text-destructive")}
+          >
+            <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+            <span className="text-xs">{likes}</span>
+          </Button>
+
+          {/* Gift */}
+          <Button variant="ghost" size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full">
+            <Gift className="w-4 h-4" />
+          </Button>
+
+          {/* Chat (mobile only - opens sheet) */}
+          <Button variant="ghost" size="icon" onClick={() => setShowFullChat(!showFullChat)} className="h-9 w-9 rounded-full md:hidden">
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+
+          {/* Share */}
+          <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 rounded-full">
+            <Share2 className="w-4 h-4" />
+          </Button>
+
+          {/* Leave */}
+          <Button variant="destructive" size="sm" onClick={onClose} className="gap-1.5 rounded-full">
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Leave</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Gift animations */}
       <LivestreamGiftAnimation animations={giftAnimations} />
 
+      {/* Gift selector */}
       <LivestreamGiftSelector
         open={showGiftSelector}
         onOpenChange={setShowGiftSelector}
         hostUserId={hostUserId}
         hostName={hostName}
         streamId={streamId}
-        onGiftSent={(gift) => {
-          console.log('Gift sent:', gift);
-        }}
+        onGiftSent={(gift) => console.log('Gift sent:', gift)}
       />
 
+      {/* Mobile Chat Sheet */}
       <Sheet open={showFullChat} onOpenChange={setShowFullChat}>
         <SheetContent side="bottom" className="h-[60vh] p-0">
           <LiveStreamChat streamId={streamId} isMobile={true} />
@@ -1276,32 +1111,10 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       </Sheet>
 
       <style>{`
-        @keyframes float-up {
-          0% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-200px);
-          }
-        }
-        
         @keyframes slide-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
         }
-        
-        .animate-float-up {
-          animation: float-up 2s ease-out forwards;
-        }
-        
         .animate-slide-in-right {
           animation: slide-in-right 0.3s ease-out;
         }

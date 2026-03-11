@@ -845,53 +845,42 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   return (
     <TooltipProvider>
     <div ref={containerRef} className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Header - Compact */}
-      <div className="bg-black/80 px-3 py-1.5 md:py-2 flex items-center justify-between text-white">
+      {/* Header - Always visible */}
+      <div className="bg-black/80 px-3 py-1.5 md:py-2 flex items-center justify-between text-white shrink-0">
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <div className="min-w-0 flex-1">
             <h2 className="text-xs md:text-sm font-semibold truncate">{streamTitle}</h2>
-            <p className="text-[10px] md:text-xs text-muted-foreground truncate">{hostName}</p>
+            <p className="text-[10px] md:text-xs text-white/70 truncate">{hostName}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-          {/* Desktop Message Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSendMessage}
-            className="gap-2 text-white hover:bg-white/20 hidden md:flex"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Message
-          </Button>
+          <Badge className="bg-destructive text-white px-2 py-0.5 text-xs flex items-center gap-1.5 animate-pulse">
+            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            LIVE
+          </Badge>
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
-          <Button variant="ghost" size="icon" onClick={handleLeaveStream} className="flex-shrink-0">
+          <Button variant="ghost" size="icon" onClick={handleLeaveStream} className="flex-shrink-0 text-white">
             <X className="w-5 h-5" />
           </Button>
         </div>
       </div>
 
-      {/* Main Video Area */}
-      <div className="flex-1 flex flex-col relative bg-black overflow-hidden">
-        {/* Video Container - This is the ONLY fullscreen target */}
-        {/* Using inline styles to ensure visibility on mobile where :fullscreen pseudo-class may not work */}
+      {/* Main Content Area - Video + Chat side by side on desktop */}
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+        {/* Video Container */}
         <div 
           ref={videoContainerRef}
-          className="video-fullscreen-container flex-1 flex flex-col relative"
+          className="video-fullscreen-container flex-1 flex flex-col relative bg-black"
           data-fullscreen={isFullscreen ? "true" : "false"}
           style={{
             backgroundColor: '#000',
-            display: 'flex',
-            visibility: 'visible',
-            opacity: 1,
-            width: isFullscreen ? '100vw' : '100%',
-            height: isFullscreen ? '100vh' : '100%',
-            position: isFullscreen ? 'fixed' : 'relative',
-            top: isFullscreen ? 0 : undefined,
-            left: isFullscreen ? 0 : undefined,
-            right: isFullscreen ? 0 : undefined,
-            bottom: isFullscreen ? 0 : undefined,
-            zIndex: isFullscreen ? 9999 : 10,
+            ...(isFullscreen ? {
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 9999,
+            } : {}),
           }}
         >
           {/* Hidden Video Element for Host Stream */}
@@ -917,24 +906,13 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                   <p className="text-muted-foreground text-sm max-w-xs">
                     {connectionError || 'The host may not be streaming yet, or there was a network issue.'}
                   </p>
-                  <p className="text-muted-foreground/60 text-xs">
-                    Waited {elapsedTime} seconds
-                  </p>
+                  <p className="text-muted-foreground/60 text-xs">Waited {elapsedTime} seconds</p>
                   <div className="flex gap-3 mt-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleLeaveStream}
-                      className="gap-2"
-                    >
-                      <Home className="w-4 h-4" />
-                      Leave
+                    <Button variant="outline" onClick={handleLeaveStream} className="gap-2">
+                      <Home className="w-4 h-4" /> Leave
                     </Button>
-                    <Button
-                      onClick={retryConnection}
-                      className="gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Retry Connection
+                    <Button onClick={retryConnection} className="gap-2">
+                      <RefreshCw className="w-4 h-4" /> Retry Connection
                     </Button>
                   </div>
                 </div>
@@ -943,42 +921,14 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
                   <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionPhase)}</p>
                   {connectionPhase === 'awaiting_producers' && (
-                    <p className="text-muted-foreground text-xs">
-                      Searching for host video stream...
-                    </p>
+                    <p className="text-muted-foreground text-xs">Searching for host video stream...</p>
                   )}
                 </>
               )}
             </div>
           )}
-          
-          {/* LIVE Badge */}
-          {connectionPhase === 'streaming' && (
-            <Badge 
-              variant="destructive"
-              className="absolute top-4 left-4 z-30 animate-pulse"
-            >
-              <div className="w-2 h-2 bg-white rounded-full mr-2" />
-              LIVE
-            </Badge>
-          )}
 
-          {/* Leave Stream Button - Desktop */}
-          {connectionPhase === 'streaming' && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleLeaveStream}
-              className="absolute top-4 right-4 z-30 gap-2 hidden md:flex"
-            >
-              <LogOut className="w-4 h-4" />
-              Leave Stream
-            </Button>
-          )}
-
-          {/* Mobile floating buttons moved to FloatingActionButtons component */}
-
-          {/* Video Call Grid */}
+          {/* Video Call Grid - always visible, shows all participants */}
           <VideoCallGrid
             hostStream={hostStream}
             hostName={hostName}
@@ -992,8 +942,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             isFullscreen={isFullscreen}
           />
 
-          {/* Floating Chat Messages - Compact */}
-          <div className="absolute bottom-16 left-3 right-14 space-y-1 z-20 pointer-events-none">
+          {/* Floating Chat Messages - always visible overlay */}
+          <div className="absolute bottom-4 left-3 right-3 space-y-1 z-20 pointer-events-none max-h-[30%] overflow-hidden">
             {floatingMessages.map((msg) => (
               <div
                 key={msg.id}
@@ -1005,7 +955,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             ))}
           </div>
           
-          {/* Mobile fullscreen exit button - clickable for mobile users */}
+          {/* Fullscreen exit button */}
           {isFullscreen && (
             <button
               onClick={toggleFullscreen}
@@ -1017,45 +967,104 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           )}
         </div>
         
-        {/* Chat Below Video - Desktop Only - Compact */}
-        {showChat && !isMobile && (
-          <div className="h-40 border-t border-border bg-background">
-            <LiveStreamChat streamId={streamId} isMobile={false} />
-          </div>
-        )}
+        {/* Desktop Chat Panel - always visible on desktop */}
+        <div className="hidden md:flex flex-col w-80 border-l border-white/10 bg-black/90">
+          <LiveStreamChat streamId={streamId} isMobile={false} />
+        </div>
       </div>
 
-      {/* Mobile FABs - Horizontal Bottom Bar */}
-      <FloatingActionButtons
-        isLiked={isLiked}
-        totalLikes={totalLikes}
-        onLike={handleLike}
-        onGift={() => setShowGiftSelector(true)}
-        onChat={handleChatToggle}
-        onLeave={handleLeaveStream}
-        onMute={toggleMute}
-        isMuted={isMuted}
-        onMic={toggleViewerMic}
-        onCamera={toggleViewerCamera}
-        micEnabled={viewerMicEnabled}
-        cameraEnabled={viewerCameraEnabled}
-        isMicRequesting={isMicRequesting}
-        isCameraRequesting={isCameraRequesting}
-        onFullscreen={toggleFullscreen}
-        isFullscreen={isFullscreen}
-      />
+      {/* Bottom Controls Bar - Always visible on all devices */}
+      <div className="bg-black/90 border-t border-white/10 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isMuted ? "destructive" : "ghost"}
+                size="icon"
+                onClick={toggleMute}
+                className="h-9 w-9 rounded-full"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{isMuted ? 'Unmute' : 'Mute'}</p></TooltipContent>
+          </Tooltip>
 
-      {/* Mobile Chat Sheet */}
-      <Sheet open={showChat && isMobile} onOpenChange={(open) => isMobile && setShowChat(open)}>
-        <SheetContent side="bottom" className="h-[80vh] p-0">
-          <SheetHeader className="p-4 border-b">
-            <SheetTitle>Live Chat</SheetTitle>
-          </SheetHeader>
-          <div className="h-[calc(100%-64px)]">
-            <LiveStreamChat streamId={streamId} isMobile={true} />
-          </div>
-        </SheetContent>
-      </Sheet>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={viewerCameraEnabled ? "default" : "ghost"}
+                size="icon"
+                onClick={toggleViewerCamera}
+                disabled={isCameraRequesting}
+                className="h-9 w-9 rounded-full"
+              >
+                {isCameraRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerCameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{viewerCameraEnabled ? 'Disable Camera' : 'Enable Camera'}</p></TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={viewerMicEnabled ? "default" : "ghost"}
+                size="icon"
+                onClick={toggleViewerMic}
+                disabled={isMicRequesting}
+                className="h-9 w-9 rounded-full"
+              >
+                {isMicRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerMicEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{viewerMicEnabled ? 'Disable Mic' : 'Enable Mic'}</p></TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-9 w-9 rounded-full">
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p></TooltipContent>
+          </Tooltip>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            className={cn("gap-1.5 rounded-full", isLiked && "text-destructive")}
+          >
+            <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
+            <span className="text-xs">{totalLikes}</span>
+          </Button>
+
+          <Button variant="ghost" size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full">
+            <Gift className="w-4 h-4" />
+          </Button>
+
+          {/* Chat toggle - mobile only */}
+          <Button variant="ghost" size="icon" onClick={handleChatToggle} className="h-9 w-9 rounded-full md:hidden">
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSendMessage}
+            className="h-9 w-9 rounded-full hidden md:flex"
+          >
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+
+          <Button variant="destructive" size="sm" onClick={handleLeaveStream} className="gap-1.5 rounded-full">
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Leave</span>
+          </Button>
+        </div>
+      </div>
 
       {/* Like Animation */}
       <LikeAnimation
@@ -1064,63 +1073,17 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         onComplete={() => setShowLikeAnimation(false)} 
       />
 
-      {/* Bottom Controls - Desktop Only (mobile uses FloatingActionButtons) */}
-      <div className="bg-black/80 p-3 md:p-4 hidden md:flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isMuted ? "destructive" : "ghost"}
-                size="icon"
-                onClick={toggleMute}
-                className="h-10 w-10"
-              >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{isMuted ? 'Unmute' : 'Mute'}</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleFullscreen}
-                className="h-10 w-10"
-              >
-                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="lg"
-            onClick={() => setShowGiftSelector(true)}
-            className="gap-2"
-          >
-            <Gift className="w-5 h-5" />
-            Send Gift
-          </Button>
-          <Button
-            variant="default"
-            size="lg"
-            onClick={handleSendMessage}
-            className="gap-2"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Message Host
-          </Button>
-        </div>
-      </div>
+      {/* Mobile Chat Sheet */}
+      <Sheet open={showChat && isMobile} onOpenChange={(open) => isMobile && setShowChat(open)}>
+        <SheetContent side="bottom" className="h-[60vh] p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>Live Chat</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100%-64px)]">
+            <LiveStreamChat streamId={streamId} isMobile={true} />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {user && (
         <GiftSelector
