@@ -866,7 +866,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       </div>
 
       {/* Main Content Area - Video + Chat side by side on desktop */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 relative">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden relative">
         {/* Video Container */}
         <div 
           ref={videoContainerRef}
@@ -974,7 +974,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       </div>
 
       {/* Bottom Controls Bar - Always visible on all devices */}
-      <div className="bg-black/90 border-t border-white/10 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
+      <div className="bg-black/90 border-t border-white/10 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-2 shrink-0 z-50">
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
