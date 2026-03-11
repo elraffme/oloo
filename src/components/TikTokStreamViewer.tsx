@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
-  X, Heart, MessageCircle, Gift, Share2, MoreVertical, 
-  Eye, Volume2, VolumeX, UserPlus, ArrowLeft, Video, VideoOff, Loader2,
-  Mic, MicOff, LogOut, Flag, Ban, EyeOff, Minimize2, Maximize2, RefreshCw, AlertCircle, Home
+  X, Heart, MessageCircle, Gift, Share2, 
+  Eye, Volume2, VolumeX, ArrowLeft, Video, VideoOff, Loader2,
+  Mic, MicOff, LogOut, Minimize2, Maximize2, RefreshCw, AlertCircle, Home
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
@@ -18,12 +17,6 @@ import LivestreamGiftSelector from './LivestreamGiftSelector';
 import LivestreamGiftAnimation, { GiftAnimation } from './LivestreamGiftAnimation';
 import { LiveStreamChat } from './LiveStreamChat';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
 import { useStream, ConnectionPhase, STALE_STREAM_THRESHOLD_SECONDS } from '@/hooks/useStream';
 
 interface ChatMessage {
