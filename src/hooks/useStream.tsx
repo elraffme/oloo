@@ -133,6 +133,8 @@ export const useStream = (navigation = null) => {
   const onProductionReadyCallback = useRef<(() => void) | null>(null);
 
   // Clear all timing intervals and timeouts
+  // CRITICAL: Does NOT reset hasReceivedProducers — that guard must persist
+  // to prevent disrupting existing viewers when new producers arrive.
   const clearAllTimers = useCallback(() => {
     if (producerPollInterval.current) {
       clearInterval(producerPollInterval.current);
@@ -151,7 +153,6 @@ export const useStream = (navigation = null) => {
       masterDeadlineTimer.current = null;
     }
     producerPollCount.current = 0;
-    hasReceivedProducers.current = false;
   }, []);
 
   // Start elapsed time counter
