@@ -715,7 +715,16 @@ export const useStream = (navigation = null) => {
             }
             break;
           case "failed":
-            console.error("❌ Consumer transport ICE FAILED — attempting ICE restart, then full reconnect if needed");
+            console.error("❌ Consumer transport ICE FAILED for storageId:", data.storageId);
+            // CRITICAL: Only attempt full reconnect if this is a HOST consumer transport
+            // If a viewer's transport fails, just clean it up — don't nuke everything
+            const failedConsumersForTransport = Array.from(consumers.current.values()).filter(
+              (c) => consumeTransports.current.get(data.storageId) === transport
+            );
+            const isHostTransport = failedConsumersForTransport.some(
+              (c) => c.appData?.type !== 'viewer'
+            );
+            
             socketRef.current?.emit(
               "consumerRestartIce",
               data.storageId,
@@ -725,12 +734,23 @@ export const useStream = (navigation = null) => {
                     await transport.restartIce({ iceParameters: params });
                     console.log('✅ ICE restart completed for consumer');
                   } catch (e) {
-                    console.error('❌ ICE restart failed, triggering full reconnect in 2s...', e);
-                    setTimeout(() => retryConnection(), 2000);
+                    console.error('❌ ICE restart failed for storageId:', data.storageId);
+                    if (isHostTransport) {
+                      console.error('🚨 Host consumer transport failed — full reconnect in 2s');
+                      setTimeout(() => retryConnection(), 2000);
+                    } else {
+                      console.warn('⚠️ Viewer consumer transport failed — cleaning up only that transport');
+                      transport.close();
+                    }
                   }
                 } else {
-                  console.error('❌ No ICE params for restart — full reconnect in 2s...');
-                  setTimeout(() => retryConnection(), 2000);
+                  if (isHostTransport) {
+                    console.error('❌ No ICE params for host transport restart — full reconnect in 2s...');
+                    setTimeout(() => retryConnection(), 2000);
+                  } else {
+                    console.warn('⚠️ No ICE params for viewer transport — closing it');
+                    transport.close();
+                  }
                 }
               }
             );
