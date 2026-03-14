@@ -836,6 +836,33 @@ export const useStream = (navigation = null) => {
     consumer.on('close', () => {
       console.warn(`⚠️ Consumer ${consumer.id} closed (${consumer.kind} from ${appData?.type})`);
       consumers.current.delete(consumer.id);
+      
+      // CRITICAL: When a viewer's consumer closes, rebuild viewer streams
+      // without triggering any reconnection for other participants
+      if (appData?.type === 'viewer') {
+        const remainingViewerConsumers = Array.from(consumers.current.values()).filter(
+          (c) => c.appData?.type === 'viewer'
+        );
+        const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string }>();
+        remainingViewerConsumers.forEach((c) => {
+          const pId = c.appData?.peerId || 'unknown';
+          if (!viewerStreamsMap.has(pId)) {
+            viewerStreamsMap.set(pId, { stream: new MediaStream(), displayName: c.appData?.displayName || 'Viewer' });
+          }
+          c.track.enabled = true;
+          const existing = viewerStreamsMap.get(pId)!;
+          if (!existing.stream.getTracks().some(t => t.id === c.track.id)) {
+            existing.stream.addTrack(c.track);
+          }
+        });
+        const newViewerStreams = Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
+          id: vid,
+          stream: vdata.stream,
+          displayName: vdata.displayName,
+        }));
+        setViewerStreams(newViewerStreams);
+        console.log(`👥 Viewer streams rebuilt after consumer close: ${newViewerStreams.length} viewers`);
+      }
     });
 
     // Clear consume timeout for this producer
