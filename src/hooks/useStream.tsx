@@ -133,6 +133,8 @@ export const useStream = (navigation = null) => {
   const onProductionReadyCallback = useRef<(() => void) | null>(null);
 
   // Clear all timing intervals and timeouts
+  // CRITICAL: Does NOT reset hasReceivedProducers — that guard must persist
+  // to prevent disrupting existing viewers when new producers arrive.
   const clearAllTimers = useCallback(() => {
     if (producerPollInterval.current) {
       clearInterval(producerPollInterval.current);
@@ -151,7 +153,6 @@ export const useStream = (navigation = null) => {
       masterDeadlineTimer.current = null;
     }
     producerPollCount.current = 0;
-    hasReceivedProducers.current = false;
   }, []);
 
   // Start elapsed time counter
@@ -327,6 +328,8 @@ export const useStream = (navigation = null) => {
     
     // Clear all timers first
     clearAllTimers();
+    // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
+    hasReceivedProducers.current = false;
     
     // Close transports
     produceTransport.current?.close();
@@ -346,11 +349,9 @@ export const useStream = (navigation = null) => {
     // CRITICAL: Stop and cleanup local stream tracks properly
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
-        // Remove event listeners
         track.onended = null;
         track.onmute = null;
         track.onunmute = null;
-        // Stop the track
         track.stop();
         console.log(`🛑 Stopped ${track.kind} track:`, track.label);
       });
@@ -714,7 +715,16 @@ export const useStream = (navigation = null) => {
             }
             break;
           case "failed":
-            console.error("❌ Consumer transport ICE FAILED — attempting ICE restart, then full reconnect if needed");
+            console.error("❌ Consumer transport ICE FAILED for storageId:", data.storageId);
+            // CRITICAL: Only attempt full reconnect if this is a HOST consumer transport
+            // If a viewer's transport fails, just clean it up — don't nuke everything
+            const failedConsumersForTransport = Array.from(consumers.current.values()).filter(
+              (c) => consumeTransports.current.get(data.storageId) === transport
+            );
+            const isHostTransport = failedConsumersForTransport.some(
+              (c) => c.appData?.type !== 'viewer'
+            );
+            
             socketRef.current?.emit(
               "consumerRestartIce",
               data.storageId,
@@ -724,12 +734,23 @@ export const useStream = (navigation = null) => {
                     await transport.restartIce({ iceParameters: params });
                     console.log('✅ ICE restart completed for consumer');
                   } catch (e) {
-                    console.error('❌ ICE restart failed, triggering full reconnect in 2s...', e);
-                    setTimeout(() => retryConnection(), 2000);
+                    console.error('❌ ICE restart failed for storageId:', data.storageId);
+                    if (isHostTransport) {
+                      console.error('🚨 Host consumer transport failed — full reconnect in 2s');
+                      setTimeout(() => retryConnection(), 2000);
+                    } else {
+                      console.warn('⚠️ Viewer consumer transport failed — cleaning up only that transport');
+                      transport.close();
+                    }
                   }
                 } else {
-                  console.error('❌ No ICE params for restart — full reconnect in 2s...');
-                  setTimeout(() => retryConnection(), 2000);
+                  if (isHostTransport) {
+                    console.error('❌ No ICE params for host transport restart — full reconnect in 2s...');
+                    setTimeout(() => retryConnection(), 2000);
+                  } else {
+                    console.warn('⚠️ No ICE params for viewer transport — closing it');
+                    transport.close();
+                  }
                 }
               }
             );
@@ -835,6 +856,33 @@ export const useStream = (navigation = null) => {
     consumer.on('close', () => {
       console.warn(`⚠️ Consumer ${consumer.id} closed (${consumer.kind} from ${appData?.type})`);
       consumers.current.delete(consumer.id);
+      
+      // CRITICAL: When a viewer's consumer closes, rebuild viewer streams
+      // without triggering any reconnection for other participants
+      if (appData?.type === 'viewer') {
+        const remainingViewerConsumers = Array.from(consumers.current.values()).filter(
+          (c) => c.appData?.type === 'viewer'
+        );
+        const viewerStreamsMap = new Map<string, { stream: MediaStream; displayName: string }>();
+        remainingViewerConsumers.forEach((c) => {
+          const pId = c.appData?.peerId || 'unknown';
+          if (!viewerStreamsMap.has(pId)) {
+            viewerStreamsMap.set(pId, { stream: new MediaStream(), displayName: c.appData?.displayName || 'Viewer' });
+          }
+          c.track.enabled = true;
+          const existing = viewerStreamsMap.get(pId)!;
+          if (!existing.stream.getTracks().some(t => t.id === c.track.id)) {
+            existing.stream.addTrack(c.track);
+          }
+        });
+        const newViewerStreams = Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
+          id: vid,
+          stream: vdata.stream,
+          displayName: vdata.displayName,
+        }));
+        setViewerStreams(newViewerStreams);
+        console.log(`👥 Viewer streams rebuilt after consumer close: ${newViewerStreams.length} viewers`);
+      }
     });
 
     // Clear consume timeout for this producer
@@ -1300,6 +1348,35 @@ export const useStream = (navigation = null) => {
     });
     newSocket.on("ConsumeTransportCreated", (data: any) => consume(data));
     newSocket.on("consumerCreated", (data: any) => handleNewConsumer(data));
+    
+    // CRITICAL: Handle producer closure gracefully
+    // When a viewer leaves, the server closes their producers and notifies
+    // other clients via producerClosed. We must close ONLY the matching
+    // consumer — not trigger any global reconnection.
+    newSocket.on("producerClosed", ({ producerId }: { producerId: string }) => {
+      console.log(`📭 Producer closed notification: ${producerId}`);
+      
+      // Find and close only the consumer for this specific producer
+      for (const [consumerId, consumer] of consumers.current) {
+        if (consumer.producerId === producerId) {
+          console.log(`🗑️ Closing consumer ${consumerId} for closed producer ${producerId} (${consumer.kind}, ${consumer.appData?.type})`);
+          consumer.close(); // This triggers the consumer 'close' event which rebuilds viewer streams
+        }
+      }
+    });
+    
+    // Handle peer disconnection from SFU — scoped cleanup only
+    newSocket.on("peerDisconnected", ({ peerId: disconnectedPeerId }: { peerId: string }) => {
+      console.log(`👤 Peer disconnected from SFU: ${disconnectedPeerId}`);
+      
+      // Only close consumers belonging to that peer
+      for (const [consumerId, consumer] of consumers.current) {
+        if (consumer.appData?.peerId === disconnectedPeerId) {
+          console.log(`🗑️ Closing consumer ${consumerId} for disconnected peer ${disconnectedPeerId}`);
+          consumer.close();
+        }
+      }
+    });
     
     socketRef.current = newSocket;
     setSocket(newSocket);
