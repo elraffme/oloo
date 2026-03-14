@@ -328,6 +328,8 @@ export const useStream = (navigation = null) => {
     
     // Clear all timers first
     clearAllTimers();
+    // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
+    hasReceivedProducers.current = false;
     
     // Close transports
     produceTransport.current?.close();
@@ -347,11 +349,9 @@ export const useStream = (navigation = null) => {
     // CRITICAL: Stop and cleanup local stream tracks properly
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
-        // Remove event listeners
         track.onended = null;
         track.onmute = null;
         track.onunmute = null;
-        // Stop the track
         track.stop();
         console.log(`🛑 Stopped ${track.kind} track:`, track.label);
       });
