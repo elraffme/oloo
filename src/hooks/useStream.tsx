@@ -1349,6 +1349,35 @@ export const useStream = (navigation = null) => {
     newSocket.on("ConsumeTransportCreated", (data: any) => consume(data));
     newSocket.on("consumerCreated", (data: any) => handleNewConsumer(data));
     
+    // CRITICAL: Handle producer closure gracefully
+    // When a viewer leaves, the server closes their producers and notifies
+    // other clients via producerClosed. We must close ONLY the matching
+    // consumer — not trigger any global reconnection.
+    newSocket.on("producerClosed", ({ producerId }: { producerId: string }) => {
+      console.log(`📭 Producer closed notification: ${producerId}`);
+      
+      // Find and close only the consumer for this specific producer
+      for (const [consumerId, consumer] of consumers.current) {
+        if (consumer.producerId === producerId) {
+          console.log(`🗑️ Closing consumer ${consumerId} for closed producer ${producerId} (${consumer.kind}, ${consumer.appData?.type})`);
+          consumer.close(); // This triggers the consumer 'close' event which rebuilds viewer streams
+        }
+      }
+    });
+    
+    // Handle peer disconnection from SFU — scoped cleanup only
+    newSocket.on("peerDisconnected", ({ peerId: disconnectedPeerId }: { peerId: string }) => {
+      console.log(`👤 Peer disconnected from SFU: ${disconnectedPeerId}`);
+      
+      // Only close consumers belonging to that peer
+      for (const [consumerId, consumer] of consumers.current) {
+        if (consumer.appData?.peerId === disconnectedPeerId) {
+          console.log(`🗑️ Closing consumer ${consumerId} for disconnected peer ${disconnectedPeerId}`);
+          consumer.close();
+        }
+      }
+    });
+    
     socketRef.current = newSocket;
     setSocket(newSocket);
     
