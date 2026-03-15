@@ -1807,41 +1807,47 @@ export const useStream = (navigation = null) => {
 
       // PRODUCE AUDIO FIRST (priority for two-way communication)
       if (audioTrack && audioTrack.readyState === 'live') {
-        let audioProduced = false;
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        while (!audioProduced && attempts < maxAttempts) {
-          attempts++;
-          try {
-            console.log(`🎤 Producing viewer audio (attempt ${attempts}/${maxAttempts})...`);
-            
-            // Ensure track is still enabled
-            audioTrack.enabled = true;
-            
-            await produceTransport.current.produce({
-              track: audioTrack,
-              appData: { 
-                type: 'viewer', 
-                peerId: peerId.current, 
-                displayName,
-                mediaType: 'audio'
-              },
-            });
-            audioProduced = true;
-            console.log('✅ Viewer audio produced to SFU successfully');
-          } catch (audioError: any) {
-            console.error(`❌ Audio produce attempt ${attempts} failed:`, audioError.message);
-            
-            if (attempts < maxAttempts) {
-              // Wait before retry
-              await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+        if (hasActiveProducerForSlot('viewer', 'audio')) {
+          console.log('ℹ️ Viewer audio producer already active, skipping duplicate creation');
+        } else {
+          let audioProduced = false;
+          let attempts = 0;
+          const maxAttempts = 3;
+          
+          while (!audioProduced && attempts < maxAttempts) {
+            attempts++;
+            try {
+              console.log(`🎤 Producing viewer audio (attempt ${attempts}/${maxAttempts})...`);
+              
+              // Ensure track is still enabled
+              audioTrack.enabled = true;
+              
+              const audioProducer = await produceTransport.current.produce({
+                track: audioTrack,
+                appData: { 
+                  type: 'viewer', 
+                  peerId: peerId.current, 
+                  displayName,
+                  mediaType: 'audio'
+                },
+              });
+
+              registerLocalProducer(audioProducer, 'audio', 'viewer');
+              audioProduced = true;
+              console.log('✅ Viewer audio produced to SFU successfully');
+            } catch (audioError: any) {
+              console.error(`❌ Audio produce attempt ${attempts} failed:`, audioError.message);
+              
+              if (attempts < maxAttempts) {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+              }
             }
           }
-        }
-        
-        if (!audioProduced) {
-          console.error('❌ Failed to produce audio after', maxAttempts, 'attempts');
+          
+          if (!audioProduced) {
+            console.error('❌ Failed to produce audio after', maxAttempts, 'attempts');
+          }
         }
       } else if (!isVideoOnly) {
         console.warn('⚠️ No live audio track to produce');
@@ -1849,30 +1855,36 @@ export const useStream = (navigation = null) => {
       
       // PRODUCE VIDEO
       if (videoTrack && videoTrack.readyState === 'live') {
-        try {
-          console.log('📹 Producing viewer video track to SFU...');
-          // Viewer video: lower bitrate, no simulcast needed
-          await produceTransport.current.produce({
-            track: videoTrack,
-            encodings: [
-              {
-                maxBitrate: 500000, // 500kbps max for viewer camera
-                scaleResolutionDownBy: 1,
+        if (hasActiveProducerForSlot('viewer', 'video')) {
+          console.log('ℹ️ Viewer video producer already active, skipping duplicate creation');
+        } else {
+          try {
+            console.log('📹 Producing viewer video track to SFU...');
+            // Viewer video: lower bitrate, no simulcast needed
+            const videoProducer = await produceTransport.current.produce({
+              track: videoTrack,
+              encodings: [
+                {
+                  maxBitrate: 500000, // 500kbps max for viewer camera
+                  scaleResolutionDownBy: 1,
+                },
+              ],
+              codecOptions: {
+                videoGoogleStartBitrate: 200,
               },
-            ],
-            codecOptions: {
-              videoGoogleStartBitrate: 200,
-            },
-            appData: { 
-              type: 'viewer', 
-              peerId: peerId.current, 
-              displayName,
-              mediaType: 'video'
-            },
-          });
-          console.log('✅ Viewer video produced to SFU successfully');
-        } catch (videoError: any) {
-          console.error('❌ Failed to produce video:', videoError.message);
+              appData: { 
+                type: 'viewer', 
+                peerId: peerId.current, 
+                displayName,
+                mediaType: 'video'
+              },
+            });
+
+            registerLocalProducer(videoProducer, 'video', 'viewer');
+            console.log('✅ Viewer video produced to SFU successfully');
+          } catch (videoError: any) {
+            console.error('❌ Failed to produce video:', videoError.message);
+          }
         }
       }
       
