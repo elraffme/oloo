@@ -400,11 +400,15 @@ export const useStream = (navigation = null) => {
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
+    isCleaningUpRef.current = true;
     
     // Clear all timers first
     clearAllTimers();
     // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
     hasReceivedProducers.current = false;
+
+    // Close local producers first so we can log producer lifecycle clearly.
+    closeAllLocalProducers('full cleanup');
     
     // Close transports
     produceTransport.current?.close();
@@ -412,6 +416,7 @@ export const useStream = (navigation = null) => {
     
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
+    consumeTransportMeta.current.clear();
     
     // Close all consumers
     consumers.current.forEach((consumer) => consumer?.close());
