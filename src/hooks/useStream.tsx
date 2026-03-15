@@ -659,16 +659,21 @@ export const useStream = (navigation = null) => {
       // PRODUCE AUDIO FIRST (priority for communication)
       if (audioTrackReady && audioTrack) {
         try {
-          console.log('🎤 Producing audio track to SFU...');
-          await produceTransport.current.produce({ 
-            track: audioTrack, 
-            appData: { 
-              type: roleRef.current, 
-              peerId: peerId.current,
-              mediaType: 'audio'
-            } 
-          });
-          console.log('✅ Audio track production initiated');
+          if (hasActiveProducerForSlot(roleRef.current, 'audio')) {
+            console.log(`ℹ️ Skipping duplicate ${roleRef.current} audio producer creation`);
+          } else {
+            console.log('🎤 Producing audio track to SFU...');
+            const audioProducer = await produceTransport.current.produce({ 
+              track: audioTrack, 
+              appData: { 
+                type: roleRef.current, 
+                peerId: peerId.current,
+                mediaType: 'audio'
+              } 
+            });
+            registerLocalProducer(audioProducer, 'audio', roleRef.current);
+            console.log('✅ Audio track production initiated');
+          }
         } catch (audioError) {
           console.error('❌ Failed to produce audio track:', audioError);
           // Continue with video even if audio fails
@@ -678,34 +683,39 @@ export const useStream = (navigation = null) => {
       // PRODUCE VIDEO
       if (videoTrack) {
         try {
-          console.log('📹 Producing video track to SFU...');
-          // No simulcast — VP9 does not support simulcast in mediasoup
-          // Force VP8 codec preference to avoid VP9 simulcast crash
-          let codec: any;
-          if (device.current) {
-            const routerCodecs = device.current.rtpCapabilities?.codecs || [];
-            codec = routerCodecs.find(
-              (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
-            );
-            console.log('🎯 Forcing VP8 codec:', codec ? 'found' : 'fallback to default');
-          }
-
-          await produceTransport.current.produce({ 
-            track: videoTrack,
-            ...(codec ? { codec } : {}),
-            encodings: [
-              { maxBitrate: 900000, scaleResolutionDownBy: 1 },
-            ],
-            codecOptions: {
-              videoGoogleStartBitrate: 300,
-            },
-            appData: { 
-              type: roleRef.current, 
-              peerId: peerId.current,
-              mediaType: 'video'
+          if (hasActiveProducerForSlot(roleRef.current, 'video')) {
+            console.log(`ℹ️ Skipping duplicate ${roleRef.current} video producer creation`);
+          } else {
+            console.log('📹 Producing video track to SFU...');
+            // No simulcast — VP9 does not support simulcast in mediasoup
+            // Force VP8 codec preference to avoid VP9 simulcast crash
+            let codec: any;
+            if (device.current) {
+              const routerCodecs = device.current.rtpCapabilities?.codecs || [];
+              codec = routerCodecs.find(
+                (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
+              );
+              console.log('🎯 Forcing VP8 codec:', codec ? 'found' : 'fallback to default');
             }
-          });
-          console.log('✅ Video track production initiated');
+
+            const videoProducer = await produceTransport.current.produce({ 
+              track: videoTrack,
+              ...(codec ? { codec } : {}),
+              encodings: [
+                { maxBitrate: 900000, scaleResolutionDownBy: 1 },
+              ],
+              codecOptions: {
+                videoGoogleStartBitrate: 300,
+              },
+              appData: { 
+                type: roleRef.current, 
+                peerId: peerId.current,
+                mediaType: 'video'
+              }
+            });
+            registerLocalProducer(videoProducer, 'video', roleRef.current);
+            console.log('✅ Video track production initiated');
+          }
         } catch (videoError) {
           console.error('❌ Failed to produce video track:', videoError);
         }
