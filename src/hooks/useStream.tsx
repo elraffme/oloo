@@ -1493,7 +1493,13 @@ export const useStream = (navigation = null) => {
       // Find and close only the consumer for this specific producer
       for (const [consumerId, consumer] of consumers.current) {
         if (consumer.producerId === producerId) {
+          const isHostProducer = consumer.appData?.type !== 'viewer';
           console.log(`🗑️ Closing consumer ${consumerId} for closed producer ${producerId} (${consumer.kind}, ${consumer.appData?.type})`);
+
+          if (isHostProducer) {
+            console.warn(`⚠️ Host producer ${producerId} closed. Viewer may need reconnect only if host actually ended.`);
+          }
+
           consumer.close(); // This triggers the consumer 'close' event which rebuilds viewer streams
         }
       }
