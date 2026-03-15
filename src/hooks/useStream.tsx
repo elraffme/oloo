@@ -518,9 +518,14 @@ export const useStream = (navigation = null) => {
       
       produceTransport.current = device.current.createSendTransport(transportData);
 
-      // DIAGNOSTIC: Log producer transport close to debug multi-viewer issues
+      // DIAGNOSTIC: Log producer transport lifecycle for stability debugging
       produceTransport.current.on("close", () => {
-        console.error('🚨 PRODUCER TRANSPORT CLOSED — this should NOT happen while streaming!');
+        const unexpected = roleRef.current === 'streamer' && !isCleaningUpRef.current;
+        if (unexpected) {
+          console.error('🚨 PRODUCER TRANSPORT CLOSED unexpectedly while host should still be live');
+        } else {
+          console.log('ℹ️ Producer transport closed during expected cleanup');
+        }
       });
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Producer transport connecting...');
@@ -530,6 +535,14 @@ export const useStream = (navigation = null) => {
           { dtlsParameters, id: peerId.current },
           callback
         );
+      });
+
+      produceTransport.current.on("icestatechange", (iceState) => {
+        console.log(`🧊 Producer transport ICE state: ${iceState}`);
+      });
+
+      produceTransport.current.on("dtlsstatechange", (dtlsState) => {
+        console.log(`🔐 Producer transport DTLS state: ${dtlsState}`);
       });
 
       produceTransport.current.on("connectionstatechange", (state) => {
