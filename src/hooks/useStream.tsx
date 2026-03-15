@@ -765,10 +765,22 @@ export const useStream = (navigation = null) => {
       const transport = device.current.createRecvTransport(transportData);
       consumeTransports.current.set(data.storageId, transport);
 
+      const transportMeta = {
+        producerId: data.producer?.producerId || 'unknown',
+        peerId: data.producer?.peerId || 'unknown',
+        producerType: data.producer?.appData?.type || 'streamer',
+        mediaType: data.producer?.appData?.mediaType || 'unknown',
+      };
+      consumeTransportMeta.current.set(data.storageId, transportMeta);
+
+      console.log(`📦 Registered consumer transport ${data.storageId}`, transportMeta);
+
       // DIAGNOSTIC: Log transport close events to debug multi-viewer issues
       transport.on("close", () => {
         console.warn(`⚠️ Consumer transport CLOSED: storageId=${data.storageId}`);
+        closeConsumersForStorageId(data.storageId, 'transport close event');
         consumeTransports.current.delete(data.storageId);
+        consumeTransportMeta.current.delete(data.storageId);
       });
 
       transport.on("connect", ({ dtlsParameters }, callback) => {
@@ -780,9 +792,15 @@ export const useStream = (navigation = null) => {
         );
       });
 
-      // Log ICE candidates for debugging network issues
+      // Log ICE + DTLS states for debugging network issues
       transport.on("icegatheringstatechange", (state) => {
         console.log(`🧊 Consumer ICE gathering state: ${state}`);
+      });
+      transport.on("icestatechange", (state) => {
+        console.log(`🧊 Consumer ICE state: ${state} (storage=${data.storageId})`);
+      });
+      transport.on("dtlsstatechange", (state) => {
+        console.log(`🔐 Consumer DTLS state: ${state} (storage=${data.storageId})`);
       });
 
       transport.on("connectionstatechange", (state) => {
@@ -822,14 +840,14 @@ export const useStream = (navigation = null) => {
               masterDeadlineTimer.current = null;
             }
             break;
-          case "failed":
+          case "failed": {
             console.error("❌ Consumer transport ICE FAILED for storageId:", data.storageId);
-            // CRITICAL: Only attempt full reconnect if this is a HOST consumer transport
-            // If a viewer's transport fails, just clean it up — don't nuke everything
+
             const failedConsumersForTransport = Array.from(consumers.current.values()).filter(
-              (c) => consumeTransports.current.get(data.storageId) === transport
+              (c) => c.appData?.storageId === data.storageId
             );
-            const isHostTransport = failedConsumersForTransport.some(
+            const inferredProducerType = consumeTransportMeta.current.get(data.storageId)?.producerType || transportMeta.producerType;
+            const isHostTransport = inferredProducerType !== 'viewer' || failedConsumersForTransport.some(
               (c) => c.appData?.type !== 'viewer'
             );
             
@@ -848,6 +866,7 @@ export const useStream = (navigation = null) => {
                       setTimeout(() => retryConnection(), 2000);
                     } else {
                       console.warn('⚠️ Viewer consumer transport failed — cleaning up only that transport');
+                      closeConsumersForStorageId(data.storageId, 'viewer ICE restart failed');
                       transport.close();
                     }
                   }
@@ -857,12 +876,14 @@ export const useStream = (navigation = null) => {
                     setTimeout(() => retryConnection(), 2000);
                   } else {
                     console.warn('⚠️ No ICE params for viewer transport — closing it');
+                    closeConsumersForStorageId(data.storageId, 'viewer missing ICE params');
                     transport.close();
                   }
                 }
               }
             );
             break;
+          }
           case "disconnected":
             console.warn("⚠️ Consumer transport disconnected, may recover...");
             // Give it 5s to recover before attempting ICE restart
