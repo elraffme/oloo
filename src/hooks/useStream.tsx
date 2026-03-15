@@ -111,6 +111,14 @@ export const useStream = (navigation = null) => {
   const localStreamRef = useRef<MediaStream | null>(null);
   const hostStreamRef = useRef<MediaStream | null>(null); // CRITICAL: Persistent host stream for audio continuity
   const consumeTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const consumeTransportMeta = useRef<Map<string, {
+    producerId: string;
+    peerId: string;
+    producerType: string;
+    mediaType: string;
+  }>>(new Map());
+  const localProducerSlots = useRef<Map<string, any>>(new Map());
+  const isCleaningUpRef = useRef(false);
   const remotePeerId = useRef("");
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
@@ -153,6 +161,73 @@ export const useStream = (navigation = null) => {
       masterDeadlineTimer.current = null;
     }
     producerPollCount.current = 0;
+  }, []);
+
+  const closeConsumersForStorageId = useCallback((storageId: string, reason: string) => {
+    let closed = 0;
+    for (const [, consumer] of consumers.current) {
+      if (consumer.appData?.storageId === storageId) {
+        console.log(`🧹 Closing consumer ${consumer.id} for storage ${storageId} (${reason})`);
+        consumer.close();
+        closed++;
+      }
+    }
+    if (closed > 0) {
+      console.log(`🧹 Closed ${closed} consumer(s) for storage ${storageId}`);
+    }
+  }, []);
+
+  const closeAllLocalProducers = useCallback((reason: string) => {
+    localProducerSlots.current.forEach((producer, slotKey) => {
+      if (producer && !producer.closed) {
+        console.log(`🧹 Closing local producer [${slotKey}] (${reason})`);
+        producer.close();
+      }
+    });
+    localProducerSlots.current.clear();
+  }, []);
+
+  const registerLocalProducer = useCallback((producer: any, mediaType: 'audio' | 'video', producerRole: string) => {
+    const slotKey = `${producerRole}:${mediaType}`;
+    const existingProducer = localProducerSlots.current.get(slotKey);
+
+    if (existingProducer && existingProducer !== producer && !existingProducer.closed) {
+      console.warn(`⚠️ Duplicate local producer detected for ${slotKey}. Closing old producer ${existingProducer.id}`);
+      existingProducer.close();
+    }
+
+    localProducerSlots.current.set(slotKey, producer);
+
+    console.log(`✅ Registered local producer [${slotKey}] id=${producer.id}`);
+
+    producer.on('transportclose', () => {
+      const unexpected = producerRole === 'streamer' && !isCleaningUpRef.current;
+      if (unexpected) {
+        console.error(`🚨 Host producer transport closed unexpectedly [${slotKey}] id=${producer.id}`);
+      } else {
+        console.log(`ℹ️ Local producer transport closed [${slotKey}] id=${producer.id}`);
+      }
+      if (localProducerSlots.current.get(slotKey) === producer) {
+        localProducerSlots.current.delete(slotKey);
+      }
+    });
+
+    producer.on('close', () => {
+      const unexpected = producerRole === 'streamer' && !isCleaningUpRef.current;
+      if (unexpected) {
+        console.error(`🚨 Host producer closed unexpectedly [${slotKey}] id=${producer.id}`);
+      } else {
+        console.log(`ℹ️ Local producer closed [${slotKey}] id=${producer.id}`);
+      }
+      if (localProducerSlots.current.get(slotKey) === producer) {
+        localProducerSlots.current.delete(slotKey);
+      }
+    });
+  }, []);
+
+  const hasActiveProducerForSlot = useCallback((producerRole: string, mediaType: 'audio' | 'video') => {
+    const producer = localProducerSlots.current.get(`${producerRole}:${mediaType}`);
+    return !!producer && !producer.closed;
   }, []);
 
   // Start elapsed time counter
@@ -325,11 +400,15 @@ export const useStream = (navigation = null) => {
 
   function cleanup() {
     console.log('🧹 Cleaning up stream resources...');
+    isCleaningUpRef.current = true;
     
     // Clear all timers first
     clearAllTimers();
     // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
     hasReceivedProducers.current = false;
+
+    // Close local producers first so we can log producer lifecycle clearly.
+    closeAllLocalProducers('full cleanup');
     
     // Close transports
     produceTransport.current?.close();
@@ -337,6 +416,7 @@ export const useStream = (navigation = null) => {
     
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
+    consumeTransportMeta.current.clear();
     
     // Close all consumers
     consumers.current.forEach((consumer) => consumer?.close());
@@ -404,6 +484,11 @@ export const useStream = (navigation = null) => {
     // Generate new peerId for fresh connection
     peerId.current = crypto.randomUUID();
     
+    // Allow lifecycle logging to resume after cleanup cycle finishes.
+    setTimeout(() => {
+      isCleaningUpRef.current = false;
+    }, 0);
+
     console.log('✅ Stream cleanup complete, ready for rejoin');
   }
 
@@ -433,9 +518,14 @@ export const useStream = (navigation = null) => {
       
       produceTransport.current = device.current.createSendTransport(transportData);
 
-      // DIAGNOSTIC: Log producer transport close to debug multi-viewer issues
+      // DIAGNOSTIC: Log producer transport lifecycle for stability debugging
       produceTransport.current.on("close", () => {
-        console.error('🚨 PRODUCER TRANSPORT CLOSED — this should NOT happen while streaming!');
+        const unexpected = roleRef.current === 'streamer' && !isCleaningUpRef.current;
+        if (unexpected) {
+          console.error('🚨 PRODUCER TRANSPORT CLOSED unexpectedly while host should still be live');
+        } else {
+          console.log('ℹ️ Producer transport closed during expected cleanup');
+        }
       });
       produceTransport.current.on("connect", ({ dtlsParameters }, callback) => {
         console.log('🔗 Producer transport connecting...');
@@ -445,6 +535,14 @@ export const useStream = (navigation = null) => {
           { dtlsParameters, id: peerId.current },
           callback
         );
+      });
+
+      produceTransport.current.on("icestatechange", (iceState) => {
+        console.log(`🧊 Producer transport ICE state: ${iceState}`);
+      });
+
+      produceTransport.current.on("dtlsstatechange", (dtlsState) => {
+        console.log(`🔐 Producer transport DTLS state: ${dtlsState}`);
       });
 
       produceTransport.current.on("connectionstatechange", (state) => {
@@ -561,16 +659,21 @@ export const useStream = (navigation = null) => {
       // PRODUCE AUDIO FIRST (priority for communication)
       if (audioTrackReady && audioTrack) {
         try {
-          console.log('🎤 Producing audio track to SFU...');
-          await produceTransport.current.produce({ 
-            track: audioTrack, 
-            appData: { 
-              type: roleRef.current, 
-              peerId: peerId.current,
-              mediaType: 'audio'
-            } 
-          });
-          console.log('✅ Audio track production initiated');
+          if (hasActiveProducerForSlot(roleRef.current, 'audio')) {
+            console.log(`ℹ️ Skipping duplicate ${roleRef.current} audio producer creation`);
+          } else {
+            console.log('🎤 Producing audio track to SFU...');
+            const audioProducer = await produceTransport.current.produce({ 
+              track: audioTrack, 
+              appData: { 
+                type: roleRef.current, 
+                peerId: peerId.current,
+                mediaType: 'audio'
+              } 
+            });
+            registerLocalProducer(audioProducer, 'audio', roleRef.current);
+            console.log('✅ Audio track production initiated');
+          }
         } catch (audioError) {
           console.error('❌ Failed to produce audio track:', audioError);
           // Continue with video even if audio fails
@@ -580,34 +683,39 @@ export const useStream = (navigation = null) => {
       // PRODUCE VIDEO
       if (videoTrack) {
         try {
-          console.log('📹 Producing video track to SFU...');
-          // No simulcast — VP9 does not support simulcast in mediasoup
-          // Force VP8 codec preference to avoid VP9 simulcast crash
-          let codec: any;
-          if (device.current) {
-            const routerCodecs = device.current.rtpCapabilities?.codecs || [];
-            codec = routerCodecs.find(
-              (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
-            );
-            console.log('🎯 Forcing VP8 codec:', codec ? 'found' : 'fallback to default');
-          }
-
-          await produceTransport.current.produce({ 
-            track: videoTrack,
-            ...(codec ? { codec } : {}),
-            encodings: [
-              { maxBitrate: 900000, scaleResolutionDownBy: 1 },
-            ],
-            codecOptions: {
-              videoGoogleStartBitrate: 300,
-            },
-            appData: { 
-              type: roleRef.current, 
-              peerId: peerId.current,
-              mediaType: 'video'
+          if (hasActiveProducerForSlot(roleRef.current, 'video')) {
+            console.log(`ℹ️ Skipping duplicate ${roleRef.current} video producer creation`);
+          } else {
+            console.log('📹 Producing video track to SFU...');
+            // No simulcast — VP9 does not support simulcast in mediasoup
+            // Force VP8 codec preference to avoid VP9 simulcast crash
+            let codec: any;
+            if (device.current) {
+              const routerCodecs = device.current.rtpCapabilities?.codecs || [];
+              codec = routerCodecs.find(
+                (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
+              );
+              console.log('🎯 Forcing VP8 codec:', codec ? 'found' : 'fallback to default');
             }
-          });
-          console.log('✅ Video track production initiated');
+
+            const videoProducer = await produceTransport.current.produce({ 
+              track: videoTrack,
+              ...(codec ? { codec } : {}),
+              encodings: [
+                { maxBitrate: 900000, scaleResolutionDownBy: 1 },
+              ],
+              codecOptions: {
+                videoGoogleStartBitrate: 300,
+              },
+              appData: { 
+                type: roleRef.current, 
+                peerId: peerId.current,
+                mediaType: 'video'
+              }
+            });
+            registerLocalProducer(videoProducer, 'video', roleRef.current);
+            console.log('✅ Video track production initiated');
+          }
         } catch (videoError) {
           console.error('❌ Failed to produce video track:', videoError);
         }
@@ -657,10 +765,22 @@ export const useStream = (navigation = null) => {
       const transport = device.current.createRecvTransport(transportData);
       consumeTransports.current.set(data.storageId, transport);
 
+      const transportMeta = {
+        producerId: data.producer?.producerId || 'unknown',
+        peerId: data.producer?.peerId || 'unknown',
+        producerType: data.producer?.appData?.type || 'streamer',
+        mediaType: data.producer?.appData?.mediaType || 'unknown',
+      };
+      consumeTransportMeta.current.set(data.storageId, transportMeta);
+
+      console.log(`📦 Registered consumer transport ${data.storageId}`, transportMeta);
+
       // DIAGNOSTIC: Log transport close events to debug multi-viewer issues
       transport.on("close", () => {
         console.warn(`⚠️ Consumer transport CLOSED: storageId=${data.storageId}`);
+        closeConsumersForStorageId(data.storageId, 'transport close event');
         consumeTransports.current.delete(data.storageId);
+        consumeTransportMeta.current.delete(data.storageId);
       });
 
       transport.on("connect", ({ dtlsParameters }, callback) => {
@@ -672,9 +792,15 @@ export const useStream = (navigation = null) => {
         );
       });
 
-      // Log ICE candidates for debugging network issues
+      // Log ICE + DTLS states for debugging network issues
       transport.on("icegatheringstatechange", (state) => {
         console.log(`🧊 Consumer ICE gathering state: ${state}`);
+      });
+      transport.on("icestatechange", (state) => {
+        console.log(`🧊 Consumer ICE state: ${state} (storage=${data.storageId})`);
+      });
+      transport.on("dtlsstatechange", (state) => {
+        console.log(`🔐 Consumer DTLS state: ${state} (storage=${data.storageId})`);
       });
 
       transport.on("connectionstatechange", (state) => {
@@ -714,14 +840,14 @@ export const useStream = (navigation = null) => {
               masterDeadlineTimer.current = null;
             }
             break;
-          case "failed":
+          case "failed": {
             console.error("❌ Consumer transport ICE FAILED for storageId:", data.storageId);
-            // CRITICAL: Only attempt full reconnect if this is a HOST consumer transport
-            // If a viewer's transport fails, just clean it up — don't nuke everything
+
             const failedConsumersForTransport = Array.from(consumers.current.values()).filter(
-              (c) => consumeTransports.current.get(data.storageId) === transport
+              (c) => c.appData?.storageId === data.storageId
             );
-            const isHostTransport = failedConsumersForTransport.some(
+            const inferredProducerType = consumeTransportMeta.current.get(data.storageId)?.producerType || transportMeta.producerType;
+            const isHostTransport = inferredProducerType !== 'viewer' || failedConsumersForTransport.some(
               (c) => c.appData?.type !== 'viewer'
             );
             
@@ -740,6 +866,7 @@ export const useStream = (navigation = null) => {
                       setTimeout(() => retryConnection(), 2000);
                     } else {
                       console.warn('⚠️ Viewer consumer transport failed — cleaning up only that transport');
+                      closeConsumersForStorageId(data.storageId, 'viewer ICE restart failed');
                       transport.close();
                     }
                   }
@@ -749,12 +876,14 @@ export const useStream = (navigation = null) => {
                     setTimeout(() => retryConnection(), 2000);
                   } else {
                     console.warn('⚠️ No ICE params for viewer transport — closing it');
+                    closeConsumersForStorageId(data.storageId, 'viewer missing ICE params');
                     transport.close();
                   }
                 }
               }
             );
             break;
+          }
           case "disconnected":
             console.warn("⚠️ Consumer transport disconnected, may recover...");
             // Give it 5s to recover before attempting ICE restart
@@ -839,7 +968,12 @@ export const useStream = (navigation = null) => {
         producerId,
         kind,
         rtpParameters,
-        appData: { ...appData, peerId: remPeerId },
+        appData: {
+          ...appData,
+          peerId: remPeerId,
+          storageId,
+          producerId,
+        },
       });
     } catch (err: any) {
       console.error('❌ Failed to create consumer:', err.message);
@@ -847,7 +981,6 @@ export const useStream = (navigation = null) => {
     }
     
     consumers.current.set(consumer.id, consumer);
-    remotePeerId.current = remPeerId;
 
     // DIAGNOSTIC: Log consumer lifecycle events
     consumer.on('transportclose', () => {
@@ -997,6 +1130,7 @@ export const useStream = (navigation = null) => {
     } else {
       // HOST/STREAMER TRACK
       hostPeerId.current = remPeerId;
+      remotePeerId.current = remPeerId; // Keep host peer id reference only for host track
       
       const isFirstTrack = !hostStreamRef.current;
       
@@ -1062,13 +1196,21 @@ export const useStream = (navigation = null) => {
       socketRef.current = null;
       setSocket(null);
     }
+
+    // Ensure previous media resources are fully released to avoid duplicate producers/transports
+    closeAllLocalProducers('reinitialize');
+    produceTransport.current?.close();
+    produceTransport.current = null;
+    consumeTransports.current.forEach((transport) => transport?.close());
+    consumeTransports.current.clear();
+    consumeTransportMeta.current.clear();
+    consumers.current.forEach((consumer) => consumer?.close());
+    consumers.current.clear();
     
     // Reset state for fresh connection
     if (device.current) {
       device.current = null;
     }
-    consumeTransports.current.clear();
-    consumers.current.clear();
     hasReceivedProducers.current = false;
     
     roleRef.current = role;
@@ -1359,7 +1501,13 @@ export const useStream = (navigation = null) => {
       // Find and close only the consumer for this specific producer
       for (const [consumerId, consumer] of consumers.current) {
         if (consumer.producerId === producerId) {
+          const isHostProducer = consumer.appData?.type !== 'viewer';
           console.log(`🗑️ Closing consumer ${consumerId} for closed producer ${producerId} (${consumer.kind}, ${consumer.appData?.type})`);
+
+          if (isHostProducer) {
+            console.warn(`⚠️ Host producer ${producerId} closed. Viewer may need reconnect only if host actually ended.`);
+          }
+
           consumer.close(); // This triggers the consumer 'close' event which rebuilds viewer streams
         }
       }
@@ -1415,31 +1563,36 @@ export const useStream = (navigation = null) => {
     if (!socket) return;
     socket.on("userLeft", (leftPeer) => {
       console.log('👤 User left event:', leftPeer);
+      const disconnectedPeerId = leftPeer?.peerId;
       
       if (roleRef.current === "streamer") {
-        // Host: just remove the viewer's stream
+        // Host: remove only that specific viewer's consumers/tiles
         for (const [key, consumer] of consumers.current) {
-          if (consumer.appData?.peerId === leftPeer?.peerId) {
+          if (consumer.appData?.peerId === disconnectedPeerId) {
              consumer.close();
              consumers.current.delete(key);
           }
         }
-        setViewerStreams(prev => prev.filter(v => v.id !== leftPeer?.peerId));
+        setViewerStreams(prev => prev.filter(v => v.id !== disconnectedPeerId));
       } else {
-        // Viewer: only react if the HOST left, not just any peer
-        const isHostLeaving = leftPeer?.appData?.type === 'streamer' || 
-                              leftPeer?.peerId === hostPeerId.current ||
-                              leftPeer?.peerId === remotePeerId.current;
+        // Viewer: only react if HOST left, never for another viewer
+        const isHostByConsumerMap = Array.from(consumers.current.values()).some(
+          (consumer) => consumer.appData?.type !== 'viewer' && consumer.appData?.peerId === disconnectedPeerId
+        );
+
+        const isHostLeaving = leftPeer?.appData?.type === 'streamer' ||
+                              (!!hostPeerId.current && disconnectedPeerId === hostPeerId.current) ||
+                              isHostByConsumerMap;
         
         if (isHostLeaving) {
           console.log('🔴 Host left the stream, clearing remote stream');
-          remotePeerId.current = null;
+          remotePeerId.current = "";
           hostPeerId.current = null;
           setRemoteStream(null);
           cleanup();
           if (navigation) navigation.navigate("Home");
         } else {
-          console.log('👤 Another viewer left, ignoring (not the host)');
+          console.log(`👤 Viewer ${disconnectedPeerId || 'unknown'} left — keeping stream stable for remaining viewers`);
         }
       }
     });
@@ -1662,41 +1815,47 @@ export const useStream = (navigation = null) => {
 
       // PRODUCE AUDIO FIRST (priority for two-way communication)
       if (audioTrack && audioTrack.readyState === 'live') {
-        let audioProduced = false;
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        while (!audioProduced && attempts < maxAttempts) {
-          attempts++;
-          try {
-            console.log(`🎤 Producing viewer audio (attempt ${attempts}/${maxAttempts})...`);
-            
-            // Ensure track is still enabled
-            audioTrack.enabled = true;
-            
-            await produceTransport.current.produce({
-              track: audioTrack,
-              appData: { 
-                type: 'viewer', 
-                peerId: peerId.current, 
-                displayName,
-                mediaType: 'audio'
-              },
-            });
-            audioProduced = true;
-            console.log('✅ Viewer audio produced to SFU successfully');
-          } catch (audioError: any) {
-            console.error(`❌ Audio produce attempt ${attempts} failed:`, audioError.message);
-            
-            if (attempts < maxAttempts) {
-              // Wait before retry
-              await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+        if (hasActiveProducerForSlot('viewer', 'audio')) {
+          console.log('ℹ️ Viewer audio producer already active, skipping duplicate creation');
+        } else {
+          let audioProduced = false;
+          let attempts = 0;
+          const maxAttempts = 3;
+          
+          while (!audioProduced && attempts < maxAttempts) {
+            attempts++;
+            try {
+              console.log(`🎤 Producing viewer audio (attempt ${attempts}/${maxAttempts})...`);
+              
+              // Ensure track is still enabled
+              audioTrack.enabled = true;
+              
+              const audioProducer = await produceTransport.current.produce({
+                track: audioTrack,
+                appData: { 
+                  type: 'viewer', 
+                  peerId: peerId.current, 
+                  displayName,
+                  mediaType: 'audio'
+                },
+              });
+
+              registerLocalProducer(audioProducer, 'audio', 'viewer');
+              audioProduced = true;
+              console.log('✅ Viewer audio produced to SFU successfully');
+            } catch (audioError: any) {
+              console.error(`❌ Audio produce attempt ${attempts} failed:`, audioError.message);
+              
+              if (attempts < maxAttempts) {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 300 * attempts));
+              }
             }
           }
-        }
-        
-        if (!audioProduced) {
-          console.error('❌ Failed to produce audio after', maxAttempts, 'attempts');
+          
+          if (!audioProduced) {
+            console.error('❌ Failed to produce audio after', maxAttempts, 'attempts');
+          }
         }
       } else if (!isVideoOnly) {
         console.warn('⚠️ No live audio track to produce');
@@ -1704,30 +1863,36 @@ export const useStream = (navigation = null) => {
       
       // PRODUCE VIDEO
       if (videoTrack && videoTrack.readyState === 'live') {
-        try {
-          console.log('📹 Producing viewer video track to SFU...');
-          // Viewer video: lower bitrate, no simulcast needed
-          await produceTransport.current.produce({
-            track: videoTrack,
-            encodings: [
-              {
-                maxBitrate: 500000, // 500kbps max for viewer camera
-                scaleResolutionDownBy: 1,
+        if (hasActiveProducerForSlot('viewer', 'video')) {
+          console.log('ℹ️ Viewer video producer already active, skipping duplicate creation');
+        } else {
+          try {
+            console.log('📹 Producing viewer video track to SFU...');
+            // Viewer video: lower bitrate, no simulcast needed
+            const videoProducer = await produceTransport.current.produce({
+              track: videoTrack,
+              encodings: [
+                {
+                  maxBitrate: 500000, // 500kbps max for viewer camera
+                  scaleResolutionDownBy: 1,
+                },
+              ],
+              codecOptions: {
+                videoGoogleStartBitrate: 200,
               },
-            ],
-            codecOptions: {
-              videoGoogleStartBitrate: 200,
-            },
-            appData: { 
-              type: 'viewer', 
-              peerId: peerId.current, 
-              displayName,
-              mediaType: 'video'
-            },
-          });
-          console.log('✅ Viewer video produced to SFU successfully');
-        } catch (videoError: any) {
-          console.error('❌ Failed to produce video:', videoError.message);
+              appData: { 
+                type: 'viewer', 
+                peerId: peerId.current, 
+                displayName,
+                mediaType: 'video'
+              },
+            });
+
+            registerLocalProducer(videoProducer, 'video', 'viewer');
+            console.log('✅ Viewer video produced to SFU successfully');
+          } catch (videoError: any) {
+            console.error('❌ Failed to produce video:', videoError.message);
+          }
         }
       }
       
@@ -1749,6 +1914,9 @@ export const useStream = (navigation = null) => {
   }
 
   function unpublishStream() {
+    // Viewer-only unpublish should only close viewer producers
+    closeAllLocalProducers('viewer unpublish');
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         track.stop();
