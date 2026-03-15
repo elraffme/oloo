@@ -1196,13 +1196,21 @@ export const useStream = (navigation = null) => {
       socketRef.current = null;
       setSocket(null);
     }
+
+    // Ensure previous media resources are fully released to avoid duplicate producers/transports
+    closeAllLocalProducers('reinitialize');
+    produceTransport.current?.close();
+    produceTransport.current = null;
+    consumeTransports.current.forEach((transport) => transport?.close());
+    consumeTransports.current.clear();
+    consumeTransportMeta.current.clear();
+    consumers.current.forEach((consumer) => consumer?.close());
+    consumers.current.clear();
     
     // Reset state for fresh connection
     if (device.current) {
       device.current = null;
     }
-    consumeTransports.current.clear();
-    consumers.current.clear();
     hasReceivedProducers.current = false;
     
     roleRef.current = role;
