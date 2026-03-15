@@ -111,6 +111,14 @@ export const useStream = (navigation = null) => {
   const localStreamRef = useRef<MediaStream | null>(null);
   const hostStreamRef = useRef<MediaStream | null>(null); // CRITICAL: Persistent host stream for audio continuity
   const consumeTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const consumeTransportMeta = useRef<Map<string, {
+    producerId: string;
+    peerId: string;
+    producerType: string;
+    mediaType: string;
+  }>>(new Map());
+  const localProducerSlots = useRef<Map<string, any>>(new Map());
+  const isCleaningUpRef = useRef(false);
   const remotePeerId = useRef("");
   const hostPeerId = useRef<string | null>(null);
   const reconnectAttempts = useRef(0);
