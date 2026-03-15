@@ -1130,6 +1130,7 @@ export const useStream = (navigation = null) => {
     } else {
       // HOST/STREAMER TRACK
       hostPeerId.current = remPeerId;
+      remotePeerId.current = remPeerId; // Keep host peer id reference only for host track
       
       const isFirstTrack = !hostStreamRef.current;
       
