@@ -163,6 +163,73 @@ export const useStream = (navigation = null) => {
     producerPollCount.current = 0;
   }, []);
 
+  const closeConsumersForStorageId = useCallback((storageId: string, reason: string) => {
+    let closed = 0;
+    for (const [, consumer] of consumers.current) {
+      if (consumer.appData?.storageId === storageId) {
+        console.log(`🧹 Closing consumer ${consumer.id} for storage ${storageId} (${reason})`);
+        consumer.close();
+        closed++;
+      }
+    }
+    if (closed > 0) {
+      console.log(`🧹 Closed ${closed} consumer(s) for storage ${storageId}`);
+    }
+  }, []);
+
+  const closeAllLocalProducers = useCallback((reason: string) => {
+    localProducerSlots.current.forEach((producer, slotKey) => {
+      if (producer && !producer.closed) {
+        console.log(`🧹 Closing local producer [${slotKey}] (${reason})`);
+        producer.close();
+      }
+    });
+    localProducerSlots.current.clear();
+  }, []);
+
+  const registerLocalProducer = useCallback((producer: any, mediaType: 'audio' | 'video', producerRole: string) => {
+    const slotKey = `${producerRole}:${mediaType}`;
+    const existingProducer = localProducerSlots.current.get(slotKey);
+
+    if (existingProducer && existingProducer !== producer && !existingProducer.closed) {
+      console.warn(`⚠️ Duplicate local producer detected for ${slotKey}. Closing old producer ${existingProducer.id}`);
+      existingProducer.close();
+    }
+
+    localProducerSlots.current.set(slotKey, producer);
+
+    console.log(`✅ Registered local producer [${slotKey}] id=${producer.id}`);
+
+    producer.on('transportclose', () => {
+      const unexpected = producerRole === 'streamer' && !isCleaningUpRef.current;
+      if (unexpected) {
+        console.error(`🚨 Host producer transport closed unexpectedly [${slotKey}] id=${producer.id}`);
+      } else {
+        console.log(`ℹ️ Local producer transport closed [${slotKey}] id=${producer.id}`);
+      }
+      if (localProducerSlots.current.get(slotKey) === producer) {
+        localProducerSlots.current.delete(slotKey);
+      }
+    });
+
+    producer.on('close', () => {
+      const unexpected = producerRole === 'streamer' && !isCleaningUpRef.current;
+      if (unexpected) {
+        console.error(`🚨 Host producer closed unexpectedly [${slotKey}] id=${producer.id}`);
+      } else {
+        console.log(`ℹ️ Local producer closed [${slotKey}] id=${producer.id}`);
+      }
+      if (localProducerSlots.current.get(slotKey) === producer) {
+        localProducerSlots.current.delete(slotKey);
+      }
+    });
+  }, []);
+
+  const hasActiveProducerForSlot = useCallback((producerRole: string, mediaType: 'audio' | 'video') => {
+    const producer = localProducerSlots.current.get(`${producerRole}:${mediaType}`);
+    return !!producer && !producer.closed;
+  }, []);
+
   // Start elapsed time counter
   const startElapsedTimeCounter = useCallback(() => {
     connectionStartTime.current = Date.now();
