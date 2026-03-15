@@ -968,7 +968,12 @@ export const useStream = (navigation = null) => {
         producerId,
         kind,
         rtpParameters,
-        appData: { ...appData, peerId: remPeerId },
+        appData: {
+          ...appData,
+          peerId: remPeerId,
+          storageId,
+          producerId,
+        },
       });
     } catch (err: any) {
       console.error('❌ Failed to create consumer:', err.message);
@@ -976,7 +981,6 @@ export const useStream = (navigation = null) => {
     }
     
     consumers.current.set(consumer.id, consumer);
-    remotePeerId.current = remPeerId;
 
     // DIAGNOSTIC: Log consumer lifecycle events
     consumer.on('transportclose', () => {
