@@ -484,6 +484,11 @@ export const useStream = (navigation = null) => {
     // Generate new peerId for fresh connection
     peerId.current = crypto.randomUUID();
     
+    // Allow lifecycle logging to resume after cleanup cycle finishes.
+    setTimeout(() => {
+      isCleaningUpRef.current = false;
+    }, 0);
+
     console.log('✅ Stream cleanup complete, ready for rejoin');
   }
 
