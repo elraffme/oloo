@@ -1549,31 +1549,36 @@ export const useStream = (navigation = null) => {
     if (!socket) return;
     socket.on("userLeft", (leftPeer) => {
       console.log('👤 User left event:', leftPeer);
+      const disconnectedPeerId = leftPeer?.peerId;
       
       if (roleRef.current === "streamer") {
-        // Host: just remove the viewer's stream
+        // Host: remove only that specific viewer's consumers/tiles
         for (const [key, consumer] of consumers.current) {
-          if (consumer.appData?.peerId === leftPeer?.peerId) {
+          if (consumer.appData?.peerId === disconnectedPeerId) {
              consumer.close();
              consumers.current.delete(key);
           }
         }
-        setViewerStreams(prev => prev.filter(v => v.id !== leftPeer?.peerId));
+        setViewerStreams(prev => prev.filter(v => v.id !== disconnectedPeerId));
       } else {
-        // Viewer: only react if the HOST left, not just any peer
-        const isHostLeaving = leftPeer?.appData?.type === 'streamer' || 
-                              leftPeer?.peerId === hostPeerId.current ||
-                              leftPeer?.peerId === remotePeerId.current;
+        // Viewer: only react if HOST left, never for another viewer
+        const isHostByConsumerMap = Array.from(consumers.current.values()).some(
+          (consumer) => consumer.appData?.type !== 'viewer' && consumer.appData?.peerId === disconnectedPeerId
+        );
+
+        const isHostLeaving = leftPeer?.appData?.type === 'streamer' ||
+                              (!!hostPeerId.current && disconnectedPeerId === hostPeerId.current) ||
+                              isHostByConsumerMap;
         
         if (isHostLeaving) {
           console.log('🔴 Host left the stream, clearing remote stream');
-          remotePeerId.current = null;
+          remotePeerId.current = "";
           hostPeerId.current = null;
           setRemoteStream(null);
           cleanup();
           if (navigation) navigation.navigate("Home");
         } else {
-          console.log('👤 Another viewer left, ignoring (not the host)');
+          console.log(`👤 Viewer ${disconnectedPeerId || 'unknown'} left — keeping stream stable for remaining viewers`);
         }
       }
     });
