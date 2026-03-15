@@ -1906,6 +1906,9 @@ export const useStream = (navigation = null) => {
   }
 
   function unpublishStream() {
+    // Viewer-only unpublish should only close viewer producers
+    closeAllLocalProducers('viewer unpublish');
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => {
         track.stop();
