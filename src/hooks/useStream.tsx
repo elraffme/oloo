@@ -982,6 +982,24 @@ export const useStream = (navigation = null) => {
     
     consumers.current.set(consumer.id, consumer);
 
+    // CRITICAL: Resume the consumer — mediasoup creates consumers paused by default.
+    // Without this, the track is received but produces a black/silent output.
+    try {
+      await consumer.resume();
+      console.log(`▶️ Consumer ${consumer.id} resumed locally (${kind})`);
+    } catch (resumeErr) {
+      console.warn(`⚠️ Local consumer.resume() failed (may already be running):`, resumeErr);
+    }
+
+    // Tell the SFU server to resume sending media for this consumer
+    socketRef.current?.emit("resumeConsumer", { consumerId: consumer.id, storageId }, (ack: any) => {
+      if (ack?.error) {
+        console.warn(`⚠️ Server resumeConsumer failed:`, ack.error);
+      } else {
+        console.log(`✅ Server confirmed consumer ${consumer.id} resumed`);
+      }
+    });
+
     // DIAGNOSTIC: Log consumer lifecycle events
     consumer.on('transportclose', () => {
       console.warn(`⚠️ Consumer ${consumer.id} transport closed (${consumer.kind} from ${appData?.type})`);
