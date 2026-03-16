@@ -997,9 +997,9 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
                 variant={isMuted ? "destructive" : "ghost"}
                 size="icon"
                 onClick={toggleMute}
-                className="h-9 w-9 rounded-full"
+                className={cn("h-9 w-9 rounded-full", !isMuted && "bg-white/20 text-white hover:bg-white/40")}
               >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{isMuted ? 'Unmute' : 'Mute'}</p></TooltipContent>
@@ -1008,13 +1008,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={viewerCameraEnabled ? "default" : "ghost"}
                 size="icon"
                 onClick={toggleViewerCamera}
                 disabled={isCameraRequesting}
-                className="h-9 w-9 rounded-full"
+                className={cn("h-9 w-9 rounded-full", viewerCameraEnabled ? "bg-primary text-primary-foreground hover:bg-primary/80" : "bg-white/20 text-white hover:bg-white/40")}
               >
-                {isCameraRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerCameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                {isCameraRequesting ? <Loader2 className="w-5 h-5 animate-spin" /> : viewerCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{viewerCameraEnabled ? 'Disable Camera' : 'Enable Camera'}</p></TooltipContent>
@@ -1023,13 +1022,12 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={viewerMicEnabled ? "default" : "ghost"}
                 size="icon"
                 onClick={toggleViewerMic}
                 disabled={isMicRequesting}
-                className="h-9 w-9 rounded-full"
+                className={cn("h-9 w-9 rounded-full", viewerMicEnabled ? "bg-primary text-primary-foreground hover:bg-primary/80" : "bg-white/20 text-white hover:bg-white/40")}
               >
-                {isMicRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerMicEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                {isMicRequesting ? <Loader2 className="w-5 h-5 animate-spin" /> : viewerMicEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{viewerMicEnabled ? 'Disable Mic' : 'Enable Mic'}</p></TooltipContent>
@@ -1037,8 +1035,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-9 w-9 rounded-full">
-                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              <Button size="icon" onClick={toggleFullscreen} className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/40">
+                {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent><p>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</p></TooltipContent>
@@ -1047,35 +1045,33 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
             size="sm"
             onClick={handleLike}
-            className={cn("gap-1.5 rounded-full", isLiked && "text-destructive")}
+            className={cn("gap-1.5 rounded-full bg-white/20 text-white hover:bg-white/40", isLiked && "bg-red-500/80 text-white hover:bg-red-500")}
           >
-            <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
-            <span className="text-xs">{totalLikes}</span>
+            <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
+            <span className="text-xs font-bold">{totalLikes}</span>
           </Button>
 
-          <Button variant="ghost" size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full">
-            <Gift className="w-4 h-4" />
+          <Button size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/40">
+            <Gift className="w-5 h-5" />
           </Button>
 
           {/* Chat toggle - mobile only */}
-          <Button variant="ghost" size="icon" onClick={handleChatToggle} className="h-9 w-9 rounded-full md:hidden">
-            <MessageCircle className="w-4 h-4" />
+          <Button size="icon" onClick={handleChatToggle} className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/40 md:hidden">
+            <MessageCircle className="w-5 h-5" />
           </Button>
 
           <Button
-            variant="ghost"
             size="icon"
             onClick={handleSendMessage}
-            className="h-9 w-9 rounded-full hidden md:flex"
+            className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/40 hidden md:flex"
           >
-            <MessageCircle className="w-4 h-4" />
+            <MessageCircle className="w-5 h-5" />
           </Button>
 
           <Button variant="destructive" size="sm" onClick={handleLeaveStream} className="gap-1.5 rounded-full">
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-5 h-5" />
             <span className="hidden sm:inline">Leave</span>
           </Button>
         </div>
