@@ -1894,7 +1894,12 @@ export const useStream = (navigation = null) => {
         throw new Error('Viewer camera track not live after getUserMedia');
       }
 
-      localStreamRef.current = stream;
+      // CRITICAL: Do NOT set localStreamRef before transport request.
+      // handleProducerTransport auto-produces when it finds localStreamRef set,
+      // which races with publishStream's own produce calls below and creates
+      // duplicate producers (both are async, so hasActiveProducerForSlot doesn't
+      // guard against the race). We store the stream in a local variable and
+      // only assign localStreamRef AFTER we've finished producing.
       setLocalStream(stream);
       setIsMuted(false);
 
@@ -1920,7 +1925,8 @@ export const useStream = (navigation = null) => {
         
         if (!transportReady) {
           console.error('❌ Transport creation timed out after', maxWaitMs, 'ms');
-          // Still return stream so caller can retry later
+          // Set ref now so cleanup can find it
+          localStreamRef.current = stream;
           return stream;
         }
         
@@ -1991,9 +1997,23 @@ export const useStream = (navigation = null) => {
         } else {
           try {
             console.log('📹 Producing viewer video track to SFU...');
-            // Viewer video: lower bitrate, no simulcast needed
+
+            // CRITICAL: Force VP8 codec for viewer video — same as host.
+            // VP9 simulcast is unsupported by the mediasoup router and causes
+            // silent failures where the track is produced but the SFU cannot
+            // forward it to consumers, resulting in a black screen.
+            let codec: any;
+            if (device.current) {
+              const routerCodecs = device.current.rtpCapabilities?.codecs || [];
+              codec = routerCodecs.find(
+                (c: any) => c.mimeType.toLowerCase() === 'video/vp8'
+              );
+              console.log('🎯 Viewer VP8 codec:', codec ? 'found' : 'fallback to default');
+            }
+
             const videoProducer = await produceTransport.current.produce({
               track: videoTrack,
+              ...(codec ? { codec } : {}),
               encodings: [
                 {
                   maxBitrate: 500000, // 500kbps max for viewer camera
@@ -2012,12 +2032,16 @@ export const useStream = (navigation = null) => {
             });
 
             registerLocalProducer(videoProducer, 'video', 'viewer');
-            console.log('✅ Viewer video produced to SFU successfully');
+            console.log('✅ Viewer video produced to SFU successfully, producer id:', videoProducer.id, 'paused:', videoProducer.paused);
           } catch (videoError: any) {
             console.error('❌ Failed to produce video:', videoError.message);
           }
         }
       }
+
+      // NOW assign localStreamRef — after all production is done.
+      // This prevents handleProducerTransport from racing with us.
+      localStreamRef.current = stream;
       
       return stream;
     } catch (error: any) {
