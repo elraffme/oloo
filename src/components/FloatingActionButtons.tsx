@@ -59,8 +59,8 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           variant="ghost"
           onClick={onMute}
           className={cn(
-            "h-11 w-11 rounded-full transition-all duration-300",
-            isMuted ? "bg-destructive/80 hover:bg-destructive" : "hover:bg-white/20"
+            "h-11 w-11 rounded-full bg-white/20 transition-all duration-300",
+            isMuted ? "bg-destructive/80 hover:bg-destructive" : "hover:bg-white/40"
           )}
         >
           {isMuted ? (
