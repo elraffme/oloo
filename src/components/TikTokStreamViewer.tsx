@@ -488,9 +488,19 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
     } else {
       try {
         setIsCameraRequesting(true);
-        if (localStream && localStream.getVideoTracks().length > 0) {
+        const existingVideoTrack = localStream?.getVideoTracks()[0];
+        const canReuseExistingVideo = !!existingVideoTrack && existingVideoTrack.readyState === 'live';
+
+        if (canReuseExistingVideo && localStream) {
             toggleVideo();
         } else {
+            if (existingVideoTrack) {
+                console.warn('⚠️ Existing viewer video track is stale, requesting a fresh camera stream', {
+                    id: existingVideoTrack.id,
+                    enabled: existingVideoTrack.enabled,
+                    readyState: existingVideoTrack.readyState,
+                });
+            }
             await publishStream('camera');
         }
         

@@ -645,17 +645,28 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // Enable camera
       setIsCameraRequesting(true);
       try {
-         if (localStream && localStream.getVideoTracks().length > 0) {
-            // Re-enable existing video track
+         const existingVideoTrack = localStream?.getVideoTracks()[0];
+         const canReuseExistingVideo = !!existingVideoTrack && existingVideoTrack.readyState === 'live';
+
+         if (canReuseExistingVideo && localStream) {
+            // Re-enable existing live video track
             toggleVideo();
             setConfirmedViewerStream(localStream);
             setViewerCameraEnabled(true);
             setViewerMicEnabled(true);
             toast.success('Camera enabled! Host can now see you');
          } else {
-             // First time publishing or valid stream not present
-             const displayName = user?.email?.split('@')[0] || 'Viewer';
-             const stream = await publishStream('camera', displayName);
+              if (existingVideoTrack) {
+                console.warn('⚠️ Existing viewer video track is stale, requesting a fresh camera stream', {
+                  id: existingVideoTrack.id,
+                  enabled: existingVideoTrack.enabled,
+                  readyState: existingVideoTrack.readyState,
+                });
+              }
+
+              // First time publishing or valid live stream not present
+              const displayName = user?.email?.split('@')[0] || 'Viewer';
+              const stream = await publishStream('camera', displayName);
              
              // Only enable camera state if stream was successfully created
              if (stream && stream.getVideoTracks().length > 0) {

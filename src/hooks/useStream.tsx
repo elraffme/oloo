@@ -2010,20 +2010,8 @@ export const useStream = (navigation = null) => {
   }
 
   function unpublishStream() {
-    // Viewer-only unpublish should only close viewer producers
-    closeAllLocalProducers('viewer unpublish');
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-      localStreamRef.current = null;
-      setLocalStream(null);
-    }
-    if (produceTransport.current) {
-      produceTransport.current.close();
-      produceTransport.current = null;
-    }
+    // Viewer-only unpublish should fully release viewer media so the next session starts clean.
+    resetLocalPublishedMedia('viewer unpublish');
   }
 
   // Register a callback for when production is ready
