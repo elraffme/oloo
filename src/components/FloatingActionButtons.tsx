@@ -187,7 +187,7 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
               size="icon"
               variant="ghost"
               onClick={onFullscreen}
-              className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+              className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300"
             >
               {isFullscreen ? (
                 <Minimize2 className="h-5 w-5 text-white" />
