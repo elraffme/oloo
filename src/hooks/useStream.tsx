@@ -458,13 +458,10 @@ export const useStream = (navigation = null) => {
     // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
     hasReceivedProducers.current = false;
 
-    // Close local producers first so we can log producer lifecycle clearly.
-    closeAllLocalProducers('full cleanup');
+    // Close local producers/transport and stop all local tracks so the next session starts fresh.
+    resetLocalPublishedMedia('full cleanup');
     
-    // Close transports
-    produceTransport.current?.close();
-    produceTransport.current = null;
-    
+    // Close remote receive transports
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
     consumeTransportMeta.current.clear();
@@ -476,18 +473,6 @@ export const useStream = (navigation = null) => {
     // Clear consume timeouts
     consumeTimeouts.current.forEach((t) => clearTimeout(t));
     consumeTimeouts.current.clear();
-    
-    // CRITICAL: Stop and cleanup local stream tracks properly
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.onended = null;
-        track.onmute = null;
-        track.onunmute = null;
-        track.stop();
-        console.log(`🛑 Stopped ${track.kind} track:`, track.label);
-      });
-      localStreamRef.current = null;
-    }
     
     // CRITICAL: Reset host stream ref for clean rejoin
     if (hostStreamRef.current) {
