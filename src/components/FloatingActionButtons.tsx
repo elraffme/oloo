@@ -59,8 +59,8 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           variant="ghost"
           onClick={onMute}
           className={cn(
-            "h-11 w-11 rounded-full transition-all duration-300",
-            isMuted ? "bg-destructive/80 hover:bg-destructive" : "hover:bg-white/20"
+            "h-11 w-11 rounded-full bg-white/20 transition-all duration-300",
+            isMuted ? "bg-destructive/80 hover:bg-destructive" : "hover:bg-white/40"
           )}
         >
           {isMuted ? (
@@ -76,7 +76,7 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
         size="icon"
         variant="ghost"
         onClick={onGift}
-        className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+        className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300"
       >
         <Gift className="h-5 w-5 text-white" />
       </Button>
@@ -87,7 +87,7 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           size="icon"
           variant="ghost"
           onClick={onChat}
-          className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+          className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300"
         >
           <MessageSquare className="h-5 w-5 text-white" />
         </Button>
@@ -105,14 +105,14 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           variant="ghost"
           onClick={onLike}
           className={cn(
-            "h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300",
-            isLiked && "text-red-500"
+            "h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300",
+            isLiked && "bg-red-500/80 hover:bg-red-500"
           )}
         >
           <Heart 
             className={cn(
               "h-5 w-5 transition-all duration-300",
-              isLiked ? "fill-current text-red-500" : "text-white"
+              isLiked ? "fill-current text-white" : "text-white"
             )} 
           />
         </Button>
@@ -131,8 +131,8 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           onClick={onCamera}
           disabled={isCameraRequesting}
           className={cn(
-            "h-11 w-11 rounded-full transition-all duration-300",
-            cameraEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/20"
+            "h-11 w-11 rounded-full bg-white/20 transition-all duration-300",
+            cameraEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/40"
           )}
         >
           {isCameraRequesting ? (
@@ -153,8 +153,8 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           onClick={onMic}
           disabled={isMicRequesting}
           className={cn(
-            "h-11 w-11 rounded-full transition-all duration-300",
-            micEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/20"
+            "h-11 w-11 rounded-full bg-white/20 transition-all duration-300",
+            micEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/40"
           )}
         >
           {isMicRequesting ? (
@@ -187,7 +187,7 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
               size="icon"
               variant="ghost"
               onClick={onFullscreen}
-              className="h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300"
+              className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300"
             >
               {isFullscreen ? (
                 <Minimize2 className="h-5 w-5 text-white" />
