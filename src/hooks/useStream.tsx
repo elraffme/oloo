@@ -1844,13 +1844,26 @@ export const useStream = (navigation = null) => {
 
       // Process video tracks
       const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length === 0 && !isAudioOnly) {
+        console.error('❌ No video tracks acquired despite requesting video!');
+      }
       videoTracks.forEach(track => {
         track.enabled = true;
-        console.log('📹 Viewer video track acquired:', {
+        track.onended = () => {
+          console.log('📹 Viewer video track ended');
+        };
+        track.onmute = () => {
+          console.log('📹 Viewer video track muted by system');
+        };
+        track.onunmute = () => {
+          console.log('📹 Viewer video track unmuted');
+        };
+        console.log('📹 Fresh viewer video track acquired:', {
           id: track.id,
           label: track.label,
           enabled: track.enabled,
-          readyState: track.readyState
+          readyState: track.readyState,
+          muted: track.muted
         });
       });
 
