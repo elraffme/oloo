@@ -1754,6 +1754,28 @@ export const useStream = (navigation = null) => {
       // Determine media constraints based on type
       const isAudioOnly = type === "mic" || type === "audio";
       const isVideoOnly = type === "video";
+
+      // Always republish viewer media from a fresh lifecycle to avoid reusing ended tracks
+      // or stale producers/transports across livestream sessions.
+      const previousTrackSnapshot = localStreamRef.current?.getTracks().map((track) => ({
+        kind: track.kind,
+        id: track.id,
+        enabled: track.enabled,
+        readyState: track.readyState,
+      })) || [];
+
+      if (
+        previousTrackSnapshot.length > 0 ||
+        produceTransport.current ||
+        localProducerSlots.current.size > 0
+      ) {
+        console.log('🧼 Resetting previous viewer media before fresh publish', {
+          previousTrackSnapshot,
+          hadProduceTransport: !!produceTransport.current,
+          producerSlots: Array.from(localProducerSlots.current.keys()),
+        });
+        resetLocalPublishedMedia('viewer republish');
+      }
       
       // ENHANCED AUDIO CONSTRAINTS for crystal-clear viewer audio
       const audioConstraints: MediaTrackConstraints | boolean = isVideoOnly ? false : {
@@ -1777,7 +1799,7 @@ export const useStream = (navigation = null) => {
         },
       };
       
-      console.log('🎤 Requesting media with constraints:', constraints);
+      console.log('🎤 Requesting fresh viewer media with constraints:', constraints);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
