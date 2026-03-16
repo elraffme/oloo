@@ -105,14 +105,14 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           variant="ghost"
           onClick={onLike}
           className={cn(
-            "h-11 w-11 rounded-full hover:bg-white/20 transition-all duration-300",
-            isLiked && "text-red-500"
+            "h-11 w-11 rounded-full bg-white/20 hover:bg-white/40 transition-all duration-300",
+            isLiked && "bg-red-500/80 hover:bg-red-500"
           )}
         >
           <Heart 
             className={cn(
               "h-5 w-5 transition-all duration-300",
-              isLiked ? "fill-current text-red-500" : "text-white"
+              isLiked ? "fill-current text-white" : "text-white"
             )} 
           />
         </Button>
