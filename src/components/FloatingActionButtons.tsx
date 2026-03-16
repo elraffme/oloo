@@ -131,8 +131,8 @@ export const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({
           onClick={onCamera}
           disabled={isCameraRequesting}
           className={cn(
-            "h-11 w-11 rounded-full transition-all duration-300",
-            cameraEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/20"
+            "h-11 w-11 rounded-full bg-white/20 transition-all duration-300",
+            cameraEnabled ? "bg-primary hover:bg-primary/80" : "hover:bg-white/40"
           )}
         >
           {isCameraRequesting ? (
