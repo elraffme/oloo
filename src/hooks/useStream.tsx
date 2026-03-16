@@ -1813,17 +1813,13 @@ export const useStream = (navigation = null) => {
       }
       
       audioTracks.forEach(track => {
-        // Force enable audio track immediately
         track.enabled = true;
-        
-        // Setup comprehensive event listeners
         track.onended = () => {
           console.log('🎤 Viewer audio track ended');
           setIsMuted(true);
         };
         track.onmute = () => {
           console.log('🎤 Viewer audio track muted by system');
-          // CRITICAL: Re-enable immediately after system mute (mobile bg/fg)
           setTimeout(() => {
             if (track.readyState === 'live') {
               track.enabled = true;
@@ -1848,6 +1844,7 @@ export const useStream = (navigation = null) => {
         console.error('❌ No video tracks acquired despite requesting video!');
       }
       videoTracks.forEach(track => {
+        const settings = track.getSettings?.() || {};
         track.enabled = true;
         track.onended = () => {
           console.log('📹 Viewer video track ended');
@@ -1858,14 +1855,30 @@ export const useStream = (navigation = null) => {
         track.onunmute = () => {
           console.log('📹 Viewer video track unmuted');
         };
-        console.log('📹 Fresh viewer video track acquired:', {
+        console.log('📹 Viewer camera track created:', {
           id: track.id,
           label: track.label,
           enabled: track.enabled,
           readyState: track.readyState,
-          muted: track.muted
+          muted: track.muted,
+          settings,
         });
       });
+
+      const invalidVideoTrack = !isAudioOnly
+        ? videoTracks.find((track) => track.readyState !== 'live' || !track.enabled)
+        : null;
+
+      if (invalidVideoTrack) {
+        console.error('❌ Viewer camera track is invalid immediately after getUserMedia, aborting publish', {
+          id: invalidVideoTrack.id,
+          enabled: invalidVideoTrack.enabled,
+          readyState: invalidVideoTrack.readyState,
+          muted: invalidVideoTrack.muted,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error('Viewer camera track not live after getUserMedia');
+      }
 
       localStreamRef.current = stream;
       setLocalStream(stream);
