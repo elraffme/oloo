@@ -187,6 +187,57 @@ export const useStream = (navigation = null) => {
     localProducerSlots.current.clear();
   }, []);
 
+  const stopMediaStreamTracks = useCallback((stream: MediaStream | null, reason: string) => {
+    if (!stream) return;
+
+    stream.getTracks().forEach((track) => {
+      track.onended = null;
+      track.onmute = null;
+      track.onunmute = null;
+
+      console.log(`🛑 Stopping local ${track.kind} track (${reason})`, {
+        id: track.id,
+        label: track.label,
+        enabled: track.enabled,
+        readyState: track.readyState,
+      });
+
+      track.stop();
+    });
+  }, []);
+
+  const resetLocalPublishedMedia = useCallback((
+    reason: string,
+    options?: { closeProducers?: boolean; closeTransport?: boolean; preserveStream?: MediaStream | null }
+  ) => {
+    const {
+      closeProducers = true,
+      closeTransport = true,
+      preserveStream = null,
+    } = options || {};
+
+    if (closeProducers) {
+      closeAllLocalProducers(reason);
+    }
+
+    if (closeTransport && produceTransport.current) {
+      console.log(`🧹 Closing local produce transport (${reason})`);
+      produceTransport.current.close();
+      produceTransport.current = null;
+    }
+
+    if (localStreamRef.current && localStreamRef.current !== preserveStream) {
+      stopMediaStreamTracks(localStreamRef.current, reason);
+      localStreamRef.current = null;
+      setLocalStream(null);
+      setIsMuted(false);
+      console.log(`🧹 Cleared local published media (${reason})`);
+    } else if (!preserveStream && !localStreamRef.current) {
+      setLocalStream(null);
+      setIsMuted(false);
+    }
+  }, [closeAllLocalProducers, stopMediaStreamTracks]);
+
   const registerLocalProducer = useCallback((producer: any, mediaType: 'audio' | 'video', producerRole: string) => {
     const slotKey = `${producerRole}:${mediaType}`;
     const existingProducer = localProducerSlots.current.get(slotKey);
@@ -407,13 +458,10 @@ export const useStream = (navigation = null) => {
     // CRITICAL: Reset hasReceivedProducers only during full cleanup (not in clearAllTimers)
     hasReceivedProducers.current = false;
 
-    // Close local producers first so we can log producer lifecycle clearly.
-    closeAllLocalProducers('full cleanup');
+    // Close local producers/transport and stop all local tracks so the next session starts fresh.
+    resetLocalPublishedMedia('full cleanup');
     
-    // Close transports
-    produceTransport.current?.close();
-    produceTransport.current = null;
-    
+    // Close remote receive transports
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
     consumeTransportMeta.current.clear();
@@ -425,18 +473,6 @@ export const useStream = (navigation = null) => {
     // Clear consume timeouts
     consumeTimeouts.current.forEach((t) => clearTimeout(t));
     consumeTimeouts.current.clear();
-    
-    // CRITICAL: Stop and cleanup local stream tracks properly
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.onended = null;
-        track.onmute = null;
-        track.onunmute = null;
-        track.stop();
-        console.log(`🛑 Stopped ${track.kind} track:`, track.label);
-      });
-      localStreamRef.current = null;
-    }
     
     // CRITICAL: Reset host stream ref for clean rejoin
     if (hostStreamRef.current) {
@@ -1216,14 +1252,21 @@ export const useStream = (navigation = null) => {
     }
 
     // Ensure previous media resources are fully released to avoid duplicate producers/transports
-    closeAllLocalProducers('reinitialize');
-    produceTransport.current?.close();
-    produceTransport.current = null;
+    resetLocalPublishedMedia('reinitialize', {
+      preserveStream: role === 'streamer' ? existingStream : null,
+    });
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
     consumeTransportMeta.current.clear();
     consumers.current.forEach((consumer) => consumer?.close());
     consumers.current.clear();
+    consumeTimeouts.current.forEach((t) => clearTimeout(t));
+    consumeTimeouts.current.clear();
+    hostStreamRef.current = null;
+    hostPeerId.current = null;
+    remotePeerId.current = "";
+    setRemoteStream(null);
+    setViewerStreams([]);
     
     // Reset state for fresh connection
     if (device.current) {
@@ -1711,6 +1754,28 @@ export const useStream = (navigation = null) => {
       // Determine media constraints based on type
       const isAudioOnly = type === "mic" || type === "audio";
       const isVideoOnly = type === "video";
+
+      // Always republish viewer media from a fresh lifecycle to avoid reusing ended tracks
+      // or stale producers/transports across livestream sessions.
+      const previousTrackSnapshot = localStreamRef.current?.getTracks().map((track) => ({
+        kind: track.kind,
+        id: track.id,
+        enabled: track.enabled,
+        readyState: track.readyState,
+      })) || [];
+
+      if (
+        previousTrackSnapshot.length > 0 ||
+        produceTransport.current ||
+        localProducerSlots.current.size > 0
+      ) {
+        console.log('🧼 Resetting previous viewer media before fresh publish', {
+          previousTrackSnapshot,
+          hadProduceTransport: !!produceTransport.current,
+          producerSlots: Array.from(localProducerSlots.current.keys()),
+        });
+        resetLocalPublishedMedia('viewer republish');
+      }
       
       // ENHANCED AUDIO CONSTRAINTS for crystal-clear viewer audio
       const audioConstraints: MediaTrackConstraints | boolean = isVideoOnly ? false : {
@@ -1734,7 +1799,7 @@ export const useStream = (navigation = null) => {
         },
       };
       
-      console.log('🎤 Requesting media with constraints:', constraints);
+      console.log('🎤 Requesting fresh viewer media with constraints:', constraints);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
@@ -1779,13 +1844,26 @@ export const useStream = (navigation = null) => {
 
       // Process video tracks
       const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length === 0 && !isAudioOnly) {
+        console.error('❌ No video tracks acquired despite requesting video!');
+      }
       videoTracks.forEach(track => {
         track.enabled = true;
-        console.log('📹 Viewer video track acquired:', {
+        track.onended = () => {
+          console.log('📹 Viewer video track ended');
+        };
+        track.onmute = () => {
+          console.log('📹 Viewer video track muted by system');
+        };
+        track.onunmute = () => {
+          console.log('📹 Viewer video track unmuted');
+        };
+        console.log('📹 Fresh viewer video track acquired:', {
           id: track.id,
           label: track.label,
           enabled: track.enabled,
-          readyState: track.readyState
+          readyState: track.readyState,
+          muted: track.muted
         });
       });
 
@@ -1932,20 +2010,8 @@ export const useStream = (navigation = null) => {
   }
 
   function unpublishStream() {
-    // Viewer-only unpublish should only close viewer producers
-    closeAllLocalProducers('viewer unpublish');
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-      localStreamRef.current = null;
-      setLocalStream(null);
-    }
-    if (produceTransport.current) {
-      produceTransport.current.close();
-      produceTransport.current = null;
-    }
+    // Viewer-only unpublish should fully release viewer media so the next session starts clean.
+    resetLocalPublishedMedia('viewer unpublish');
   }
 
   // Register a callback for when production is ready
