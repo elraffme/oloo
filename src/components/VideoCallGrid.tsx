@@ -154,10 +154,10 @@ export const VideoCallGrid: React.FC<VideoCallGridProps> = ({
             <VideoTile key={hostTile.id} tile={hostTile} isFeatureHost />
           </div>
         )}
-        {/* Viewers share remaining 30% in a scrollable row */}
-        <div className="flex-[1.5] min-h-0 flex gap-1 overflow-x-auto">
+        {/* Viewers in a wrapping grid below the host */}
+        <div className="flex-[1.5] min-h-0 grid grid-cols-2 md:grid-cols-3 gap-1 overflow-y-auto">
           {otherTiles.map((tile) => (
-            <div key={tile.id} className="flex-shrink-0 h-full aspect-video">
+            <div key={tile.id} className="min-h-[120px] md:min-h-[160px]">
               <VideoTile tile={tile} />
             </div>
           ))}
