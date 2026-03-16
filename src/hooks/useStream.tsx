@@ -1252,14 +1252,21 @@ export const useStream = (navigation = null) => {
     }
 
     // Ensure previous media resources are fully released to avoid duplicate producers/transports
-    closeAllLocalProducers('reinitialize');
-    produceTransport.current?.close();
-    produceTransport.current = null;
+    resetLocalPublishedMedia('reinitialize', {
+      preserveStream: role === 'streamer' ? existingStream : null,
+    });
     consumeTransports.current.forEach((transport) => transport?.close());
     consumeTransports.current.clear();
     consumeTransportMeta.current.clear();
     consumers.current.forEach((consumer) => consumer?.close());
     consumers.current.clear();
+    consumeTimeouts.current.forEach((t) => clearTimeout(t));
+    consumeTimeouts.current.clear();
+    hostStreamRef.current = null;
+    hostPeerId.current = null;
+    remotePeerId.current = "";
+    setRemoteStream(null);
+    setViewerStreams([]);
     
     // Reset state for fresh connection
     if (device.current) {
