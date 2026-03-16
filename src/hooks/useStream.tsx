@@ -187,6 +187,57 @@ export const useStream = (navigation = null) => {
     localProducerSlots.current.clear();
   }, []);
 
+  const stopMediaStreamTracks = useCallback((stream: MediaStream | null, reason: string) => {
+    if (!stream) return;
+
+    stream.getTracks().forEach((track) => {
+      track.onended = null;
+      track.onmute = null;
+      track.onunmute = null;
+
+      console.log(`🛑 Stopping local ${track.kind} track (${reason})`, {
+        id: track.id,
+        label: track.label,
+        enabled: track.enabled,
+        readyState: track.readyState,
+      });
+
+      track.stop();
+    });
+  }, []);
+
+  const resetLocalPublishedMedia = useCallback((
+    reason: string,
+    options?: { closeProducers?: boolean; closeTransport?: boolean; preserveStream?: MediaStream | null }
+  ) => {
+    const {
+      closeProducers = true,
+      closeTransport = true,
+      preserveStream = null,
+    } = options || {};
+
+    if (closeProducers) {
+      closeAllLocalProducers(reason);
+    }
+
+    if (closeTransport && produceTransport.current) {
+      console.log(`🧹 Closing local produce transport (${reason})`);
+      produceTransport.current.close();
+      produceTransport.current = null;
+    }
+
+    if (localStreamRef.current && localStreamRef.current !== preserveStream) {
+      stopMediaStreamTracks(localStreamRef.current, reason);
+      localStreamRef.current = null;
+      setLocalStream(null);
+      setIsMuted(false);
+      console.log(`🧹 Cleared local published media (${reason})`);
+    } else if (!preserveStream && !localStreamRef.current) {
+      setLocalStream(null);
+      setIsMuted(false);
+    }
+  }, [closeAllLocalProducers, stopMediaStreamTracks]);
+
   const registerLocalProducer = useCallback((producer: any, mediaType: 'audio' | 'video', producerRole: string) => {
     const slotKey = `${producerRole}:${mediaType}`;
     const existingProducer = localProducerSlots.current.get(slotKey);
