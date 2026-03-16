@@ -485,34 +485,53 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       toggleVideo();
       setViewerCameraEnabled(false);
       toast.success('Camera disabled');
-    } else {
-      try {
-        setIsCameraRequesting(true);
-        const existingVideoTrack = localStream?.getVideoTracks()[0];
-        const canReuseExistingVideo = !!existingVideoTrack && existingVideoTrack.readyState === 'live';
+      return;
+    }
 
-        if (canReuseExistingVideo && localStream) {
-            toggleVideo();
-        } else {
-            if (existingVideoTrack) {
-                console.warn('⚠️ Existing viewer video track is stale, requesting a fresh camera stream', {
-                    id: existingVideoTrack.id,
-                    enabled: existingVideoTrack.enabled,
-                    readyState: existingVideoTrack.readyState,
-                });
-            }
-            await publishStream('camera');
-        }
-        
-        setViewerCameraEnabled(true);
-        setViewerMicEnabled(true);
-        toast.success('Camera enabled! Host can now see you.');
-      } catch (error) {
-        console.error('Error enabling camera:', error);
-        toast.error('Failed to enable camera. Please check permissions.');
-      } finally {
-        setIsCameraRequesting(false);
+    try {
+      setIsCameraRequesting(true);
+      const previousVideoTrack = localStream?.getVideoTracks()[0];
+      if (previousVideoTrack) {
+        console.log('🧼 TikTok viewer camera enable requested - forcing fresh camera publish', {
+          id: previousVideoTrack.id,
+          enabled: previousVideoTrack.enabled,
+          readyState: previousVideoTrack.readyState,
+          muted: previousVideoTrack.muted,
+        });
       }
+
+      const displayName = user?.email?.split('@')[0] || 'Viewer';
+      const stream = await publishStream('camera', displayName);
+      const videoTrack = stream?.getVideoTracks()[0];
+
+      if (stream && videoTrack && videoTrack.readyState === 'live' && videoTrack.enabled) {
+        console.log('✅ TikTok viewer camera stream confirmed after fresh publish', {
+          streamId: stream.id,
+          trackId: videoTrack.id,
+          readyState: videoTrack.readyState,
+          enabled: videoTrack.enabled,
+          muted: videoTrack.muted,
+        });
+        setViewerCameraEnabled(true);
+        setViewerMicEnabled(stream.getAudioTracks().some(track => track.readyState === 'live'));
+        toast.success('Camera enabled! Host can now see you.');
+      } else {
+        console.error('❌ TikTok viewer camera publish did not return a live video track', {
+          hasStream: !!stream,
+          videoTrack: videoTrack ? {
+            id: videoTrack.id,
+            readyState: videoTrack.readyState,
+            enabled: videoTrack.enabled,
+            muted: videoTrack.muted,
+          } : null,
+        });
+        toast.error('Failed to enable camera. Please check permissions.');
+      }
+    } catch (error) {
+      console.error('Error enabling camera:', error);
+      toast.error('Failed to enable camera. Please check permissions.');
+    } finally {
+      setIsCameraRequesting(false);
     }
   };
 

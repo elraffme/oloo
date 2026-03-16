@@ -1140,11 +1140,8 @@ export const useStream = (navigation = null) => {
         }
         
         const viewerData = viewerStreamsMap.get(pId)!;
-        
-        // Force-enable track before adding
         c.track.enabled = true;
         
-        // Check for duplicates
         const existingTrackIds = viewerData.stream.getTracks().map(t => t.id);
         if (!existingTrackIds.includes(c.track.id)) {
           viewerData.stream.addTrack(c.track);
@@ -1159,17 +1156,36 @@ export const useStream = (navigation = null) => {
             });
           } else if (c.kind === 'video') {
             viewerData.hasVideo = true;
+            console.log(`📹 VIEWER VIDEO ADDED:`, {
+              viewerId: pId.slice(0,8),
+              trackId: c.track.id.slice(0,8),
+              enabled: c.track.enabled,
+              readyState: c.track.readyState,
+              muted: c.track.muted,
+              producerId: c.appData?.producerId,
+            });
           }
         }
       });
       
-      // Log final composition
       viewerStreamsMap.forEach((data, viewerId) => {
         const audioTracks = data.stream.getAudioTracks();
-        console.log(`👤 Viewer ${viewerId.slice(0,8)}: audio=${audioTracks.length}`);
+        const videoTracks = data.stream.getVideoTracks();
+        console.log(`👤 Viewer ${viewerId.slice(0,8)} stream rebuilt`, {
+          audioTracks: audioTracks.map(track => ({
+            id: track.id,
+            enabled: track.enabled,
+            readyState: track.readyState,
+          })),
+          videoTracks: videoTracks.map(track => ({
+            id: track.id,
+            enabled: track.enabled,
+            readyState: track.readyState,
+            muted: track.muted,
+          })),
+        });
       });
       
-      // Update state with new stream instances
       const newViewerStreams = Array.from(viewerStreamsMap.entries()).map(([vid, vdata]) => ({
         id: vid,
         stream: vdata.stream,
@@ -1178,8 +1194,6 @@ export const useStream = (navigation = null) => {
       
       setViewerStreams(newViewerStreams);
       console.log(`👥 Viewer streams updated: ${newViewerStreams.length} viewers`);
-      
-      // Force UI update for ViewerAudioPlayer
       setStreamUpdateCounter(c => c + 1);
     } else {
       // HOST/STREAMER TRACK

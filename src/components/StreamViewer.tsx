@@ -636,54 +636,58 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
 
   const toggleViewerCamera = async () => {
     if (viewerCameraEnabled) {
-      // Disable camera - just toggle the track
       toggleVideo();
       setViewerCameraEnabled(false);
       setConfirmedViewerStream(null);
       toast.success('Camera disabled');
-    } else {
-      // Enable camera
-      setIsCameraRequesting(true);
-      try {
-         const existingVideoTrack = localStream?.getVideoTracks()[0];
-         const canReuseExistingVideo = !!existingVideoTrack && existingVideoTrack.readyState === 'live';
+      return;
+    }
 
-         if (canReuseExistingVideo && localStream) {
-            // Re-enable existing live video track
-            toggleVideo();
-            setConfirmedViewerStream(localStream);
-            setViewerCameraEnabled(true);
-            setViewerMicEnabled(true);
-            toast.success('Camera enabled! Host can now see you');
-         } else {
-              if (existingVideoTrack) {
-                console.warn('⚠️ Existing viewer video track is stale, requesting a fresh camera stream', {
-                  id: existingVideoTrack.id,
-                  enabled: existingVideoTrack.enabled,
-                  readyState: existingVideoTrack.readyState,
-                });
-              }
-
-              // First time publishing or valid live stream not present
-              const displayName = user?.email?.split('@')[0] || 'Viewer';
-              const stream = await publishStream('camera', displayName);
-             
-             // Only enable camera state if stream was successfully created
-             if (stream && stream.getVideoTracks().length > 0) {
-               setConfirmedViewerStream(stream);
-               setViewerCameraEnabled(true);
-               setViewerMicEnabled(true);
-               toast.success('Camera enabled! Host can now see you');
-             } else {
-               toast.error('Failed to access camera');
-             }
-          }
-      } catch (error: any) {
-        console.error('Error enabling camera:', error);
-        toast.error('Failed to enable camera');
-      } finally {
-        setIsCameraRequesting(false);
+    setIsCameraRequesting(true);
+    try {
+      const previousVideoTrack = localStream?.getVideoTracks()[0];
+      if (previousVideoTrack) {
+        console.log('🧼 Viewer camera enable requested - forcing fresh camera publish instead of reusing prior track', {
+          id: previousVideoTrack.id,
+          enabled: previousVideoTrack.enabled,
+          readyState: previousVideoTrack.readyState,
+          muted: previousVideoTrack.muted,
+        });
       }
+
+      const displayName = user?.email?.split('@')[0] || 'Viewer';
+      const stream = await publishStream('camera', displayName);
+      const videoTrack = stream?.getVideoTracks()[0];
+
+      if (stream && videoTrack && videoTrack.readyState === 'live' && videoTrack.enabled) {
+        console.log('✅ Viewer camera stream confirmed after fresh publish', {
+          streamId: stream.id,
+          trackId: videoTrack.id,
+          readyState: videoTrack.readyState,
+          enabled: videoTrack.enabled,
+          muted: videoTrack.muted,
+        });
+        setConfirmedViewerStream(stream);
+        setViewerCameraEnabled(true);
+        setViewerMicEnabled(stream.getAudioTracks().some(track => track.readyState === 'live'));
+        toast.success('Camera enabled! Host can now see you');
+      } else {
+        console.error('❌ Fresh viewer camera publish did not return a live video track', {
+          hasStream: !!stream,
+          videoTrack: videoTrack ? {
+            id: videoTrack.id,
+            readyState: videoTrack.readyState,
+            enabled: videoTrack.enabled,
+            muted: videoTrack.muted,
+          } : null,
+        });
+        toast.error('Failed to access camera');
+      }
+    } catch (error: any) {
+      console.error('Error enabling camera:', error);
+      toast.error('Failed to enable camera');
+    } finally {
+      setIsCameraRequesting(false);
     }
   };
 
