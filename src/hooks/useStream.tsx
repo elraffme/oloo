@@ -1894,7 +1894,12 @@ export const useStream = (navigation = null) => {
         throw new Error('Viewer camera track not live after getUserMedia');
       }
 
-      localStreamRef.current = stream;
+      // CRITICAL: Do NOT set localStreamRef before transport request.
+      // handleProducerTransport auto-produces when it finds localStreamRef set,
+      // which races with publishStream's own produce calls below and creates
+      // duplicate producers (both are async, so hasActiveProducerForSlot doesn't
+      // guard against the race). We store the stream in a local variable and
+      // only assign localStreamRef AFTER we've finished producing.
       setLocalStream(stream);
       setIsMuted(false);
 
@@ -1920,7 +1925,8 @@ export const useStream = (navigation = null) => {
         
         if (!transportReady) {
           console.error('❌ Transport creation timed out after', maxWaitMs, 'ms');
-          // Still return stream so caller can retry later
+          // Set ref now so cleanup can find it
+          localStreamRef.current = stream;
           return stream;
         }
         
