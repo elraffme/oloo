@@ -1253,13 +1253,21 @@ export const useStream = (navigation = null) => {
     autoRetryCount.current = 0;
     
     // Set initial connection phase - go straight to connecting (skip redundant validation)
-    // NOTE: StreamViewer already validates stream status before calling initialize
     setConnectionPhase('connecting');
     setConnectionError(null);
+    
+    // CRITICAL: Guard inline cleanup with isCleaningUpRef so that close event
+    // handlers on transports/consumers/producers don't fire as "unexpected" and
+    // trigger reconnection logic or state corruption during teardown.
+    isCleaningUpRef.current = true;
+    
+    // Clear ALL timers from any previous session to prevent stale deadlines/polls
+    clearAllTimers();
     
     // Clean up any existing connection before reinitializing
     if (socketRef.current) {
       console.log('⚠️ Existing socket found, cleaning up first...');
+      socketRef.current.removeAllListeners();
       socketRef.current.disconnect();
       socketRef.current = null;
       setSocket(null);
@@ -1276,17 +1284,41 @@ export const useStream = (navigation = null) => {
     consumers.current.clear();
     consumeTimeouts.current.forEach((t) => clearTimeout(t));
     consumeTimeouts.current.clear();
-    hostStreamRef.current = null;
+    
+    // CRITICAL: Clear host stream ref for clean rejoin
+    if (hostStreamRef.current) {
+      hostStreamRef.current.getTracks().forEach((track) => {
+        track.onended = null;
+        track.onmute = null;
+        track.onunmute = null;
+      });
+      hostStreamRef.current = null;
+    }
+    
     hostPeerId.current = null;
     remotePeerId.current = "";
     setRemoteStream(null);
     setViewerStreams([]);
+    
+    // Reset production tracking
+    producedTracksCount.current = 0;
+    expectedTracksCount.current = 0;
+    onProductionReadyCallback.current = null;
+    setIsProducingReady(false);
+    setIsMuted(false);
     
     // Reset state for fresh connection
     if (device.current) {
       device.current = null;
     }
     hasReceivedProducers.current = false;
+    
+    // Generate fresh peerId to avoid SFU rejecting as duplicate
+    peerId.current = crypto.randomUUID();
+    console.log('🆔 Fresh peerId for session:', peerId.current.slice(0, 8));
+    
+    // CRITICAL: Release cleanup guard BEFORE starting new connection
+    isCleaningUpRef.current = false;
     
     roleRef.current = role;
     roomId.current = liveId;
