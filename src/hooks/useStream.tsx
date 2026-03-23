@@ -485,9 +485,12 @@ export const useStream = (navigation = null) => {
       console.log('🧹 Cleared host stream reference');
     }
     
-    // Disconnect socket
-    socketRef.current?.disconnect();
-    socketRef.current = null;
+    // Disconnect socket - remove all listeners first to prevent stale handlers on rejoin
+    if (socketRef.current) {
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
     
     // Reset refs
     device.current = null;
