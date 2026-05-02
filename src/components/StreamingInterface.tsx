@@ -1886,6 +1886,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle>Stream Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Premium tier status banner */}
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
+                    <div className="flex items-center gap-2 text-sm">
+                      {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Free plan</span>}
+                      <span className="text-muted-foreground">
+                        · {limits.videoHeight}p · {limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : `${limits.maxDurationSec / 60} min`}
+                      </span>
+                    </div>
+                    {isStreaming && limits.maxDurationSec > 0 && (
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {formatDuration(streamElapsedSec)} / {formatDuration(limits.maxDurationSec)}
+                      </span>
+                    )}
+                  </div>
+                  {!isPremium && (
+                    <UpgradePrompt
+                      variant="banner"
+                      title="Unlock HD streaming & replays"
+                      description="Premium gives you 1080p, unlimited duration, 100 viewers and saved replays."
+                    />
+                  )}
                   <div>
                     <label className="text-sm font-medium">Stream Title</label>
                     <Input value={streamTitle} onChange={e => setStreamTitle(e.target.value)} placeholder="What's your stream about?" className="mt-1" />
