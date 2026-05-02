@@ -132,9 +132,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationWarnedRef = useRef(false);
 
-  // MediaRecorder for premium replay
+  // MediaRecorder for premium replay (scaffold — recording wired in follow-up)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  // Suppress unused-import noise; these are used by future replay wiring.
+  void mediaRecorderRef; void recordedChunksRef; void streamStartedAtRef;
 
   // Filter presets for TikTok-style effects
   const filters = [{
