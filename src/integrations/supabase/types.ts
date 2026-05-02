@@ -1336,6 +1336,42 @@ export type Database = {
           },
         ]
       }
+      stream_replays: {
+        Row: {
+          created_at: string
+          duration_sec: number
+          host_user_id: string
+          id: string
+          is_public: boolean
+          size_bytes: number
+          storage_path: string
+          stream_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          duration_sec?: number
+          host_user_id: string
+          id?: string
+          is_public?: boolean
+          size_bytes?: number
+          storage_path: string
+          stream_id?: string | null
+          title?: string
+        }
+        Update: {
+          created_at?: string
+          duration_sec?: number
+          host_user_id?: string
+          id?: string
+          is_public?: boolean
+          size_bytes?: number
+          storage_path?: string
+          stream_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       stream_viewer_sessions: {
         Row: {
           camera_enabled: boolean | null
@@ -1435,6 +1471,7 @@ export type Database = {
           current_viewers: number | null
           description: string | null
           ended_at: string | null
+          host_is_premium: boolean
           host_user_id: string | null
           id: string
           is_private: boolean | null
@@ -1453,6 +1490,7 @@ export type Database = {
           current_viewers?: number | null
           description?: string | null
           ended_at?: string | null
+          host_is_premium?: boolean
           host_user_id?: string | null
           id?: string
           is_private?: boolean | null
@@ -1471,6 +1509,7 @@ export type Database = {
           current_viewers?: number | null
           description?: string | null
           ended_at?: string | null
+          host_is_premium?: boolean
           host_user_id?: string | null
           id?: string
           is_private?: boolean | null
@@ -2403,6 +2442,10 @@ export type Database = {
       get_secure_verification_status: {
         Args: { target_user_id?: string }
         Returns: Json
+      }
+      get_stream_host_premium: {
+        Args: { p_stream_id: string }
+        Returns: boolean
       }
       get_trivia_leaderboard: {
         Args: { p_limit?: number }
