@@ -30,6 +30,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { limitsFor, formatDuration } from '@/lib/streamLimits';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { PremiumBadge } from '@/components/PremiumBadge';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -119,6 +123,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [cameraFacingMode, setCameraFacingMode] = useState<'user' | 'environment'>('user');
   const hostVideoContainerRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string>('none');
+
+  // Premium tier + livestream limits
+  const { isPremium } = useSubscription();
+  const limits = limitsFor(isPremium);
+  const [streamElapsedSec, setStreamElapsedSec] = useState(0);
+  const streamStartedAtRef = useRef<number | null>(null);
+  const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationWarnedRef = useRef(false);
+
+  // MediaRecorder for premium replay (scaffold — recording wired in follow-up)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  // Suppress unused-import noise; these are used by future replay wiring.
+  void mediaRecorderRef; void recordedChunksRef; void streamStartedAtRef;
 
   // Filter presets for TikTok-style effects
   const filters = [{
@@ -941,20 +959,59 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     return () => clearInterval(healthCheckInterval);
   }, [isStreaming, checkChannelHealth]);
+  // Enforce free-tier livestream duration limit and tick elapsed counter
+  useEffect(() => {
+    if (!isStreaming) {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+      streamStartedAtRef.current = null;
+      durationWarnedRef.current = false;
+      setStreamElapsedSec(0);
+      return;
+    }
+    streamStartedAtRef.current = Date.now();
+    durationTimerRef.current = setInterval(() => {
+      if (!streamStartedAtRef.current) return;
+      const elapsed = Math.floor((Date.now() - streamStartedAtRef.current) / 1000);
+      setStreamElapsedSec(elapsed);
+      if (limits.maxDurationSec > 0) {
+        const remaining = limits.maxDurationSec - elapsed;
+        if (remaining <= 60 && !durationWarnedRef.current) {
+          durationWarnedRef.current = true;
+          toast({
+            title: '1 minute remaining',
+            description: 'Upgrade to Premium for unlimited livestream duration.',
+          });
+        }
+        if (remaining <= 0) {
+          if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+          toast({
+            title: 'Free stream limit reached',
+            description: 'Upgrade to Premium to keep streaming longer.',
+            variant: 'destructive',
+          });
+          endStream();
+        }
+      }
+    }, 1000);
+    return () => {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStreaming, limits.maxDurationSec]);
+
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
     try {
       const constraints: MediaStreamConstraints = {};
       if (requestVideo) {
+        // Resolution capped by membership tier (free=480p, premium=1080p)
         constraints.video = {
-          width: {
-            ideal: 720
-          },
-          height: {
-            ideal: 1280
-          },
-          facingMode: 'user'
+          width: { ideal: limits.videoWidth, max: limits.videoWidth },
+          height: { ideal: limits.videoHeight, max: limits.videoHeight },
+          frameRate: { ideal: isPremium ? 30 : 24, max: 30 },
+          facingMode: 'user',
         };
       }
       if (requestAudio) {
@@ -1829,6 +1886,27 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle>Stream Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Premium tier status banner */}
+                  <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
+                    <div className="flex items-center gap-2 text-sm">
+                      {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Free plan</span>}
+                      <span className="text-muted-foreground">
+                        · {limits.videoHeight}p · {limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : `${limits.maxDurationSec / 60} min`}
+                      </span>
+                    </div>
+                    {isStreaming && limits.maxDurationSec > 0 && (
+                      <span className="text-xs font-mono text-muted-foreground">
+                        {formatDuration(streamElapsedSec)} / {formatDuration(limits.maxDurationSec)}
+                      </span>
+                    )}
+                  </div>
+                  {!isPremium && (
+                    <UpgradePrompt
+                      variant="banner"
+                      title="Unlock HD streaming & replays"
+                      description="Premium gives you 1080p, unlimited duration, 100 viewers and saved replays."
+                    />
+                  )}
                   <div>
                     <label className="text-sm font-medium">Stream Title</label>
                     <Input value={streamTitle} onChange={e => setStreamTitle(e.target.value)} placeholder="What's your stream about?" className="mt-1" />
