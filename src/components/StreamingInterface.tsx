@@ -959,6 +959,47 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     return () => clearInterval(healthCheckInterval);
   }, [isStreaming, checkChannelHealth]);
+  // Enforce free-tier livestream duration limit and tick elapsed counter
+  useEffect(() => {
+    if (!isStreaming) {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+      streamStartedAtRef.current = null;
+      durationWarnedRef.current = false;
+      setStreamElapsedSec(0);
+      return;
+    }
+    streamStartedAtRef.current = Date.now();
+    durationTimerRef.current = setInterval(() => {
+      if (!streamStartedAtRef.current) return;
+      const elapsed = Math.floor((Date.now() - streamStartedAtRef.current) / 1000);
+      setStreamElapsedSec(elapsed);
+      if (limits.maxDurationSec > 0) {
+        const remaining = limits.maxDurationSec - elapsed;
+        if (remaining <= 60 && !durationWarnedRef.current) {
+          durationWarnedRef.current = true;
+          toast({
+            title: '1 minute remaining',
+            description: 'Upgrade to Premium for unlimited livestream duration.',
+          });
+        }
+        if (remaining <= 0) {
+          if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+          toast({
+            title: 'Free stream limit reached',
+            description: 'Upgrade to Premium to keep streaming longer.',
+            variant: 'destructive',
+          });
+          endStream();
+        }
+      }
+    }, 1000);
+    return () => {
+      if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStreaming, limits.maxDurationSec]);
+
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
