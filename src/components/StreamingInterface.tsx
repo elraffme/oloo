@@ -963,14 +963,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     try {
       const constraints: MediaStreamConstraints = {};
       if (requestVideo) {
+        // Resolution capped by membership tier (free=480p, premium=1080p)
         constraints.video = {
-          width: {
-            ideal: 720
-          },
-          height: {
-            ideal: 1280
-          },
-          facingMode: 'user'
+          width: { ideal: limits.videoWidth, max: limits.videoWidth },
+          height: { ideal: limits.videoHeight, max: limits.videoHeight },
+          frameRate: { ideal: isPremium ? 30 : 24, max: 30 },
+          facingMode: 'user',
         };
       }
       if (requestAudio) {
