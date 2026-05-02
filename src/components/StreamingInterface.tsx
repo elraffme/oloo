@@ -124,6 +124,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const hostVideoContainerRef = useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string>('none');
 
+  // Premium tier + livestream limits
+  const { isPremium } = useSubscription();
+  const limits = limitsFor(isPremium);
+  const [streamElapsedSec, setStreamElapsedSec] = useState(0);
+  const streamStartedAtRef = useRef<number | null>(null);
+  const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationWarnedRef = useRef(false);
+
+  // MediaRecorder for premium replay
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
   // Filter presets for TikTok-style effects
   const filters = [{
     id: 'none',
