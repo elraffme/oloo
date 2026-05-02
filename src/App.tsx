@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PresenceProvider } from '@/contexts/PresenceContext';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import SecurityHeader from "@/components/SecurityHeader";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
 import '@/i18n/config';
@@ -42,10 +43,12 @@ import Trivia from "./pages/Trivia";
 import TriviaLeaderboard from "./pages/TriviaLeaderboard";
 import Shop from "./pages/Shop";
 import Admin from "./pages/Admin";
+import Replays from "./pages/Replays";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <SubscriptionProvider>
       <PresenceProvider>
         <Router>
           <IncomingCallModal />
@@ -79,12 +82,14 @@ const App = () => (
               <Route path="messages" element={<Messages />} />
               <Route path="profile" element={<Profile />} />
               <Route path="premium" element={<Premium />} />
+              <Route path="replays" element={<Replays />} />
               <Route path="admin" element={<Admin />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
       </PresenceProvider>
+      </SubscriptionProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
