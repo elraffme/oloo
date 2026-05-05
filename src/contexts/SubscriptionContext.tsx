@@ -4,10 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface SubscriptionState {
   isPremium: boolean;
+  tier: string | null;
   loading: boolean;
   subscriptionEnd: string | null;
   refresh: () => Promise<void>;
-  openCheckout: () => Promise<void>;
+  openCheckout: (plan?: string) => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
@@ -16,6 +17,7 @@ const SubscriptionContext = createContext<SubscriptionState | null>(null);
 export const SubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
+  const [tier, setTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -23,6 +25,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
   const refresh = useCallback(async () => {
     if (!user) {
       setIsPremium(false);
+      setTier(null);
       setSubscriptionEnd(null);
       setLoading(false);
       return;
@@ -31,6 +34,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
       setIsPremium(!!data?.isPremium);
+      setTier(data?.tier ?? null);
       setSubscriptionEnd(data?.subscription_end ?? null);
     } catch (err) {
       console.warn('[subscription] check failed', err);
@@ -51,8 +55,10 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     };
   }, [user, refresh]);
 
-  const openCheckout = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke('create-checkout');
+  const openCheckout = useCallback(async (plan: string = 'premium') => {
+    const { data, error } = await supabase.functions.invoke('create-checkout', {
+      body: { plan },
+    });
     if (error) throw error;
     if (data?.url) window.open(data.url, '_blank');
   }, []);
@@ -65,7 +71,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
 
   return (
     <SubscriptionContext.Provider
-      value={{ isPremium, loading, subscriptionEnd, refresh, openCheckout, openPortal }}
+      value={{ isPremium, tier, loading, subscriptionEnd, refresh, openCheckout, openPortal }}
     >
       {children}
     </SubscriptionContext.Provider>

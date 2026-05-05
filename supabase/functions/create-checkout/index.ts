@@ -8,7 +8,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const PREMIUM_PRICE_ID = "price_1TSX1aDk99oHHjutcIGGgNil";
+// Server-side plan -> price mapping. Never trust client prices.
+const PLAN_PRICES: Record<string, string> = {
+  premium: "price_1TSX1aDk99oHHjutcIGGgNil",
+  silver: "price_1TTkDqDk99oHHjutBNMU9hwM",
+  gold: "price_1TTkDrDk99oHHjutS0gKwVkN",
+  platinum: "price_1TTkDsDk99oHHjutdoJtGYl0",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,6 +34,19 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
+    let plan = "premium";
+    try {
+      const body = await req.json();
+      if (body?.plan && typeof body.plan === "string") {
+        plan = body.plan.toLowerCase();
+      }
+    } catch {
+      // no body, default
+    }
+
+    const priceId = PLAN_PRICES[plan];
+    if (!priceId) throw new Error(`Invalid plan: ${plan}`);
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -39,11 +58,11 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [{ price: PREMIUM_PRICE_ID, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/app/premium?subscription=success`,
+      success_url: `${origin}/app/premium?subscription=success&plan=${plan}`,
       cancel_url: `${origin}/app/premium?subscription=canceled`,
-      metadata: { user_id: user.id, plan: "premium" },
+      metadata: { user_id: user.id, plan },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {
