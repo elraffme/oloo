@@ -31,8 +31,9 @@ export const UpgradePrompt = ({
   if (isPremium) return null;
 
   const handleUpgrade = () => {
-    // Always send users to plan selection first — never redirect to Stripe directly.
-    navigate('/app/premium');
+    // Capture current page so we can return here after Stripe checkout completes.
+    const returnTo = window.location.pathname + window.location.search;
+    navigate(`/app/premium?return_to=${encodeURIComponent(returnTo)}`);
   };
 
   if (variant === 'inline') {

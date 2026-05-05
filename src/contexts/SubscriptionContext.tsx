@@ -8,7 +8,7 @@ interface SubscriptionState {
   loading: boolean;
   subscriptionEnd: string | null;
   refresh: () => Promise<void>;
-  openCheckout: (plan?: string) => Promise<void>;
+  openCheckout: (plan?: string, returnTo?: string) => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
@@ -55,9 +55,9 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     };
   }, [user, refresh]);
 
-  const openCheckout = useCallback(async (plan: string = 'premium') => {
+  const openCheckout = useCallback(async (plan: string = 'premium', returnTo?: string) => {
     const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { plan },
+      body: { plan, return_to: returnTo },
     });
     if (error) throw error;
     if (data?.url) window.location.href = data.url;

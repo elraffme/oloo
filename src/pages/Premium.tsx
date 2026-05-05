@@ -67,8 +67,9 @@ const Premium = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const returnTo = searchParams.get("return_to");
 
-  // Handle return from Stripe — poll check-subscription until tier appears
+  // Handle return from Stripe — poll check-subscription until tier appears, then bounce back to return_to
   useEffect(() => {
     const status = searchParams.get("subscription");
     if (status === "success") {
@@ -79,16 +80,20 @@ const Premium = () => {
       const tick = async () => {
         if (cancelled) return;
         attempts += 1;
-        const result = await refresh();
-        // refresh() doesn't return value; rely on next render. Use direct invoke instead:
         const { data } = await supabase.functions.invoke("check-subscription");
         if (data?.isPremium) {
           setVerifying(false);
           toast.success(`Welcome to ${data.tier ? data.tier.charAt(0).toUpperCase() + data.tier.slice(1) : "Premium"}!`);
+          await refresh();
+          // If user came from a specific page (e.g. livestream), send them back
+          if (returnTo && returnTo.startsWith("/")) {
+            window.location.replace(returnTo);
+            return;
+          }
           searchParams.delete("subscription");
           searchParams.delete("plan");
+          searchParams.delete("return_to");
           setSearchParams(searchParams, { replace: true });
-          await refresh();
           return;
         }
         if (attempts >= max) {
@@ -119,7 +124,7 @@ const Premium = () => {
     }
     setLoadingPlan(planKey);
     try {
-      await openCheckout(planKey);
+      await openCheckout(planKey, returnTo ?? undefined);
     } catch (err: any) {
       console.error(err);
       const msg = err?.message || "Could not start checkout. Please try again.";
