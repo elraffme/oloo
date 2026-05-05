@@ -13,10 +13,13 @@ const log = (step: string, details?: unknown) => {
   console.log(`[check-subscription] ${step}${tail}`);
 };
 
-// Map of premium price IDs we recognize
-const PREMIUM_PRICE_IDS = new Set<string>([
-  "price_1TSX1aDk99oHHjutcIGGgNil", // Òloo Premium Monthly $9.99
-]);
+// Map of price IDs to tier names
+const PRICE_TO_TIER: Record<string, string> = {
+  price_1TSX1aDk99oHHjutcIGGgNil: "premium",
+  price_1TTkDqDk99oHHjutBNMU9hwM: "silver",
+  price_1TTkDrDk99oHHjutS0gKwVkN: "gold",
+  price_1TTkDsDk99oHHjutdoJtGYl0: "platinum",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -48,7 +51,7 @@ serve(async (req) => {
     if (customers.data.length === 0) {
       log("no customer");
       return new Response(
-        JSON.stringify({ subscribed: false, isPremium: false }),
+        JSON.stringify({ subscribed: false, isPremium: false, tier: null }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
       );
     }
@@ -61,14 +64,17 @@ serve(async (req) => {
     });
 
     let isPremium = false;
+    let tier: string | null = null;
     let subscriptionEnd: string | null = null;
     let priceId: string | null = null;
 
     for (const sub of subs.data) {
       for (const item of sub.items.data) {
         const pid = item.price.id;
-        if (PREMIUM_PRICE_IDS.has(pid)) {
+        const t = PRICE_TO_TIER[pid];
+        if (t) {
           isPremium = true;
+          tier = t;
           priceId = pid;
           subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
           break;
@@ -77,12 +83,29 @@ serve(async (req) => {
       if (isPremium) break;
     }
 
-    log("result", { isPremium, priceId, subscriptionEnd });
+    // Sync to memberships table (best-effort)
+    if (isPremium && tier) {
+      try {
+        await supabase.from("memberships").upsert({
+          user_id: user.id,
+          tier,
+          status: "active",
+          stripe_customer_id: customerId,
+          expires_at: subscriptionEnd,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+      } catch (e) {
+        log("membership sync skipped", { e: String(e) });
+      }
+    }
+
+    log("result", { isPremium, tier, priceId, subscriptionEnd });
 
     return new Response(
       JSON.stringify({
         subscribed: isPremium,
         isPremium,
+        tier,
         price_id: priceId,
         subscription_end: subscriptionEnd,
       }),
