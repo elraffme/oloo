@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, Heart, Zap, Eye, Star, Check, Loader2 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const plans = [
   {
