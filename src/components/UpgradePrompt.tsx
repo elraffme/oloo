@@ -25,14 +25,14 @@ export const UpgradePrompt = ({
   ctaLabel = 'Upgrade',
 }: UpgradePromptProps) => {
   const navigate = useNavigate();
-  const { openCheckout } = useSubscription();
+  const { isPremium } = useSubscription();
 
-  const handleUpgrade = async () => {
-    try {
-      await openCheckout();
-    } catch {
-      navigate('/app/premium');
-    }
+  // Premium users never see upgrade prompts.
+  if (isPremium) return null;
+
+  const handleUpgrade = () => {
+    // Always send users to plan selection first — never redirect to Stripe directly.
+    navigate('/app/premium');
   };
 
   if (variant === 'inline') {
