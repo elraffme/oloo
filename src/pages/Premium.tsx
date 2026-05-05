@@ -73,14 +73,26 @@ const Premium = () => {
     if (status === "success") {
       setVerifying(true);
       let attempts = 0;
-      const max = 12;
+      const max = 15;
+      let cancelled = false;
       const tick = async () => {
+        if (cancelled) return;
         attempts += 1;
-        await refresh();
-        if (isPremium || attempts >= max) {
+        const result = await refresh();
+        // refresh() doesn't return value; rely on next render. Use direct invoke instead:
+        const { data } = await supabase.functions.invoke("check-subscription");
+        if (data?.isPremium) {
           setVerifying(false);
-          if (isPremium) toast.success("Welcome to Premium!");
-          else toast.message("Payment received — finalizing your membership. Refresh in a moment.");
+          toast.success(`Welcome to ${data.tier ? data.tier.charAt(0).toUpperCase() + data.tier.slice(1) : "Premium"}!`);
+          searchParams.delete("subscription");
+          searchParams.delete("plan");
+          setSearchParams(searchParams, { replace: true });
+          await refresh();
+          return;
+        }
+        if (attempts >= max) {
+          setVerifying(false);
+          toast.message("Payment received — finalizing your membership. Please refresh in a moment.");
           searchParams.delete("subscription");
           searchParams.delete("plan");
           setSearchParams(searchParams, { replace: true });
@@ -89,6 +101,7 @@ const Premium = () => {
         setTimeout(tick, 2000);
       };
       tick();
+      return () => { cancelled = true; };
     } else if (status === "canceled") {
       toast.error("Checkout canceled");
       searchParams.delete("subscription");
@@ -99,12 +112,22 @@ const Premium = () => {
 
   const handleChoose = async (planKey: string) => {
     if (loadingPlan) return;
+    if (isPremium) {
+      toast.info("You already have an active subscription. Use Manage to change plans.");
+      return;
+    }
     setLoadingPlan(planKey);
     try {
       await openCheckout(planKey);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error("Could not start checkout. Please try again.");
+      const msg = err?.message || "Could not start checkout. Please try again.";
+      if (msg.toLowerCase().includes("already")) {
+        toast.info("You're already premium.");
+        await refresh();
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoadingPlan(null);
     }
