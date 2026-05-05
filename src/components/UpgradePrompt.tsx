@@ -27,8 +27,10 @@ export const UpgradePrompt = ({
   const navigate = useNavigate();
   const { isPremium } = useSubscription();
 
+  // Premium users never see upgrade prompts.
+  if (isPremium) return null;
+
   const handleUpgrade = () => {
-    if (isPremium) return;
     // Always send users to plan selection first — never redirect to Stripe directly.
     navigate('/app/premium');
   };
