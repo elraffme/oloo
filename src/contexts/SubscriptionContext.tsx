@@ -8,7 +8,7 @@ interface SubscriptionState {
   loading: boolean;
   subscriptionEnd: string | null;
   refresh: () => Promise<void>;
-  openCheckout: (plan?: string) => Promise<void>;
+  openCheckout: (plan?: string, returnTo?: string) => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
