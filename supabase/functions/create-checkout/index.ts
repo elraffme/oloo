@@ -35,10 +35,15 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated");
 
     let plan = "premium";
+    let returnTo: string | null = null;
     try {
       const body = await req.json();
       if (body?.plan && typeof body.plan === "string") {
         plan = body.plan.toLowerCase();
+      }
+      if (body?.return_to && typeof body.return_to === "string") {
+        // only allow same-site relative paths
+        if (body.return_to.startsWith("/")) returnTo = body.return_to;
       }
     } catch {
       // no body, default
@@ -55,13 +60,20 @@ serve(async (req) => {
     const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
 
     const origin = req.headers.get("origin") || "https://oloo.media";
+    const successPath = returnTo
+      ? `${returnTo}${returnTo.includes("?") ? "&" : "?"}subscription=success&plan=${plan}`
+      : `/app/premium?subscription=success&plan=${plan}`;
+    const cancelPath = returnTo
+      ? `${returnTo}${returnTo.includes("?") ? "&" : "?"}subscription=canceled`
+      : `/app/premium?subscription=canceled`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${origin}/app/premium?subscription=success&plan=${plan}`,
-      cancel_url: `${origin}/app/premium?subscription=canceled`,
+      success_url: `${origin}${successPath}`,
+      cancel_url: `${origin}${cancelPath}`,
       metadata: { user_id: user.id, plan },
     });
 
