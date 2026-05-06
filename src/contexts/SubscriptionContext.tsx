@@ -55,6 +55,42 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
     };
   }, [user, refresh]);
 
+  // Global post-Stripe handler: works on ANY page the user lands on after checkout.
+  // Polls check-subscription until isPremium=true, then strips the query params.
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscription") !== "success") return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const max = 20;
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const { data } = await supabase.functions.invoke("check-subscription");
+        if (data?.isPremium) {
+          setIsPremium(true);
+          setTier(data.tier ?? null);
+          setSubscriptionEnd(data.subscription_end ?? null);
+          // Strip success params from URL so the prompt never reappears on refresh.
+          const url = new URL(window.location.href);
+          url.searchParams.delete("subscription");
+          url.searchParams.delete("plan");
+          url.searchParams.delete("return_to");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+      } catch (e) {
+        console.warn("[subscription] post-checkout poll failed", e);
+      }
+      if (attempts < max) setTimeout(tick, 2000);
+    };
+    tick();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const openCheckout = useCallback(async (plan: string = 'premium', returnTo?: string) => {
     const { data, error } = await supabase.functions.invoke('create-checkout', {
       body: { plan, return_to: returnTo },
