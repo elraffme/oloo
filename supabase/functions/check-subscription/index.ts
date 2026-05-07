@@ -76,7 +76,19 @@ serve(async (req) => {
           isPremium = true;
           tier = t;
           priceId = pid;
-          subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
+          // Stripe API 2025-08-27 moved current_period_end onto the item.
+          // Fall back to subscription-level field for older shapes, then guard.
+          const periodEnd =
+            (item as any).current_period_end ??
+            (sub as any).current_period_end ??
+            null;
+          if (typeof periodEnd === "number" && Number.isFinite(periodEnd)) {
+            try {
+              subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+            } catch {
+              subscriptionEnd = null;
+            }
+          }
           break;
         }
       }
