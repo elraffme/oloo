@@ -125,8 +125,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [activeFilter, setActiveFilter] = useState<string>('none');
 
   // Premium tier + livestream limits
-  const { isPremium } = useSubscription();
-  const limits = limitsFor(isPremium);
+  const { isPremium, tier } = useSubscription();
+  const limits = limitsForTier(tier ?? (isPremium ? 'premium' : 'free'));
   const [streamElapsedSec, setStreamElapsedSec] = useState(0);
   const streamStartedAtRef = useRef<number | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
