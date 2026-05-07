@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { limitsFor, formatDuration } from '@/lib/streamLimits';
+import { limitsForTier, formatDuration } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 interface StreamingInterfaceProps {
@@ -125,8 +125,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [activeFilter, setActiveFilter] = useState<string>('none');
 
   // Premium tier + livestream limits
-  const { isPremium } = useSubscription();
-  const limits = limitsFor(isPremium);
+  const { isPremium, tier } = useSubscription();
+  const limits = limitsForTier(tier ?? (isPremium ? 'premium' : 'free'));
   const [streamElapsedSec, setStreamElapsedSec] = useState(0);
   const streamStartedAtRef = useRef<number | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1010,7 +1010,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         constraints.video = {
           width: { ideal: limits.videoWidth, max: limits.videoWidth },
           height: { ideal: limits.videoHeight, max: limits.videoHeight },
-          frameRate: { ideal: isPremium ? 30 : 24, max: 30 },
+          frameRate: { ideal: limits.frameRate, max: limits.frameRate },
           facingMode: 'user',
         };
       }
@@ -1331,8 +1331,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         host_user_id: user.id,
         status: 'waiting',
         is_private: false,
+        host_is_premium: isPremium,
+        max_viewers: limits.maxViewers,
         ar_space_data: {
-          category: streamCategory || 'General'
+          category: streamCategory || 'General',
+          host_tier: limits.tier,
         }
       }).select().single();
       if (error) {
@@ -1890,8 +1893,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
                     <div className="flex items-center gap-2 text-sm">
                       {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Free plan</span>}
-                      <span className="text-muted-foreground">
-                        · {limits.videoHeight}p · {limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : `${limits.maxDurationSec / 60} min`}
+                      <span className="text-muted-foreground capitalize">
+                        {isPremium ? `· ${limits.tier}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}
                       </span>
                     </div>
                     {isStreaming && limits.maxDurationSec > 0 && (
