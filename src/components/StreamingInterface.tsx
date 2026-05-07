@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { limitsFor, formatDuration } from '@/lib/streamLimits';
+import { limitsForTier, formatDuration } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 interface StreamingInterfaceProps {
