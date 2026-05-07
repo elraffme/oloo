@@ -1331,8 +1331,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         host_user_id: user.id,
         status: 'waiting',
         is_private: false,
+        host_is_premium: isPremium,
+        max_viewers: limits.maxViewers,
         ar_space_data: {
-          category: streamCategory || 'General'
+          category: streamCategory || 'General',
+          host_tier: limits.tier,
         }
       }).select().single();
       if (error) {
