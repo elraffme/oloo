@@ -1010,7 +1010,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         constraints.video = {
           width: { ideal: limits.videoWidth, max: limits.videoWidth },
           height: { ideal: limits.videoHeight, max: limits.videoHeight },
-          frameRate: { ideal: isPremium ? 30 : 24, max: 30 },
+          frameRate: { ideal: limits.frameRate, max: limits.frameRate },
           facingMode: 'user',
         };
       }
