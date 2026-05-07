@@ -100,7 +100,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       console.log('🔍 Checking stream freshness before joining...');
       const { data: streamStatus, error: streamStatusError } = await supabase
         .from('streaming_sessions')
-        .select('status, last_activity_at, host_user_id')
+        .select('status, last_activity_at, host_user_id, current_viewers, max_viewers')
         .eq('id', streamId)
         .single();
 
@@ -114,6 +114,15 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       if (streamStatus.status !== 'live') {
         console.log('⚠️ Stream is no longer live, status:', streamStatus.status);
         toast.error('This stream has ended');
+        onClose();
+        return;
+      }
+
+      // Enforce host's tier viewer cap
+      const cap = streamStatus.max_viewers ?? 10;
+      const current = streamStatus.current_viewers ?? 0;
+      if (cap > 0 && current >= cap) {
+        toast.error(`Stream is full (${cap} viewer limit). The host can upgrade for higher capacity.`);
         onClose();
         return;
       }
