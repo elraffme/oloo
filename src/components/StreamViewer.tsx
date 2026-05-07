@@ -238,7 +238,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // Validate stream is still live before joining
       const { data: streamCheck, error: streamCheckError } = await supabase
         .from('streaming_sessions')
-        .select('status')
+        .select('status, current_viewers, max_viewers')
         .eq('id', streamId)
         .single();
       
@@ -247,6 +247,15 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       if (streamCheckError || !streamCheck || streamCheck.status !== 'live') {
         console.error('❌ Stream not live or not found');
         toast.error('This stream is no longer available.');
+        onClose();
+        return;
+      }
+
+      // Enforce host's tier viewer cap
+      const cap = streamCheck.max_viewers ?? 10;
+      const current = streamCheck.current_viewers ?? 0;
+      if (cap > 0 && current >= cap) {
+        toast.error(`Stream is full (${cap} viewer limit).`);
         onClose();
         return;
       }
