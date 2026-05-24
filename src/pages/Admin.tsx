@@ -314,6 +314,9 @@ const Admin = () => {
         </CardContent>
       </Card>
 
+      {/* Waitlist */}
+      <AdminWaitlist />
+
       {/* Withdrawal Management */}
       <AdminWithdrawals />
 
