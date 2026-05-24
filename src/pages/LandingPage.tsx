@@ -152,6 +152,16 @@ const LandingPage = () => {
               {t('landing.signUp')}
             </Button>
 
+            {/* Waitlist CTA */}
+            <Button
+              onClick={() => navigate('/waitlist')}
+              className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/40 backdrop-blur-sm transition-all"
+            >
+              <Rocket className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Join the Waitlist
+            </Button>
+
+
             {/* Secondary CTA - Sign In (returning users) */}
             <Button variant="ghost" onClick={() => navigate('/signin')} className="w-full h-11 sm:h-12 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-sm sm:text-base lg:text-lg">
               {t('landing.signIn')}
