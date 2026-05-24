@@ -44,6 +44,7 @@ import TriviaLeaderboard from "./pages/TriviaLeaderboard";
 import Shop from "./pages/Shop";
 import Admin from "./pages/Admin";
 import Replays from "./pages/Replays";
+import Waitlist from "./pages/Waitlist";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -54,6 +55,7 @@ const App = () => (
           <IncomingCallModal />
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/verify" element={<AuthVerify />} />
             <Route path="/signin" element={<SignIn />} />
