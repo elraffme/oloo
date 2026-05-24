@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
+import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X, Rocket } from "lucide-react";
 import landingImage from "@/assets/landing-couple-hero.png";
 import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
