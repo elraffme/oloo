@@ -113,14 +113,14 @@ export default function Waitlist() {
 
       if (error) {
         if (error.code === "23505") {
-          toast.error("This email is already on the waitlist.");
+          toast.error("You are already on the waitlist.");
         } else {
-          toast.error(error.message);
+          toast.error(error.message || "Something went wrong. Please try again.");
         }
         return;
       }
 
-      toast.success("You're officially on the waitlist!");
+      toast.success("Welcome to the waitlist! We'll notify you before launch.");
       setSignedUp({ referralCode: data.referral_code });
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
