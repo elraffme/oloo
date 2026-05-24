@@ -67,6 +67,17 @@ const LandingPage = () => {
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl px-10 sm:px-12 lg:text-5xl">Òloo</h1>
         <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">{t('landing.tagline')}</p>
+
+        {/* Waitlist CTA - Always visible in header */}
+        <button
+          onClick={() => navigate('/waitlist')}
+          className="absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full nsibidi-gradient text-primary-foreground text-xs sm:text-sm font-semibold font-afro-body shadow-lg hover:scale-105 transition-transform"
+          aria-label="Join the waitlist"
+        >
+          <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline sm:inline">Waitlist</span>
+        </button>
+
         
         {/* Dropdown Menu */}
         {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background backdrop-blur-md border-b border-primary/40 shadow-2xl animate-fade-in z-50">
