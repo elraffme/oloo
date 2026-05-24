@@ -94,7 +94,7 @@ export default function Waitlist() {
     e.preventDefault();
     const parsed = waitlistSchema.safeParse({ name, email, username });
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0].message);
+      toast.error(parsed.error.issues[0].message);
       return;
     }
     setLoading(true);
