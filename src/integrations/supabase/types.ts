@@ -2009,6 +2009,48 @@ export type Database = {
           },
         ]
       }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          name: string
+          referral_code: string
+          referral_count: number
+          referred_by_code: string | null
+          source: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          referral_code?: string
+          referral_count?: number
+          referred_by_code?: string | null
+          source?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          referral_code?: string
+          referral_count?: number
+          referred_by_code?: string | null
+          source?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       webrtc_signals: {
         Row: {
           created_at: string
@@ -2513,6 +2555,7 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: Json
       }
+      get_waitlist_count: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
