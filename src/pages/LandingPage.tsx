@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X } from "lucide-react";
+import { Play, Pause, Menu, Users, Video, Calendar, Music, MessageCircle, Globe, X, Rocket } from "lucide-react";
 import landingImage from "@/assets/landing-couple-hero.png";
 import Footer from "@/components/Footer";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -46,14 +46,38 @@ const LandingPage = () => {
   return <div className="min-h-screen flex flex-col overflow-hidden bg-black">
       {/* Language Selection Modal - First Visit */}
       <LanguageSelectionModal />
-      
+
+      {/* Early Access Top Banner */}
+      <button
+        onClick={() => navigate('/waitlist')}
+        className="w-full bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground text-xs sm:text-sm font-afro-body py-2 px-4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity z-50"
+        aria-label="Join the early access waitlist"
+      >
+        <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <span className="font-semibold">Early access is now open</span>
+        <span className="hidden sm:inline">— Join the Waitlist</span>
+        <span className="underline underline-offset-2">→</span>
+      </button>
+
       {/* Top Header - Fixed */}
       <header className="bg-black/95 py-2 sm:py-3 relative z-50 border-b border-primary/20 lg:py-[10px]">
+
         <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="absolute left-2 sm:left-4 lg:left-6 top-1/2 -translate-y-1/2 text-white hover:text-primary transition-colors p-2" aria-label="Toggle menu">
           {isMenuOpen ? <X size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" /> : <Menu size={18} className="sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
         </button>
         <h1 className="text-primary font-afro-heading text-center font-bold text-3xl sm:text-4xl md:text-5xl px-10 sm:px-12 lg:text-5xl">Òloo</h1>
         <p className="text-center text-white -mt-0.5 sm:text-xs lg:text-base font-normal text-sm">{t('landing.tagline')}</p>
+
+        {/* Waitlist CTA - Always visible in header */}
+        <button
+          onClick={() => navigate('/waitlist')}
+          className="absolute right-2 sm:right-4 lg:right-6 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full nsibidi-gradient text-primary-foreground text-xs sm:text-sm font-semibold font-afro-body shadow-lg hover:scale-105 transition-transform"
+          aria-label="Join the waitlist"
+        >
+          <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <span className="hidden xs:inline sm:inline">Waitlist</span>
+        </button>
+
         
         {/* Dropdown Menu */}
         {isMenuOpen && <div className="absolute top-full left-0 right-0 bg-background backdrop-blur-md border-b border-primary/40 shadow-2xl animate-fade-in z-50">
@@ -80,13 +104,22 @@ const LandingPage = () => {
               <LanguageSelector variant="ghost" />
               
               <div className="border-t border-primary/30 my-2" />
-              
+
+              <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading justify-start" onClick={() => {
+                navigate('/waitlist');
+                setIsMenuOpen(false);
+              }}>
+                <Rocket className="w-4 h-4 mr-2" />
+                Join Waitlist
+              </Button>
+
               <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => {
             navigate('/signin');
             setIsMenuOpen(false);
           }}>
                 {t('landing.signIn')}
               </Button>
+
               <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading" onClick={() => {
             navigate('/auth');
             setIsMenuOpen(false);
@@ -118,6 +151,16 @@ const LandingPage = () => {
             <Button className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full nsibidi-gradient text-primary-foreground border-0 shadow-lg hover:scale-105 transition-transform" onClick={() => navigate('/auth')}>
               {t('landing.signUp')}
             </Button>
+
+            {/* Waitlist CTA */}
+            <Button
+              onClick={() => navigate('/waitlist')}
+              className="w-full h-11 sm:h-12 lg:h-14 text-sm sm:text-base lg:text-lg font-semibold rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/40 backdrop-blur-sm transition-all"
+            >
+              <Rocket className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              Join the Waitlist
+            </Button>
+
 
             {/* Secondary CTA - Sign In (returning users) */}
             <Button variant="ghost" onClick={() => navigate('/signin')} className="w-full h-11 sm:h-12 lg:h-14 font-medium text-white hover:bg-white/10 rounded-full text-sm sm:text-base lg:text-lg">
