@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Heart, Play, Sparkles, Rocket } from "lucide-react";
+import { Heart, Play, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-dating.jpg";
 
@@ -60,13 +60,6 @@ const HeroSection = () => {
           exclusive streaming features, and meaningful relationships rooted in heritage.
         </p>
 
-        <Link
-          to="/waitlist"
-          className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-colors text-sm font-afro-body"
-        >
-          <Rocket className="w-4 h-4" />
-          Early access is now open — Join the Waitlist
-        </Link>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Button 
@@ -80,18 +73,6 @@ const HeroSection = () => {
             Start Matching
           </Button>
           
-          <Button
-            asChild
-            size="lg"
-            variant="outline"
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 px-8 py-6 text-lg font-afro-body cultural-card"
-          >
-            <Link to="/waitlist">
-              <Rocket className="w-5 h-5 mr-2" />
-              <span className="nsibidi-symbol mr-2">⬟</span>
-              Join Waitlist
-            </Link>
-          </Button>
         </div>
 
         {/* Stats */}

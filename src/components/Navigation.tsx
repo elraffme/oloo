@@ -1,4 +1,4 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag, Sparkles, Rocket } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
@@ -133,16 +133,8 @@ const Navigation = () => {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center space-x-3 font-afro-body">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-afro-body"
-            onClick={() => navigate('/waitlist')}
-          >
-            <Rocket className="w-4 h-4 mr-1" />
-            Join Waitlist
-          </Button>
           <LanguageSelector variant="ghost" className="text-sm" />
+
           {user ? (
             <>
               <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
@@ -217,19 +209,8 @@ const Navigation = () => {
                 Get Started
               </Button>
               
-              <Button
-                variant="outline"
-                className="justify-start text-lg font-afro-body border-primary text-primary"
-                onClick={() => {
-                  navigate('/waitlist');
-                  setIsMobileMenuOpen(false);
-                }}
-              >
-                <Rocket className="w-5 h-5 mr-2" />
-                Join Waitlist
-              </Button>
-
               <div className="border-t border-border my-4" />
+
               
               <LanguageSelector variant="ghost" className="justify-start text-lg" />
               
