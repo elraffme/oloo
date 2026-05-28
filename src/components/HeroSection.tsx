@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Heart, Play, Sparkles, Rocket } from "lucide-react";
+import { Heart, Play, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-dating.jpg";
 
