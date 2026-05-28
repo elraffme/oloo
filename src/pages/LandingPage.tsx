@@ -47,17 +47,6 @@ const LandingPage = () => {
       {/* Language Selection Modal - First Visit */}
       <LanguageSelectionModal />
 
-      {/* Early Access Top Banner */}
-      <button
-        onClick={() => navigate('/waitlist')}
-        className="w-full bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground text-xs sm:text-sm font-afro-body py-2 px-4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity z-50"
-        aria-label="Join the early access waitlist"
-      >
-        <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-        <span className="font-semibold">Early access is now open</span>
-        <span className="hidden sm:inline">— Join the Waitlist</span>
-        <span className="underline underline-offset-2">→</span>
-      </button>
 
       {/* Top Header - Fixed */}
       <header className="bg-black/95 py-2 sm:py-3 relative z-50 border-b border-primary/20 lg:py-[10px]">
