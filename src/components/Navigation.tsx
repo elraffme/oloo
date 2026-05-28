@@ -133,16 +133,8 @@ const Navigation = () => {
 
         {/* CTA Buttons */}
         <div className="hidden md:flex items-center space-x-3 font-afro-body">
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-afro-body"
-            onClick={() => navigate('/waitlist')}
-          >
-            <Rocket className="w-4 h-4 mr-1" />
-            Join Waitlist
-          </Button>
           <LanguageSelector variant="ghost" className="text-sm" />
+
           {user ? (
             <>
               <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
