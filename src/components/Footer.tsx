@@ -80,7 +80,7 @@ const Footer = () => {
         {/* Quick Links */}
         <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mb-8 text-sm">
           <a href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</a>
-          <a href="/waitlist" className="text-primary hover:text-primary/80 transition-colors font-semibold">Join Waitlist</a>
+
           <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a>
           <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms & Conditions</a>
           <a href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQs</a>
