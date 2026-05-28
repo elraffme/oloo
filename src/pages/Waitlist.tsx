@@ -99,38 +99,35 @@ export default function Waitlist() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("join_waitlist", {
-        _name: parsed.data.name,
-        _email: parsed.data.email.toLowerCase(),
-        _username: parsed.data.username || null,
-        _referred_by_code: refFromUrl || null,
-        _source: "landing",
-      });
+      const { data, error } = await supabase
+        .from("waitlist")
+        .insert({
+          name: parsed.data.name,
+          email: parsed.data.email.toLowerCase(),
+          username: parsed.data.username || null,
+          referred_by_code: refFromUrl || null,
+          source: "landing",
+        })
+        .select("referral_code")
+        .single();
 
       if (error) {
-        toast.error(error.message || "Something went wrong. Please try again.");
+        if (error.code === "23505") {
+          toast.error("This email is already on the waitlist.");
+        } else {
+          toast.error(error.message);
+        }
         return;
       }
 
-      const row = Array.isArray(data) ? data[0] : (data as any);
-      if (!row?.referral_code) {
-        toast.error("Something went wrong. Please try again.");
-        return;
-      }
-
-      if (row.already_exists) {
-        toast.success("You're already on the waitlist — here's your invite link.");
-      } else {
-        toast.success("Welcome to the waitlist! We'll notify you before launch.");
-      }
-      setSignedUp({ referralCode: row.referral_code });
+      toast.success("You're officially on the waitlist!");
+      setSignedUp({ referralCode: data.referral_code });
     } catch (err: any) {
-      toast.error(err?.message ?? "Something went wrong");
+      toast.error(err.message ?? "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
-
 
   const copyInvite = async () => {
     await navigator.clipboard.writeText(inviteUrl);

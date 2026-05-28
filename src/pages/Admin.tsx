@@ -29,7 +29,6 @@ import {
   XCircle
 } from 'lucide-react';
 import AdminWithdrawals from '@/components/AdminWithdrawals';
-import AdminWaitlist from '@/components/AdminWaitlist';
 
 interface UserProfile {
   id: string;
@@ -313,9 +312,6 @@ const Admin = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Waitlist */}
-      <AdminWaitlist />
 
       {/* Withdrawal Management */}
       <AdminWithdrawals />
