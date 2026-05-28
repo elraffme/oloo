@@ -1,4 +1,4 @@
-import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag, Sparkles, Rocket } from "lucide-react";
+import { Heart, Video, Crown, Menu, LogOut, Shield, MessageCircle, Gift, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
