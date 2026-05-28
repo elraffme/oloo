@@ -2576,6 +2576,19 @@ export type Database = {
         }
         Returns: Json
       }
+      join_waitlist: {
+        Args: {
+          _email: string
+          _name: string
+          _referred_by_code?: string
+          _source?: string
+          _username?: string
+        }
+        Returns: {
+          already_exists: boolean
+          referral_code: string
+        }[]
+      }
       leave_stream_viewer: {
         Args: { p_session_token: string }
         Returns: boolean
