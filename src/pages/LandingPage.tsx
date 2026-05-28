@@ -85,13 +85,6 @@ const LandingPage = () => {
               
               <div className="border-t border-primary/30 my-2" />
 
-              <Button className="nsibidi-gradient text-primary-foreground border-0 font-afro-heading justify-start" onClick={() => {
-                navigate('/waitlist');
-                setIsMenuOpen(false);
-              }}>
-                <Rocket className="w-4 h-4 mr-2" />
-                Join Waitlist
-              </Button>
 
               <Button variant="ghost" className="justify-start text-base font-afro-heading text-foreground font-medium hover:bg-primary/25 hover:text-primary-foreground transition-all duration-200" onClick={() => {
             navigate('/signin');
