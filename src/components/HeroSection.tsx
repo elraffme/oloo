@@ -60,13 +60,6 @@ const HeroSection = () => {
           exclusive streaming features, and meaningful relationships rooted in heritage.
         </p>
 
-        <Link
-          to="/waitlist"
-          className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-colors text-sm font-afro-body"
-        >
-          <Rocket className="w-4 h-4" />
-          Early access is now open — Join the Waitlist
-        </Link>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Button 
