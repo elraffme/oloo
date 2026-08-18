@@ -658,20 +658,21 @@ const Profile = () => {
             />
           )}
 
-          {/* Token Balance */}
+          {/* Oloo Points Balance */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Zap className="w-5 h-5 text-accent" />
-                Token Balance
+                Oloo Points
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-3xl font-bold">{currencyBalance?.coin_balance?.toLocaleString() || 0}</p>
-                  <p className="text-sm text-muted-foreground">Available Tokens</p>
+                  <p className="text-sm text-muted-foreground">Available Oloo Points</p>
                 </div>
+
                 <Button 
                   className="bg-accent hover:bg-accent/90 text-accent-foreground"
                   onClick={() => setShowCoinShop(true)}
