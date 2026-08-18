@@ -66,9 +66,9 @@ const ClaimFounding = () => {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
             <Coins className="h-7 w-7 text-primary" />
           </div>
-          <CardTitle className="font-afro-heading text-2xl">Founding Credits</CardTitle>
+          <CardTitle className="font-afro-heading text-2xl">Welcome to Òloo</CardTitle>
           <CardDescription>
-            Claim your 500 founding coins on your permanent Òloo account.
+            Claim your 500 Oloo Points — your founding credits are ready.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
@@ -77,7 +77,7 @@ const ClaimFounding = () => {
           {token && !authLoading && !user && (
             <>
               <p className="text-sm text-muted-foreground">
-                Sign in to Òloo with the same email you used on the waitlist to receive your credits.
+                Sign in to Òloo with the same email you used on the waitlist to receive your Oloo Points.
               </p>
               <Button
                 className="w-full"
@@ -85,7 +85,7 @@ const ClaimFounding = () => {
                   navigate(`/auth?return_to=${encodeURIComponent(`/claim-founding?token=${token}`)}`)
                 }
               >
-                Sign in to claim
+                Continue to sign in
               </Button>
             </>
           )}
@@ -99,13 +99,18 @@ const ClaimFounding = () => {
           {state.kind === "success" && (
             <>
               <p className="text-lg font-semibold">
-                {state.already ? "Already claimed" : `${state.awarded} coins added!`}
+                {state.already
+                  ? "You have already claimed your 500 Oloo Points."
+                  : `${state.awarded} Oloo Points added!`}
               </p>
               <p className="text-sm text-muted-foreground">
-                Your Òloo balance is {state.balance} coins.
+                Your Òloo balance is {state.balance.toLocaleString()} Oloo Points.
               </p>
-              <Button className="w-full" onClick={() => navigate("/app/shop")}>
-                Go to the shop
+              <Button className="w-full" onClick={() => navigate("/app")}>
+                Enter Òloo
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => navigate("/app/shop")}>
+                Visit the shop
               </Button>
             </>
           )}
@@ -119,6 +124,7 @@ const ClaimFounding = () => {
             </>
           )}
         </CardContent>
+
       </Card>
     </main>
   );
