@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      _bridge_test: {
-        Row: {
-          result: Json | null
-          step: string | null
-        }
-        Insert: {
-          result?: Json | null
-          step?: string | null
-        }
-        Update: {
-          result?: Json | null
-          step?: string | null
-        }
-        Relationships: []
-      }
       achievements: {
         Row: {
           category: string
