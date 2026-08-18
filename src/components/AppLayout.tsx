@@ -1,4 +1,6 @@
-import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { CurrencyWallet } from '@/components/CurrencyWallet';
+
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +21,8 @@ const AppLayout = () => {
     loading
   } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -191,19 +195,9 @@ const AppLayout = () => {
                   </TooltipContent>
                 </Tooltip>
                 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="relative">
-                      <Zap className="w-4 h-4 text-accent" />
-                      <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 text-xs p-0 flex items-center justify-center">
-                        0
-                      </Badge>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{t('navigation.coins')}</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Oloo Points wallet (real balance from currency_balances) */}
+                <CurrencyWallet onBuyCoins={() => navigate('/app/shop')} />
+
 
                 <Tooltip>
                   <TooltipTrigger asChild>
