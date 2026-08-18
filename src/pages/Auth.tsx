@@ -77,6 +77,8 @@ const Auth = () => {
           navigate('/auth/verify');
           return;
         }
+        const rawReturnTo = new URLSearchParams(window.location.search).get('return_to');
+        const returnTo = rawReturnTo && /^\/(?!\/)/.test(rawReturnTo) ? rawReturnTo : null;
         try {
           const {
             data
@@ -84,7 +86,7 @@ const Auth = () => {
 
           // Redirect to /app if onboarding is complete, otherwise /onboarding
           if (data?.onboarding_completed) {
-            navigate('/app');
+            navigate(returnTo ?? '/app');
           } else {
             navigate('/onboarding');
           }

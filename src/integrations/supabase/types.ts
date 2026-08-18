@@ -368,6 +368,57 @@ export type Database = {
         }
         Relationships: []
       }
+      founding_credit_claims: {
+        Row: {
+          claim_token_hash: string | null
+          claimed_at: string | null
+          created_at: string
+          credits_awarded: number
+          id: string
+          idempotency_key: string
+          join_email_normalized: string
+          join_user_id: string
+          main_user_id: string | null
+          source: string
+          status: string
+          token_expires_at: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          claim_token_hash?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          idempotency_key: string
+          join_email_normalized: string
+          join_user_id: string
+          main_user_id?: string | null
+          source?: string
+          status?: string
+          token_expires_at?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          claim_token_hash?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          credits_awarded?: number
+          id?: string
+          idempotency_key?: string
+          join_email_normalized?: string
+          join_user_id?: string
+          main_user_id?: string | null
+          source?: string
+          status?: string
+          token_expires_at?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gift_transactions: {
         Row: {
           coin_cost: number
@@ -463,6 +514,27 @@ export type Database = {
           purchased_count?: number | null
           rarity?: string | null
           sound_url?: string | null
+        }
+        Relationships: []
+      }
+      integration_nonces: {
+        Row: {
+          created_at: string
+          id: string
+          nonce: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nonce: string
+          source: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nonce?: string
+          source?: string
         }
         Relationships: []
       }
@@ -2245,6 +2317,10 @@ export type Database = {
       }
       claim_daily_login_reward: {
         Args: { p_tz_offset_minutes?: number }
+        Returns: Json
+      }
+      claim_founding_credits: {
+        Args: { p_claim_id: string; p_main_user_id: string }
         Returns: Json
       }
       cleanup_abandoned_streams: { Args: never; Returns: undefined }
