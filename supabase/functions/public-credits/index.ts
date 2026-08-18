@@ -95,26 +95,25 @@ async function handleAward(body: Record<string, unknown>, idempotencyKey: string
       return json({ success: false, status: "conflict", error: "claim_belongs_to_another_user" }, 409);
     }
 
-    let token: string | null = null;
-    const expired = !existing.token_expires_at ||
-      new Date(existing.token_expires_at).getTime() < Date.now();
-    if (expired) {
-      token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-      await supabase
-        .from("founding_credit_claims")
-        .update({
-          claim_token_hash: await sha256Hex(token),
-          token_expires_at: new Date(Date.now() + CLAIM_TOKEN_TTL_HOURS * 3600_000).toISOString(),
-        })
-        .eq("id", existing.id);
-    }
+    // Tokens are stored hashed and cannot be re-read, so a retry always gets a
+    // freshly rotated single-use token (which invalidates the previous one).
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+    await supabase
+      .from("founding_credit_claims")
+      .update({
+        claim_token_hash: await sha256Hex(token),
+        token_expires_at: new Date(Date.now() + CLAIM_TOKEN_TTL_HOURS * 3600_000).toISOString(),
+      })
+      .eq("id", existing.id)
+      .eq("status", "pending");
+
     return json({
       success: true,
       status: "pending_link",
       claim_id: existing.id,
       credits_pending: FOUNDING_CREDIT_AMOUNT,
-      claim_url: token ? claimUrl(token) : null,
-      claim_url_expired: !token,
+      claim_url: claimUrl(token),
+      claim_url_expired: false,
       message:
         "The user must sign in to oloo.media with the same email to receive the founding credits.",
     }, 202);
