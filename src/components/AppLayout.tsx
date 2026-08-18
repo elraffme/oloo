@@ -1,4 +1,6 @@
-import { Outlet, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { CurrencyWallet } from '@/components/CurrencyWallet';
+
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
