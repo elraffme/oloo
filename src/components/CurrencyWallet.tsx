@@ -32,7 +32,7 @@ export const CurrencyWallet = ({ onBuyCoins }: { onBuyCoins: () => void }) => {
 
   if (!balance) return null;
 
-  const vipConfig = VIP_TIER_CONFIG[balance.vip_tier];
+  const vipConfig = VIP_TIER_CONFIG[balance.vip_tier] ?? VIP_TIER_CONFIG.free;
   const VipIcon = vipConfig.icon;
 
   return (
