@@ -21,6 +21,8 @@ const AppLayout = () => {
     loading
   } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
