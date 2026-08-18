@@ -45,6 +45,7 @@ import Shop from "./pages/Shop";
 import Admin from "./pages/Admin";
 import Replays from "./pages/Replays";
 import Waitlist from "./pages/Waitlist";
+import ClaimFounding from "./pages/ClaimFounding";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -56,6 +57,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/waitlist" element={<Waitlist />} />
+            <Route path="/claim-founding" element={<ClaimFounding />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/verify" element={<AuthVerify />} />
             <Route path="/signin" element={<SignIn />} />
