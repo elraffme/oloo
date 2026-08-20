@@ -97,10 +97,12 @@ export const useCurrency = () => {
     // Also re-check when the tab regains focus (e.g. after claiming on join.oloo)
     const onFocus = () => fetchBalance();
     window.addEventListener('focus', onFocus);
+    window.addEventListener('oloo:currency-refresh', onFocus);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('oloo:currency-refresh', onFocus);
     };
   }, [user, fetchBalance]);
 
