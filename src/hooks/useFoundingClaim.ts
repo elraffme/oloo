@@ -47,12 +47,30 @@ async function readErrorBody(error: unknown): Promise<Record<string, unknown> | 
  * path work after the claim URL has been left behind.
  */
 export async function redeemFoundingClaim(token?: string | null): Promise<ClaimResult> {
+  // The edge function identifies the claimer from the Main Òloo access token.
+  // Without an explicit session, supabase-js would send the anon key as the
+  // bearer and the function would answer `authentication_required`.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    return {
+      ok: false,
+      awarded: 0,
+      balance: 0,
+      already: false,
+      code: "authentication_required",
+      message: CLAIM_ERROR_COPY.authentication_required,
+    };
+  }
+
   const { data, error } = await supabase.functions.invoke("claim-founding-credits", {
     body: { token: token ?? null },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   let result = (data ?? null) as Record<string, unknown> | null;
   if (!result && error) result = await readErrorBody(error);
+
 
   if (!result) {
     console.error("[FoundingClaim] invoke failed with no response body", error);
