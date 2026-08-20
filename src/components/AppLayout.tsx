@@ -48,19 +48,21 @@ const AppLayout = () => {
       }
       
       try {
-        const { data: profile, error: profileError } = await supabase
+        setProfileError(null);
+        const { data: profile, error: loadError } = await supabase
           .from('profiles')
           .select('onboarding_completed')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (profileError) {
-          console.error('[AppLayout] Failed to load profile:', profileError);
+        if (loadError) {
+          // Never bounce to /onboarding on a read failure — that creates a redirect loop.
+          console.error('[AppLayout] Failed to load profile:', loadError);
+          setProfileError(loadError.message);
+          return;
         }
 
-        if (profile?.onboarding_completed === true) {
-          setHasProfile(true);
-        }
+        setHasProfile(profile?.onboarding_completed === true);
 
         // Check admin status
         const { data: adminStatus } = await supabase.rpc('has_role', {
@@ -68,11 +70,13 @@ const AppLayout = () => {
           _role: 'admin'
         });
         setIsAdmin(adminStatus === true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('[AppLayout] Profile check error:', error);
+        setProfileError(error?.message ?? 'Unknown error');
       } finally {
         setCheckingProfile(false);
       }
+
 
     };
     
