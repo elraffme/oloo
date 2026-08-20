@@ -12,6 +12,8 @@ import { SocialInteractionsNotifier } from '@/components/SocialInteractionsNotif
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFoundingClaimRedeemer } from '@/hooks/useFoundingClaim';
+import { toast } from 'sonner';
 
 const AppLayout = () => {
   const { t } = useTranslation();
@@ -85,6 +87,27 @@ const AppLayout = () => {
       checkProfile();
     }
   }, [user, loading]);
+
+  // Redeem a pending founding-credit claim once the Main Òloo user exists.
+  // Idempotent: the edge function + RPC guarantee a single +500 transaction.
+  const redeemFoundingClaim = useFoundingClaimRedeemer();
+  useEffect(() => {
+    if (!user || loading || checkingProfile || !hasProfile) return;
+    let cancelled = false;
+    (async () => {
+      const result = await redeemFoundingClaim();
+      if (cancelled || !result) return;
+      if (result.ok && !result.already && result.awarded > 0) {
+        toast.success('Founding credits added', {
+          description: `${result.awarded} Oloo Points are now in your wallet.`,
+        });
+        window.dispatchEvent(new Event('oloo:currency-refresh'));
+      } else if (!result.ok) {
+        console.error('[AppLayout] Founding claim redemption failed:', result.code, result.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, loading, checkingProfile, hasProfile, redeemFoundingClaim]);
 
   // Enable global real-time notifications
   useRealtimeNotifications();

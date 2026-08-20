@@ -14,6 +14,8 @@ function json(body: unknown, status = 200) {
   });
 }
 
+type Claim = Record<string, any>;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -26,28 +28,7 @@ Deno.serve(async (req) => {
     const user = userData?.user;
     if (userError || !user) return json({ success: false, error: "authentication_required" }, 401);
 
-    const { token } = await req.json().catch(() => ({ token: null }));
-    if (typeof token !== "string" || token.length < 32) {
-      return json({ success: false, error: "invalid_token" }, 400);
-    }
-
-    const tokenHash = await sha256Hex(token);
-    const { data: claim } = await supabase
-      .from("founding_credit_claims")
-      .select("*")
-      .eq("claim_token_hash", tokenHash)
-      .maybeSingle();
-
-    if (!claim) return json({ success: false, error: "claim_not_found_or_used" }, 404);
-    if (claim.status !== "pending") {
-      return json({ success: false, error: "claim_not_pending", status: claim.status }, 409);
-    }
-    if (claim.token_expires_at && new Date(claim.token_expires_at).getTime() < Date.now()) {
-      return json({ success: false, error: "claim_token_expired" }, 410);
-    }
-
-    // Identity proof: the Main Oloo session must own the same verified email
-    // that the Join backend asserted over the signed channel.
+    // Identity proof: the Main Òloo session must own a verified email.
     const emailVerified = Boolean(
       (user as unknown as { email_confirmed_at?: string }).email_confirmed_at ??
         (user.user_metadata as Record<string, unknown> | undefined)?.email_verified,
@@ -55,17 +36,64 @@ Deno.serve(async (req) => {
     if (!user.email || !emailVerified) {
       return json({ success: false, error: "email_not_verified" }, 403);
     }
-    if (normalizeEmail(user.email) !== claim.join_email_normalized) {
-      return json({ success: false, error: "email_mismatch" }, 403);
+    const normalized = normalizeEmail(user.email);
+
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const token = typeof body.token === "string" ? body.token : null;
+
+    // 1. Already redeemed by this account? Idempotent success.
+    const { data: mine } = await supabase
+      .from("founding_credit_claims")
+      .select("*")
+      .eq("main_user_id", user.id)
+      .eq("status", "claimed")
+      .maybeSingle();
+
+    if (mine) {
+      const { data: bal } = await supabase
+        .from("currency_balances")
+        .select("coin_balance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return json({
+        success: true,
+        status: "already_claimed",
+        credits_awarded: mine.credits_awarded,
+        balance: bal?.coin_balance ?? 0,
+      });
     }
 
-    const { data: existingForUser } = await supabase
-      .from("founding_credit_claims")
-      .select("id")
-      .eq("main_user_id", user.id)
-      .maybeSingle();
-    if (existingForUser && existingForUser.id !== claim.id) {
-      return json({ success: false, error: "account_already_claimed" }, 409);
+    // 2. Resolve the pending claim: by token when present, otherwise by the
+    //    verified normalized email (Join and Main are separate projects, so the
+    //    email is the only trustworthy link).
+    let claim: Claim | null = null;
+
+    if (token && token.length >= 32) {
+      const { data } = await supabase
+        .from("founding_credit_claims")
+        .select("*")
+        .eq("claim_token_hash", await sha256Hex(token))
+        .maybeSingle();
+      if (data) claim = data;
+    }
+
+    if (!claim) {
+      const { data } = await supabase
+        .from("founding_credit_claims")
+        .select("*")
+        .eq("join_email_normalized", normalized)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data.length > 0) claim = data[0];
+    }
+
+    if (!claim) return json({ success: false, error: "claim_not_found_or_used" }, 404);
+    if (claim.status !== "pending") {
+      return json({ success: false, error: "claim_not_pending", status: claim.status }, 409);
+    }
+    if (claim.join_email_normalized !== normalized) {
+      return json({ success: false, error: "email_mismatch" }, 403);
     }
 
     const { data, error } = await supabase.rpc("claim_founding_credits", {
@@ -74,12 +102,12 @@ Deno.serve(async (req) => {
     });
     if (error) {
       console.error("claim_founding_credits failed", error);
-      return json({ success: false, error: "award_failed" }, 500);
+      return json({ success: false, error: "award_failed", detail: error.message }, 500);
     }
 
     return json({ success: true, ...(data as Record<string, unknown>) });
   } catch (e) {
     console.error("claim-founding-credits error", e);
-    return json({ success: false, error: "internal_error" }, 500);
+    return json({ success: false, error: "internal_error", detail: String(e) }, 500);
   }
 });
