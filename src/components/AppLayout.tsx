@@ -25,7 +25,9 @@ const AppLayout = () => {
 
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
 
   // Check if user has completed onboarding, email verification, and if they're an admin
   useEffect(() => {
@@ -46,19 +48,21 @@ const AppLayout = () => {
       }
       
       try {
-        const { data: profile, error: profileError } = await supabase
+        setProfileError(null);
+        const { data: profile, error: loadError } = await supabase
           .from('profiles')
           .select('onboarding_completed')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (profileError) {
-          console.error('[AppLayout] Failed to load profile:', profileError);
+        if (loadError) {
+          // Never bounce to /onboarding on a read failure — that creates a redirect loop.
+          console.error('[AppLayout] Failed to load profile:', loadError);
+          setProfileError(loadError.message);
+          return;
         }
 
-        if (profile?.onboarding_completed === true) {
-          setHasProfile(true);
-        }
+        setHasProfile(profile?.onboarding_completed === true);
 
         // Check admin status
         const { data: adminStatus } = await supabase.rpc('has_role', {
@@ -66,11 +70,13 @@ const AppLayout = () => {
           _role: 'admin'
         });
         setIsAdmin(adminStatus === true);
-      } catch (error) {
+      } catch (error: any) {
         console.error('[AppLayout] Profile check error:', error);
+        setProfileError(error?.message ?? 'Unknown error');
       } finally {
         setCheckingProfile(false);
       }
+
 
     };
     
@@ -113,10 +119,24 @@ const AppLayout = () => {
     );
   }
 
+  // Profile read failed — surface the real error instead of looping back to onboarding
+  if (profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-primary/5 to-accent/10">
+        <div className="text-center max-w-md space-y-4">
+          <p className="text-foreground font-medium">We couldn't load your profile.</p>
+          <p className="text-sm text-muted-foreground break-words">{profileError}</p>
+          <Button onClick={() => window.location.reload()}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Redirect to onboarding if profile not complete
   if (!hasProfile) {
     return <Navigate to="/onboarding" replace />;
   }
+
 
   const navItems = [
     {

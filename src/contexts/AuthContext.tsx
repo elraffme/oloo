@@ -66,7 +66,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // For email sign-ups, check if email is verified
             if (!isOAuthUser && !session.user.email_confirmed_at) {
               const currentPath = window.location.pathname;
-              const authPages = ['/signin', '/auth', '/'];
+              // NOTE: '/' is intentionally excluded — the public homepage must never auto-redirect
+              const authPages = ['/signin', '/auth'];
+
               
               if (authPages.includes(currentPath)) {
                 window.location.href = '/auth/verify';
@@ -114,9 +116,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Clear all pending states after processing
             clearPendingStates();
             
-            // Only redirect if we're on a page that should handle auth redirects
+            // Only redirect from dedicated auth pages.
+            // '/' (public homepage) is intentionally excluded so it always renders the landing page.
             const currentPath = window.location.pathname;
-            const authPages = ['/signin', '/auth', '/', '/auth/verify'];
+            const authPages = ['/signin', '/auth', '/auth/verify'];
+
             
             if (authPages.includes(currentPath)) {
               if (profile?.onboarding_completed === true) {
