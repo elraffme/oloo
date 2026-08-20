@@ -56,44 +56,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Handle OAuth redirect - check profile onboarding_completed status
+        // NOTE: routing is intentionally NOT handled here. Each page (/auth, /signin,
+        // /auth/verify, /onboarding, /app) owns its own redirect so that we never
+        // hard-reload the browser mid-flow or bounce the public homepage.
         if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(async () => {
-            // Check if this is an OAuth user (automatically verified) or email user
-            const isOAuthUser = session.user.app_metadata?.provider && 
-                                session.user.app_metadata.provider !== 'email';
-            
-            // For email sign-ups, check if email is verified
-            if (!isOAuthUser && !session.user.email_confirmed_at) {
-              const currentPath = window.location.pathname;
-              // NOTE: '/' is intentionally excluded — the public homepage must never auto-redirect
-              const authPages = ['/signin', '/auth'];
-
-              
-              if (authPages.includes(currentPath)) {
-                window.location.href = '/auth/verify';
-              }
-              return;
-            }
-            
-            // Profile check - isolated try/catch so failures don't cause wrong redirects
-            let profile = null;
-            try {
-              const { data } = await supabase
-                .from('profiles')
-                .select('onboarding_completed')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-              profile = data;
-            } catch (error) {
-              console.error('Failed to check profile:', error);
-              // Don't redirect on error - stay on current page
-              return;
-            }
-            
-            // Check for pending onboarding data (from email verification flow)
+            // Apply any onboarding data captured before email verification
             const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
-            
+
             if (pendingOnboardingData) {
               try {
                 const onboardingData = JSON.parse(pendingOnboardingData);
@@ -112,25 +82,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 console.error('Error applying pending onboarding data:', error);
               }
             }
-            
-            // Clear all pending states after processing
-            clearPendingStates();
-            
-            // Only redirect from dedicated auth pages.
-            // '/' (public homepage) is intentionally excluded so it always renders the landing page.
-            const currentPath = window.location.pathname;
-            const authPages = ['/signin', '/auth', '/auth/verify'];
 
-            
-            if (authPages.includes(currentPath)) {
-              if (profile?.onboarding_completed === true) {
-                window.location.href = '/app';
-              } else {
-                window.location.href = '/onboarding';
-              }
-            }
-            
-            // Log security event separately - failure won't affect redirects
+            clearPendingStates();
+
+            // Log security event separately - failure won't affect anything else
             try {
               await supabase.rpc('log_security_event', {
                 p_action: 'login',
@@ -142,6 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
           }, 0);
         }
+
       }
     );
 
