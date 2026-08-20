@@ -60,10 +60,19 @@ const ClaimFounding = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user?.id, token]);
 
-  const continueToSignIn = () =>
-    navigate(
-      `/auth?return_to=${encodeURIComponent(token ? `/claim-founding?token=${token}` : "/claim-founding")}`,
-    );
+  const continueToSignIn = () => {
+    // Persist synchronously before leaving this route. A full navigation is
+    // intentional: it guarantees the auth page loads even if React Router is
+    // interrupted while the OAuth flow is being initialized.
+    const claimToken = token || localStorage.getItem(FOUNDING_CLAIM_TOKEN_KEY) || "";
+    if (claimToken) localStorage.setItem(FOUNDING_CLAIM_TOKEN_KEY, claimToken);
+    localStorage.setItem(FOUNDING_CLAIM_PENDING_KEY, "1");
+
+    const claimPath = claimToken
+      ? `/claim-founding?token=${encodeURIComponent(claimToken)}`
+      : "/claim-founding";
+    window.location.assign(`/auth?return_to=${encodeURIComponent(claimPath)}`);
+  };
 
   const showAuthCta = !authLoading && !user && (state.kind === "needs-auth" || state.kind === "idle");
 
