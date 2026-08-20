@@ -127,21 +127,26 @@ const Onboarding = () => {
       }
       
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_completed')
           .eq('user_id', user.id)
-          .single();
-        
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('[Onboarding] Failed to load profile:', profileError);
+        }
+
         // If onboarding is completed, redirect to app
         if (profile?.onboarding_completed === true) {
           setHasProfile(true);
         }
       } catch (error) {
-        console.log('No existing profile found, proceeding with onboarding');
+        console.error('[Onboarding] Profile check error:', error);
       } finally {
         setCheckingProfile(false);
       }
+
     };
     
     if (!authLoading) {
