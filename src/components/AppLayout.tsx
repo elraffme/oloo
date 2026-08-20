@@ -119,10 +119,24 @@ const AppLayout = () => {
     );
   }
 
+  // Profile read failed — surface the real error instead of looping back to onboarding
+  if (profileError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-primary/5 to-accent/10">
+        <div className="text-center max-w-md space-y-4">
+          <p className="text-foreground font-medium">We couldn't load your profile.</p>
+          <p className="text-sm text-muted-foreground break-words">{profileError}</p>
+          <Button onClick={() => window.location.reload()}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
   // Redirect to onboarding if profile not complete
   if (!hasProfile) {
     return <Navigate to="/onboarding" replace />;
   }
+
 
   const navItems = [
     {
