@@ -331,8 +331,22 @@ const Onboarding = () => {
         return false;
       }
 
-      if (savedProfile?.onboarding_completed !== true) {
-        console.error('[Onboarding] Profile saved but onboarding_completed is not true:', savedProfile);
+      let completed = savedProfile?.onboarding_completed === true;
+
+      if (!completed) {
+        // Some PostgREST configurations return no representation on upsert.
+        // Verify with an explicit read before declaring failure.
+        const { data: verified, error: verifyError } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (verifyError) console.error('[Onboarding] Verify read failed:', verifyError);
+        completed = verified?.onboarding_completed === true;
+      }
+
+      if (!completed) {
+        console.error('[Onboarding] Profile save did not persist onboarding_completed');
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: t('onboarding.errors.tryAgain'),
@@ -340,6 +354,7 @@ const Onboarding = () => {
         });
         return false;
       }
+
 
       console.log('[Onboarding] Profile saved, onboarding_completed = true');
 

@@ -42,10 +42,11 @@ const AppLayout = () => {
       const isOAuthUser = user.app_metadata?.provider && user.app_metadata.provider !== 'email';
       
       if (!isOAuthUser && !user.email_confirmed_at) {
-        // Email not verified - redirect to verify page
-        window.location.href = '/auth/verify';
+        // Email not verified — the synchronous guard below performs the redirect.
+        setCheckingProfile(false);
         return;
       }
+
       
       try {
         setProfileError(null);
