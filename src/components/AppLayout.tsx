@@ -98,8 +98,7 @@ const AppLayout = () => {
       const result = await redeemFoundingClaim();
       if (cancelled || !result) return;
       if (result.ok && !result.already && result.awarded > 0) {
-        toast({
-          title: 'Founding credits added',
+        toast.success('Founding credits added', {
           description: `${result.awarded} Oloo Points are now in your wallet.`,
         });
         window.dispatchEvent(new Event('oloo:currency-refresh'));
