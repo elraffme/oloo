@@ -53,7 +53,14 @@ export async function redeemFoundingClaim(token?: string | null): Promise<ClaimR
 
   if (!result) {
     console.error("[FoundingClaim] invoke failed with no response body", error);
-    return { ok: false, code: "internal_error", message: CLAIM_ERROR_COPY.internal_error };
+    return {
+      ok: false,
+      awarded: 0,
+      balance: 0,
+      already: false,
+      code: "internal_error",
+      message: CLAIM_ERROR_COPY.internal_error,
+    };
   }
 
   if (result.success) {
@@ -62,6 +69,8 @@ export async function redeemFoundingClaim(token?: string | null): Promise<ClaimR
       awarded: Number(result.credits_awarded ?? 0),
       balance: Number(result.balance ?? 0),
       already: result.status === "already_claimed",
+      code: "",
+      message: "",
     };
   }
 
@@ -69,6 +78,9 @@ export async function redeemFoundingClaim(token?: string | null): Promise<ClaimR
   console.error("[FoundingClaim] redemption failed", result);
   return {
     ok: false,
+    awarded: 0,
+    balance: 0,
+    already: false,
     code,
     message: CLAIM_ERROR_COPY[code] ?? `We could not complete your claim (${code}).`,
   };
