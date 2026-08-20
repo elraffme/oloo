@@ -28,9 +28,31 @@ const SignIn = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailError, setEmailError] = useState<string>('');
 
+  // Own the post-login redirect (AuthContext no longer redirects anywhere)
+  useEffect(() => {
+    if (!user || loading) return;
+    let cancelled = false;
+    (async () => {
+      const isEmailProvider = !user.app_metadata?.provider || user.app_metadata.provider === 'email';
+      if (isEmailProvider && !user.email_confirmed_at) {
+        navigate('/auth/verify', { replace: true });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('onboarding_completed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) console.error('[SignIn] Profile check failed:', error);
+      navigate(data?.onboarding_completed === true ? '/app' : '/onboarding', { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [user, loading, navigate]);
+
   // If user is already logged in, show redirecting state
-  // AuthContext's onAuthStateChange handles the actual redirect
   if (user && !loading) {
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         <div className="animate-pulse">
