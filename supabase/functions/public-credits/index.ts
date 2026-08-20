@@ -58,6 +58,81 @@ function claimUrl(token: string) {
   return `${CLAIM_BASE_URL.replace(/\/$/, "")}/claim-founding?token=${token}`;
 }
 
+function newToken() {
+  return crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+}
+
+type Claim = Record<string, any>;
+
+/**
+ * A claim is only genuinely "claimed" when it is linked to a real Main Oloo
+ * user AND the 500-coin ledger row for this claim actually exists. Historic
+ * rows exist with status='claimed', main_user_id NULL and a transaction_id
+ * pointing at a transaction that was never written — those must never be
+ * reported as awarded.
+ */
+async function isGenuinelyAwarded(claim: Claim): Promise<boolean> {
+  if (!claim.main_user_id) return false;
+  const { data } = await supabase
+    .from("currency_transactions")
+    .select("id")
+    .eq("reference_id", claim.id)
+    .eq("user_id", claim.main_user_id)
+    .limit(1)
+    .maybeSingle();
+  if (!data) return false;
+  return (await currentBalance(claim.main_user_id)) >= FOUNDING_CREDIT_AMOUNT;
+}
+
+async function findClaim(
+  joinUserId: string,
+  normalized: string,
+  idempotencyKey: string,
+): Promise<Claim | null> {
+  const lookups: Array<[string, string]> = [
+    ["join_user_id", joinUserId],
+    ["join_email_normalized", normalized],
+    ["idempotency_key", idempotencyKey],
+  ];
+  for (const [column, value] of lookups) {
+    const { data } = await supabase
+      .from("founding_credit_claims")
+      .select("*")
+      .eq(column, value)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (data && data.length > 0) return data[0];
+  }
+  return null;
+}
+
+/** Always hands back a usable, freshly rotated single-use claim URL. */
+async function rotateToken(claimId: string): Promise<string> {
+  const token = newToken();
+  await supabase
+    .from("founding_credit_claims")
+    .update({
+      status: "pending",
+      claim_token_hash: await sha256Hex(token),
+      token_expires_at: new Date(Date.now() + CLAIM_TOKEN_TTL_HOURS * 3600_000).toISOString(),
+    })
+    .eq("id", claimId);
+  return token;
+}
+
+function pendingResponse(claimId: string, token: string) {
+  return json({
+    success: true,
+    status: "pending_link",
+    claim_id: claimId,
+    credits_pending: FOUNDING_CREDIT_AMOUNT,
+    claim_url: claimUrl(token),
+    claim_url_expired: false,
+    message:
+      "The user must sign in to oloo.media with the same email to receive the founding credits.",
+  }, 200);
+}
+
 async function handleAward(body: Record<string, unknown>, idempotencyKey: string, source: string) {
   const joinUserId = body.join_user_id ?? body.user_id;
   const email = body.email ?? body.user_email;
@@ -67,17 +142,17 @@ async function handleAward(body: Record<string, unknown>, idempotencyKey: string
   const normalized = normalizeEmail(email as string);
 
   // Any client-supplied amount / main_user_id is deliberately ignored.
-  const { data: existing } = await supabase
-    .from("founding_credit_claims")
-    .select("*")
-    .or(
-      `idempotency_key.eq.${idempotencyKey},join_user_id.eq.${joinUserId},join_email_normalized.eq.${normalized}`,
-    )
-    .limit(1)
-    .maybeSingle();
+  const existing = await findClaim(joinUserId as string, normalized, idempotencyKey);
 
   if (existing) {
-    if (existing.status === "claimed") {
+    if (existing.status === "revoked") {
+      return json({ success: false, status: "revoked", error: "claim_revoked" }, 409);
+    }
+    if (existing.join_email_normalized !== normalized) {
+      return json({ success: false, status: "conflict", error: "claim_belongs_to_another_user" }, 409);
+    }
+
+    if (existing.status === "claimed" && await isGenuinelyAwarded(existing)) {
       return json({
         success: true,
         status: "already_claimed",
@@ -88,38 +163,13 @@ async function handleAward(body: Record<string, unknown>, idempotencyKey: string
         currency: "coins",
       });
     }
-    if (existing.status === "revoked") {
-      return json({ success: false, status: "revoked", error: "claim_revoked" }, 409);
-    }
-    if (existing.join_user_id !== joinUserId || existing.join_email_normalized !== normalized) {
-      return json({ success: false, status: "conflict", error: "claim_belongs_to_another_user" }, 409);
-    }
 
-    // Tokens are stored hashed and cannot be re-read, so a retry always gets a
-    // freshly rotated single-use token (which invalidates the previous one).
-    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-    await supabase
-      .from("founding_credit_claims")
-      .update({
-        claim_token_hash: await sha256Hex(token),
-        token_expires_at: new Date(Date.now() + CLAIM_TOKEN_TTL_HOURS * 3600_000).toISOString(),
-      })
-      .eq("id", existing.id)
-      .eq("status", "pending");
-
-    return json({
-      success: true,
-      status: "pending_link",
-      claim_id: existing.id,
-      credits_pending: FOUNDING_CREDIT_AMOUNT,
-      claim_url: claimUrl(token),
-      claim_url_expired: false,
-      message:
-        "The user must sign in to oloo.media with the same email to receive the founding credits.",
-    }, 202);
+    // Pending, or a stale "claimed" row whose 500 coins were never actually
+    // credited: re-open it and hand back a fresh, usable claim URL.
+    return pendingResponse(existing.id, await rotateToken(existing.id));
   }
 
-  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  const token = newToken();
   const { data: inserted, error } = await supabase
     .from("founding_credit_claims")
     .insert({
@@ -134,24 +184,18 @@ async function handleAward(body: Record<string, unknown>, idempotencyKey: string
     .single();
 
   if (error) {
-    // Concurrent insert lost the race against a unique index -> treat as duplicate.
+    // Concurrent insert lost the race against a unique index -> reuse that row.
     if (error.code === "23505") {
-      return json({ success: true, status: "pending_link", claim_url: null, claim_url_expired: true }, 202);
+      const raced = await findClaim(joinUserId as string, normalized, idempotencyKey);
+      if (raced) return pendingResponse(raced.id, await rotateToken(raced.id));
     }
     console.error("claim insert failed", error);
     return json({ success: false, error: "claim_creation_failed" }, 500);
   }
 
-  return json({
-    success: true,
-    status: "pending_link",
-    claim_id: inserted.id,
-    credits_pending: FOUNDING_CREDIT_AMOUNT,
-    claim_url: claimUrl(token),
-    claim_url_expired: false,
-    message: "The user must sign in to oloo.media with the same email to receive the founding credits.",
-  }, 202);
+  return pendingResponse(inserted.id, token);
 }
+
 
 async function handleBalance(body: Record<string, unknown>) {
   const joinUserId = body.join_user_id ?? body.user_id;
