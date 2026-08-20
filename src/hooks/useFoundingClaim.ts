@@ -3,9 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const FOUNDING_CLAIM_TOKEN_KEY = "oloo.foundingClaimToken";
 
-export type ClaimResult =
-  | { ok: true; awarded: number; balance: number; already: boolean }
-  | { ok: false; code: string; message: string };
+export type ClaimResult = {
+  ok: boolean;
+  awarded: number;
+  balance: number;
+  already: boolean;
+  code: string;
+  message: string;
+};
 
 export const CLAIM_ERROR_COPY: Record<string, string> = {
   invalid_token: "This claim link is not valid.",
