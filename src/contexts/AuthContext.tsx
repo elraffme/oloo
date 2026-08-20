@@ -395,7 +395,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithGoogle = async () => {
     try {
-      const redirectUrl = `${window.location.origin}/auth`;
+      // Preserve ?return_to (e.g. the founding-claim page) across the OAuth round trip.
+      const rt = new URLSearchParams(window.location.search).get('return_to');
+      const redirectUrl = `${window.location.origin}/auth${rt ? `?return_to=${encodeURIComponent(rt)}` : ''}`;
+
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
