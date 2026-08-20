@@ -2,6 +2,9 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const FOUNDING_CLAIM_TOKEN_KEY = "oloo.foundingClaimToken";
+/** Set as soon as a user lands on /claim-founding, even without a token. */
+export const FOUNDING_CLAIM_PENDING_KEY = "oloo.foundingClaimPending";
+
 
 export type ClaimResult = {
   ok: boolean;
@@ -44,12 +47,30 @@ async function readErrorBody(error: unknown): Promise<Record<string, unknown> | 
  * path work after the claim URL has been left behind.
  */
 export async function redeemFoundingClaim(token?: string | null): Promise<ClaimResult> {
+  // The edge function identifies the claimer from the Main Òloo access token.
+  // Without an explicit session, supabase-js would send the anon key as the
+  // bearer and the function would answer `authentication_required`.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) {
+    return {
+      ok: false,
+      awarded: 0,
+      balance: 0,
+      already: false,
+      code: "authentication_required",
+      message: CLAIM_ERROR_COPY.authentication_required,
+    };
+  }
+
   const { data, error } = await supabase.functions.invoke("claim-founding-credits", {
     body: { token: token ?? null },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   let result = (data ?? null) as Record<string, unknown> | null;
   if (!result && error) result = await readErrorBody(error);
+
 
   if (!result) {
     console.error("[FoundingClaim] invoke failed with no response body", error);
@@ -88,20 +109,25 @@ export async function redeemFoundingClaim(token?: string | null): Promise<ClaimR
 
 /**
  * Background redeemer used once the Main Òloo user exists (inside /app).
- * Runs only when a pending claim token was stored before authentication.
+ * Runs when a claim token OR a pending-claim marker survived authentication.
+ * The token is optional: the edge function resolves the claim from the
+ * authenticated user's verified email when no token is present.
  * Idempotent: the edge function + RPC guarantee a single +500 transaction.
  */
 export const useFoundingClaimRedeemer = () => {
   return useCallback(async () => {
     const token = localStorage.getItem(FOUNDING_CLAIM_TOKEN_KEY);
-    if (!token) return null;
+    const pending = localStorage.getItem(FOUNDING_CLAIM_PENDING_KEY);
+    if (!token && !pending) return null;
     const result = await redeemFoundingClaim(token);
     // Clear on success and on terminal failures; keep it for transient errors
-    // so a later refresh can retry.
+    // (including `authentication_required`) so a later load can retry.
     const terminal = ["claim_not_pending", "email_mismatch", "account_already_claimed", "invalid_token", "claim_token_expired", "claim_not_found_or_used"];
-    if (result.ok === true || terminal.includes((result as { code: string }).code)) {
+    if (result.ok === true || terminal.includes(result.code)) {
       localStorage.removeItem(FOUNDING_CLAIM_TOKEN_KEY);
+      localStorage.removeItem(FOUNDING_CLAIM_PENDING_KEY);
     }
     return result;
   }, []);
 };
+
