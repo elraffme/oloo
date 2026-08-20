@@ -42,14 +42,17 @@ Deno.serve(async (req) => {
     const token = typeof body.token === "string" ? body.token : null;
 
     // 1. Already redeemed by this account? Idempotent success.
-    const { data: mine } = await supabase
-      .from("founding_credit_claims")
-      .select("*")
-      .eq("main_user_id", user.id)
-      .eq("status", "claimed")
+    //    A ledger row is the ONLY proof of an award: historic claim rows exist
+    //    with status='claimed' but no transaction and no main_user_id.
+    const { data: existingTx } = await supabase
+      .from("currency_transactions")
+      .select("id, amount")
+      .eq("user_id", user.id)
+      .eq("reason", "founding_credit")
+      .limit(1)
       .maybeSingle();
 
-    if (mine) {
+    if (existingTx) {
       const { data: bal } = await supabase
         .from("currency_balances")
         .select("coin_balance")
@@ -58,14 +61,16 @@ Deno.serve(async (req) => {
       return json({
         success: true,
         status: "already_claimed",
-        credits_awarded: mine.credits_awarded,
+        credits_awarded: existingTx.amount,
         balance: bal?.coin_balance ?? 0,
       });
     }
 
-    // 2. Resolve the pending claim: by token when present, otherwise by the
-    //    verified normalized email (Join and Main are separate projects, so the
-    //    email is the only trustworthy link).
+    // 2. Resolve the claim: by token when present, otherwise by the verified
+    //    normalized email (Join and Main are separate projects, so the email
+    //    is the only trustworthy link). Rows that were wrongly marked
+    //    'claimed' without an actual award are still resolvable — the RPC
+    //    decides whether credits are owed.
     let claim: Claim | null = null;
 
     if (token && token.length >= 32) {
@@ -82,19 +87,20 @@ Deno.serve(async (req) => {
         .from("founding_credit_claims")
         .select("*")
         .eq("join_email_normalized", normalized)
-        .eq("status", "pending")
+        .neq("status", "revoked")
         .order("created_at", { ascending: false })
         .limit(1);
       if (data && data.length > 0) claim = data[0];
     }
 
     if (!claim) return json({ success: false, error: "claim_not_found_or_used" }, 404);
-    if (claim.status !== "pending") {
+    if (claim.status === "revoked") {
       return json({ success: false, error: "claim_not_pending", status: claim.status }, 409);
     }
     if (claim.join_email_normalized !== normalized) {
       return json({ success: false, error: "email_mismatch" }, 403);
     }
+
 
     const { data, error } = await supabase.rpc("claim_founding_credits", {
       p_claim_id: claim.id,
