@@ -82,7 +82,7 @@ export const useFoundingClaimRedeemer = () => {
     // Clear on success and on terminal failures; keep it for transient errors
     // so a later refresh can retry.
     const terminal = ["claim_not_pending", "email_mismatch", "account_already_claimed", "invalid_token", "claim_token_expired", "claim_not_found_or_used"];
-    if (result.ok || (!result.ok && terminal.includes(result.code))) {
+    if (result.ok || terminal.includes(result.code)) {
       localStorage.removeItem(FOUNDING_CLAIM_TOKEN_KEY);
     }
     return result;
