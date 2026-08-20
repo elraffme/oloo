@@ -2,6 +2,9 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const FOUNDING_CLAIM_TOKEN_KEY = "oloo.foundingClaimToken";
+/** Set as soon as a user lands on /claim-founding, even without a token. */
+export const FOUNDING_CLAIM_PENDING_KEY = "oloo.foundingClaimPending";
+
 
 export type ClaimResult = {
   ok: boolean;
