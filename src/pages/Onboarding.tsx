@@ -299,69 +299,56 @@ const Onboarding = () => {
         onboarding_completed: true
       };
       
-      console.log('Saving profile with onboarding_completed = true...', profileData);
-      
-      // Use updateProfile from context (handles upsert with onConflict: 'user_id')
-      const { error } = await updateProfile(profileData);
-      
+      console.log('[Onboarding] Saving profile...', profileData);
+
+      // Single authoritative write: upsert AND read back the stored flag in one round trip.
+      const { data: savedProfile, error } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            user_id: user.id,
+            ...profileData,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: 'user_id', ignoreDuplicates: false }
+        )
+        .select('onboarding_completed')
+        .maybeSingle();
+
       if (error) {
-        console.error('Update profile error:', error);
+        console.error('[Onboarding] Profile save failed:', error);
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: error.message,
           variant: "destructive"
         });
-        setIsSaving(false);
         return false;
       }
-      
-      // Verify the profile was saved with onboarding_completed = true
-      const { data: verifyProfile, error: verifyError } = await supabase
-        .from('profiles')
-        .select('onboarding_completed')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (verifyError || !verifyProfile?.onboarding_completed) {
-        console.error('Profile verification failed:', verifyError);
-        // Retry saving directly if verification failed
-        const { error: retryError } = await supabase
-          .from('profiles')
-          .upsert({
-            user_id: user.id,
-            ...profileData,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          });
-        
-        if (retryError) {
-          console.error('Retry save failed:', retryError);
-          toast({
-            title: t('onboarding.errors.errorSaving'),
-            description: t('onboarding.errors.tryAgain'),
-            variant: "destructive"
-          });
-          setIsSaving(false);
-          return false;
-        }
+
+      if (savedProfile?.onboarding_completed !== true) {
+        console.error('[Onboarding] Profile saved but onboarding_completed is not true:', savedProfile);
+        toast({
+          title: t('onboarding.errors.errorSaving'),
+          description: t('onboarding.errors.tryAgain'),
+          variant: "destructive"
+        });
+        return false;
       }
-      
-      console.log('Profile saved successfully! onboarding_completed:', verifyProfile?.onboarding_completed);
-      
+
+      console.log('[Onboarding] Profile saved, onboarding_completed = true');
+
       // Clear all pending states to allow immediate navigation to /app
       localStorage.removeItem('pendingOnboardingData');
       localStorage.removeItem('onboardingData');
       localStorage.removeItem('pendingBiometricConsent');
       localStorage.removeItem('pendingVerification');
       localStorage.removeItem('onboardingStep');
-      
+
       toast({
         title: t('onboarding.success.profileCreated'),
         description: t('onboarding.success.welcome')
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Profile save error:', error);
@@ -380,15 +367,16 @@ const Onboarding = () => {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      // Final step - save profile and go to app
+      // Final step - save profile, then navigate client-side (no full reload)
       const success = await saveProfile();
       if (success) {
-        // Use window.location for reliable redirect that bypasses any auth state race conditions
-        console.log('Onboarding complete, redirecting to /app...');
-        window.location.href = '/app';
+        console.log('[Onboarding] Complete, navigating to /app');
+        setHasProfile(true);
+        navigate('/app', { replace: true });
       }
     }
   };
+
 
   const prevStep = () => {
     if (step > 1) setStep(step - 1);
