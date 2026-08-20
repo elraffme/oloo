@@ -25,7 +25,9 @@ const AppLayout = () => {
 
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
 
   // Check if user has completed onboarding, email verification, and if they're an admin
   useEffect(() => {
