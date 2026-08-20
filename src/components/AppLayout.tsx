@@ -92,7 +92,8 @@ const AppLayout = () => {
   // Idempotent: the edge function + RPC guarantee a single +500 transaction.
   const redeemFoundingClaim = useFoundingClaimRedeemer();
   useEffect(() => {
-    if (!user || loading || checkingProfile || !hasProfile) return;
+    if (!user || loading) return;
+
     let cancelled = false;
     (async () => {
       const result = await redeemFoundingClaim();
