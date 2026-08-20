@@ -111,7 +111,17 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "award_failed", detail: error.message }, 500);
     }
 
-    return json({ success: true, ...(data as Record<string, unknown>) });
+    const result = (data ?? {}) as Record<string, unknown>;
+    if (result.status === "not_found" || result.status === "revoked" || result.status === "invalid_user") {
+      return json({ success: false, error: "claim_not_pending", status: result.status }, 409);
+    }
+    // The claim was already awarded to a different Main Òloo account.
+    if (result.status === "already_claimed" && result.main_user_id && result.main_user_id !== user.id) {
+      return json({ success: false, error: "claim_not_pending", status: "claimed_by_other" }, 409);
+    }
+
+    return json({ success: true, ...result });
+
   } catch (e) {
     console.error("claim-founding-credits error", e);
     return json({ success: false, error: "internal_error", detail: String(e) }, 500);
