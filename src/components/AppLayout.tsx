@@ -12,6 +12,8 @@ import { SocialInteractionsNotifier } from '@/components/SocialInteractionsNotif
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFoundingClaimRedeemer } from '@/hooks/useFoundingClaim';
+import { toast } from 'sonner';
 
 const AppLayout = () => {
   const { t } = useTranslation();
