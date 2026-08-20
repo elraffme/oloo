@@ -66,8 +66,18 @@ const Auth = () => {
     }
   }, []);
 
+  // Persist a founding-claim token arriving as ?claim_token so it survives OAuth.
+  useEffect(() => {
+    const ct = new URLSearchParams(window.location.search).get('claim_token');
+    if (ct) {
+      localStorage.setItem('oloo.foundingClaimToken', ct);
+      localStorage.setItem('oloo.foundingClaimPending', '1');
+    }
+  }, []);
+
   // Redirect only if user is authenticated - check email verification and profile
   useEffect(() => {
+
     const checkAndRedirect = async () => {
       if (user && !loading) {
         // For email sign-ups, check if email is verified first
