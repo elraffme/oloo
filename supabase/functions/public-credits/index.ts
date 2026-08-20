@@ -130,7 +130,7 @@ function pendingResponse(claimId: string, token: string) {
     claim_url_expired: false,
     message:
       "The user must sign in to oloo.media with the same email to receive the founding credits.",
-  }, 202);
+  }, 200);
 }
 
 async function handleAward(body: Record<string, unknown>, idempotencyKey: string, source: string) {
