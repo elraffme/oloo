@@ -203,14 +203,20 @@ const Onboarding = () => {
       const fileExt = photo.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
       
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('profile-photos')
         .upload(fileName, photo);
       
       if (uploadError) {
-        console.error('Photo upload error:', uploadError);
+        console.error('[Onboarding] Photo upload error:', uploadError);
+        toast({
+          title: t('common.error'),
+          description: uploadError.message,
+          variant: "destructive"
+        });
         continue;
       }
+
       
       const { data: { publicUrl } } = supabase.storage
         .from('profile-photos')
