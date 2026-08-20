@@ -109,20 +109,25 @@ export async function redeemFoundingClaim(token?: string | null): Promise<ClaimR
 
 /**
  * Background redeemer used once the Main Òloo user exists (inside /app).
- * Runs only when a pending claim token was stored before authentication.
+ * Runs when a claim token OR a pending-claim marker survived authentication.
+ * The token is optional: the edge function resolves the claim from the
+ * authenticated user's verified email when no token is present.
  * Idempotent: the edge function + RPC guarantee a single +500 transaction.
  */
 export const useFoundingClaimRedeemer = () => {
   return useCallback(async () => {
     const token = localStorage.getItem(FOUNDING_CLAIM_TOKEN_KEY);
-    if (!token) return null;
+    const pending = localStorage.getItem(FOUNDING_CLAIM_PENDING_KEY);
+    if (!token && !pending) return null;
     const result = await redeemFoundingClaim(token);
     // Clear on success and on terminal failures; keep it for transient errors
-    // so a later refresh can retry.
+    // (including `authentication_required`) so a later load can retry.
     const terminal = ["claim_not_pending", "email_mismatch", "account_already_claimed", "invalid_token", "claim_token_expired", "claim_not_found_or_used"];
-    if (result.ok === true || terminal.includes((result as { code: string }).code)) {
+    if (result.ok === true || terminal.includes(result.code)) {
       localStorage.removeItem(FOUNDING_CLAIM_TOKEN_KEY);
+      localStorage.removeItem(FOUNDING_CLAIM_PENDING_KEY);
     }
     return result;
   }, []);
 };
+
