@@ -116,9 +116,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Clear all pending states after processing
             clearPendingStates();
             
-            // Only redirect if we're on a page that should handle auth redirects
+            // Only redirect from dedicated auth pages.
+            // '/' (public homepage) is intentionally excluded so it always renders the landing page.
             const currentPath = window.location.pathname;
-            const authPages = ['/signin', '/auth', '/', '/auth/verify'];
+            const authPages = ['/signin', '/auth', '/auth/verify'];
+
             
             if (authPages.includes(currentPath)) {
               if (profile?.onboarding_completed === true) {
