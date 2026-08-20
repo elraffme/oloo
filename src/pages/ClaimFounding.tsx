@@ -71,10 +71,16 @@ const ClaimFounding = () => {
     const claimPath = claimToken
       ? `/claim-founding?token=${encodeURIComponent(claimToken)}`
       : "/claim-founding";
-    window.location.assign(`/auth?return_to=${encodeURIComponent(claimPath)}`);
+    const authUrl = claimToken
+      ? `/auth?return_to=${encodeURIComponent(claimPath)}&claim_token=${encodeURIComponent(claimToken)}`
+      : `/auth?return_to=${encodeURIComponent(claimPath)}`;
+    window.location.assign(authUrl);
   };
 
-  const showAuthCta = !authLoading && !user && (state.kind === "needs-auth" || state.kind === "idle");
+  // Always offer the way forward while there is no authenticated user — even if
+  // the auth session check is still resolving. The claim itself is redeemed
+  // automatically after sign-in, so this button can never be the wrong action.
+  const showAuthCta = !user && state.kind !== "success";
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -96,10 +102,11 @@ const ClaimFounding = () => {
                 Oloo Points. Your claim is saved and applied automatically once your account is ready.
               </p>
               <Button className="w-full" onClick={continueToSignIn}>
-                Continue to sign up
+                Continue to Òloo
               </Button>
             </>
           )}
+
 
           {(authLoading || state.kind === "loading") && (
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
