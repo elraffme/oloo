@@ -46,12 +46,16 @@ const AppLayout = () => {
       }
       
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_completed')
           .eq('user_id', user.id)
-          .single();
-        
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('[AppLayout] Failed to load profile:', profileError);
+        }
+
         if (profile?.onboarding_completed === true) {
           setHasProfile(true);
         }
@@ -63,10 +67,11 @@ const AppLayout = () => {
         });
         setIsAdmin(adminStatus === true);
       } catch (error) {
-        console.log('No profile found');
+        console.error('[AppLayout] Profile check error:', error);
       } finally {
         setCheckingProfile(false);
       }
+
     };
     
     if (!loading) {
