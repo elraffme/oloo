@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins, Loader2 } from "lucide-react";
-import { FOUNDING_CLAIM_TOKEN_KEY, redeemFoundingClaim } from "@/hooks/useFoundingClaim";
+import {
+  FOUNDING_CLAIM_PENDING_KEY,
+  FOUNDING_CLAIM_TOKEN_KEY,
+  redeemFoundingClaim,
+} from "@/hooks/useFoundingClaim";
 
 type State =
   | { kind: "idle" }
   | { kind: "loading" }
+  | { kind: "needs-auth" }
   | { kind: "success"; balance: number; awarded: number; already: boolean }
   | { kind: "error"; message: string };
 
@@ -19,31 +24,48 @@ const ClaimFounding = () => {
   const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: "idle" });
 
-  // Persist the claim token so it survives /auth -> Google -> onboarding -> /app.
+  // Persist the claim reference so it survives /auth -> Google -> onboarding -> /app.
+  // The marker is set even without a token: the edge function can resolve the
+  // pending claim from the authenticated user's verified email.
   useEffect(() => {
     if (token) localStorage.setItem(FOUNDING_CLAIM_TOKEN_KEY, token);
+    localStorage.setItem(FOUNDING_CLAIM_PENDING_KEY, "1");
   }, [token]);
 
-  const claim = async () => {
+  const claim = useCallback(async () => {
     setState({ kind: "loading" });
     const result = await redeemFoundingClaim(token || localStorage.getItem(FOUNDING_CLAIM_TOKEN_KEY));
     if (result.ok) {
       localStorage.removeItem(FOUNDING_CLAIM_TOKEN_KEY);
+      localStorage.removeItem(FOUNDING_CLAIM_PENDING_KEY);
+      window.dispatchEvent(new Event("oloo:currency-refresh"));
       setState({ kind: "success", balance: result.balance, awarded: result.awarded, already: result.already });
+    } else if (result.code === "authentication_required") {
+      // Not signed in yet — this is the normal new-user path, not an error.
+      setState({ kind: "needs-auth" });
     } else {
       setState({ kind: "error", message: result.message });
     }
-  };
+  }, [token]);
 
+  // Only attempt redemption once an authenticated Main Òloo session exists.
   useEffect(() => {
-    if (!authLoading && user && state.kind === "idle") claim();
+    if (authLoading) return;
+    if (!user) {
+      setState({ kind: "needs-auth" });
+      return;
+    }
+    setState((s) => (s.kind === "idle" || s.kind === "needs-auth" ? { kind: "loading" } : s));
+    claim();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user, token]);
+  }, [authLoading, user?.id, token]);
 
   const continueToSignIn = () =>
     navigate(
       `/auth?return_to=${encodeURIComponent(token ? `/claim-founding?token=${token}` : "/claim-founding")}`,
     );
+
+  const showAuthCta = !authLoading && !user && (state.kind === "needs-auth" || state.kind === "idle");
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -58,7 +80,7 @@ const ClaimFounding = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
-          {!authLoading && !user && (
+          {showAuthCta && (
             <>
               <p className="text-sm text-muted-foreground">
                 Sign up or sign in to Òloo with the same email you used on the waitlist to receive your
