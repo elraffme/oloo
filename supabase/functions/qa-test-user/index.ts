@@ -22,6 +22,29 @@ Deno.serve(async (req) => {
     return Response.json({ ok: !error, error: error?.message ?? null });
   }
 
+  if (action === "seed_claim") {
+    const email = String(body.email).trim().toLowerCase();
+    const { data, error } = await admin.from("founding_credit_claims").insert({
+      join_user_id: crypto.randomUUID(),
+      join_email_normalized: email,
+      idempotency_key: `qa-${email}`,
+      status: "pending",
+      credits_awarded: 0,
+      source: "qa",
+    }).select("id").maybeSingle();
+    return Response.json({ ok: !error, claim_id: data?.id ?? null, error: error?.message ?? null });
+  }
+
+  if (action === "inspect") {
+    const uid = String(body.user_id);
+    const [bal, tx] = await Promise.all([
+      admin.from("currency_balances").select("coin_balance").eq("user_id", uid).maybeSingle(),
+      admin.from("currency_transactions").select("id, amount, reason").eq("user_id", uid).eq("reason", "founding_credit"),
+    ]);
+    return Response.json({ balance: bal.data?.coin_balance ?? null, founding_tx: tx.data ?? [], err: bal.error?.message ?? tx.error?.message ?? null });
+  }
+
+
   const { data, error } = await admin.auth.admin.createUser({
     email: String(body.email),
     password: String(body.password),
