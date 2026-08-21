@@ -326,9 +326,20 @@ const Onboarding = () => {
 
     setIsSaving(true);
     
+    setSaveError(null);
+
     try {
-      // Upload photos first
-      const photoUrls = await uploadPhotos();
+      // Upload photos first. Failures are reported but MUST NOT block onboarding.
+      const { urls: photoUrls, failures: photoFailures } = await uploadPhotos();
+      if (photoFailures.length > 0) {
+        console.error('[Onboarding] Some photos failed to upload:', photoFailures);
+        toast({
+          title: 'Some photos could not be uploaded',
+          description: `${photoFailures[0]}. You can add photos later from your profile.`,
+          variant: "destructive"
+        });
+      }
+
       
       // Calculate age from birth date
       const age = calculateAge(formData.birthDate);
