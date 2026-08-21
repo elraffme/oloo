@@ -455,12 +455,14 @@ const Onboarding = () => {
       return true;
     } catch (error: any) {
       console.error('Profile save error:', error);
+      setSaveError(error?.message || t('onboarding.errors.failedSave'));
       toast({
         title: t('common.error'),
         description: error?.message || t('onboarding.errors.failedSave'),
         variant: "destructive"
       });
       return false;
+
     } finally {
       setIsSaving(false);
     }
