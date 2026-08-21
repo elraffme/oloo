@@ -98,6 +98,8 @@ const Onboarding = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
