@@ -861,7 +861,14 @@ const Onboarding = () => {
             <p className="text-sm text-muted-foreground">
               {t('onboarding.step6.readyDescription')}
             </p>
+            {saveError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-left">
+                <p className="text-sm font-medium text-destructive">We couldn't finish setting up your profile.</p>
+                <p className="text-xs text-destructive/90 break-words mt-1">{saveError}</p>
+              </div>
+            )}
           </div>
+
         </OnboardingStep>
       );
     
