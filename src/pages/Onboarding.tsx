@@ -401,6 +401,7 @@ const Onboarding = () => {
 
       if (error) {
         console.error('[Onboarding] Profile save failed:', error);
+        setSaveError(`${error.message}${error.code ? ` (${error.code})` : ''}`);
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: error.message,
@@ -408,6 +409,7 @@ const Onboarding = () => {
         });
         return false;
       }
+
 
       let completed = savedProfile?.onboarding_completed === true;
 
