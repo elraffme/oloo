@@ -427,6 +427,7 @@ const Onboarding = () => {
 
       if (!completed) {
         console.error('[Onboarding] Profile save did not persist onboarding_completed');
+        setSaveError('Your profile was sent but did not save. Please tap "Let\'s Start!" again.');
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: t('onboarding.errors.tryAgain'),
@@ -434,6 +435,7 @@ const Onboarding = () => {
         });
         return false;
       }
+
 
 
       console.log('[Onboarding] Profile saved, onboarding_completed = true');
