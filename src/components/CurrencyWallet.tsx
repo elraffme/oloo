@@ -42,7 +42,7 @@ export const CurrencyWallet = ({ onBuyCoins }: { onBuyCoins: () => void }) => {
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1 md:gap-2 h-8 md:h-9 px-2 md:px-3">
             <Coins className="h-3.5 w-3.5 md:h-4 md:w-4 text-yellow-500" />
-            <span className="font-semibold text-xs md:text-sm">{balance.coin_balance.toLocaleString()}</span>
+            <span className="font-semibold text-xs md:text-sm text-foreground">{balance.coin_balance.toLocaleString()}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 md:w-80">
