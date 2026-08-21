@@ -193,40 +193,105 @@ const Onboarding = () => {
     }));
   };
 
-  const uploadPhotos = async (): Promise<string[]> => {
-    if (!user || formData.photos.length === 0) return [];
-    
+  /**
+   * Re-encodes a picked photo to a JPEG that fits inside the bucket limits
+   * (5 MB, jpeg/png/webp only). Phone cameras routinely produce 8-15 MB files
+   * and HEIC, both of which storage rejects outright. Returns null when the
+   * browser cannot decode the file (e.g. HEIC on non-Safari) so the caller can
+   * report a real, actionable error instead of failing silently.
+   */
+  const compressPhoto = async (file: File): Promise<File | null> => {
+    const MAX_DIMENSION = 1600;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('decode_failed'));
+        image.src = url;
+      });
+
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.85)
+      );
+      if (!blob) return null;
+      return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+    } catch {
+      return null;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  /**
+   * Uploads the selected photos. Never throws and never hangs: each upload is
+   * bounded by an abort timeout so a stalled mobile connection surfaces a real
+   * error instead of leaving "Let's Start!" spinning forever.
+   */
+  const uploadPhotos = async (): Promise<{ urls: string[]; failures: string[] }> => {
+    if (!user || formData.photos.length === 0) return { urls: [], failures: [] };
+
     const uploadedUrls: string[] = [];
-    
+    const failures: string[] = [];
+    const UPLOAD_TIMEOUT_MS = 45000;
+
     for (let i = 0; i < formData.photos.length; i++) {
-      const photo = formData.photos[i];
-      const fileExt = photo.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('profile-photos')
-        .upload(fileName, photo);
-      
-      if (uploadError) {
-        console.error('[Onboarding] Photo upload error:', uploadError);
-        toast({
-          title: t('common.error'),
-          description: uploadError.message,
-          variant: "destructive"
-        });
+      const original = formData.photos[i];
+      const prepared = await compressPhoto(original);
+
+      if (!prepared) {
+        failures.push(`${original.name}: unsupported image format (please use JPEG, PNG or WebP)`);
         continue;
       }
 
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(fileName);
-      
-      uploadedUrls.push(publicUrl);
+      const fileName = `${user.id}/${Date.now()}_${i}.jpg`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, prepared, {
+            contentType: 'image/jpeg',
+            upsert: false,
+            // @ts-expect-error - supabase-js forwards fetch options
+            signal: controller.signal,
+          });
+
+        if (uploadError) {
+          console.error('[Onboarding] Photo upload error:', uploadError);
+          failures.push(`${original.name}: ${uploadError.message}`);
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      } catch (e: any) {
+        console.error('[Onboarding] Photo upload threw:', e);
+        failures.push(
+          e?.name === 'AbortError'
+            ? `${original.name}: upload timed out — check your connection`
+            : `${original.name}: ${e?.message ?? 'upload failed'}`
+        );
+      } finally {
+        clearTimeout(timer);
+      }
     }
-    
-    return uploadedUrls;
+
+    return { urls: uploadedUrls, failures };
   };
+
 
   const calculateAge = (birthDate: string): number => {
     const birth = new Date(birthDate);
