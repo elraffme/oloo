@@ -248,25 +248,25 @@ const Onboarding = () => {
     for (let i = 0; i < formData.photos.length; i++) {
       const original = formData.photos[i];
       const prepared = await compressPhoto(original);
+      // Browsers that cannot decode the file (e.g. HEIC outside Safari) fall
+      // back to the original bytes — the bucket accepts HEIC/HEIF too.
+      const upload = prepared ?? original;
+      const ext = prepared ? 'jpg' : (original.name.split('.').pop() || 'jpg').toLowerCase();
 
-      if (!prepared) {
-        failures.push(`${original.name}: unsupported image format (please use JPEG, PNG or WebP)`);
-        continue;
-      }
-
-      const fileName = `${user.id}/${Date.now()}_${i}.jpg`;
+      const fileName = `${user.id}/${Date.now()}_${i}.${ext}`;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
       try {
         const { error: uploadError } = await supabase.storage
           .from('profile-photos')
-          .upload(fileName, prepared, {
-            contentType: 'image/jpeg',
+          .upload(fileName, upload, {
+            contentType: upload.type || 'image/jpeg',
             upsert: false,
             // @ts-expect-error - supabase-js forwards fetch options
             signal: controller.signal,
           });
+
 
         if (uploadError) {
           console.error('[Onboarding] Photo upload error:', uploadError);
