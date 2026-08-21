@@ -98,6 +98,8 @@ const Onboarding = () => {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
@@ -193,40 +195,105 @@ const Onboarding = () => {
     }));
   };
 
-  const uploadPhotos = async (): Promise<string[]> => {
-    if (!user || formData.photos.length === 0) return [];
-    
-    const uploadedUrls: string[] = [];
-    
-    for (let i = 0; i < formData.photos.length; i++) {
-      const photo = formData.photos[i];
-      const fileExt = photo.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}_${i}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('profile-photos')
-        .upload(fileName, photo);
-      
-      if (uploadError) {
-        console.error('[Onboarding] Photo upload error:', uploadError);
-        toast({
-          title: t('common.error'),
-          description: uploadError.message,
-          variant: "destructive"
-        });
-        continue;
-      }
+  /**
+   * Re-encodes a picked photo to a JPEG that fits inside the bucket limits
+   * (5 MB, jpeg/png/webp only). Phone cameras routinely produce 8-15 MB files
+   * and HEIC, both of which storage rejects outright. Returns null when the
+   * browser cannot decode the file (e.g. HEIC on non-Safari) so the caller can
+   * report a real, actionable error instead of failing silently.
+   */
+  const compressPhoto = async (file: File): Promise<File | null> => {
+    const MAX_DIMENSION = 1600;
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('decode_failed'));
+        image.src = url;
+      });
 
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('profile-photos')
-        .getPublicUrl(fileName);
-      
-      uploadedUrls.push(publicUrl);
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(resolve, 'image/jpeg', 0.85)
+      );
+      if (!blob) return null;
+      return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+    } catch {
+      return null;
+    } finally {
+      URL.revokeObjectURL(url);
     }
-    
-    return uploadedUrls;
   };
+
+  /**
+   * Uploads the selected photos. Never throws and never hangs: each upload is
+   * bounded by an abort timeout so a stalled mobile connection surfaces a real
+   * error instead of leaving "Let's Start!" spinning forever.
+   */
+  const uploadPhotos = async (): Promise<{ urls: string[]; failures: string[] }> => {
+    if (!user || formData.photos.length === 0) return { urls: [], failures: [] };
+
+    const uploadedUrls: string[] = [];
+    const failures: string[] = [];
+    const UPLOAD_TIMEOUT_MS = 45000;
+
+    for (let i = 0; i < formData.photos.length; i++) {
+      const original = formData.photos[i];
+      const prepared = await compressPhoto(original);
+      // Browsers that cannot decode the file (e.g. HEIC outside Safari) fall
+      // back to the original bytes — the bucket accepts HEIC/HEIF too.
+      const upload = prepared ?? original;
+      const ext = prepared ? 'jpg' : (original.name.split('.').pop() || 'jpg').toLowerCase();
+
+      const fileName = `${user.id}/${Date.now()}_${i}.${ext}`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('profile-photos')
+          .upload(fileName, upload, {
+            contentType: upload.type || 'image/jpeg',
+            upsert: false,
+            // @ts-expect-error - supabase-js forwards fetch options
+            signal: controller.signal,
+          });
+
+
+        if (uploadError) {
+          console.error('[Onboarding] Photo upload error:', uploadError);
+          failures.push(`${original.name}: ${uploadError.message}`);
+          continue;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-photos')
+          .getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+      } catch (e: any) {
+        console.error('[Onboarding] Photo upload threw:', e);
+        failures.push(
+          e?.name === 'AbortError'
+            ? `${original.name}: upload timed out — check your connection`
+            : `${original.name}: ${e?.message ?? 'upload failed'}`
+        );
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    return { urls: uploadedUrls, failures };
+  };
+
 
   const calculateAge = (birthDate: string): number => {
     const birth = new Date(birthDate);
@@ -261,9 +328,20 @@ const Onboarding = () => {
 
     setIsSaving(true);
     
+    setSaveError(null);
+
     try {
-      // Upload photos first
-      const photoUrls = await uploadPhotos();
+      // Upload photos first. Failures are reported but MUST NOT block onboarding.
+      const { urls: photoUrls, failures: photoFailures } = await uploadPhotos();
+      if (photoFailures.length > 0) {
+        console.error('[Onboarding] Some photos failed to upload:', photoFailures);
+        toast({
+          title: 'Some photos could not be uploaded',
+          description: `${photoFailures[0]}. You can add photos later from your profile.`,
+          variant: "destructive"
+        });
+      }
+
       
       // Calculate age from birth date
       const age = calculateAge(formData.birthDate);
@@ -323,6 +401,7 @@ const Onboarding = () => {
 
       if (error) {
         console.error('[Onboarding] Profile save failed:', error);
+        setSaveError(`${error.message}${error.code ? ` (${error.code})` : ''}`);
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: error.message,
@@ -330,6 +409,7 @@ const Onboarding = () => {
         });
         return false;
       }
+
 
       let completed = savedProfile?.onboarding_completed === true;
 
@@ -347,6 +427,7 @@ const Onboarding = () => {
 
       if (!completed) {
         console.error('[Onboarding] Profile save did not persist onboarding_completed');
+        setSaveError('Your profile was sent but did not save. Please tap "Let\'s Start!" again.');
         toast({
           title: t('onboarding.errors.errorSaving'),
           description: t('onboarding.errors.tryAgain'),
@@ -354,6 +435,7 @@ const Onboarding = () => {
         });
         return false;
       }
+
 
 
       console.log('[Onboarding] Profile saved, onboarding_completed = true');
@@ -373,12 +455,14 @@ const Onboarding = () => {
       return true;
     } catch (error: any) {
       console.error('Profile save error:', error);
+      setSaveError(error?.message || t('onboarding.errors.failedSave'));
       toast({
         title: t('common.error'),
         description: error?.message || t('onboarding.errors.failedSave'),
         variant: "destructive"
       });
       return false;
+
     } finally {
       setIsSaving(false);
     }
@@ -777,7 +861,14 @@ const Onboarding = () => {
             <p className="text-sm text-muted-foreground">
               {t('onboarding.step6.readyDescription')}
             </p>
+            {saveError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-left">
+                <p className="text-sm font-medium text-destructive">We couldn't finish setting up your profile.</p>
+                <p className="text-xs text-destructive/90 break-words mt-1">{saveError}</p>
+              </div>
+            )}
           </div>
+
         </OnboardingStep>
       );
     
