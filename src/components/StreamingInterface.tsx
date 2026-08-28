@@ -108,6 +108,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     details: any;
   } | null>(null);
   const isCleaningUpRef = useRef(false);
+  const sfuFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
@@ -1383,7 +1385,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const sfuHealth = await checkSFUHealth();
       if (!sfuHealth.healthy) {
         await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
-        throw new Error(`Streaming server is unreachable (${sfuHealth.error || 'no response'}). Your stream was not started.`);
+        throw new Error(`Streaming server is offline (${sfuHealth.error || 'no response'}). Your stream was not started.`);
       }
 
       // Initialize SFU stream
@@ -1398,6 +1400,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const setStreamLive = async (source: string) => {
         if (hasGoneLive) return;
         hasGoneLive = true;
+        if (sfuFallbackTimeoutRef.current) {
+          clearTimeout(sfuFallbackTimeoutRef.current);
+          sfuFallbackTimeoutRef.current = null;
+        }
         console.log(`🎉 Setting stream live (source: ${source})`);
         
         const { error: updateError } = await supabase.from('streaming_sessions').update({
@@ -1428,11 +1434,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // If the SFU never confirms media production, do NOT fake a live stream —
       // viewers would join and immediately hit "Connection Error".
-      const sfuFallbackTimeout = setTimeout(async () => {
+      if (sfuFallbackTimeoutRef.current) clearTimeout(sfuFallbackTimeoutRef.current);
+      sfuFallbackTimeoutRef.current = setTimeout(async () => {
+        sfuFallbackTimeoutRef.current = null;
         if (!hasGoneLive) {
           console.error('❌ SFU did not confirm media production within 20s');
+          hasGoneLive = true;
           await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
+          cleanup();
           setChannelStatus('error');
+          setStreamLifecycle('idle');
+          setIsStreaming(false);
+          setActiveStreamId(null);
+          activeStreamIdRef.current = null;
+          setIsLoading(false);
           toast({
             title: "Broadcast failed",
             description: "The media server never accepted your video. Please try again.",
@@ -1459,6 +1474,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         title: "🎥 Stream Starting...",
         description: "Establishing broadcast connection"
       });
+
     } catch (error: any) {
       console.error('Error starting stream:', error);
 
@@ -1477,10 +1493,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         variant: "destructive",
         duration: 10000
       });
+      if (sfuFallbackTimeoutRef.current) {
+        clearTimeout(sfuFallbackTimeoutRef.current);
+        sfuFallbackTimeoutRef.current = null;
+      }
       setStreamLifecycle('idle');
       setChannelStatus('disconnected');
       setIsStreaming(false);
+      setActiveStreamId(null);
+      activeStreamIdRef.current = null;
       setIsLoading(false);
+
     }
   };
   const handleHostReconnect = async () => {
@@ -1496,8 +1519,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const endStream = async () => {
     if (!activeStreamId) return;
+    if (sfuFallbackTimeoutRef.current) {
+      clearTimeout(sfuFallbackTimeoutRef.current);
+      sfuFallbackTimeoutRef.current = null;
+    }
     setStreamLifecycle('ending');
     setIsLoading(true);
+
     try {
       // Cleanup SFU first
       cleanup();
@@ -2264,9 +2292,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       {!isStreaming ? <Button onClick={startStream} disabled={isLoading || isRequestingCamera} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
-                        </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
-                          {isLoading ? 'Ending...' : 'End Stream'}
+                        </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg" disabled={streamLifecycle === 'ending'}>
+                          {streamLifecycle === 'ending' ? 'Ending...' : streamLifecycle === 'live' ? 'End Stream' : 'Connecting…'}
                         </Button>}
+
                       {!isStreaming && (!streamTitle.trim() || !streamCategory) && <p className="text-xs text-muted-foreground text-center mt-2">
                           {!streamTitle.trim() && !streamCategory ? 'Add a title and pick a category to go live' : !streamTitle.trim() ? 'Add a stream title to go live' : 'Pick a category to go live'}
                         </p>}
