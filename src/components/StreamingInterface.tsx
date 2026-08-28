@@ -1252,23 +1252,39 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     if (!streamTitle.trim()) {
       toast({
         title: "Missing title",
-        description: "Please enter a stream title.",
+        description: "Please enter a stream title before going live.",
         variant: "destructive"
       });
       return;
     }
-    if (!streamRef.current) {
+    if (!streamCategory) {
       toast({
-        title: "Camera not ready",
-        description: "Please enable your camera first.",
+        title: "Missing category",
+        description: "Please select a category before going live.",
         variant: "destructive"
       });
       return;
+    }
+    // Auto-request camera/mic if not enabled yet, instead of blocking the button
+    if (!streamRef.current || streamRef.current.getVideoTracks().length === 0) {
+      toast({
+        title: "Enabling camera…",
+        description: "Allow camera and microphone access to go live."
+      });
+      const media = await initializeMedia(true, true);
+      if (!media || media.getVideoTracks().length === 0) {
+        toast({
+          title: "Camera not ready",
+          description: "We couldn't access your camera. Check browser permissions and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Verify camera is actually capturing (Phase 7)
-    const videoTracks = streamRef.current.getVideoTracks();
-    const audioTracks = streamRef.current.getAudioTracks();
+    const videoTracks = streamRef.current!.getVideoTracks();
+    const audioTracks = streamRef.current!.getAudioTracks();
     if (videoTracks.length === 0) {
       toast({
         title: "No video source",
