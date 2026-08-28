@@ -34,6 +34,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { limitsForTier, formatDuration } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
+import { logStreamEvent } from '@/lib/streamDiagnostics';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -110,7 +111,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const isCleaningUpRef = useRef(false);
   const sfuFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+
   const activeStreamIdRef = useRef<string | null>(null);
+  // Log every stream lifecycle transition (server-side trace of session state).
+  const prevLifecycleRef = useRef<string>('idle');
+  useEffect(() => {
+    if (prevLifecycleRef.current === streamLifecycle) return;
+    logStreamEvent({
+      session_id: activeStreamIdRef.current,
+      role: 'host',
+      phase: streamLifecycle,
+      event: 'lifecycle_transition',
+      level: streamLifecycle === 'ended' ? 'warn' : 'info',
+      message: `${prevLifecycleRef.current} -> ${streamLifecycle}`,
+      detail: { from: prevLifecycleRef.current, to: streamLifecycle },
+    });
+    prevLifecycleRef.current = streamLifecycle;
+  }, [streamLifecycle]);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
   const [giftNotifications, setGiftNotifications] = useState<Array<{
@@ -1324,6 +1341,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     setStreamLifecycle('preparing');
     try {
       console.log("🎬 Starting stream...");
+      logStreamEvent({
+        role: 'host', phase: 'preparing', event: 'start_stream_clicked',
+        message: 'Host initiated stream start',
+        detail: {
+          host_user_id: user.id,
+          title: streamTitle,
+          category: streamCategory,
+          video_tracks: videoTracks.length,
+          audio_tracks: audioTracks.length,
+          resolution: `${settings.width}x${settings.height}`,
+        },
+      });
       console.log("Stream payload:", {
         title: streamTitle,
         description: `Live stream by ${user.user_metadata?.display_name || 'Anonymous'}`,
@@ -1362,9 +1391,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       }).select().single();
       if (error) {
         console.error("Supabase insert error:", error);
+        logStreamEvent({
+          role: 'host', phase: 'preparing', event: 'session_create_failed', level: 'error',
+          message: error.message,
+          detail: { code: (error as any).code, details: (error as any).details, hint: (error as any).hint, title: streamTitle, category: streamCategory },
+        });
         throw error;
       }
       console.log("Stream created:", data);
+      logStreamEvent({
+        session_id: data.id, role: 'host', phase: 'waiting', event: 'session_created',
+        message: 'Streaming session row created',
+        detail: { title: streamTitle, category: streamCategory, tier: limits.tier, max_viewers: limits.maxViewers, host_is_premium: isPremium },
+      });
       setActiveStreamId(data.id);
       activeStreamIdRef.current = data.id;
       setIsStreaming(true);
@@ -1383,6 +1422,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       // PREFLIGHT: the media (SFU) server must be reachable, otherwise the host
       // would appear "LIVE" while no viewer can ever receive media.
       const sfuHealth = await checkSFUHealth();
+      logStreamEvent({
+        session_id: data.id, role: 'host', phase: 'preflight', event: 'sfu_health_check',
+        level: sfuHealth.healthy ? 'info' : 'error',
+        message: sfuHealth.healthy ? 'SFU reachable' : `SFU unreachable: ${sfuHealth.error}`,
+        detail: { healthy: sfuHealth.healthy, latency_ms: sfuHealth.latency, error: sfuHealth.error },
+      });
       if (!sfuHealth.healthy) {
         await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
         throw new Error(`Streaming server is offline (${sfuHealth.error || 'no response'}). Your stream was not started.`);
@@ -1390,8 +1435,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // Initialize SFU stream
       console.log('🔧 Initializing SFU stream...');
-      await initialize('streamer', {}, data.id, streamRef.current);
+      try {
+        await initialize('streamer', {}, data.id, streamRef.current);
+      } catch (initErr: any) {
+        logStreamEvent({
+          session_id: data.id, role: 'host', phase: 'sfu_init', event: 'sfu_initialize_failed', level: 'error',
+          message: initErr?.message || 'initialize() threw',
+          detail: { name: initErr?.name, stack: String(initErr?.stack || '').slice(0, 800) },
+        });
+        throw initErr;
+      }
       console.log('✅ SFU stream initialized, waiting for production confirmation...');
+      logStreamEvent({
+        session_id: data.id, role: 'host', phase: 'sfu_init', event: 'sfu_initialized',
+        message: 'Signalling/transport setup started, awaiting production confirmation',
+      });
       setChannelStatus('connecting');
 
 
@@ -1414,7 +1472,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         
         if (updateError) {
           console.error('Error updating stream to live:', updateError);
+          logStreamEvent({
+            session_id: data.id, role: 'host', phase: 'going_live', event: 'go_live_db_update_failed', level: 'error',
+            message: updateError.message, detail: { source, code: (updateError as any).code },
+          });
         } else {
+          logStreamEvent({
+            session_id: data.id, role: 'host', phase: 'live', event: 'stream_live',
+            message: `Stream marked live (${source})`, detail: { source },
+          });
           console.log('✅ Stream is now live and visible to viewers');
           setStreamLifecycle('live');
           setIsBroadcastReady(true);
@@ -1439,6 +1505,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         sfuFallbackTimeoutRef.current = null;
         if (!hasGoneLive) {
           console.error('❌ SFU did not confirm media production within 20s');
+          logStreamEvent({
+            session_id: data.id, role: 'host', phase: 'sfu_init', event: 'production_timeout', level: 'error',
+            message: 'SFU never confirmed media production within 20s — session auto-ended',
+            detail: { timeout_ms: 20000 },
+          });
           hasGoneLive = true;
           await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
           cleanup();
@@ -1477,6 +1548,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     } catch (error: any) {
       console.error('Error starting stream:', error);
+      logStreamEvent({
+        session_id: activeStreamIdRef.current, role: 'host', phase: 'preparing', event: 'start_stream_failed', level: 'error',
+        message: error?.message || 'Unknown error',
+        detail: { name: error?.name, code: error?.code, hint: error?.hint, stack: String(error?.stack || '').slice(0, 800) },
+      });
 
       // Enhanced error messages
       let errorTitle = "Failed to start stream";
@@ -1525,6 +1601,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     }
     setStreamLifecycle('ending');
     setIsLoading(true);
+    logStreamEvent({
+      session_id: activeStreamId, role: 'host', phase: 'ending', event: 'end_stream_requested',
+      message: 'Host explicitly ended the stream', detail: { previous_lifecycle: streamLifecycle },
+    });
 
     try {
       // Cleanup SFU first

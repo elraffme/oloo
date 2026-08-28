@@ -1379,6 +1379,51 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_diagnostics: {
+        Row: {
+          client_ts: string | null
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          level: string
+          message: string | null
+          phase: string | null
+          role: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          client_ts?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          level?: string
+          message?: string | null
+          phase?: string | null
+          role?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          client_ts?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          level?: string
+          message?: string | null
+          phase?: string | null
+          role?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       stream_likes: {
         Row: {
           created_at: string

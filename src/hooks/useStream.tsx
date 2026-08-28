@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Device } from "mediasoup-client";
 import { io } from "socket.io-client";
+import { logStreamEvent } from "@/lib/streamDiagnostics";
 
 // Configurable server URL - can be overridden via environment variable
 const SERVER_URL = import.meta.env.VITE_MEDIASOUP_SERVER_URL || "https://api.oloo.media";
@@ -380,6 +381,7 @@ export const useStream = (navigation = null) => {
         } else {
           console.log('❌ All auto-retry attempts exhausted');
           setConnectionPhase('timeout');
+          logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'awaiting_producers', event: 'producer_discovery_timeout', level: 'error', message: 'No host producers found after retries' });
           setConnectionError('Could not find host video after multiple attempts. The host may not be streaming.');
           clearAllTimers();
         }
@@ -562,6 +564,7 @@ export const useStream = (navigation = null) => {
         const unexpected = roleRef.current === 'streamer' && !isCleaningUpRef.current;
         if (unexpected) {
           console.error('🚨 PRODUCER TRANSPORT CLOSED unexpectedly while host should still be live');
+          logStreamEvent({ session_id: roomId.current, role: 'streamer', phase: 'webrtc', event: 'produce_transport_closed_unexpectedly', level: 'error', message: 'Producer transport closed while host was live' });
         } else {
           console.log('ℹ️ Producer transport closed during expected cleanup');
         }
@@ -578,10 +581,16 @@ export const useStream = (navigation = null) => {
 
       produceTransport.current.on("icestatechange", (iceState) => {
         console.log(`🧊 Producer transport ICE state: ${iceState}`);
+        if (iceState === 'failed' || iceState === 'disconnected') {
+          logStreamEvent({ session_id: roomId.current, role: 'streamer', phase: 'webrtc', event: 'ice_state_change', level: 'error', message: `Producer ICE state: ${iceState}`, detail: { ice_state: iceState } });
+        }
       });
 
       produceTransport.current.on("dtlsstatechange", (dtlsState) => {
         console.log(`🔐 Producer transport DTLS state: ${dtlsState}`);
+        if (dtlsState === 'failed' || dtlsState === 'closed') {
+          logStreamEvent({ session_id: roomId.current, role: 'streamer', phase: 'webrtc', event: 'dtls_state_change', level: 'error', message: `Producer DTLS state: ${dtlsState}`, detail: { dtls_state: dtlsState } });
+        }
       });
 
       produceTransport.current.on("connectionstatechange", (state) => {
@@ -595,6 +604,7 @@ export const useStream = (navigation = null) => {
             break;
           case "failed":
             console.log("❌ Producer transport failed, restarting ICE...");
+            logStreamEvent({ session_id: roomId.current, role: 'streamer', phase: 'webrtc', event: 'produce_transport_failed', level: 'error', message: 'Producer transport connection failed, restarting ICE' });
             socketRef.current?.emit(
               "producerRestartIce",
               peerId.current,
@@ -1430,6 +1440,7 @@ export const useStream = (navigation = null) => {
         }
         
         console.error("❌ Error getting user media:", error.name, error.message);
+      logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'media', event: 'get_user_media_failed', level: 'error', message: errorMessage, detail: { name: error.name, raw: error.message } });
         setConnectionPhase('error');
         setConnectionError(errorMessage);
         return;
@@ -1451,6 +1462,7 @@ export const useStream = (navigation = null) => {
     let socketConnectionTimeout: ReturnType<typeof setTimeout> | null = setTimeout(() => {
       if (!newSocket.connected) {
         console.error('❌ Socket connection timed out after 10s');
+        logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'signalling', event: 'socket_connect_timeout', level: 'error', message: 'Socket did not connect within 10s', detail: { server: SERVER_URL } });
         setConnectionPhase('error');
         setConnectionError('Could not connect to streaming server. Please try again.');
         newSocket.disconnect();
@@ -1461,6 +1473,7 @@ export const useStream = (navigation = null) => {
     // The socket might connect before React's useEffect runs, so we register inline
     const handleInlineConnect = () => {
       console.log('✅ Socket connected to SFU server (inline handler)');
+      logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'signalling', event: 'socket_connected', message: 'Socket.io connected to SFU', detail: { server: SERVER_URL, transport: (newSocket as any)?.io?.engine?.transport?.name } });
       if (socketConnectionTimeout) {
         clearTimeout(socketConnectionTimeout);
         socketConnectionTimeout = null;
@@ -1479,6 +1492,7 @@ export const useStream = (navigation = null) => {
         
         if (!capabilities) {
           console.error('❌ Invalid RTP capabilities received');
+          logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'handshake', event: 'rtp_capabilities_invalid', level: 'error', message: 'SFU returned empty/invalid RTP capabilities' });
           setConnectionPhase('error');
           setConnectionError('Server returned invalid capabilities');
           return;
@@ -1529,6 +1543,7 @@ export const useStream = (navigation = null) => {
       setTimeout(() => {
         if (!rtpHandled) {
           console.error('❌ getRTPCapabilites timed out after', RTP_CAPABILITIES_TIMEOUT_MS, 'ms');
+          logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'handshake', event: 'rtp_capabilities_timeout', level: 'error', message: 'No RTP capabilities from SFU', detail: { timeout_ms: RTP_CAPABILITIES_TIMEOUT_MS } });
           setConnectionPhase('error');
           setConnectionError('Server did not respond with media capabilities. Please retry.');
         }
@@ -1537,6 +1552,7 @@ export const useStream = (navigation = null) => {
     
     const handleInlineDisconnect = (reason: string) => {
       console.log("❌ Socket disconnected:", reason);
+      logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'signalling', event: 'socket_disconnected', level: 'warn', message: `Socket disconnected: ${reason}`, detail: { reason } });
       setIsConnected(false);
       setIsProducingReady(false);
       
@@ -1554,6 +1570,7 @@ export const useStream = (navigation = null) => {
     const handleInlineConnectError = (error: Error) => {
       connectErrorCount++;
       console.warn(`⚠️ Socket connection attempt ${connectErrorCount}/5 failed:`, error.message);
+      logStreamEvent({ session_id: roomId.current, role: roleRef.current, phase: 'signalling', event: 'socket_connect_error', level: connectErrorCount >= 5 ? 'error' : 'warn', message: error.message, detail: { attempt: connectErrorCount, server: SERVER_URL } });
       
       if (connectErrorCount >= 5) {
         console.error("❌ All socket connection attempts exhausted");
