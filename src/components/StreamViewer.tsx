@@ -72,7 +72,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [hasVideo, setHasVideo] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [showGiftSelector, setShowGiftSelector] = useState(false);
-  const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showChat, setShowChat] = useState(false); // Chat closed by default on all devices
   const [isLiked, setIsLiked] = useState(false);
