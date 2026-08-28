@@ -1519,8 +1519,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   };
   const endStream = async () => {
     if (!activeStreamId) return;
+    if (sfuFallbackTimeoutRef.current) {
+      clearTimeout(sfuFallbackTimeoutRef.current);
+      sfuFallbackTimeoutRef.current = null;
+    }
     setStreamLifecycle('ending');
     setIsLoading(true);
+
     try {
       // Cleanup SFU first
       cleanup();
