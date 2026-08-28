@@ -1000,7 +1000,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming, limits.maxDurationSec]);
 
-  const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
+  const initializeMedia = async (requestVideo: boolean, requestAudio: boolean): Promise<MediaStream | null> => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
     try {
@@ -1082,6 +1082,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         title: "Media enabled ✓",
         description: `${mediaTypes.join(' and ')} ready to stream.`
       });
+      return streamRef.current;
     } catch (error: any) {
       console.error('Error accessing media:', error);
       if (requestVideo) setHasCameraPermission(false);
@@ -1099,6 +1100,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         description: errorMessage,
         variant: "destructive"
       });
+      return null;
     } finally {
       if (requestVideo) setIsRequestingCamera(false);
       if (requestAudio) setIsRequestingMic(false);
@@ -1250,23 +1252,39 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     if (!streamTitle.trim()) {
       toast({
         title: "Missing title",
-        description: "Please enter a stream title.",
+        description: "Please enter a stream title before going live.",
         variant: "destructive"
       });
       return;
     }
-    if (!streamRef.current) {
+    if (!streamCategory) {
       toast({
-        title: "Camera not ready",
-        description: "Please enable your camera first.",
+        title: "Missing category",
+        description: "Please select a category before going live.",
         variant: "destructive"
       });
       return;
+    }
+    // Auto-request camera/mic if not enabled yet, instead of blocking the button
+    if (!streamRef.current || streamRef.current.getVideoTracks().length === 0) {
+      toast({
+        title: "Enabling camera…",
+        description: "Allow camera and microphone access to go live."
+      });
+      const media = await initializeMedia(true, true);
+      if (!media || media.getVideoTracks().length === 0) {
+        toast({
+          title: "Camera not ready",
+          description: "We couldn't access your camera. Check browser permissions and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     // Verify camera is actually capturing (Phase 7)
-    const videoTracks = streamRef.current.getVideoTracks();
-    const audioTracks = streamRef.current.getAudioTracks();
+    const videoTracks = streamRef.current!.getVideoTracks();
+    const audioTracks = streamRef.current!.getAudioTracks();
     if (videoTracks.length === 0) {
       toast({
         title: "No video source",
@@ -2225,14 +2243,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
-                      {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || !streamCategory || isLoading} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                      {!isStreaming ? <Button onClick={startStream} disabled={isLoading || isRequestingCamera} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
                           {isLoading ? 'Ending...' : 'End Stream'}
                         </Button>}
-                      {!hasCameraPermission && <p className="text-xs text-muted-foreground text-center mt-2">
-                          Enable camera to start broadcasting
+                      {!isStreaming && (!streamTitle.trim() || !streamCategory) && <p className="text-xs text-muted-foreground text-center mt-2">
+                          {!streamTitle.trim() && !streamCategory ? 'Add a title and pick a category to go live' : !streamTitle.trim() ? 'Add a stream title to go live' : 'Pick a category to go live'}
+                        </p>}
+                      {!isStreaming && !hasCameraPermission && <p className="text-xs text-muted-foreground text-center mt-2">
+                          Camera will be requested when you start
                         </p>}
                     </div>
                   </div>
