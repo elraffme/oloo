@@ -35,20 +35,23 @@ export default function LivestreamGiftSelector({
   onGiftSent
 }: LivestreamGiftSelectorProps) {
   const { user } = useAuth();
-  const { balance } = useCurrency();
+  const { balance, refreshBalance } = useCurrency();
   const [freeGifts, setFreeGifts] = useState<Gift[]>([]);
-  const [premiumGifts, setPremiumGifts] = useState<Gift[]>([]);
+  const [pointGifts, setPointGifts] = useState<Gift[]>([]);
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [sending, setSending] = useState(false);
   const [lastFreeGiftTime, setLastFreeGiftTime] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const FREE_GIFT_COOLDOWN = 5000; // 5 seconds
+  const points = balance?.coin_balance ?? 0;
 
   useEffect(() => {
     if (open) {
       loadGifts();
+      refreshBalance();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Cooldown timer
@@ -77,17 +80,14 @@ export default function LivestreamGiftSelector({
       return;
     }
 
-    const free = data.filter(g => g.cost_tokens === 0 && g.category === 'free_livestream');
-    const premium = data.filter(g => g.cost_tokens > 0);
-    
-    setFreeGifts(free);
-    setPremiumGifts(premium.slice(0, 6)); // Show top 6 premium gifts
+    setFreeGifts(data.filter((g) => g.cost_tokens === 0 && g.category === 'free_livestream'));
+    setPointGifts(data.filter((g) => g.cost_tokens > 0 && g.category === 'stream'));
   };
 
   const handleSendGift = async () => {
     if (!selectedGift || !user) return;
 
-    // Check free gift cooldown
+    // Free gift cooldown
     if (selectedGift.cost_tokens === 0) {
       const timeSinceLastFree = Date.now() - lastFreeGiftTime;
       if (timeSinceLastFree < FREE_GIFT_COOLDOWN) {
@@ -96,57 +96,54 @@ export default function LivestreamGiftSelector({
       }
     }
 
-    // Check balance for premium gifts
-    if (selectedGift.cost_tokens > 0 && balance && balance.coin_balance < selectedGift.cost_tokens) {
-      toast.error('Not enough coins');
+    if (selectedGift.cost_tokens > 0 && points < selectedGift.cost_tokens) {
+      toast.error('Not enough Oloo Points.');
       return;
     }
 
     setSending(true);
 
     try {
-      const { data: transaction, error } = await supabase.rpc('send_gift', {
+      const { error } = await supabase.rpc('send_stream_gift' as any, {
         p_receiver_id: hostUserId,
         p_gift_id: selectedGift.id,
-        p_message: null
+        p_stream_id: streamId,
+        p_message: null,
       });
 
       if (error) throw error;
-
-      // Update transaction with stream context
-      if (transaction) {
-        await supabase
-          .from('gift_transactions')
-          .update({ 
-            metadata: { 
-              stream_id: streamId,
-              is_livestream: true 
-            } 
-          })
-          .eq('receiver_id', hostUserId)
-          .eq('gift_id', selectedGift.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-      }
 
       if (selectedGift.cost_tokens === 0) {
         setLastFreeGiftTime(Date.now());
         setCooldownRemaining(FREE_GIFT_COOLDOWN);
       }
 
-      toast.success(`Sent ${selectedGift.name} to ${hostName}!`);
+      await refreshBalance();
+
+      toast.success(
+        selectedGift.cost_tokens > 0
+          ? `Sent ${selectedGift.name} to ${hostName} for ${selectedGift.cost_tokens} Oloo Points!`
+          : `Sent ${selectedGift.name} to ${hostName}!`
+      );
       onGiftSent?.(selectedGift);
       setSelectedGift(null);
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending gift:', error);
-      toast.error('Failed to send gift');
+      if (String(error?.message || '').includes('Insufficient coins')) {
+        toast.error('Not enough Oloo Points.');
+      } else if (String(error?.message || '').includes('Daily gift limit')) {
+        toast.error('You have reached your daily gift limit');
+      } else {
+        toast.error(error?.message || 'Failed to send gift');
+      }
     } finally {
       setSending(false);
     }
   };
 
   const canSendFreeGift = cooldownRemaining === 0;
+  const insufficient = !!selectedGift && selectedGift.cost_tokens > points;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -155,59 +152,60 @@ export default function LivestreamGiftSelector({
           <SheetTitle className="text-center">Send Gift to {hostName}</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6 overflow-y-auto max-h-[calc(70vh-140px)] pb-4">
-          {/* Free Gifts Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">Free Gifts</h3>
-              {!canSendFreeGift && (
-                <span className="text-xs text-muted-foreground">
-                  Cooldown: {(cooldownRemaining / 1000).toFixed(1)}s
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {freeGifts.map((gift) => (
-                <button
-                  key={gift.id}
-                  onClick={() => setSelectedGift(gift)}
-                  disabled={!canSendFreeGift}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                    selectedGift?.id === gift.id
-                      ? 'border-primary bg-primary/10 scale-105'
-                      : 'border-border hover:border-primary/50 hover:bg-accent'
-                  } ${!canSendFreeGift ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <span className="text-4xl">{gift.asset_url}</span>
-                  <span className="text-xs font-medium text-foreground">{gift.name}</span>
-                  <span className="text-xs text-primary font-semibold">FREE</span>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm">
+          <Coins className="w-4 h-4 text-yellow-500" />
+          <span className="text-muted-foreground">Your balance:</span>
+          <span className="font-semibold text-foreground">{points.toLocaleString()} Oloo Points</span>
+        </div>
 
-          {/* Premium Gifts Section */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">Premium Gifts</h3>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Coins className="w-3 h-3" />
-                <span>{balance?.coin_balance || 0}</span>
+        <div className="mt-4 space-y-6 overflow-y-auto max-h-[calc(70vh-190px)] pb-4">
+          {/* Free Gifts */}
+          {freeGifts.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-foreground">Free Reactions</h3>
+                {!canSendFreeGift && (
+                  <span className="text-xs text-muted-foreground">
+                    Cooldown: {(cooldownRemaining / 1000).toFixed(1)}s
+                  </span>
+                )}
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {premiumGifts.map((gift) => {
-                const canAfford = balance && balance.coin_balance >= gift.cost_tokens;
-                return (
+              <div className="grid grid-cols-3 gap-3">
+                {freeGifts.map((gift) => (
                   <button
                     key={gift.id}
                     onClick={() => setSelectedGift(gift)}
-                    disabled={!canAfford}
+                    disabled={!canSendFreeGift}
                     className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                       selectedGift?.id === gift.id
                         ? 'border-primary bg-primary/10 scale-105'
                         : 'border-border hover:border-primary/50 hover:bg-accent'
-                    } ${!canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    } ${!canSendFreeGift ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span className="text-4xl">{gift.asset_url}</span>
+                    <span className="text-xs font-medium text-foreground">{gift.name}</span>
+                    <span className="text-xs text-primary font-semibold">FREE</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Point Gifts */}
+          <div>
+            <h3 className="text-sm font-semibold text-foreground mb-3">Oloo Points Gifts</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {pointGifts.map((gift) => {
+                const canAfford = points >= gift.cost_tokens;
+                return (
+                  <button
+                    key={gift.id}
+                    onClick={() => setSelectedGift(gift)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                      selectedGift?.id === gift.id
+                        ? 'border-primary bg-primary/10 scale-105'
+                        : 'border-border hover:border-primary/50 hover:bg-accent'
+                    } ${!canAfford ? 'opacity-60' : ''}`}
                   >
                     <span className="text-4xl">{gift.asset_url}</span>
                     <span className="text-xs font-medium text-foreground">{gift.name}</span>
@@ -223,14 +221,28 @@ export default function LivestreamGiftSelector({
         </div>
 
         {/* Send Button */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-background space-y-2">
+          {insufficient && (
+            <p className="text-sm text-destructive text-center">Not enough Oloo Points.</p>
+          )}
           <Button
             onClick={handleSendGift}
-            disabled={!selectedGift || sending || (selectedGift?.cost_tokens === 0 && !canSendFreeGift)}
+            disabled={
+              !selectedGift ||
+              sending ||
+              insufficient ||
+              (selectedGift?.cost_tokens === 0 && !canSendFreeGift)
+            }
             className="w-full"
             size="lg"
           >
-            {sending ? 'Sending...' : selectedGift ? `Send ${selectedGift.name}` : 'Select a gift'}
+            {sending
+              ? 'Sending...'
+              : selectedGift
+              ? selectedGift.cost_tokens > 0
+                ? `Send ${selectedGift.name} — ${selectedGift.cost_tokens} Oloo Points`
+                : `Send ${selectedGift.name}`
+              : 'Select a gift'}
           </Button>
         </div>
       </SheetContent>

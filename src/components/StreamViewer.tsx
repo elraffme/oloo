@@ -9,7 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, Volume2, VolumeX, Gift, MessageCircle, ChevronRight, ChevronLeft, Users, UserCircle, Loader2, Play, RefreshCw, Router, Zap, Video, VideoOff, LogOut, Mic, MicOff, Maximize2, Minimize2, AlertCircle, Home, Heart } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { GiftSelector } from '@/components/GiftSelector';
+import LivestreamGiftSelector from '@/components/LivestreamGiftSelector';
+import LivestreamGiftAnimation, { GiftAnimation } from '@/components/LivestreamGiftAnimation';
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
@@ -64,6 +65,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [hasVideo, setHasVideo] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [showGiftSelector, setShowGiftSelector] = useState(false);
+  const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [showChat, setShowChat] = useState(false); // Chat closed by default on all devices
   const [isLiked, setIsLiked] = useState(false);
@@ -1106,13 +1108,28 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       </Sheet>
 
       {user && (
-        <GiftSelector
+        <LivestreamGiftSelector
           open={showGiftSelector}
           onOpenChange={setShowGiftSelector}
-          receiverId={hostUserId}
-          receiverName={hostName}
+          hostUserId={hostUserId}
+          hostName={hostName}
+          streamId={streamId}
+          onGiftSent={(gift) =>
+            setGiftAnimations((prev) => [
+              ...prev,
+              {
+                id: `${gift.id}-${Date.now()}`,
+                giftEmoji: gift.asset_url || '🎁',
+                giftName: gift.name,
+                senderName: 'You',
+                timestamp: Date.now(),
+              },
+            ])
+          }
         />
       )}
+
+      <LivestreamGiftAnimation animations={giftAnimations} />
     </div>
     </TooltipProvider>
   );
