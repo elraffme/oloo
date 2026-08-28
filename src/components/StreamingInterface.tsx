@@ -134,12 +134,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }, [streamLifecycle]);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
-  const [giftNotifications, setGiftNotifications] = useState<Array<{
-    id: string;
-    senderName: string;
-    giftName: string;
-    giftEmoji: string;
-  }>>([]);
   const {
     balance
   } = useCurrency();
@@ -460,12 +454,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       } = await supabase.from('profiles').select('display_name').eq('user_id', giftTransaction.sender_id).single();
       if (giftData) {
         const senderName = senderData?.display_name || `User-${giftTransaction.sender_id.slice(0, 8)}`;
-        const notification = {
-          id: giftTransaction.id,
-          senderName: senderName,
-          giftName: giftData.name,
-          giftEmoji: giftData.asset_url || '🎁'
-        };
         setTotalGifts(prev => prev + 1);
         toast({
           title: `${senderName} sent ${giftData.name}!`,
