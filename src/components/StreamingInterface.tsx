@@ -1000,7 +1000,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStreaming, limits.maxDurationSec]);
 
-  const initializeMedia = async (requestVideo: boolean, requestAudio: boolean) => {
+  const initializeMedia = async (requestVideo: boolean, requestAudio: boolean): Promise<MediaStream | null> => {
     if (requestVideo) setIsRequestingCamera(true);
     if (requestAudio) setIsRequestingMic(true);
     try {
