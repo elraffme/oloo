@@ -70,11 +70,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     initialize,
     cleanup,
     checkChannelHealth,
+    checkSFUHealth,
     viewerStreams,
     isProducingReady,
     onProductionReady,
     connectionPhase
   } = useStream();
+
 
   // Determine active tab from URL - default to discover
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
