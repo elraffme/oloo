@@ -17,7 +17,9 @@ import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CoinShop } from '@/components/CoinShop';
 import { MyActiveStreamBanner } from '@/components/MyActiveStreamBanner';
-import { LikeAnimation } from '@/components/LikeAnimation';
+import { StreamHearts } from '@/components/StreamHearts';
+import LivestreamGiftAnimation from '@/components/LivestreamGiftAnimation';
+import { useStreamReactions } from '@/hooks/useStreamReactions';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import CameraTroubleshootingWizard from '@/components/CameraTroubleshootingWizard';
 import { StreamDiagnostics } from '@/components/StreamDiagnostics';
@@ -132,12 +134,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   }, [streamLifecycle]);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
-  const [giftNotifications, setGiftNotifications] = useState<Array<{
-    id: string;
-    senderName: string;
-    giftName: string;
-    giftEmoji: string;
-  }>>([]);
   const {
     balance
   } = useCurrency();
@@ -288,8 +284,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
-  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
-  const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
+  const { hearts: liveHearts, gifts: liveGifts } = useStreamReactions(activeStreamId);
   const [isTikTokMode, setIsTikTokMode] = useState(false);
 
   // Initialize stream queue with live streams
@@ -459,19 +454,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       } = await supabase.from('profiles').select('display_name').eq('user_id', giftTransaction.sender_id).single();
       if (giftData) {
         const senderName = senderData?.display_name || `User-${giftTransaction.sender_id.slice(0, 8)}`;
-        const notification = {
-          id: giftTransaction.id,
-          senderName: senderName,
-          giftName: giftData.name,
-          giftEmoji: giftData.asset_url || '🎁'
-        };
-        setGiftNotifications(prev => [...prev, notification]);
         setTotalGifts(prev => prev + 1);
-
-        // Remove notification after 5 seconds
-        setTimeout(() => {
-          setGiftNotifications(prev => prev.filter(n => n.id !== notification.id));
-        }, 5000);
         toast({
           title: `${senderName} sent ${giftData.name}!`,
           description: `You earned gold from this gift 🪙`
@@ -492,11 +475,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       table: 'stream_likes',
       filter: `stream_id=eq.${activeStreamId}`
     }, () => {
-      // Trigger the heart animation
-      setShowLikeAnimation(true);
-      setLikeAnimationTrigger(prev => prev + 1);
-
-      // Update total likes count
+      // Count only; heart animations come from the realtime reaction channel
       setTotalLikes(prev => prev + 1);
     }).subscribe();
     return () => {
@@ -2203,7 +2182,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         </Badge>
                         
                         {/* Like Animation Overlay */}
-                        <LikeAnimation key={likeAnimationTrigger} show={showLikeAnimation} onComplete={() => setShowLikeAnimation(false)} />
+                        <StreamHearts hearts={liveHearts} />
 
                         {/* Floating Chat Messages Overlay */}
                         <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
@@ -2215,21 +2194,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           ))}
                         </div>
 
-                        {/* Gift Notifications Overlay */}
-                        {giftNotifications.length > 0 && (
-                          <div className="absolute top-16 right-4 space-y-2 z-10">
-                            {giftNotifications.map(notification => (
-                              <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
-                                <span className="text-3xl">{notification.giftEmoji}</span>
-                                <div>
-                                  <p className="font-semibold text-sm">{notification.senderName}</p>
-                                  <p className="text-xs text-gray-300">sent {notification.giftName}</p>
-                                </div>
-                                <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {/* Gift Notifications Overlay (realtime for host + viewers) */}
+                        <LivestreamGiftAnimation animations={liveGifts} />
                         
                         {/* Fullscreen controls */}
                         {isHostFullscreen ? (

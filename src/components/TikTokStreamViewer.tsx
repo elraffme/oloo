@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
 import LivestreamGiftSelector from './LivestreamGiftSelector';
-import LivestreamGiftAnimation, { GiftAnimation } from './LivestreamGiftAnimation';
+import LivestreamGiftAnimation from './LivestreamGiftAnimation';
+import { StreamHearts } from './StreamHearts';
+import { useStreamReactions } from '@/hooks/useStreamReactions';
 import { LiveStreamChat } from './LiveStreamChat';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useStream, ConnectionPhase, STALE_STREAM_THRESHOLD_SECONDS } from '@/hooks/useStream';
@@ -71,7 +73,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [showFullChat, setShowFullChat] = useState(false);
   
   const [showGiftSelector, setShowGiftSelector] = useState(false);
-  const [giftAnimations, setGiftAnimations] = useState<GiftAnimation[]>([]);
+  const { hearts, gifts: liveGifts, sendHeart, sendGift } = useStreamReactions(streamId);
 
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
@@ -315,58 +317,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       setRelayedViewerCameras(viewerMap);
   }, [viewerStreams, peerId]);
 
-  useEffect(() => {
-    if (!streamId || !hostUserId) return;
-
-    const channel = supabase
-      .channel(`stream_gifts_${streamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'gift_transactions',
-          filter: `receiver_id=eq.${hostUserId}`
-        },
-        async (payload) => {
-          const transaction = payload.new;
-          
-          const { data: gift } = await supabase
-            .from('gifts')
-            .select('name, asset_url')
-            .eq('id', transaction.gift_id)
-            .single();
-
-          const { data: sender } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('user_id', transaction.sender_id)
-            .single();
-
-          if (gift) {
-            const senderName = sender?.display_name || `User-${transaction.sender_id.slice(0, 8)}`;
-            const newAnimation: GiftAnimation = {
-              id: transaction.id,
-              giftEmoji: gift.asset_url || '🎁',
-              giftName: gift.name,
-              senderName: senderName,
-              timestamp: Date.now()
-            };
-
-            setGiftAnimations(prev => [...prev, newAnimation]);
-
-            setTimeout(() => {
-              setGiftAnimations(prev => prev.filter(a => a.id !== newAnimation.id));
-            }, 3000);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [streamId, hostUserId]);
 
   useEffect(() => {
     const channel = supabase
@@ -450,35 +400,18 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       return;
     }
 
+    // Exactly one heart reaction per click, broadcast to everyone watching
+    sendHeart();
+
     try {
-      if (isLiked) {
-        await supabase
-          .from('stream_likes')
-          .delete()
-          .eq('stream_id', streamId)
-          .eq('user_id', user.id);
-        
-        setIsLiked(false);
-      } else {
+      if (!isLiked) {
         await supabase
           .from('stream_likes')
           .insert({ stream_id: streamId, user_id: user.id });
-        
         setIsLiked(true);
-        
-        const heartEl = document.createElement('div');
-        heartEl.className = 'absolute animate-float-up';
-        heartEl.style.left = `${Math.random() * 80 + 10}%`;
-        heartEl.style.bottom = '20%';
-        heartEl.innerHTML = '❤️';
-        heartEl.style.fontSize = '48px';
-        document.getElementById('video-container')?.appendChild(heartEl);
-        
-        setTimeout(() => heartEl.remove(), 2000);
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to like stream');
+      console.error('Error liking stream:', error);
     }
   };
 
@@ -1067,7 +1000,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       </div>
 
       {/* Gift animations */}
-      <LivestreamGiftAnimation animations={giftAnimations} />
+      <StreamHearts hearts={hearts} />
+      <LivestreamGiftAnimation animations={liveGifts} />
 
       {/* Gift selector */}
       <LivestreamGiftSelector
@@ -1076,18 +1010,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         hostUserId={hostUserId}
         hostName={hostName}
         streamId={streamId}
-        onGiftSent={(gift) =>
-          setGiftAnimations((prev) => [
-            ...prev,
-            {
-              id: `${gift.id}-${Date.now()}`,
-              giftEmoji: gift.asset_url || '🎁',
-              giftName: gift.name,
-              senderName: 'You',
-              timestamp: Date.now(),
-            },
-          ])
-        }
+        onGiftSent={(gift) => sendGift(gift)}
       />
 
       {/* Mobile Chat Sheet */}
