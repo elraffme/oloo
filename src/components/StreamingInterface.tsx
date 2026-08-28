@@ -1082,6 +1082,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         title: "Media enabled ✓",
         description: `${mediaTypes.join(' and ')} ready to stream.`
       });
+      return streamRef.current;
     } catch (error: any) {
       console.error('Error accessing media:', error);
       if (requestVideo) setHasCameraPermission(false);
@@ -1099,6 +1100,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         description: errorMessage,
         variant: "destructive"
       });
+      return null;
     } finally {
       if (requestVideo) setIsRequestingCamera(false);
       if (requestAudio) setIsRequestingMic(false);
