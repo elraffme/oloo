@@ -70,11 +70,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     initialize,
     cleanup,
     checkChannelHealth,
+    checkSFUHealth,
     viewerStreams,
     isProducingReady,
     onProductionReady,
     connectionPhase
   } = useStream();
+
 
   // Determine active tab from URL - default to discover
   const activeTab = location.pathname.endsWith('/go-live') ? 'go-live' : 'discover';
@@ -1376,11 +1378,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Stream validation failed');
       }
 
+      // PREFLIGHT: the media (SFU) server must be reachable, otherwise the host
+      // would appear "LIVE" while no viewer can ever receive media.
+      const sfuHealth = await checkSFUHealth();
+      if (!sfuHealth.healthy) {
+        await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
+        throw new Error(`Streaming server is unreachable (${sfuHealth.error || 'no response'}). Your stream was not started.`);
+      }
+
       // Initialize SFU stream
       console.log('🔧 Initializing SFU stream...');
       await initialize('streamer', {}, data.id, streamRef.current);
       console.log('✅ SFU stream initialized, waiting for production confirmation...');
       setChannelStatus('connecting');
+
 
       // Helper to set stream live in DB
       let hasGoneLive = false;
@@ -1415,14 +1426,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         setStreamLive('sfu_production_ready');
       });
 
-      // FALLBACK: If SFU doesn't confirm within 8 seconds, go live anyway
-      // This ensures the stream appears in discover even if SFU is slow
-      const sfuFallbackTimeout = setTimeout(() => {
+      // If the SFU never confirms media production, do NOT fake a live stream —
+      // viewers would join and immediately hit "Connection Error".
+      const sfuFallbackTimeout = setTimeout(async () => {
         if (!hasGoneLive) {
-          console.warn('⚠️ SFU did not confirm production in 8s, going live via fallback');
-          setStreamLive('sfu_timeout_fallback');
+          console.error('❌ SFU did not confirm media production within 20s');
+          await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
+          setChannelStatus('error');
+          toast({
+            title: "Broadcast failed",
+            description: "The media server never accepted your video. Please try again.",
+            variant: "destructive"
+          });
         }
-      }, 8000);
+      }, 20000);
+
 
       // Fetch ICE servers to check TURN availability
       try {

@@ -56,8 +56,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     connectionPhase,
     connectionError,
     elapsedTime,
-    retryConnection
+    retryConnection,
+    checkSFUHealth
   } = useStream();
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isLeavingRef = useRef(false);
@@ -284,9 +287,19 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       
       setSessionToken(token);
 
+      // PREFLIGHT: verify the media server is reachable so we can report the real
+      // reason instead of a generic timeout after 5s of "Loading...".
+      const health = await checkSFUHealth();
+      if (!health.healthy) {
+        setServerError(`Cannot reach the live streaming server (${health.error || 'no response'}). This is a server-side outage — retrying will not help until it is back online.`);
+        return;
+      }
+      setServerError(null);
+
       // Initialize SFU connection (stream validation is also done inside initialize)
       console.log('🔌 Connecting to SFU stream...');
       await initialize('viewer', {}, streamId);
+
 
       if (!cancelled) {
         setIsConnected(true);
@@ -919,28 +932,40 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           />
           
           {/* Connection Status Overlay */}
-          {connectionPhase !== 'streaming' && (
+          {(connectionPhase !== 'streaming' || serverError) && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
-              {connectionPhase === 'timeout' || connectionPhase === 'error' ? (
+              {serverError || connectionPhase === 'timeout' || connectionPhase === 'error' ? (
                 <div className="flex flex-col items-center gap-4 text-center">
                   <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center">
                     <AlertCircle className="w-8 h-8 text-destructive" />
                   </div>
                   <h3 className="text-white font-semibold text-lg">
-                    {connectionPhase === 'timeout' ? 'Connection Timed Out' : 'Connection Error'}
+                    {serverError ? 'Streaming Server Unavailable' : connectionPhase === 'timeout' ? 'Connection Timed Out' : 'Connection Error'}
                   </h3>
                   <p className="text-muted-foreground text-sm max-w-xs">
-                    {connectionError || 'The host may not be streaming yet, or there was a network issue.'}
+                    {serverError || connectionError || 'The host may not be streaming yet, or there was a network issue.'}
                   </p>
-                  <p className="text-muted-foreground/60 text-xs">Waited {elapsedTime} seconds</p>
+                  {!serverError && <p className="text-muted-foreground/60 text-xs">Waited {elapsedTime} seconds</p>}
                   <div className="flex gap-3 mt-2">
                     <Button variant="outline" onClick={handleLeaveStream} className="gap-2">
                       <Home className="w-4 h-4" /> Leave
                     </Button>
-                    <Button onClick={retryConnection} className="gap-2">
+                    <Button
+                      onClick={async () => {
+                        const health = await checkSFUHealth();
+                        if (!health.healthy) {
+                          setServerError(`Cannot reach the live streaming server (${health.error || 'no response'}). This is a server-side outage — retrying will not help until it is back online.`);
+                          return;
+                        }
+                        setServerError(null);
+                        retryConnection();
+                      }}
+                      className="gap-2"
+                    >
                       <RefreshCw className="w-4 h-4" /> Retry Connection
                     </Button>
                   </div>
+
                 </div>
               ) : (
                 <>
