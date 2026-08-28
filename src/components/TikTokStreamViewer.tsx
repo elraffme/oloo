@@ -1076,7 +1076,18 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         hostUserId={hostUserId}
         hostName={hostName}
         streamId={streamId}
-        onGiftSent={(gift) => console.log('Gift sent:', gift)}
+        onGiftSent={(gift) =>
+          setGiftAnimations((prev) => [
+            ...prev,
+            {
+              id: `${gift.id}-${Date.now()}`,
+              giftEmoji: gift.asset_url || '🎁',
+              giftName: gift.name,
+              senderName: 'You',
+              timestamp: Date.now(),
+            },
+          ])
+        }
       />
 
       {/* Mobile Chat Sheet */}
