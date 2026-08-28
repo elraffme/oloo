@@ -1383,7 +1383,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const sfuHealth = await checkSFUHealth();
       if (!sfuHealth.healthy) {
         await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
-        throw new Error(`Streaming server is unreachable (${sfuHealth.error || 'no response'}). Your stream was not started.`);
+        throw new Error(`Streaming server is offline (${sfuHealth.error || 'no response'}). Your stream was not started.`);
       }
 
       // Initialize SFU stream
@@ -1398,6 +1398,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       const setStreamLive = async (source: string) => {
         if (hasGoneLive) return;
         hasGoneLive = true;
+        if (sfuFallbackTimeoutRef.current) {
+          clearTimeout(sfuFallbackTimeoutRef.current);
+          sfuFallbackTimeoutRef.current = null;
+        }
         console.log(`🎉 Setting stream live (source: ${source})`);
         
         const { error: updateError } = await supabase.from('streaming_sessions').update({
@@ -1428,11 +1432,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
       // If the SFU never confirms media production, do NOT fake a live stream —
       // viewers would join and immediately hit "Connection Error".
-      const sfuFallbackTimeout = setTimeout(async () => {
+      if (sfuFallbackTimeoutRef.current) clearTimeout(sfuFallbackTimeoutRef.current);
+      sfuFallbackTimeoutRef.current = setTimeout(async () => {
+        sfuFallbackTimeoutRef.current = null;
         if (!hasGoneLive) {
           console.error('❌ SFU did not confirm media production within 20s');
+          hasGoneLive = true;
           await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
+          cleanup();
           setChannelStatus('error');
+          setStreamLifecycle('idle');
+          setIsStreaming(false);
+          setActiveStreamId(null);
+          activeStreamIdRef.current = null;
+          setIsLoading(false);
           toast({
             title: "Broadcast failed",
             description: "The media server never accepted your video. Please try again.",
@@ -1459,6 +1472,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         title: "🎥 Stream Starting...",
         description: "Establishing broadcast connection"
       });
+
     } catch (error: any) {
       console.error('Error starting stream:', error);
 
