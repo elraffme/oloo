@@ -1493,10 +1493,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         variant: "destructive",
         duration: 10000
       });
+      if (sfuFallbackTimeoutRef.current) {
+        clearTimeout(sfuFallbackTimeoutRef.current);
+        sfuFallbackTimeoutRef.current = null;
+      }
       setStreamLifecycle('idle');
       setChannelStatus('disconnected');
       setIsStreaming(false);
+      setActiveStreamId(null);
+      activeStreamIdRef.current = null;
       setIsLoading(false);
+
     }
   };
   const handleHostReconnect = async () => {
