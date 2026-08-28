@@ -35,6 +35,7 @@ import { limitsForTier, formatDuration } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
+import { PeerBroadcastManager } from '@/lib/peerLivestream';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -110,6 +111,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } | null>(null);
   const isCleaningUpRef = useRef(false);
   const sfuFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peerBroadcastRef = useRef<PeerBroadcastManager | null>(null);
 
 
   const activeStreamIdRef = useRef<string | null>(null);
@@ -865,6 +867,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     // Cleanup SFU
     cleanup();
+    peerBroadcastRef.current?.disconnect();
+    peerBroadcastRef.current = null;
   };
 
   // Improved cleanup on unmount
@@ -1419,36 +1423,13 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Stream validation failed');
       }
 
-      // PREFLIGHT: the media (SFU) server must be reachable, otherwise the host
-      // would appear "LIVE" while no viewer can ever receive media.
+      // Mark live only after a real media transport (SFU or peer fallback) is ready.
       const sfuHealth = await checkSFUHealth();
       logStreamEvent({
         session_id: data.id, role: 'host', phase: 'preflight', event: 'sfu_health_check',
         level: sfuHealth.healthy ? 'info' : 'error',
         message: sfuHealth.healthy ? 'SFU reachable' : `SFU unreachable: ${sfuHealth.error}`,
         detail: { healthy: sfuHealth.healthy, latency_ms: sfuHealth.latency, error: sfuHealth.error },
-      });
-      if (!sfuHealth.healthy) {
-        await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
-        throw new Error(`Streaming server is offline (${sfuHealth.error || 'no response'}). Your stream was not started.`);
-      }
-
-      // Initialize SFU stream
-      console.log('🔧 Initializing SFU stream...');
-      try {
-        await initialize('streamer', {}, data.id, streamRef.current);
-      } catch (initErr: any) {
-        logStreamEvent({
-          session_id: data.id, role: 'host', phase: 'sfu_init', event: 'sfu_initialize_failed', level: 'error',
-          message: initErr?.message || 'initialize() threw',
-          detail: { name: initErr?.name, stack: String(initErr?.stack || '').slice(0, 800) },
-        });
-        throw initErr;
-      }
-      console.log('✅ SFU stream initialized, waiting for production confirmation...');
-      logStreamEvent({
-        session_id: data.id, role: 'host', phase: 'sfu_init', event: 'sfu_initialized',
-        message: 'Signalling/transport setup started, awaiting production confirmation',
       });
       setChannelStatus('connecting');
 
@@ -1493,39 +1474,37 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
       };
 
-      // Register callback for when SFU production is ready
-      onProductionReady(() => {
-        setStreamLive('sfu_production_ready');
-      });
+      if (sfuHealth.healthy) {
+        console.log('🔧 Initializing SFU stream...');
+        await initialize('streamer', {}, data.id, streamRef.current);
+        logStreamEvent({ session_id: data.id, role: 'host', phase: 'sfu_init', event: 'sfu_initialized', message: 'SFU transport setup started' });
+        onProductionReady(() => { void setStreamLive('sfu_production_ready'); });
 
-      // If the SFU never confirms media production, do NOT fake a live stream —
-      // viewers would join and immediately hit "Connection Error".
-      if (sfuFallbackTimeoutRef.current) clearTimeout(sfuFallbackTimeoutRef.current);
-      sfuFallbackTimeoutRef.current = setTimeout(async () => {
-        sfuFallbackTimeoutRef.current = null;
-        if (!hasGoneLive) {
-          console.error('❌ SFU did not confirm media production within 20s');
-          logStreamEvent({
-            session_id: data.id, role: 'host', phase: 'sfu_init', event: 'production_timeout', level: 'error',
-            message: 'SFU never confirmed media production within 20s — session auto-ended',
-            detail: { timeout_ms: 20000 },
-          });
-          hasGoneLive = true;
-          await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
-          cleanup();
-          setChannelStatus('error');
-          setStreamLifecycle('idle');
-          setIsStreaming(false);
-          setActiveStreamId(null);
-          activeStreamIdRef.current = null;
-          setIsLoading(false);
-          toast({
-            title: "Broadcast failed",
-            description: "The media server never accepted your video. Please try again.",
-            variant: "destructive"
-          });
-        }
-      }, 20000);
+        if (sfuFallbackTimeoutRef.current) clearTimeout(sfuFallbackTimeoutRef.current);
+        sfuFallbackTimeoutRef.current = setTimeout(async () => {
+          sfuFallbackTimeoutRef.current = null;
+          if (hasGoneLive || !streamRef.current) return;
+          logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: 'sfu_production_timeout', level: 'warn', message: 'SFU production timed out; starting peer transport' });
+          try {
+            const manager = new PeerBroadcastManager(data.id, streamRef.current, (state, detail) => {
+              logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: `peer_${state}`, level: state === 'failed' ? 'error' : 'info', message: detail || state });
+            });
+            peerBroadcastRef.current = manager;
+            await manager.connect(supabase);
+            await setStreamLive('peer_signaling_ready');
+          } catch (peerError: any) {
+            logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: 'peer_initialize_failed', level: 'error', message: peerError?.message || 'Peer fallback failed' });
+          }
+        }, 12000);
+      } else {
+        console.warn('⚠️ SFU unavailable; starting existing peer WebRTC transport');
+        const manager = new PeerBroadcastManager(data.id, streamRef.current, (state, detail) => {
+          logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: `peer_${state}`, level: state === 'failed' ? 'error' : 'info', message: detail || state });
+        });
+        peerBroadcastRef.current = manager;
+        await manager.connect(supabase);
+        await setStreamLive('peer_signaling_ready');
+      }
 
 
       // Fetch ICE servers to check TURN availability
@@ -1609,6 +1588,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     try {
       // Cleanup SFU first
       cleanup();
+      peerBroadcastRef.current?.disconnect();
+      peerBroadcastRef.current = null;
       setChannelStatus('disconnected');
 
       // Phase 1: Stop all media tracks

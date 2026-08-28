@@ -23,6 +23,7 @@ import { useStreamViewers } from '@/hooks/useStreamViewers';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { PeerViewerConnection } from '@/lib/peerLivestream';
 
 interface StreamViewerProps {
   streamId: string;
@@ -60,6 +61,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     checkSFUHealth
   } = useStream();
   const [serverError, setServerError] = useState<string | null>(null);
+  const peerViewerRef = useRef<PeerViewerConnection | null>(null);
+  const [peerConnectionState, setPeerConnectionState] = useState<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
 
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -291,18 +294,37 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       // reason instead of a generic timeout after 5s of "Loading...".
       const health = await checkSFUHealth();
       if (!health.healthy) {
-        setServerError(`Cannot reach the live streaming server (${health.error || 'no response'}). This is a server-side outage — retrying will not help until it is back online.`);
-        return;
-      }
-      setServerError(null);
-
-      // Initialize SFU connection (stream validation is also done inside initialize)
-      console.log('🔌 Connecting to SFU stream...');
-      await initialize('viewer', {}, streamId);
-
-
-      if (!cancelled) {
-        setIsConnected(true);
+        console.warn('⚠️ SFU unavailable; joining through peer WebRTC transport');
+        setServerError(null);
+        setPeerConnectionState('connecting');
+        const peerViewer = new PeerViewerConnection(
+          streamId,
+          stream => {
+            if (cancelled) return;
+            setHostStream(stream);
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              void videoRef.current.play().catch(error => console.warn('Peer video autoplay deferred:', error));
+            }
+          },
+          (state, detail) => {
+            if (cancelled) return;
+            if (state === 'connected') {
+              setPeerConnectionState('connected');
+              setIsConnected(true);
+            } else if (state === 'failed') {
+              setPeerConnectionState('failed');
+              setServerError(`Peer connection failed${detail ? ` (${detail})` : ''}.`);
+            }
+          },
+        );
+        peerViewerRef.current = peerViewer;
+        await peerViewer.connect(supabase);
+      } else {
+        setServerError(null);
+        console.log('🔌 Connecting to SFU stream...');
+        await initialize('viewer', {}, streamId);
+        if (!cancelled) setIsConnected(true);
       }
 
       // Load initial like status and count
@@ -337,6 +359,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       
       // Always cleanup stream resources
       cleanup();
+      peerViewerRef.current?.disconnect();
+      peerViewerRef.current = null;
       
       // Reset local state
       setIsConnected(false);
@@ -932,7 +956,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           />
           
           {/* Connection Status Overlay */}
-          {(connectionPhase !== 'streaming' || serverError) && (
+          {((connectionPhase !== 'streaming' && peerConnectionState !== 'connected') || serverError) && (
             <div className="absolute inset-0 flex items-center justify-center flex-col space-y-3 bg-black/80 z-20 p-4">
               {serverError || connectionPhase === 'timeout' || connectionPhase === 'error' ? (
                 <div className="flex flex-col items-center gap-4 text-center">
@@ -970,7 +994,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               ) : (
                 <>
                   <Loader2 className="h-12 w-12 animate-spin text-white" />
-                  <p className="text-white font-medium text-sm md:text-base">{getConnectionMessage(connectionPhase)}</p>
+                  <p className="text-white font-medium text-sm md:text-base">{peerConnectionState === 'connecting' ? 'Connecting to host...' : getConnectionMessage(connectionPhase)}</p>
                   {connectionPhase === 'awaiting_producers' && (
                     <p className="text-muted-foreground text-xs">Searching for host video stream...</p>
                   )}
