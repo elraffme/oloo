@@ -108,6 +108,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     details: any;
   } | null>(null);
   const isCleaningUpRef = useRef(false);
+  const sfuFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
