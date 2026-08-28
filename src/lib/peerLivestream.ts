@@ -150,6 +150,15 @@ export class PeerViewerConnection {
       if (state === 'failed' || state === 'disconnected') this.onState?.('failed', state);
     };
 
+    // Realtime allows several channel objects on the same broadcast topic, but
+    // the client de-duplicates identical topic names. Remove any stale viewer
+    // instance left by a prior join before subscribing this connection.
+    const topic = `realtime:live_stream_${this.streamId}`;
+    for (const existingChannel of supabase.getChannels()) {
+      if (existingChannel.topic === topic && existingChannel !== this.channel) {
+        await supabase.removeChannel(existingChannel);
+      }
+    }
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`, { config: { broadcast: { ack: true } } })
       .on('broadcast', { event: 'offer' }, ({ payload }) => {
