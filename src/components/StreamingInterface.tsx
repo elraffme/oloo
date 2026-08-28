@@ -2243,14 +2243,17 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     
                     {/* Start Streaming Button - Prominent */}
                     <div className="w-full max-w-[280px]">
-                      {!isStreaming ? <Button onClick={startStream} disabled={!streamTitle.trim() || !streamCategory || isLoading} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
+                      {!isStreaming ? <Button onClick={startStream} disabled={isLoading || isRequestingCamera} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
                         </Button> : <Button onClick={endStream} variant="destructive" className="w-full" size="lg">
                           {isLoading ? 'Ending...' : 'End Stream'}
                         </Button>}
-                      {!hasCameraPermission && <p className="text-xs text-muted-foreground text-center mt-2">
-                          Enable camera to start broadcasting
+                      {!isStreaming && (!streamTitle.trim() || !streamCategory) && <p className="text-xs text-muted-foreground text-center mt-2">
+                          {!streamTitle.trim() && !streamCategory ? 'Add a title and pick a category to go live' : !streamTitle.trim() ? 'Add a stream title to go live' : 'Pick a category to go live'}
+                        </p>}
+                      {!isStreaming && !hasCameraPermission && <p className="text-xs text-muted-foreground text-center mt-2">
+                          Camera will be requested when you start
                         </p>}
                     </div>
                   </div>
