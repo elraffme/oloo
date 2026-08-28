@@ -287,9 +287,19 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       
       setSessionToken(token);
 
+      // PREFLIGHT: verify the media server is reachable so we can report the real
+      // reason instead of a generic timeout after 5s of "Loading...".
+      const health = await checkSFUHealth();
+      if (!health.healthy) {
+        setServerError(`Cannot reach the live streaming server (${health.error || 'no response'}). This is a server-side outage — retrying will not help until it is back online.`);
+        return;
+      }
+      setServerError(null);
+
       // Initialize SFU connection (stream validation is also done inside initialize)
       console.log('🔌 Connecting to SFU stream...');
       await initialize('viewer', {}, streamId);
+
 
       if (!cancelled) {
         setIsConnected(true);
