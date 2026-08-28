@@ -56,8 +56,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
     connectionPhase,
     connectionError,
     elapsedTime,
-    retryConnection
+    retryConnection,
+    checkSFUHealth
   } = useStream();
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isLeavingRef = useRef(false);
