@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.claim-founding-credits]
 verify_jwt = false
+
+[functions.stream-log]
+verify_jwt = false
