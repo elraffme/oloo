@@ -2731,6 +2731,7 @@ export type Database = {
       }
       purchase_flash_sale_item: { Args: { p_item_id: string }; Returns: Json }
       purchase_shop_bundle: { Args: { p_bundle_id: string }; Returns: Json }
+      purchase_shop_item: { Args: { p_item_id: string }; Returns: Json }
       record_profile_view: {
         Args: { p_viewed_profile_id: string }
         Returns: undefined
@@ -2764,6 +2765,15 @@ export type Database = {
         Args: { p_item_id: string; p_message?: string; p_receiver_id: string }
         Returns: Json
       }
+      send_stream_gift: {
+        Args: {
+          p_gift_id: number
+          p_message?: string
+          p_receiver_id: string
+          p_stream_id?: string
+        }
+        Returns: Json
+      }
       submit_trivia_answer: {
         Args: {
           p_question_id: string
@@ -2773,6 +2783,7 @@ export type Database = {
         }
         Returns: Json
       }
+      toggle_item_equipped: { Args: { p_item_id: string }; Returns: boolean }
       toggle_stream_like: { Args: { p_stream_id: string }; Returns: Json }
       toggle_wishlist_item: { Args: { p_item_id: string }; Returns: Json }
       update_meet_me_stats: {
