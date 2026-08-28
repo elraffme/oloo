@@ -14,7 +14,8 @@ import LivestreamGiftAnimation, { GiftAnimation } from '@/components/LivestreamG
 import { CurrencyWallet } from '@/components/CurrencyWallet';
 import { LiveStreamChat } from '@/components/LiveStreamChat';
 import { FloatingActionButtons } from '@/components/FloatingActionButtons';
-import { LikeAnimation } from '@/components/LikeAnimation';
+import { StreamHearts } from '@/components/StreamHearts';
+import { useStreamReactions } from '@/hooks/useStreamReactions';
 import { VideoCallGrid } from '@/components/VideoCallGrid';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -76,8 +77,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [showChat, setShowChat] = useState(false); // Chat closed by default on all devices
   const [isLiked, setIsLiked] = useState(false);
   const [totalLikes, setTotalLikes] = useState(0);
-  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
-  const [likeAnimationTrigger, setLikeAnimationTrigger] = useState(0);
+  const { hearts, gifts: liveGifts, sendHeart, sendGift } = useStreamReactions(streamId);
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
@@ -461,9 +461,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           filter: `stream_id=eq.${streamId}`
         },
         () => {
-          // Trigger animation for any like from any viewer
-          setShowLikeAnimation(true);
-          setLikeAnimationTrigger(prev => prev + 1);
+          // Count only; heart animations are driven by the realtime reaction channel
           setTotalLikes(prev => prev + 1);
         }
       )
@@ -632,31 +630,18 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       return;
     }
 
+    // Exactly one heart reaction per click, for everyone watching
+    sendHeart();
+
     try {
-      if (isLiked) {
-        await supabase
-          .from('stream_likes')
-          .delete()
-          .eq('stream_id', streamId)
-          .eq('user_id', user.id);
-        
-        setIsLiked(false);
-        setTotalLikes(prev => Math.max(0, prev - 1));
-      } else {
+      if (!isLiked) {
         await supabase
           .from('stream_likes')
           .insert({ stream_id: streamId, user_id: user.id });
-        
         setIsLiked(true);
-        setTotalLikes(prev => prev + 1);
-        setShowLikeAnimation(true);
-        setLikeAnimationTrigger(prev => prev + 1);
-        
-        setTimeout(() => setShowLikeAnimation(false), 2000);
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
-      toast.error('Failed to like stream');
+      console.error('Error liking stream:', error);
     }
   };
 
@@ -1138,11 +1123,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       </div>
 
       {/* Like Animation */}
-      <LikeAnimation
-        key={likeAnimationTrigger}
-        show={showLikeAnimation} 
-        onComplete={() => setShowLikeAnimation(false)} 
-      />
+      <StreamHearts hearts={hearts} />
 
       {/* Mobile Chat Sheet */}
       <Sheet open={showChat && isMobile} onOpenChange={(open) => isMobile && setShowChat(open)}>
@@ -1163,22 +1144,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           hostUserId={hostUserId}
           hostName={hostName}
           streamId={streamId}
-          onGiftSent={(gift) =>
-            setGiftAnimations((prev) => [
-              ...prev,
-              {
-                id: `${gift.id}-${Date.now()}`,
-                giftEmoji: gift.asset_url || '🎁',
-                giftName: gift.name,
-                senderName: 'You',
-                timestamp: Date.now(),
-              },
-            ])
-          }
+          onGiftSent={(gift) => sendGift(gift)}
         />
       )}
 
-      <LivestreamGiftAnimation animations={giftAnimations} />
+      <LivestreamGiftAnimation animations={liveGifts} />
     </div>
     </TooltipProvider>
   );
