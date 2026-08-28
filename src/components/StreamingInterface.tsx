@@ -1378,11 +1378,20 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         throw new Error('Stream validation failed');
       }
 
+      // PREFLIGHT: the media (SFU) server must be reachable, otherwise the host
+      // would appear "LIVE" while no viewer can ever receive media.
+      const sfuHealth = await checkSFUHealth();
+      if (!sfuHealth.healthy) {
+        await supabase.from('streaming_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', data.id);
+        throw new Error(`Streaming server is unreachable (${sfuHealth.error || 'no response'}). Your stream was not started.`);
+      }
+
       // Initialize SFU stream
       console.log('🔧 Initializing SFU stream...');
       await initialize('streamer', {}, data.id, streamRef.current);
       console.log('✅ SFU stream initialized, waiting for production confirmation...');
       setChannelStatus('connecting');
+
 
       // Helper to set stream live in DB
       let hasGoneLive = false;
