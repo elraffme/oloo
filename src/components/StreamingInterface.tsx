@@ -2206,21 +2206,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           ))}
                         </div>
 
-                        {/* Gift Notifications Overlay */}
-                        {false && giftNotifications.length > 0 && (
-                          <div className="absolute top-16 right-4 space-y-2 z-10">
-                            {giftNotifications.map(notification => (
-                              <div key={notification.id} className="bg-black/80 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in flex items-center gap-3">
-                                <span className="text-3xl">{notification.giftEmoji}</span>
-                                <div>
-                                  <p className="font-semibold text-sm">{notification.senderName}</p>
-                                  <p className="text-xs text-gray-300">sent {notification.giftName}</p>
-                                </div>
-                                <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        {/* Gift Notifications Overlay (realtime for host + viewers) */}
+                        <LivestreamGiftAnimation animations={liveGifts} />
                         
                         {/* Fullscreen controls */}
                         {isHostFullscreen ? (
