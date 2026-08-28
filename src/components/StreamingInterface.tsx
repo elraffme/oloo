@@ -110,6 +110,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   } | null>(null);
   const isCleaningUpRef = useRef(false);
   const sfuFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
+  const activeStreamIdRef = useRef<string | null>(null);
   // Log every stream lifecycle transition (server-side trace of session state).
   const prevLifecycleRef = useRef<string>('idle');
   useEffect(() => {
@@ -125,8 +128,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     });
     prevLifecycleRef.current = streamLifecycle;
   }, [streamLifecycle]);
-
-  const activeStreamIdRef = useRef<string | null>(null);
   const [showCoinShop, setShowCoinShop] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<Date | null>(null);
   const [giftNotifications, setGiftNotifications] = useState<Array<{
