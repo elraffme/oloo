@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { clearLastActivity, isSessionInactive, writeLastActivity } from '@/hooks/useInactivityLogout';
 
 interface AuthContextType {
   user: User | null;
