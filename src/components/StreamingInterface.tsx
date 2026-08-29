@@ -2055,8 +2055,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Premium tier status banner */}
-                  <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
-                    <div className="flex items-center gap-2 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
+                    <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm min-w-0">
                       {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Free plan</span>}
                       <span className="text-muted-foreground capitalize">
                         {isPremium ? `· ${limits.tier}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}
