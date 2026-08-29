@@ -2076,8 +2076,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     />
                   )}
                   <div>
-                    <label className="text-sm font-medium">Stream Title</label>
-                    <Input value={streamTitle} onChange={e => setStreamTitle(e.target.value)} placeholder="What's your stream about?" className="mt-1" />
+                    <label className="text-sm font-medium">Stream Title *</label>
+                    <Input value={streamTitle} onChange={e => {
+                      setStreamTitle(e.target.value);
+                      if (e.target.value.trim()) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.title;
+                          return next;
+                        });
+                      }
+                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
+                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
                   </div>
 
                    {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
