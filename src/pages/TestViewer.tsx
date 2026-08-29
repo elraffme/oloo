@@ -1,36 +1,37 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AuthContext } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import StreamViewer from '@/components/StreamViewer';
 import { TikTokStreamViewer } from '@/components/TikTokStreamViewer';
 
 const mockUser = {
   id: '00000000-0000-0000-0000-000000000000',
   email: 'test@example.com',
+  app_metadata: { provider: 'email' },
+  email_confirmed_at: new Date().toISOString(),
 } as any;
 
-const mockValue = {
+const mockSession = {
   user: mockUser,
-  session: null as any,
-  loading: false,
-  signIn: async () => ({ error: null }),
-  signUp: async () => ({ error: null }),
-  signInWithGoogle: async () => ({ error: null }),
-  signInWithTwitter: async () => ({ error: null }),
-  signInWithFacebook: async () => ({ error: null }),
-  signInWithLinkedIn: async () => ({ error: null }),
-  signOut: async () => ({ error: null }),
-  updateProfile: async () => ({ error: null }),
-  requestPasswordReset: async () => ({ error: null }),
-  updatePassword: async () => ({ error: null }),
-};
+  access_token: 'mock-token',
+  refresh_token: 'mock-refresh',
+  expires_at: Date.now() + 3600,
+} as any;
+
+// Patch supabase auth so AuthProvider sees a mock session without network calls
+(supabase.auth as any).getSession = async () => ({ data: { session: mockSession }, error: null });
+(supabase.auth as any).onAuthStateChange = () => ({
+  data: { subscription: { unsubscribe: () => {} } },
+});
+(supabase.auth as any).getUser = async () => ({ data: { user: mockUser }, error: null });
 
 const TestViewer: React.FC = () => {
   const [params] = useSearchParams();
   const mode = params.get('mode') || 'sv';
 
   return (
-    <AuthContext.Provider value={mockValue as any}>
+    <AuthProvider>
       {mode === 'tiktok' ? (
         <TikTokStreamViewer
           streamId="00000000-0000-0000-0000-000000000000"
@@ -51,7 +52,7 @@ const TestViewer: React.FC = () => {
           onClose={() => console.log('close')}
         />
       )}
-    </AuthContext.Provider>
+    </AuthProvider>
   );
 };
 
