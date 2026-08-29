@@ -1854,12 +1854,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             {/* My Active Stream Banner */}
             {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={effectiveViewerCount} totalLikes={totalLikes + liveHeartCount} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
 
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
-              <p className="text-muted-foreground mb-3">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
+              <p className="text-sm sm:text-base text-muted-foreground mb-3">
                 Connect with your community through live cultural content
               </p>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   ✨ Real-time Streaming
                 </Badge>
