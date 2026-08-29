@@ -2398,9 +2398,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   )}
 
                   {/* Live Chat Card */}
-                  <Card className="cultural-card flex flex-col h-[500px]">
+                  <Card className="cultural-card flex flex-col h-[60vh] min-h-[320px] max-h-[500px]">
                     <CardContent className="flex-1 p-0 overflow-hidden">
-                      {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
+                      {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={isMobileView} />}
                     </CardContent>
                   </Card>
                 </div>}
