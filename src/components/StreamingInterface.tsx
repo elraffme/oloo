@@ -1830,23 +1830,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-  return <div className="min-h-screen dark bg-background p-4">
-      <div className="max-w-6xl mx-auto">
+  return <div className="min-h-screen dark bg-background p-3 sm:p-4 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            {onBack && <Button variant="ghost" onClick={onBack}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
                 <ArrowLeft className="w-4 h-4" />
               </Button>}
-            <h1 className="text-2xl font-afro-heading">Live Streaming</h1>
+            <h1 className="text-xl sm:text-2xl font-afro-heading truncate">Live Streaming</h1>
           </div>
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
         </div>
 
-        <Tabs value={activeTab} onValueChange={value => navigate(`/app/streaming/${value}`)} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={value => navigate(`/app/streaming/${value}`)} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="discover">Discover Streams</TabsTrigger>
-            <TabsTrigger value="go-live">Go Live</TabsTrigger>
+            <TabsTrigger value="discover" className="text-xs sm:text-sm">Discover Streams</TabsTrigger>
+            <TabsTrigger value="go-live" className="text-xs sm:text-sm">Go Live</TabsTrigger>
           </TabsList>
 
           {/* Discover Tab */}
@@ -1854,12 +1854,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             {/* My Active Stream Banner */}
             {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={effectiveViewerCount} totalLikes={totalLikes + liveHeartCount} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
 
-            <div className="text-center mb-8">
-              <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
-              <p className="text-muted-foreground mb-3">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
+              <p className="text-sm sm:text-base text-muted-foreground mb-3">
                 Connect with your community through live cultural content
               </p>
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   ✨ Real-time Streaming
                 </Badge>
@@ -1904,7 +1904,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
               }
             }
             return true;
-          }).length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          }).length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {liveStreams.filter(stream => {
               // Always exclude ended/archived streams
               if (stream.status !== 'live') return false;
@@ -1979,25 +1979,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </div>
                     </div>
                   </Card>)}
-              </div> : <Card className="p-12 text-center">
+              </div> : <Card className="p-8 sm:p-12 text-center">
                 <div className="space-y-3">
                   <Video className="w-12 h-12 mx-auto text-muted-foreground" />
                   <h3 className="text-lg font-semibold">No Live Streams</h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Be the first to go live! Switch to the "Go Live" tab to start streaming.
                   </p>
                 </div>
               </Card>}
 
             {/* Premium Live Events */}
-            <Card className="premium-gradient p-6 text-center mt-6">
-              <h3 className="text-xl font-afro-heading mb-2 text-white">
+            <Card className="premium-gradient p-4 sm:p-6 text-center mt-6">
+              <h3 className="text-lg sm:text-xl font-afro-heading mb-2 text-white">
                 Premium Live Events
               </h3>
-              <p className="text-white/90 mb-4">
+              <p className="text-sm sm:text-base text-white/90 mb-4">
                 Exclusive cultural events, matchmaking sessions, and premium content
               </p>
-              <Button variant="secondary">
+              <Button variant="secondary" className="w-full sm:w-auto">
                 <Crown className="w-4 h-4 mr-2" />
                 Unlock Premium Events
               </Button>
@@ -2005,8 +2005,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           </TabsContent>
 
           {/* Go Live Tab */}
-          <TabsContent value="go-live" className="space-y-6">
-            <div className={`grid gap-4 ${isStreaming ? 'grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)]' : 'grid-cols-1 lg:grid-cols-2'}`}>
+          <TabsContent value="go-live" className="space-y-4 sm:space-y-6">
+            <div className={`grid gap-3 sm:gap-4 ${isStreaming ? 'grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)]' : 'grid-cols-1 lg:grid-cols-2'}`}>
               {/* Stream Setup */}
               <Card className="cultural-card">
                 <CardHeader>
@@ -2055,8 +2055,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   </div>
 
                   {/* Premium tier status banner */}
-                  <div className="flex items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
-                    <div className="flex items-center gap-2 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
+                    <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm min-w-0">
                       {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Free plan</span>}
                       <span className="text-muted-foreground capitalize">
                         {isPremium ? `· ${limits.tier}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}
@@ -2174,7 +2174,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {isStreaming ? (
                       <div 
                         ref={hostVideoContainerRef}
-                        className="video-fullscreen-container flex-1 flex flex-col relative"
+                        className="video-fullscreen-container flex-1 flex flex-col relative w-full min-h-[240px] sm:min-h-[320px] lg:min-h-[400px]"
                         data-fullscreen={isHostFullscreen ? "true" : "false"}
                         style={{
                           backgroundColor: '#000',
@@ -2189,7 +2189,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           right: isHostFullscreen ? 0 : undefined,
                           bottom: isHostFullscreen ? 0 : undefined,
                           zIndex: isHostFullscreen ? 9999 : 10,
-                          minHeight: '400px',
                         }}
                       >
                         {/* Hidden video element to keep the stream ref alive */}
@@ -2225,9 +2224,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <StreamHearts hearts={liveHearts} />
 
                         {/* Floating Chat Messages Overlay */}
-                        <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                        <div className="absolute bottom-3 left-3 right-14 sm:bottom-4 sm:left-4 sm:right-16 space-y-2 z-20 pointer-events-none">
                           {floatingChatMessages.map(msg => (
-                            <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs">
+                            <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-[85%] sm:max-w-xs break-words">
                               <span className="text-white font-semibold text-sm">{msg.username}: </span>
                               <span className="text-white text-sm">{msg.message}</span>
                             </div>
@@ -2262,7 +2261,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       /* Pre-stream setup: compact camera preview */
                       <div 
                         ref={hostVideoContainerRef}
-                        className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]"
+                        className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[220px] sm:max-w-[280px] max-h-[400px]"
                       >
                        <video 
                           ref={videoRef} 
@@ -2288,7 +2287,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </div>}
 
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
-                    <div className="flex items-center justify-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-3 w-full">
                       {/* Flip Camera */}
                       <div className="flex flex-col items-center gap-1">
                         <Button onClick={flipCamera} variant="ghost" size="icon" disabled={!isCameraOn} title="Flip Camera" className="h-10 w-10">
@@ -2355,7 +2354,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                     
                     {/* Start Streaming Button - Prominent */}
-                    <div className="w-full max-w-[280px]">
+                    <div className="w-full max-w-[320px] mt-3">
                       {!isStreaming ? <Button onClick={startStream} disabled={isLoading || isRequestingCamera} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
@@ -2399,7 +2398,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   )}
 
                   {/* Live Chat Card */}
-                  <Card className="cultural-card flex flex-col h-[500px]">
+                  <Card className="cultural-card flex flex-col h-[60vh] min-h-[320px] max-h-[500px]">
                     <CardContent className="flex-1 p-0 overflow-hidden">
                       {showStreamerChat && <LiveStreamChat streamId={activeStreamId} isMobile={false} />}
                     </CardContent>

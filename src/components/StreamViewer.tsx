@@ -1003,7 +1003,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             {floatingMessages.map((msg) => (
               <div
                 key={msg.id}
-                className="bg-black/50 backdrop-blur-sm rounded-xl px-2.5 py-1.5 animate-slide-in-right max-w-[280px]"
+                className="bg-black/50 backdrop-blur-sm rounded-xl px-2.5 py-1.5 animate-slide-in-right max-w-[85%] break-words"
               >
                 <span className="text-white font-medium text-xs">{msg.username}: </span>
                 <span className="text-white/90 text-xs">{msg.message}</span>
