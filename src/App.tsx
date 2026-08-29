@@ -6,6 +6,7 @@ import { PresenceProvider } from '@/contexts/PresenceContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import SecurityHeader from "@/components/SecurityHeader";
 import { IncomingCallModal } from "@/components/IncomingCallModal";
+import InactivityGuard from "@/components/InactivityGuard";
 import '@/i18n/config';
 
 const queryClient = new QueryClient({
