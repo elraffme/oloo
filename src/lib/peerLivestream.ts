@@ -248,13 +248,21 @@ export class PeerViewerConnection {
 
     // The host offers two recvonly slots for us; claim them as sendonly BEFORE
     // answering so the viewer camera can be published later without a new offer.
-    for (const transceiver of this.peer.getTransceivers()) {
-      if (transceiver.direction !== 'inactive') continue;
+    // Browsers report every freshly created transceiver as "recvonly", so the
+    // slots are identified from the offer SDP m-section order instead.
+    const sectionDirections = (offer.sdp || '')
+      .split(/^m=/m)
+      .slice(1)
+      .map(section => /a=(sendrecv|sendonly|recvonly|inactive)/.exec(section)?.[1] || 'sendrecv');
+    const transceivers = this.peer.getTransceivers();
+    transceivers.forEach((transceiver, index) => {
+      const remoteDirection = sectionDirections[index];
+      if (remoteDirection !== 'recvonly' && remoteDirection !== 'inactive') return;
       const kind = transceiver.receiver.track?.kind as 'video' | 'audio' | undefined;
-      if (!kind || this.sendTransceivers.has(kind)) continue;
+      if (!kind || this.sendTransceivers.has(kind)) return;
       transceiver.direction = 'sendonly';
       this.sendTransceivers.set(kind, transceiver);
-    }
+    });
     if (this.localStream) await this.setLocalMedia(this.localStream);
 
     const answer = await this.peer.createAnswer();
