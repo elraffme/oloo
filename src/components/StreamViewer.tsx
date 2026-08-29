@@ -1085,6 +1085,11 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-full bg-white/20 text-white px-2.5 h-9">
+            <Users className="w-4 h-4" />
+            <span className="text-xs font-bold">{viewerCount}</span>
+          </div>
+
           <Button
             size="sm"
             onClick={handleLike}
