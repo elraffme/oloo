@@ -1255,6 +1255,28 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     });
     return true;
   };
+  const validateStreamForm = (): boolean => {
+    const result = streamFormSchema.safeParse({
+      title: streamTitle,
+      category: streamCategory
+    });
+    if (result.success) {
+      setStreamErrors({});
+      return true;
+    }
+    const errors: {
+      title?: string;
+      category?: string;
+    } = {};
+    result.error.issues.forEach(issue => {
+      const path = issue.path[0] as 'title' | 'category';
+      if (path && !errors[path]) {
+        errors[path] = issue.message;
+      }
+    });
+    setStreamErrors(errors);
+    return false;
+  };
   const startStream = async () => {
     if (!user) {
       toast({
@@ -1264,20 +1286,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-    if (!streamTitle.trim()) {
-      toast({
-        title: "Missing title",
-        description: "Please enter a stream title before going live.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (!streamCategory) {
-      toast({
-        title: "Missing category",
-        description: "Please select a category before going live.",
-        variant: "destructive"
-      });
+    if (!validateStreamForm()) {
       return;
     }
     // Auto-request camera/mic if not enabled yet, instead of blocking the button
