@@ -316,17 +316,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     isLoading: viewersLoading
   } = useStreamViewers(activeStreamId || '');
 
+  // Realtime presence is the fastest signal, but fall back to the persisted
+  // viewer sessions so the host never shows 0 while someone is actually watching.
+  const effectiveViewerCount = Math.max(liveViewerCount, activeViewers.length);
+
   // Sync viewer count to DB
   useEffect(() => {
     if (isStreaming && activeStreamId) {
       const updateViewerCount = async () => {
         await supabase.from('streaming_sessions').update({
-          current_viewers: liveViewerCount
+          current_viewers: effectiveViewerCount
         }).eq('id', activeStreamId);
       };
       updateViewerCount();
     }
-  }, [liveViewerCount, isStreaming, activeStreamId]);
+  }, [effectiveViewerCount, isStreaming, activeStreamId]);
+
 
   // Floating chat messages for host
   const [floatingChatMessages, setFloatingChatMessages] = useState<Array<{
@@ -1832,7 +1837,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-6">
             {/* My Active Stream Banner */}
-            {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={liveViewerCount} totalLikes={totalLikes + liveHeartCount} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
+            {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={effectiveViewerCount} totalLikes={totalLikes + liveHeartCount} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
 
             <div className="text-center mb-8">
               <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
@@ -2084,7 +2089,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connected Viewers:</span>
-                        <Badge variant="secondary">{liveViewerCount} watching</Badge>
+                        <Badge variant="secondary">{effectiveViewerCount} watching</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Likes:</span>
@@ -2124,7 +2129,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle className="flex items-center justify-between text-sm">
                     <span>Preview</span>
                     {isStreaming && <Badge variant="secondary" className="text-xs">
-                        🔴 Broadcasting to {liveViewerCount} viewers
+                        🔴 Broadcasting to {effectiveViewerCount} {effectiveViewerCount === 1 ? "viewer" : "viewers"}
                       </Badge>}
                   </CardTitle>
                 </CardHeader>

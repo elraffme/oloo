@@ -106,6 +106,14 @@ export const useCurrency = () => {
     };
   }, [user, fetchBalance]);
 
+  // Refetch locally AND tell every other mounted useCurrency instance
+  // (header wallet, shop, etc.) to refetch immediately — no page refresh needed.
+  const refreshBalance = useCallback(async () => {
+    await fetchBalance();
+    window.dispatchEvent(new Event('oloo:currency-refresh'));
+  }, [fetchBalance]);
+
+
   const convertGoldToCoins = async (goldAmount: number) => {
     try {
       const { data, error } = await supabase.rpc('convert_gold_to_coins', {
@@ -116,7 +124,7 @@ export const useCurrency = () => {
 
       const result = data as any;
       toast.success(`Converted ${goldAmount} gold to ${result.coins_received} coins!`);
-      await fetchBalance();
+      await refreshBalance();
       return data;
     } catch (error: any) {
       toast.error(error.message || 'Failed to convert gold');
@@ -127,7 +135,8 @@ export const useCurrency = () => {
   return {
     balance,
     loading,
-    refreshBalance: fetchBalance,
+    refreshBalance,
+
     convertGoldToCoins,
   };
 };
