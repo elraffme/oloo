@@ -94,6 +94,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isMicOn, setIsMicOn] = useState(true);
   const [streamTitle, setStreamTitle] = useState('');
   const [streamCategory, setStreamCategory] = useState('');
+  const [streamErrors, setStreamErrors] = useState<{
+    title?: string;
+    category?: string;
+  }>({});
   const [totalLikes, setTotalLikes] = useState(0);
   const [totalGifts, setTotalGifts] = useState(0);
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
