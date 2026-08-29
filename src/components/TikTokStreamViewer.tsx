@@ -65,8 +65,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
-  const [likes, setLikes] = useState(totalLikes);
-  const [viewers, setViewers] = useState(currentViewers);
+  const [baseLikes, setBaseLikes] = useState(totalLikes);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
