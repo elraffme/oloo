@@ -2014,9 +2014,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium">Category</label>
-                    <Select onValueChange={setStreamCategory}>
-                      <SelectTrigger className="mt-1">
+                    <label className="text-sm font-medium">Category *</label>
+                    <Select onValueChange={value => {
+                      setStreamCategory(value);
+                      if (value) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.category;
+                          return next;
+                        });
+                      }
+                    }} value={streamCategory}>
+                      <SelectTrigger className={`mt-1 ${streamErrors.category ? 'border-destructive focus:ring-destructive' : ''}`}>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2042,6 +2051,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectItem value="tvshow">TV Show</SelectItem>
                       </SelectContent>
                     </Select>
+                    {streamErrors.category && <p className="text-sm text-destructive mt-1">{streamErrors.category}</p>}
                   </div>
 
                   {/* Premium tier status banner */}
