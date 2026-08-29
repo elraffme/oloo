@@ -2005,8 +2005,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           </TabsContent>
 
           {/* Go Live Tab */}
-          <TabsContent value="go-live" className="space-y-6">
-            <div className={`grid gap-4 ${isStreaming ? 'grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)]' : 'grid-cols-1 lg:grid-cols-2'}`}>
+          <TabsContent value="go-live" className="space-y-4 sm:space-y-6">
+            <div className={`grid gap-3 sm:gap-4 ${isStreaming ? 'grid-cols-1 lg:grid-cols-[1fr_minmax(280px,360px)]' : 'grid-cols-1 lg:grid-cols-2'}`}>
               {/* Stream Setup */}
               <Card className="cultural-card">
                 <CardHeader>
