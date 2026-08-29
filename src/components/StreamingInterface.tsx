@@ -1979,25 +1979,25 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </div>
                     </div>
                   </Card>)}
-              </div> : <Card className="p-12 text-center">
+              </div> : <Card className="p-8 sm:p-12 text-center">
                 <div className="space-y-3">
                   <Video className="w-12 h-12 mx-auto text-muted-foreground" />
                   <h3 className="text-lg font-semibold">No Live Streams</h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Be the first to go live! Switch to the "Go Live" tab to start streaming.
                   </p>
                 </div>
               </Card>}
 
             {/* Premium Live Events */}
-            <Card className="premium-gradient p-6 text-center mt-6">
-              <h3 className="text-xl font-afro-heading mb-2 text-white">
+            <Card className="premium-gradient p-4 sm:p-6 text-center mt-6">
+              <h3 className="text-lg sm:text-xl font-afro-heading mb-2 text-white">
                 Premium Live Events
               </h3>
-              <p className="text-white/90 mb-4">
+              <p className="text-sm sm:text-base text-white/90 mb-4">
                 Exclusive cultural events, matchmaking sessions, and premium content
               </p>
-              <Button variant="secondary">
+              <Button variant="secondary" className="w-full sm:w-auto">
                 <Crown className="w-4 h-4 mr-2" />
                 Unlock Premium Events
               </Button>
