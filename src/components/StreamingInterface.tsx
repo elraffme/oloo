@@ -2261,7 +2261,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       /* Pre-stream setup: compact camera preview */
                       <div 
                         ref={hostVideoContainerRef}
-                        className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[280px] max-h-[400px]"
+                        className="video-fullscreen-container relative bg-black overflow-hidden border border-border shadow-lg rounded-lg aspect-[9/16] w-full max-w-[220px] sm:max-w-[280px] max-h-[400px]"
                       >
                        <video 
                           ref={videoRef} 
