@@ -889,8 +889,8 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
       </div>
 
       {/* Bottom Controls Bar - Always visible, works on all devices */}
-      <div className="bg-black/90 border-t border-white/10 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-2 shrink-0 z-50">
-        <div className="flex items-center gap-2">
+      <div className="bg-black/90 border-t border-white/10 px-2 sm:px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex flex-wrap items-center justify-between gap-x-1 gap-y-2 sm:gap-2 shrink-0 z-50 max-w-full overflow-x-hidden">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
           {/* Mute/Unmute Speaker */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -908,7 +908,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                     }
                   }
                 }}
-                className="h-9 w-9 rounded-full"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0"
               >
                 {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </Button>
@@ -924,7 +924,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                 size="icon"
                 onClick={toggleViewerCamera}
                 disabled={isCameraRequesting}
-                className="h-9 w-9 rounded-full"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0"
               >
                 {isCameraRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerCameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
               </Button>
@@ -940,7 +940,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
                 size="icon"
                 onClick={toggleViewerMic}
                 disabled={isMicRequesting}
-                className="h-9 w-9 rounded-full"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0"
               >
                 {isMicRequesting ? <Loader2 className="w-4 h-4 animate-spin" /> : viewerMicEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
               </Button>
@@ -951,7 +951,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           {/* Fullscreen */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-9 w-9 rounded-full">
+              <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0">
                 {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </Button>
             </TooltipTrigger>
@@ -959,35 +959,35 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           </Tooltip>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 justify-end flex-wrap">
           {/* Like */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleLike}
-            className={cn("gap-1.5 rounded-full", isLiked && "text-destructive")}
+            className={cn("gap-1.5 rounded-full h-8 sm:h-9 shrink-0", isLiked && "text-destructive")}
           >
             <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
             <span className="text-xs">{likes}</span>
           </Button>
 
           {/* Gift */}
-          <Button variant="ghost" size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => setShowGiftSelector(true)} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0">
             <Gift className="w-4 h-4" />
           </Button>
 
           {/* Chat (mobile only - opens sheet) */}
-          <Button variant="ghost" size="icon" onClick={() => setShowFullChat(!showFullChat)} className="h-9 w-9 rounded-full md:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setShowFullChat(!showFullChat)} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full md:hidden shrink-0">
             <MessageCircle className="w-4 h-4" />
           </Button>
 
           {/* Share */}
-          <Button variant="ghost" size="icon" onClick={handleShare} className="h-9 w-9 rounded-full">
+          <Button variant="ghost" size="icon" onClick={handleShare} className="h-8 w-8 sm:h-9 sm:w-9 rounded-full shrink-0">
             <Share2 className="w-4 h-4" />
           </Button>
 
           {/* Leave */}
-          <Button variant="destructive" size="sm" onClick={onClose} className="gap-1.5 rounded-full">
+          <Button variant="destructive" size="sm" onClick={onClose} className="gap-1.5 rounded-full h-8 sm:h-9 shrink-0">
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Leave</span>
           </Button>
