@@ -1832,7 +1832,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           {/* Discover Tab */}
           <TabsContent value="discover" className="space-y-6">
             {/* My Active Stream Banner */}
-            {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={myActiveStream.current_viewers || 0} totalLikes={totalLikes} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
+            {myActiveStream && <MyActiveStreamBanner streamId={myActiveStream.id} title={myActiveStream.title} startedAt={myActiveStream.created_at} currentViewers={liveViewerCount} totalLikes={totalLikes + liveHeartCount} onManageStream={handleManageStream} onViewAsViewer={handleViewAsViewer} />}
 
             <div className="text-center mb-8">
               <h2 className="text-xl font-afro-heading mb-2">Live Cultural Streams</h2>
@@ -2084,11 +2084,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Connected Viewers:</span>
-                        <Badge variant="secondary">{activeViewers.length} watching</Badge>
+                        <Badge variant="secondary">{liveViewerCount} watching</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Likes:</span>
-                        <Badge variant="outline">{totalLikes}</Badge>
+                        <Badge variant="outline">{totalLikes + liveHeartCount}</Badge>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Gifts Received:</span>
