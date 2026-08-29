@@ -65,15 +65,16 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
-  const [likes, setLikes] = useState(totalLikes);
-  const [viewers, setViewers] = useState(currentViewers);
+  const [baseLikes] = useState(totalLikes);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
   const [showFullChat, setShowFullChat] = useState(false);
   
   const [showGiftSelector, setShowGiftSelector] = useState(false);
-  const { hearts, gifts: liveGifts, sendHeart, sendGift } = useStreamReactions(streamId);
+  const { hearts, gifts: liveGifts, heartCount, viewerCount, sendHeart, sendGift } = useStreamReactions(streamId);
+  const likes = baseLikes + heartCount;
+  const viewers = viewerCount;
 
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
@@ -358,12 +359,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           filter: `id=eq.${streamId}`
         },
         (payload) => {
-          if (payload.new && 'total_likes' in payload.new) {
-            setLikes(payload.new.total_likes || 0);
-          }
-          if (payload.new && 'current_viewers' in payload.new) {
-            setViewers(payload.new.current_viewers || 0);
-          }
           
           // Monitor stream status - if host ends stream, close viewer automatically
           if (payload.new && 'status' in payload.new) {
