@@ -72,7 +72,9 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [showFullChat, setShowFullChat] = useState(false);
   
   const [showGiftSelector, setShowGiftSelector] = useState(false);
-  const { hearts, gifts: liveGifts, sendHeart, sendGift } = useStreamReactions(streamId);
+  const { hearts, gifts: liveGifts, heartCount, viewerCount, sendHeart, sendGift } = useStreamReactions(streamId);
+  const likes = baseLikes + heartCount;
+  const viewers = viewerCount;
 
   const [viewerCameraEnabled, setViewerCameraEnabled] = useState(false);
   const [isCameraRequesting, setIsCameraRequesting] = useState(false);
@@ -358,10 +360,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
         },
         (payload) => {
           if (payload.new && 'total_likes' in payload.new) {
-            setLikes(payload.new.total_likes || 0);
-          }
-          if (payload.new && 'current_viewers' in payload.new) {
-            setViewers(payload.new.current_viewers || 0);
+            setBaseLikes(payload.new.total_likes || 0);
           }
           
           // Monitor stream status - if host ends stream, close viewer automatically
