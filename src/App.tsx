@@ -54,6 +54,7 @@ const App = () => (
       <SubscriptionProvider>
       <PresenceProvider>
         <Router>
+          <InactivityGuard />
           <IncomingCallModal />
           <Routes>
             <Route path="/" element={<LandingPage />} />
