@@ -284,7 +284,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [showCameraTroubleshooting, setShowCameraTroubleshooting] = useState(false);
   const [showBroadcasterDiagnostics, setShowBroadcasterDiagnostics] = useState(false);
   const [hasTURN, setHasTURN] = useState(false);
-  const { hearts: liveHearts, gifts: liveGifts } = useStreamReactions(activeStreamId);
+  const { hearts: liveHearts, gifts: liveGifts, heartCount: liveHeartCount, viewerCount: liveViewerCount } = useStreamReactions(activeStreamId, undefined, 'host');
   const [isTikTokMode, setIsTikTokMode] = useState(false);
 
   // Initialize stream queue with live streams
@@ -321,12 +321,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     if (isStreaming && activeStreamId) {
       const updateViewerCount = async () => {
         await supabase.from('streaming_sessions').update({
-          current_viewers: activeViewers.length
+          current_viewers: liveViewerCount
         }).eq('id', activeStreamId);
       };
       updateViewerCount();
     }
-  }, [activeViewers.length, isStreaming, activeStreamId]);
+  }, [liveViewerCount, isStreaming, activeStreamId]);
 
   // Floating chat messages for host
   const [floatingChatMessages, setFloatingChatMessages] = useState<Array<{
@@ -476,7 +476,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       filter: `stream_id=eq.${activeStreamId}`
     }, () => {
       // Count only; heart animations come from the realtime reaction channel
-      setTotalLikes(prev => prev + 1);
+      // Heart counting comes from the realtime reaction channel (one per click)
     }).subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -2124,7 +2124,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle className="flex items-center justify-between text-sm">
                     <span>Preview</span>
                     {isStreaming && <Badge variant="secondary" className="text-xs">
-                        🔴 Broadcasting to {activeViewers.length} viewers
+                        🔴 Broadcasting to {liveViewerCount} viewers
                       </Badge>}
                   </CardTitle>
                 </CardHeader>
