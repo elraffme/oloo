@@ -2287,7 +2287,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </div>}
 
                     {/* TikTok-style Control Row: Flip, Filter, Camera, Mic, Settings */}
-                    <div className="flex items-center justify-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-3 w-full">
                       {/* Flip Camera */}
                       <div className="flex flex-col items-center gap-1">
                         <Button onClick={flipCamera} variant="ghost" size="icon" disabled={!isCameraOn} title="Flip Camera" className="h-10 w-10">
