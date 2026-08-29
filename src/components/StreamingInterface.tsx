@@ -1830,23 +1830,23 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
     }
   };
-  return <div className="min-h-screen dark bg-background p-4">
-      <div className="max-w-6xl mx-auto">
+  return <div className="min-h-screen dark bg-background p-3 sm:p-4 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto w-full">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            {onBack && <Button variant="ghost" onClick={onBack}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {onBack && <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
                 <ArrowLeft className="w-4 h-4" />
               </Button>}
-            <h1 className="text-2xl font-afro-heading">Live Streaming</h1>
+            <h1 className="text-xl sm:text-2xl font-afro-heading truncate">Live Streaming</h1>
           </div>
           <CurrencyWallet onBuyCoins={() => setShowCoinShop(true)} />
         </div>
 
-        <Tabs value={activeTab} onValueChange={value => navigate(`/app/streaming/${value}`)} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={value => navigate(`/app/streaming/${value}`)} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="discover">Discover Streams</TabsTrigger>
-            <TabsTrigger value="go-live">Go Live</TabsTrigger>
+            <TabsTrigger value="discover" className="text-xs sm:text-sm">Discover Streams</TabsTrigger>
+            <TabsTrigger value="go-live" className="text-xs sm:text-sm">Go Live</TabsTrigger>
           </TabsList>
 
           {/* Discover Tab */}
