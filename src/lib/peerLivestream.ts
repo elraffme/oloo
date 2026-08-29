@@ -18,15 +18,24 @@ const rtcConfiguration: RTCConfiguration = {
   ],
 };
 
+export interface PeerViewerMedia {
+  viewerId: string;
+  stream: MediaStream | null;
+  displayName: string;
+}
+
 export class PeerBroadcastManager {
   private channel: ReturnType<SupabaseClient['channel']> | null = null;
   private peers = new Map<string, RTCPeerConnection>();
   private pendingIce = new Map<string, RTCIceCandidateInit[]>();
+  private viewerNames = new Map<string, string>();
+  private viewerStreams = new Map<string, MediaStream>();
 
   constructor(
     private readonly streamId: string,
     private readonly localStream: MediaStream,
     private readonly onState?: (state: PeerState, detail?: string) => void,
+    private readonly onViewerMedia?: (media: PeerViewerMedia) => void,
   ) {}
 
   async connect(supabase: SupabaseClient): Promise<void> {
@@ -38,7 +47,17 @@ export class PeerBroadcastManager {
     this.channel = supabase
       .channel(`live_stream_${this.streamId}`, { config: { broadcast: { ack: true } } })
       .on('broadcast', { event: 'viewer-joined' }, ({ payload }) => {
-        void this.createOffer(String(payload.viewerId));
+        const viewerId = String(payload.viewerId);
+        this.viewerNames.set(viewerId, String(payload.displayName || 'Viewer'));
+        void this.createOffer(viewerId);
+      })
+      .on('broadcast', { event: 'viewer-media' }, ({ payload }) => {
+        const viewerId = String(payload.viewerId);
+        // Viewer turned their camera/mic off: drop their tile immediately.
+        if (payload.active === false) {
+          this.viewerStreams.delete(viewerId);
+          this.onViewerMedia?.({ viewerId, stream: null, displayName: this.viewerNames.get(viewerId) || 'Viewer' });
+        }
       })
       .on('broadcast', { event: 'answer' }, ({ payload }) => {
         void this.acceptAnswer(String(payload.viewerId), payload.answer);
@@ -70,6 +89,22 @@ export class PeerBroadcastManager {
     const peer = new RTCPeerConnection(rtcConfiguration);
     this.peers.set(viewerId, peer);
     this.localStream.getTracks().forEach(track => peer.addTrack(track, this.localStream));
+    // Pre-negotiated receive slots so the viewer can start/stop publishing their
+    // own camera and mic later without any renegotiation round trip.
+    peer.addTransceiver('video', { direction: 'recvonly' });
+    peer.addTransceiver('audio', { direction: 'recvonly' });
+    peer.ontrack = event => {
+      const existing = this.viewerStreams.get(viewerId) || new MediaStream();
+      if (!existing.getTracks().some(t => t.id === event.track.id)) existing.addTrack(event.track);
+      this.viewerStreams.set(viewerId, existing);
+      event.track.onended = () => {
+        existing.removeTrack(event.track);
+        const stillLive = existing.getTracks().length > 0;
+        if (!stillLive) this.viewerStreams.delete(viewerId);
+        this.onViewerMedia?.({ viewerId, stream: stillLive ? existing : null, displayName: this.viewerNames.get(viewerId) || 'Viewer' });
+      };
+      this.onViewerMedia?.({ viewerId, stream: existing, displayName: this.viewerNames.get(viewerId) || 'Viewer' });
+    };
     peer.onicecandidate = event => {
       if (event.candidate) void this.send('host-ice', { viewerId, candidate: event.candidate.toJSON() });
     };
@@ -110,6 +145,9 @@ export class PeerBroadcastManager {
     this.peers.get(viewerId)?.close();
     this.peers.delete(viewerId);
     this.pendingIce.delete(viewerId);
+    if (this.viewerStreams.delete(viewerId)) {
+      this.onViewerMedia?.({ viewerId, stream: null, displayName: this.viewerNames.get(viewerId) || 'Viewer' });
+    }
   }
 
   disconnect() {
@@ -127,12 +165,31 @@ export class PeerViewerConnection {
   private peer: RTCPeerConnection | null = null;
   private pendingIce: RTCIceCandidateInit[] = [];
   private readonly viewerId = crypto.randomUUID();
+  private sendTransceivers = new Map<'video' | 'audio', RTCRtpTransceiver>();
+  private localStream: MediaStream | null = null;
 
   constructor(
     private readonly streamId: string,
     private readonly onStream: (stream: MediaStream) => void,
     private readonly onState?: (state: PeerState, detail?: string) => void,
+    private readonly displayName: string = 'Viewer',
   ) {}
+
+  /**
+   * Attach (or detach) the viewer's own camera/mic to the already negotiated
+   * send slots offered by the host. Uses replaceTrack so no renegotiation is
+   * needed and the host stream is never interrupted.
+   */
+  async setLocalMedia(stream: MediaStream | null): Promise<void> {
+    this.localStream = stream;
+    for (const kind of ['video', 'audio'] as const) {
+      const transceiver = this.sendTransceivers.get(kind);
+      if (!transceiver) continue;
+      const track = stream ? (kind === 'video' ? stream.getVideoTracks()[0] : stream.getAudioTracks()[0]) || null : null;
+      await transceiver.sender.replaceTrack(track);
+    }
+    await this.send('viewer-media', { viewerId: this.viewerId, active: !!stream, displayName: this.displayName }).catch(() => undefined);
+  }
 
   async connect(supabase: SupabaseClient): Promise<void> {
     this.onState?.('connecting');
@@ -173,7 +230,7 @@ export class PeerViewerConnection {
       this.channel?.subscribe(async status => {
         if (status === 'SUBSCRIBED') {
           window.clearTimeout(timeout);
-          await this.send('viewer-joined', { viewerId: this.viewerId });
+          await this.send('viewer-joined', { viewerId: this.viewerId, displayName: this.displayName });
           resolve();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           window.clearTimeout(timeout);
@@ -188,6 +245,18 @@ export class PeerViewerConnection {
     await this.peer.setRemoteDescription(offer);
     for (const candidate of this.pendingIce) await this.peer.addIceCandidate(candidate);
     this.pendingIce = [];
+
+    // The host offers two recvonly slots for us; claim them as sendonly BEFORE
+    // answering so the viewer camera can be published later without a new offer.
+    for (const transceiver of this.peer.getTransceivers()) {
+      if (transceiver.direction !== 'inactive') continue;
+      const kind = transceiver.receiver.track?.kind as 'video' | 'audio' | undefined;
+      if (!kind || this.sendTransceivers.has(kind)) continue;
+      transceiver.direction = 'sendonly';
+      this.sendTransceivers.set(kind, transceiver);
+    }
+    if (this.localStream) await this.setLocalMedia(this.localStream);
+
     const answer = await this.peer.createAnswer();
     await this.peer.setLocalDescription(answer);
     await this.send('answer', { viewerId: this.viewerId, answer: this.peer.localDescription?.toJSON() });
@@ -207,6 +276,9 @@ export class PeerViewerConnection {
   }
 
   disconnect() {
+    this.localStream?.getTracks().forEach(track => track.stop());
+    this.localStream = null;
+    this.sendTransceivers.clear();
     void this.send('viewer-left', { viewerId: this.viewerId }).catch(() => undefined);
     this.peer?.close();
     this.peer = null;
