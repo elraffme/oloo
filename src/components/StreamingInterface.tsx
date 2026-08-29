@@ -38,6 +38,8 @@ import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
 import { PeerBroadcastManager } from '@/lib/peerLivestream';
+import { streamFormSchema } from '@/lib/validation';
+import { z } from 'zod';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
