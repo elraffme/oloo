@@ -63,6 +63,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   } = useStream();
   const [serverError, setServerError] = useState<string | null>(null);
   const peerViewerRef = useRef<PeerViewerConnection | null>(null);
+  const peerLocalStreamRef = useRef<MediaStream | null>(null);
   const [peerConnectionState, setPeerConnectionState] = useState<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
 
   const navigate = useNavigate();
@@ -317,6 +318,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
               setServerError(`Peer connection failed${detail ? ` (${detail})` : ''}.`);
             }
           },
+          displayName,
         );
         peerViewerRef.current = peerViewer;
         await peerViewer.connect(supabase);
@@ -359,6 +361,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       
       // Always cleanup stream resources
       cleanup();
+      peerLocalStreamRef.current?.getTracks().forEach(track => track.stop());
+      peerLocalStreamRef.current = null;
       peerViewerRef.current?.disconnect();
       peerViewerRef.current = null;
       
@@ -664,6 +668,51 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   };
 
   const toggleViewerCamera = async () => {
+    const peerViewer = peerViewerRef.current;
+
+    // Peer (non-SFU) transport: publish the viewer camera over the same
+    // RTCPeerConnection that already receives the host feed.
+    if (peerViewer) {
+      if (viewerCameraEnabled) {
+        peerLocalStreamRef.current?.getTracks().forEach(track => track.stop());
+        peerLocalStreamRef.current = null;
+        await peerViewer.setLocalMedia(null);
+        setViewerCameraEnabled(false);
+        setViewerMicEnabled(false);
+        setConfirmedViewerStream(null);
+        toast.success('Camera disabled');
+        return;
+      }
+
+      setIsCameraRequesting(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+          audio: true,
+        });
+        peerLocalStreamRef.current = stream;
+        await peerViewer.setLocalMedia(stream);
+        setConfirmedViewerStream(stream);
+        setViewerCameraEnabled(true);
+        setViewerMicEnabled(stream.getAudioTracks().some(track => track.readyState === 'live'));
+        toast.success('Camera enabled! Host can now see you');
+      } catch (error: any) {
+        console.error('Error enabling viewer camera (peer transport):', error);
+        if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+          toast.error('Camera permission denied. Allow camera access in your browser settings and try again.');
+        } else if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
+          toast.error('No camera found on this device.');
+        } else if (error?.name === 'NotReadableError') {
+          toast.error('Camera is in use by another app. Close it and try again.');
+        } else {
+          toast.error('Failed to enable camera');
+        }
+      } finally {
+        setIsCameraRequesting(false);
+      }
+      return;
+    }
+
     if (viewerCameraEnabled) {
       toggleVideo();
       setViewerCameraEnabled(false);
@@ -728,6 +777,36 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
       hasLocalStream: !!localStream 
     });
     
+    const peerViewer = peerViewerRef.current;
+    if (peerViewer) {
+      const localPeerStream = peerLocalStreamRef.current;
+      if (viewerMicEnabled) {
+        localPeerStream?.getAudioTracks().forEach(track => { track.enabled = false; });
+        setViewerMicEnabled(false);
+        toast.success('Microphone disabled');
+        return;
+      }
+
+      setIsMicRequesting(true);
+      try {
+        if (localPeerStream?.getAudioTracks().length) {
+          localPeerStream.getAudioTracks().forEach(track => { track.enabled = true; });
+        } else {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          peerLocalStreamRef.current = stream;
+          await peerViewer.setLocalMedia(stream);
+        }
+        setViewerMicEnabled(true);
+        toast.success('Microphone enabled - Host can hear you!');
+      } catch (error: any) {
+        console.error('Error enabling viewer mic (peer transport):', error);
+        toast.error(error?.name === 'NotAllowedError' ? 'Microphone permission denied. Please allow access.' : 'Failed to enable microphone');
+      } finally {
+        setIsMicRequesting(false);
+      }
+      return;
+    }
+
     if (viewerMicEnabled) {
       // DISABLE microphone
       if (viewerCameraEnabled) {

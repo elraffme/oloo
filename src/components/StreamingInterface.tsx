@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStream } from '@/hooks/useStream';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ import { limitsForTier, formatDuration } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
-import { PeerBroadcastManager } from '@/lib/peerLivestream';
+import { PeerBroadcastManager, type PeerViewerMedia } from '@/lib/peerLivestream';
 import { streamFormSchema } from '@/lib/validation';
 import { z } from 'zod';
 interface StreamingInterfaceProps {
@@ -200,7 +200,21 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Derived map for VideoCallGrid compatibility from SFU streams
   // Memoize to prevent VideoCallGrid re-renders on every parent render
   const viewerCamerasRef = useRef(new Map<string, { stream: MediaStream; displayName: string; sessionToken: string }>());
-  
+  // Viewer cameras arriving over the peer (non-SFU) transport
+  const [peerViewerCameras, setPeerViewerCameras] = useState<Map<string, { stream: MediaStream; displayName: string; sessionToken: string }>>(new Map());
+
+  const handlePeerViewerMedia = useCallback(({ viewerId, stream, displayName }: PeerViewerMedia) => {
+    setPeerViewerCameras(prev => {
+      const next = new Map(prev);
+      if (stream && stream.getTracks().length > 0) {
+        next.set(viewerId, { stream, displayName, sessionToken: viewerId });
+      } else {
+        next.delete(viewerId);
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     const newMap = new Map(viewerStreams.map(vs => [vs.id, {
       stream: vs.stream,
@@ -210,7 +224,11 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     viewerCamerasRef.current = newMap;
   }, [viewerStreams]);
   
-  const viewerCameras = viewerCamerasRef.current;
+  const viewerCameras = useMemo(() => {
+    const merged = new Map(viewerCamerasRef.current);
+    peerViewerCameras.forEach((value, key) => merged.set(key, value));
+    return merged;
+  }, [viewerStreams, peerViewerCameras]);
 
   // Debug: Log viewer cameras updates
   useEffect(() => {
@@ -1487,7 +1505,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           try {
             const manager = new PeerBroadcastManager(data.id, streamRef.current, (state, detail) => {
               logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: `peer_${state}`, level: state === 'failed' ? 'error' : 'info', message: detail || state });
-            });
+            }, handlePeerViewerMedia);
             peerBroadcastRef.current = manager;
             await manager.connect(supabase);
             await setStreamLive('peer_signaling_ready');
@@ -1499,7 +1517,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         console.warn('⚠️ SFU unavailable; starting existing peer WebRTC transport');
         const manager = new PeerBroadcastManager(data.id, streamRef.current, (state, detail) => {
           logStreamEvent({ session_id: data.id, role: 'host', phase: 'peer_fallback', event: `peer_${state}`, level: state === 'failed' ? 'error' : 'info', message: detail || state });
-        });
+        }, handlePeerViewerMedia);
         peerBroadcastRef.current = manager;
         await manager.connect(supabase);
         await setStreamLive('peer_signaling_ready');
