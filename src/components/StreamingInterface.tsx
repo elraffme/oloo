@@ -2174,7 +2174,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {isStreaming ? (
                       <div 
                         ref={hostVideoContainerRef}
-                        className="video-fullscreen-container flex-1 flex flex-col relative"
+                        className="video-fullscreen-container flex-1 flex flex-col relative w-full min-h-[240px] sm:min-h-[320px] lg:min-h-[400px]"
                         data-fullscreen={isHostFullscreen ? "true" : "false"}
                         style={{
                           backgroundColor: '#000',
@@ -2189,7 +2189,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           right: isHostFullscreen ? 0 : undefined,
                           bottom: isHostFullscreen ? 0 : undefined,
                           zIndex: isHostFullscreen ? 9999 : 10,
-                          minHeight: '400px',
                         }}
                       >
                         {/* Hidden video element to keep the stream ref alive */}
