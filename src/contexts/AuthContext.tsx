@@ -109,7 +109,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // Boot-time inactivity check: a stale session (device slept, tab restored,
+      // page refreshed after 5+ idle minutes) is revoked before anything renders.
+      if (session && isSessionInactive()) {
+        clearLastActivity();
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        }
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
