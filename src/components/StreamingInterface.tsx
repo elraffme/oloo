@@ -316,17 +316,22 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     isLoading: viewersLoading
   } = useStreamViewers(activeStreamId || '');
 
+  // Realtime presence is the fastest signal, but fall back to the persisted
+  // viewer sessions so the host never shows 0 while someone is actually watching.
+  const effectiveViewerCount = Math.max(liveViewerCount, activeViewers.length);
+
   // Sync viewer count to DB
   useEffect(() => {
     if (isStreaming && activeStreamId) {
       const updateViewerCount = async () => {
         await supabase.from('streaming_sessions').update({
-          current_viewers: liveViewerCount
+          current_viewers: effectiveViewerCount
         }).eq('id', activeStreamId);
       };
       updateViewerCount();
     }
-  }, [liveViewerCount, isStreaming, activeStreamId]);
+  }, [effectiveViewerCount, isStreaming, activeStreamId]);
+
 
   // Floating chat messages for host
   const [floatingChatMessages, setFloatingChatMessages] = useState<Array<{
