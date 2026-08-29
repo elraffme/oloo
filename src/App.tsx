@@ -90,6 +90,7 @@ const App = () => (
               <Route path="replays" element={<Replays />} />
               <Route path="admin" element={<Admin />} />
             </Route>
+            <Route path="/test-viewer" element={<React.Suspense fallback={null}><TestViewer /></React.Suspense>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
