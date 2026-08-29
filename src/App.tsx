@@ -46,6 +46,7 @@ import Admin from "./pages/Admin";
 import Replays from "./pages/Replays";
 import Waitlist from "./pages/Waitlist";
 import ClaimFounding from "./pages/ClaimFounding";
+const TestViewer = React.lazy(() => import("./pages/TestViewer"));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
