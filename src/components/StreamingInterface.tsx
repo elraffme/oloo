@@ -2224,9 +2224,9 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <StreamHearts hearts={liveHearts} />
 
                         {/* Floating Chat Messages Overlay */}
-                        <div className="absolute bottom-4 left-4 right-16 space-y-2 z-20 pointer-events-none">
+                        <div className="absolute bottom-3 left-3 right-14 sm:bottom-4 sm:left-4 sm:right-16 space-y-2 z-20 pointer-events-none">
                           {floatingChatMessages.map(msg => (
-                            <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-xs">
+                            <div key={msg.id} className="bg-black/60 backdrop-blur-sm rounded-2xl px-3 py-2 animate-slide-in-right max-w-[85%] sm:max-w-xs break-words">
                               <span className="text-white font-semibold text-sm">{msg.username}: </span>
                               <span className="text-white text-sm">{msg.message}</span>
                             </div>
