@@ -124,7 +124,7 @@ export const useCurrency = () => {
 
       const result = data as any;
       toast.success(`Converted ${goldAmount} gold to ${result.coins_received} coins!`);
-      await fetchBalance();
+      await refreshBalance();
       return data;
     } catch (error: any) {
       toast.error(error.message || 'Failed to convert gold');
@@ -135,7 +135,8 @@ export const useCurrency = () => {
   return {
     balance,
     loading,
-    refreshBalance: fetchBalance,
+    refreshBalance,
+
     convertGoldToCoins,
   };
 };
