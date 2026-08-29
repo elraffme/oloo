@@ -65,7 +65,7 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
-  const [baseLikes, setBaseLikes] = useState(totalLikes);
+  const [baseLikes] = useState(totalLikes);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   
   const [floatingMessages, setFloatingMessages] = useState<ChatMessage[]>([]);
@@ -359,9 +359,6 @@ export const TikTokStreamViewer: React.FC<TikTokStreamViewerProps> = ({
           filter: `id=eq.${streamId}`
         },
         (payload) => {
-          if (payload.new && 'total_likes' in payload.new) {
-            setBaseLikes(payload.new.total_likes || 0);
-          }
           
           // Monitor stream status - if host ends stream, close viewer automatically
           if (payload.new && 'status' in payload.new) {
