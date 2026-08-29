@@ -76,7 +76,8 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
   const [showChat, setShowChat] = useState(false); // Chat closed by default on all devices
   const [isLiked, setIsLiked] = useState(false);
   const [totalLikes, setTotalLikes] = useState(0);
-  const { hearts, gifts: liveGifts, sendHeart, sendGift } = useStreamReactions(streamId);
+  const { hearts, gifts: liveGifts, heartCount, viewerCount, sendHeart, sendGift } = useStreamReactions(streamId);
+  const likeCount = totalLikes + heartCount;
   const [showViewers, setShowViewers] = useState(false);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const { viewers, isLoading: viewersLoading } = useStreamViewers(streamId);
@@ -460,8 +461,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           filter: `stream_id=eq.${streamId}`
         },
         () => {
-          // Count only; heart animations are driven by the realtime reaction channel
-          setTotalLikes(prev => prev + 1);
+          // Counting is driven by the realtime reaction channel (one heart per click)
         }
       )
       .on(
@@ -473,9 +473,6 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
           filter: `id=eq.${streamId}`
         },
         (payload) => {
-          if (payload.new && 'total_likes' in payload.new) {
-            setTotalLikes(payload.new.total_likes || 0);
-          }
           
           // Monitor stream status - if host ends stream, close viewer automatically
           if (payload.new && 'status' in payload.new) {
@@ -1094,7 +1091,7 @@ const StreamViewer: React.FC<StreamViewerProps> = ({
             className={cn("gap-1.5 rounded-full bg-white/20 text-white hover:bg-white/40", isLiked && "bg-red-500/80 text-white hover:bg-red-500")}
           >
             <Heart className={cn("w-5 h-5", isLiked && "fill-current")} />
-            <span className="text-xs font-bold">{totalLikes}</span>
+            <span className="text-xs font-bold">{likeCount}</span>
           </Button>
 
           <Button size="icon" onClick={() => setShowGiftSelector(true)} className="h-9 w-9 rounded-full bg-white/20 text-white hover:bg-white/40">
