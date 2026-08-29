@@ -133,6 +133,16 @@ export const searchQuerySchema = z.string()
   .max(50, 'Search query must be less than 50 characters')
   .regex(/^[a-zA-Z0-9\s'-]+$/, 'Invalid characters in search query');
 
+// Livestream setup form validation
+export const streamFormSchema = z.object({
+  title: z.string()
+    .trim()
+    .min(1, 'Please enter a stream title.')
+    .max(100, 'Stream title must be less than 100 characters'),
+  category: z.string()
+    .min(1, 'Please select a category.')
+});
+
 /**
  * Sanitize HTML content to prevent XSS attacks
  */

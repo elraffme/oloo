@@ -38,6 +38,8 @@ import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
 import { PeerBroadcastManager } from '@/lib/peerLivestream';
+import { streamFormSchema } from '@/lib/validation';
+import { z } from 'zod';
 interface StreamingInterfaceProps {
   onBack?: () => void;
 }
@@ -92,6 +94,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   const [isMicOn, setIsMicOn] = useState(true);
   const [streamTitle, setStreamTitle] = useState('');
   const [streamCategory, setStreamCategory] = useState('');
+  const [streamErrors, setStreamErrors] = useState<{
+    title?: string;
+    category?: string;
+  }>({});
   const [totalLikes, setTotalLikes] = useState(0);
   const [totalGifts, setTotalGifts] = useState(0);
   const [liveStreams, setLiveStreams] = useState<StreamData[]>([]);
@@ -1249,6 +1255,28 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
     });
     return true;
   };
+  const validateStreamForm = (): boolean => {
+    const result = streamFormSchema.safeParse({
+      title: streamTitle,
+      category: streamCategory
+    });
+    if (result.success) {
+      setStreamErrors({});
+      return true;
+    }
+    const errors: {
+      title?: string;
+      category?: string;
+    } = {};
+    result.error.issues.forEach(issue => {
+      const path = issue.path[0] as 'title' | 'category';
+      if (path && !errors[path]) {
+        errors[path] = issue.message;
+      }
+    });
+    setStreamErrors(errors);
+    return false;
+  };
   const startStream = async () => {
     if (!user) {
       toast({
@@ -1258,20 +1286,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       });
       return;
     }
-    if (!streamTitle.trim()) {
-      toast({
-        title: "Missing title",
-        description: "Please enter a stream title before going live.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (!streamCategory) {
-      toast({
-        title: "Missing category",
-        description: "Please select a category before going live.",
-        variant: "destructive"
-      });
+    if (!validateStreamForm()) {
       return;
     }
     // Auto-request camera/mic if not enabled yet, instead of blocking the button
@@ -1999,9 +2014,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium">Category</label>
-                    <Select onValueChange={setStreamCategory}>
-                      <SelectTrigger className="mt-1">
+                    <label className="text-sm font-medium">Category *</label>
+                    <Select onValueChange={value => {
+                      setStreamCategory(value);
+                      if (value) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.category;
+                          return next;
+                        });
+                      }
+                    }} value={streamCategory}>
+                      <SelectTrigger className={`mt-1 ${streamErrors.category ? 'border-destructive focus:ring-destructive' : ''}`}>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2027,6 +2051,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                         <SelectItem value="tvshow">TV Show</SelectItem>
                       </SelectContent>
                     </Select>
+                    {streamErrors.category && <p className="text-sm text-destructive mt-1">{streamErrors.category}</p>}
                   </div>
 
                   {/* Premium tier status banner */}
@@ -2051,8 +2076,18 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     />
                   )}
                   <div>
-                    <label className="text-sm font-medium">Stream Title</label>
-                    <Input value={streamTitle} onChange={e => setStreamTitle(e.target.value)} placeholder="What's your stream about?" className="mt-1" />
+                    <label className="text-sm font-medium">Stream Title *</label>
+                    <Input value={streamTitle} onChange={e => {
+                      setStreamTitle(e.target.value);
+                      if (e.target.value.trim()) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.title;
+                          return next;
+                        });
+                      }
+                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
+                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
                   </div>
 
                    {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
