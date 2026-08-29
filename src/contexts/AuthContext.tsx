@@ -56,11 +56,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        
+
+        if (event === 'SIGNED_OUT') {
+          clearLastActivity();
+        }
+
         // NOTE: routing is intentionally NOT handled here. Each page (/auth, /signin,
         // /auth/verify, /onboarding, /app) owns its own redirect so that we never
         // hard-reload the browser mid-flow or bounce the public homepage.
         if (event === 'SIGNED_IN' && session?.user) {
+          // Fresh sign-in starts a fresh inactivity window.
+          writeLastActivity();
           setTimeout(async () => {
             // Apply any onboarding data captured before email verification
             const pendingOnboardingData = localStorage.getItem('pendingOnboardingData');
