@@ -2354,7 +2354,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                     
                     {/* Start Streaming Button - Prominent */}
-                    <div className="w-full max-w-[280px]">
+                    <div className="w-full max-w-[320px] mt-3">
                       {!isStreaming ? <Button onClick={startStream} disabled={isLoading || isRequestingCamera} className="w-full bg-red-500 hover:bg-red-600 text-white" size="lg">
                           <Radio className="w-5 h-5 mr-2" />
                           {isLoading ? 'Starting...' : 'Start Streaming'}
