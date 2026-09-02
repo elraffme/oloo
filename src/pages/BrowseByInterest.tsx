@@ -144,7 +144,7 @@ const BrowseByInterest = () => {
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
                 <Sparkles className="w-8 h-8 text-primary" />
                 Browse by Interest
               </h1>
