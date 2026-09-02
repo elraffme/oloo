@@ -88,9 +88,8 @@ export const CurrencyWallet = ({ onBuyCoins }: { onBuyCoins: () => void }) => {
         <PopoverContent className="w-64 md:w-80">
           <div className="space-y-3">
             <div>
-              <h4 className="font-semibold mb-2 text-sm md:text-base" style={{ color: '#FFFFFF' }}>Gold Balance</h4>
+              <h4 className="font-semibold mb-2 text-sm md:text-base">Gold Balance</h4>
               <div className="flex items-center justify-between text-sm">
-
                 <span className="text-muted-foreground">Available:</span>
                 <span className="font-semibold text-base md:text-lg">{balance.gold_balance.toLocaleString()}</span>
               </div>
