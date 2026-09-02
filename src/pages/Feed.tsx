@@ -434,7 +434,7 @@ const Feed = () => {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-afro-heading mb-2">{t('feed.title')}</h1>
-          <p className="text-muted-foreground">{t('feed.subtitle')}</p>
+          <p className="text-foreground">{t('feed.subtitle')}</p>
         </div>
         <DailyLoginRewards />
       </div>
