@@ -258,6 +258,20 @@ export default function Trivia() {
           </p>
         </div>
 
+        {/* Daily earning limit notice */}
+        {dailyInfo && dailyInfo.daily_earned >= dailyInfo.daily_limit && (
+          <Card className="border-2 border-yellow-500/40 bg-yellow-500/10">
+            <CardContent className="pt-6 text-center text-card-foreground">
+              <p className="font-medium">
+                You've reached today's trivia limit of {dailyInfo.daily_limit} coins 🎯
+              </p>
+              <p className="text-sm text-card-foreground/80 mt-1">
+                You can keep playing, but no more coins today. Your limit resets tomorrow.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
