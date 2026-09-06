@@ -50,6 +50,10 @@ const MeetMe = () => {
     milestone?: boolean;
   } | null>(null);
 
+  // Guards against overlapping / duplicate submissions
+  const respondingRef = useRef(false);
+  const handleResponseRef = useRef<(r: 'yes' | 'skip', auto?: boolean) => void>(() => {});
+
   useEffect(() => {
     if (user) {
       loadProfiles();
@@ -57,23 +61,25 @@ const MeetMe = () => {
     }
   }, [user]);
 
-  // Timer countdown
+  // Timer countdown — resets per profile, never mutates state from inside an updater
   useEffect(() => {
-    if (profiles.length === 0 || responding) return;
+    if (loading || profiles.length === 0 || currentIndex >= profiles.length) return;
+
+    setTimer(5);
+    let remaining = 5;
 
     const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          // Auto-skip when timer runs out
-          handleResponse('skip', true);
-          return 5;
-        }
-        return prev - 1;
-      });
+      if (respondingRef.current) return;
+      remaining -= 1;
+      setTimer(remaining > 0 ? remaining : 0);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        handleResponseRef.current('skip', true);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentIndex, profiles, responding]);
+  }, [currentIndex, profiles.length, loading]);
 
   const loadProfiles = async () => {
     try {
@@ -85,17 +91,23 @@ const MeetMe = () => {
         .select('target_user_id')
         .eq('user_id', user?.id);
 
-      const excludeIds = interactedIds?.map(i => i.target_user_id) || [];
+      const excludeIds = (interactedIds?.map(i => i.target_user_id) || []).filter(Boolean);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select('*')
-        .neq('user_id', user?.id || '')
-        .not('user_id', 'in', `(${excludeIds.join(',')})`)
-        .limit(20);
+        .neq('user_id', user?.id || '');
+
+      if (excludeIds.length > 0) {
+        query = query.not('user_id', 'in', `(${excludeIds.join(',')})`);
+      }
+
+      const { data, error } = await query.limit(20);
 
       if (error) throw error;
+      setCurrentIndex(0);
       setProfiles(data || []);
+
     } catch (error) {
       console.error('Error loading profiles:', error);
       toast.error('Failed to load profiles');
