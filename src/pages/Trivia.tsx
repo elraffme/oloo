@@ -162,19 +162,35 @@ export default function Trivia() {
       if (typedResult.is_correct) {
         const xpResult = typedResult.xp_result as any;
         const xpAwarded = xpResult?.xp_awarded || 0;
-        
-        // Trigger coin animation
-        setCoinsToAnimate(typedResult.coins_earned);
-        setShowCoinAnimation(true);
-        
-        toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
-          description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
-          duration: 5000,
-        });
+
+        if (typedResult.coins_earned > 0) {
+          // Trigger coin animation
+          setCoinsToAnimate(typedResult.coins_earned);
+          setShowCoinAnimation(true);
+
+          toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
+            description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
+            duration: 5000,
+          });
+          // Update the wallet everywhere (header included) right away
+          await refreshBalance();
+        } else {
+          toast.success(`Correct! +${xpAwarded} XP 🎉`, {
+            description: "You've reached today's trivia coin limit — come back tomorrow for more coins!",
+            duration: 5000,
+          });
+        }
         checkAchievements();
       } else {
         toast.error('Incorrect answer', {
           description: `The correct answer is: ${typedResult.correct_answer}`,
+        });
+      }
+
+      if (typeof typedResult.daily_limit === 'number') {
+        setDailyInfo({
+          daily_limit: typedResult.daily_limit,
+          daily_earned: typedResult.daily_earned ?? 0,
         });
       }
 
