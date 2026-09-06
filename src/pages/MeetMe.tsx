@@ -134,7 +134,6 @@ const MeetMe = () => {
       setCurrentIndex(prev => prev + 1);
       setResponding(false);
       respondingRef.current = false;
-      setTimer(5);
     }, 350);
 
     if (!autoSkip) {
@@ -217,14 +216,10 @@ const MeetMe = () => {
       setCurrentIndex(prev => (prev === currentIndex ? prev + 1 : prev));
       setResponding(false);
       respondingRef.current = false;
-      setTimer(5);
+      
     }
   };
 
-  // Keep the timer callback pointed at the latest handler (no stale closures)
-  useEffect(() => {
-    handleResponseRef.current = handleResponse;
-  });
 
 
   const getProfilePhoto = (profile: Profile) => {
@@ -321,10 +316,6 @@ const MeetMe = () => {
             <span className="text-sm text-muted-foreground">
               Profile {currentIndex + 1} of {Math.min(profiles.length, 20)}
             </span>
-            <span className="text-sm font-medium flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {timer}s
-            </span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
@@ -347,10 +338,6 @@ const MeetMe = () => {
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               
-              {/* Timer circle */}
-              <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-white font-bold text-lg">{timer}</span>
-              </div>
 
               {/* Profile Info */}
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
