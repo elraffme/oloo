@@ -386,7 +386,7 @@ export default function Shop() {
               </TabsContent>
 
               <TabsContent value="seasonal" className="mt-0">
-                <div className="mb-6 p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl">
+                <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl">
                   <div className="flex items-center gap-3 mb-3">
                     <Snowflake className="w-8 h-8 text-blue-500" />
                     <div>
