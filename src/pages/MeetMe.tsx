@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Flame, Coins, Trophy, Clock, MapPin, Zap, ArrowLeft } from 'lucide-react';
+import { Flame, Coins, Trophy, Clock, MapPin, Zap, ArrowLeft, SkipForward, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Profile {
