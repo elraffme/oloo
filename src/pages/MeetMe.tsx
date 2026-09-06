@@ -416,14 +416,18 @@ const MeetMe = () => {
             Skip
           </Button>
 
-          
           <Button
             size="lg"
-            className="flex-1 h-16 text-lg gap-2 bg-primary hover:bg-primary/90"
+            className="flex-1 h-14 sm:h-16 rounded-2xl border-2 border-transparent text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 bg-primary hover:bg-primary/90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed"
             onClick={() => handleResponse('yes')}
             disabled={responding}
+            aria-busy={responding}
           >
-            <span className="text-2xl">👍</span>
+            {responding ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <span className="text-2xl">👍</span>
+            )}
             Yes!
           </Button>
         </div>
