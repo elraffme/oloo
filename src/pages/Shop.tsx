@@ -349,8 +349,8 @@ export default function Shop() {
                   <div className="text-center py-12">
                     <div className="inline-block p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl mb-6">
                       <Lock className="w-16 h-16 mx-auto mb-4 text-amber-500" />
-                      <h3 className="text-2xl font-bold mb-2">Premium Members Only</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      <h3 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Premium Members Only</h3>
+                      <p className="text-foreground/80 mb-6 max-w-md mx-auto">
                         Unlock exclusive VIP items including legendary badges, premium themes, and special customizations
                       </p>
                       <Button
@@ -377,7 +377,7 @@ export default function Shop() {
                         <ShopItemCard key={item.id} item={item} />
                       ))
                     ) : (
-                      <div className="col-span-3 text-center py-12 text-muted-foreground">
+                      <div className="col-span-full text-center py-12 text-foreground/80 font-medium">
                         No VIP items available at the moment
                       </div>
                     )}
@@ -390,8 +390,8 @@ export default function Shop() {
                   <div className="flex items-center gap-3 mb-3">
                     <Snowflake className="w-8 h-8 text-blue-500" />
                     <div>
-                      <h3 className="text-2xl font-bold">Seasonal Collection</h3>
-                      <p className="text-muted-foreground">
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">Seasonal Collection</h3>
+                      <p className="text-foreground/80">
                         Limited-time items available only during special events and holidays
                       </p>
                     </div>
@@ -407,8 +407,8 @@ export default function Shop() {
                 ) : (
                   <div className="text-center py-12">
                     <Snowflake className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold mb-2">No Seasonal Items</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-xl font-semibold mb-2 text-foreground">No Seasonal Items</h3>
+                    <p className="text-foreground/80 max-w-md mx-auto">
                       There are no seasonal items available right now. Check back during holidays and special events for exclusive limited-time items!
                     </p>
                   </div>
@@ -421,7 +421,7 @@ export default function Shop() {
         {/* My Items Section */}
         {userPurchases && userPurchases.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4">My Items</h2>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">My Items</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {userPurchases.map((purchase) => (
                 <ShopItemCard key={purchase.id} item={purchase.shop_items} />
