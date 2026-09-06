@@ -158,17 +158,18 @@ export default function Shop() {
 
           {requiredTier && (
             <div className="mb-3">
-              <Badge variant="outline" className="text-xs capitalize">
+              <Badge variant="outline" className="text-xs capitalize font-medium text-card-foreground border-border">
                 Requires {requiredTier}
               </Badge>
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-1 text-amber-500 font-bold">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
               <Sparkles className="w-4 h-4" />
               <span>{item.coin_price}</span>
             </div>
+
 
             {purchased ? (
               <Button
