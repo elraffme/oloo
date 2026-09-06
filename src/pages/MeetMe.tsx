@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Flame, Coins, Trophy, Clock, MapPin, Zap, ArrowLeft, SkipForward, Loader2 } from 'lucide-react';
+import { Flame, Coins, Trophy, MapPin, Zap, ArrowLeft, SkipForward, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Profile {
@@ -42,7 +42,6 @@ const MeetMe = () => {
     total_plays: 0,
     coins_earned: 0,
   });
-  const [timer, setTimer] = useState(5);
   const [animate, setAnimate] = useState<'yes' | 'skip' | null>(null);
   const [showReward, setShowReward] = useState<{
     coins: number;
@@ -52,7 +51,6 @@ const MeetMe = () => {
 
   // Guards against overlapping / duplicate submissions
   const respondingRef = useRef(false);
-  const handleResponseRef = useRef<(r: 'yes' | 'skip', auto?: boolean) => void>(() => {});
 
   useEffect(() => {
     if (user) {
@@ -60,26 +58,6 @@ const MeetMe = () => {
       loadStats();
     }
   }, [user]);
-
-  // Timer countdown — resets per profile, never mutates state from inside an updater
-  useEffect(() => {
-    if (loading || profiles.length === 0 || currentIndex >= profiles.length) return;
-
-    setTimer(5);
-    let remaining = 5;
-
-    const interval = setInterval(() => {
-      if (respondingRef.current) return;
-      remaining -= 1;
-      setTimer(remaining > 0 ? remaining : 0);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        handleResponseRef.current('skip', true);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [currentIndex, profiles.length, loading]);
 
   const loadProfiles = async () => {
     try {
