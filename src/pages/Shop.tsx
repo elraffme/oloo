@@ -243,7 +243,7 @@ export default function Shop() {
               <ShoppingBag className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
               <h1 className="text-2xl sm:text-4xl font-bold text-foreground">Virtual Shop</h1>
             </div>
-            <p className="text-sm sm:text-base font-medium text-foreground/80 leading-relaxed">
+            <p className="text-sm sm:text-base font-medium text-[#000000] leading-relaxed">
               Spend your coins on exclusive items to customize your profile
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function Shop() {
             <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
               <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
               <span className="text-amber-600 dark:text-amber-400 font-bold">{balance.coin_balance}</span>
-              <span className="text-foreground/80">Coins Available</span>
+              <span className="text-[#000000]">Coins Available</span>
             </div>
           )}
           
