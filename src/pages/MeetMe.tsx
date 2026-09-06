@@ -140,29 +140,47 @@ const MeetMe = () => {
   };
 
   const handleResponse = async (response: 'yes' | 'skip', autoSkip = false) => {
-    if (responding || profiles.length === 0) return;
+    // Ref guard: reliable against rapid/double clicks and timer races
+    if (respondingRef.current) return;
 
     const currentProfile = profiles[currentIndex];
+    if (!currentProfile || !user?.id) return;
+
+    respondingRef.current = true;
     setResponding(true);
     setAnimate(response);
-    setTimer(5); // Reset timer
+
+    // Advance the UI immediately — never block the next profile on the network
+    const advance = window.setTimeout(() => {
+      setAnimate(null);
+      setCurrentIndex(prev => prev + 1);
+      setResponding(false);
+      respondingRef.current = false;
+      setTimer(5);
+    }, 350);
+
+    if (!autoSkip) {
+      toast(response === 'yes' ? '👍 Liked!' : '⏭️ Skipped', { duration: 1000 });
+    }
 
     try {
-      // Record interaction
+      // Record interaction (duplicates are harmless — the profile is simply already seen)
       const { error: interactionError } = await supabase
         .from('meet_me_interactions')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           target_user_id: currentProfile.user_id,
           response,
         });
 
-      if (interactionError) throw interactionError;
+      if (interactionError && interactionError.code !== '23505') {
+        throw interactionError;
+      }
 
       // Update stats and get rewards
       const { data: statsData, error: statsError } = await supabase
         .rpc('update_meet_me_stats', {
-          p_user_id: user?.id,
+          p_user_id: user.id,
           p_response: response,
         });
 
@@ -172,7 +190,7 @@ const MeetMe = () => {
       if (response === 'yes') {
         const { data: isMatch } = await supabase
           .rpc('check_meet_me_match', {
-            p_user_id: user?.id,
+            p_user_id: user.id,
             p_target_user_id: currentProfile.user_id,
           });
 
@@ -192,7 +210,7 @@ const MeetMe = () => {
           streak_bonus: boolean;
           milestone_bonus: boolean;
         };
-        
+
         setStats(prev => ({
           ...prev,
           current_streak: result.current_streak,
@@ -210,26 +228,26 @@ const MeetMe = () => {
           setTimeout(() => setShowReward(null), 3000);
         }
       }
-
-      if (!autoSkip) {
-        toast(response === 'yes' ? '👍 Liked!' : '⏭️ Skipped', {
-          duration: 1000,
-        });
-      }
-
-      // Move to next profile
-      setTimeout(() => {
-        setAnimate(null);
-        setCurrentIndex(prev => prev + 1);
-        setResponding(false);
-      }, 500);
     } catch (error) {
+      // The card still advances; only surface a quiet notice
       console.error('Error handling response:', error);
-      toast.error('Something went wrong');
-      setResponding(false);
+      if (!autoSkip) toast.error('Could not save that response');
+    } finally {
+      // Safety: if the advance timeout was cleared by unmount, release the guard
+      window.clearTimeout(advance);
       setAnimate(null);
+      setCurrentIndex(prev => (prev === currentIndex ? prev + 1 : prev));
+      setResponding(false);
+      respondingRef.current = false;
+      setTimer(5);
     }
   };
+
+  // Keep the timer callback pointed at the latest handler (no stale closures)
+  useEffect(() => {
+    handleResponseRef.current = handleResponse;
+  });
+
 
   const getProfilePhoto = (profile: Profile) => {
     if (profile.profile_photos && profile.profile_photos.length > 0) {
