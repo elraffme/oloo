@@ -286,16 +286,16 @@ export default function Shop() {
 
       {/* Categories */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-        <div className="-mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto mb-6 sm:mb-8 no-scrollbar">
-          <TabsList className="inline-flex w-max min-w-full sm:grid sm:w-full sm:grid-cols-6 gap-1">
-            <TabsTrigger value="badge" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🏆 Badges</TabsTrigger>
-            <TabsTrigger value="theme" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🎨 Themes</TabsTrigger>
-            <TabsTrigger value="emoji" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">😊 Emojis</TabsTrigger>
-            <TabsTrigger value="customization" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">✨ Custom</TabsTrigger>
-            <TabsTrigger value="vip" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+        <div className="-mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-hidden sm:overflow-visible mb-6 sm:mb-8">
+          <TabsList className="flex flex-wrap w-full sm:grid sm:w-full sm:grid-cols-6 gap-2">
+            <TabsTrigger value="badge" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🏆 Badges</TabsTrigger>
+            <TabsTrigger value="theme" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🎨 Themes</TabsTrigger>
+            <TabsTrigger value="emoji" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">😊 Emojis</TabsTrigger>
+            <TabsTrigger value="customization" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">✨ Custom</TabsTrigger>
+            <TabsTrigger value="vip" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
               👑 VIP
             </TabsTrigger>
-            <TabsTrigger value="seasonal" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+            <TabsTrigger value="seasonal" className="flex-1 sm:flex-none min-w-[120px] sm:min-w-0 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
               ❄️ Seasonal
             </TabsTrigger>
           </TabsList>
