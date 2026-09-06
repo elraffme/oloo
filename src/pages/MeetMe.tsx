@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,10 @@ const MeetMe = () => {
     milestone?: boolean;
   } | null>(null);
 
+  // Guards against overlapping / duplicate submissions
+  const respondingRef = useRef(false);
+  const handleResponseRef = useRef<(r: 'yes' | 'skip', auto?: boolean) => void>(() => {});
+
   useEffect(() => {
     if (user) {
       loadProfiles();
@@ -57,23 +61,25 @@ const MeetMe = () => {
     }
   }, [user]);
 
-  // Timer countdown
+  // Timer countdown — resets per profile, never mutates state from inside an updater
   useEffect(() => {
-    if (profiles.length === 0 || responding) return;
+    if (loading || profiles.length === 0 || currentIndex >= profiles.length) return;
+
+    setTimer(5);
+    let remaining = 5;
 
     const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          // Auto-skip when timer runs out
-          handleResponse('skip', true);
-          return 5;
-        }
-        return prev - 1;
-      });
+      if (respondingRef.current) return;
+      remaining -= 1;
+      setTimer(remaining > 0 ? remaining : 0);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        handleResponseRef.current('skip', true);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [currentIndex, profiles, responding]);
+  }, [currentIndex, profiles.length, loading]);
 
   const loadProfiles = async () => {
     try {
@@ -85,17 +91,23 @@ const MeetMe = () => {
         .select('target_user_id')
         .eq('user_id', user?.id);
 
-      const excludeIds = interactedIds?.map(i => i.target_user_id) || [];
+      const excludeIds = (interactedIds?.map(i => i.target_user_id) || []).filter(Boolean);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select('*')
-        .neq('user_id', user?.id || '')
-        .not('user_id', 'in', `(${excludeIds.join(',')})`)
-        .limit(20);
+        .neq('user_id', user?.id || '');
+
+      if (excludeIds.length > 0) {
+        query = query.not('user_id', 'in', `(${excludeIds.join(',')})`);
+      }
+
+      const { data, error } = await query.limit(20);
 
       if (error) throw error;
+      setCurrentIndex(0);
       setProfiles(data || []);
+
     } catch (error) {
       console.error('Error loading profiles:', error);
       toast.error('Failed to load profiles');
@@ -128,29 +140,47 @@ const MeetMe = () => {
   };
 
   const handleResponse = async (response: 'yes' | 'skip', autoSkip = false) => {
-    if (responding || profiles.length === 0) return;
+    // Ref guard: reliable against rapid/double clicks and timer races
+    if (respondingRef.current) return;
 
     const currentProfile = profiles[currentIndex];
+    if (!currentProfile || !user?.id) return;
+
+    respondingRef.current = true;
     setResponding(true);
     setAnimate(response);
-    setTimer(5); // Reset timer
+
+    // Advance the UI immediately — never block the next profile on the network
+    const advance = window.setTimeout(() => {
+      setAnimate(null);
+      setCurrentIndex(prev => prev + 1);
+      setResponding(false);
+      respondingRef.current = false;
+      setTimer(5);
+    }, 350);
+
+    if (!autoSkip) {
+      toast(response === 'yes' ? '👍 Liked!' : '⏭️ Skipped', { duration: 1000 });
+    }
 
     try {
-      // Record interaction
+      // Record interaction (duplicates are harmless — the profile is simply already seen)
       const { error: interactionError } = await supabase
         .from('meet_me_interactions')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           target_user_id: currentProfile.user_id,
           response,
         });
 
-      if (interactionError) throw interactionError;
+      if (interactionError && interactionError.code !== '23505') {
+        throw interactionError;
+      }
 
       // Update stats and get rewards
       const { data: statsData, error: statsError } = await supabase
         .rpc('update_meet_me_stats', {
-          p_user_id: user?.id,
+          p_user_id: user.id,
           p_response: response,
         });
 
@@ -160,7 +190,7 @@ const MeetMe = () => {
       if (response === 'yes') {
         const { data: isMatch } = await supabase
           .rpc('check_meet_me_match', {
-            p_user_id: user?.id,
+            p_user_id: user.id,
             p_target_user_id: currentProfile.user_id,
           });
 
@@ -180,7 +210,7 @@ const MeetMe = () => {
           streak_bonus: boolean;
           milestone_bonus: boolean;
         };
-        
+
         setStats(prev => ({
           ...prev,
           current_streak: result.current_streak,
@@ -198,26 +228,26 @@ const MeetMe = () => {
           setTimeout(() => setShowReward(null), 3000);
         }
       }
-
-      if (!autoSkip) {
-        toast(response === 'yes' ? '👍 Liked!' : '⏭️ Skipped', {
-          duration: 1000,
-        });
-      }
-
-      // Move to next profile
-      setTimeout(() => {
-        setAnimate(null);
-        setCurrentIndex(prev => prev + 1);
-        setResponding(false);
-      }, 500);
     } catch (error) {
+      // The card still advances; only surface a quiet notice
       console.error('Error handling response:', error);
-      toast.error('Something went wrong');
-      setResponding(false);
+      if (!autoSkip) toast.error('Could not save that response');
+    } finally {
+      // Safety: if the advance timeout was cleared by unmount, release the guard
+      window.clearTimeout(advance);
       setAnimate(null);
+      setCurrentIndex(prev => (prev === currentIndex ? prev + 1 : prev));
+      setResponding(false);
+      respondingRef.current = false;
+      setTimer(5);
     }
   };
+
+  // Keep the timer callback pointed at the latest handler (no stale closures)
+  useEffect(() => {
+    handleResponseRef.current = handleResponse;
+  });
+
 
   const getProfilePhoto = (profile: Profile) => {
     if (profile.profile_photos && profile.profile_photos.length > 0) {
