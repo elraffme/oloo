@@ -399,17 +399,23 @@ const MeetMe = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 mt-6">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
           <Button
             size="lg"
             variant="outline"
-            className="flex-1 h-16 text-lg gap-2 border-2 hover:border-red-500 hover:bg-red-500/10 hover:text-red-500"
+            className="flex-1 h-14 sm:h-16 rounded-2xl border-2 border-border bg-card text-foreground text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 hover:bg-muted hover:border-foreground/30 hover:text-foreground hover:shadow-md active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed"
             onClick={() => handleResponse('skip')}
             disabled={responding}
+            aria-busy={responding}
           >
-            <span className="text-2xl">⏭️</span>
+            {responding ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <SkipForward className="w-5 h-5" />
+            )}
             Skip
           </Button>
+
           
           <Button
             size="lg"
