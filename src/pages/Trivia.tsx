@@ -228,10 +228,10 @@ export default function Trivia() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => navigate(-1)}
-            className="gap-2"
+            className="gap-2 text-foreground border-foreground/20 bg-background hover:bg-accent hover:text-foreground hover:border-foreground/40 active:bg-muted active:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -240,7 +240,7 @@ export default function Trivia() {
             variant="outline"
             size="sm"
             onClick={() => navigate('/trivia/leaderboard')}
-            className="gap-2"
+            className="gap-2 text-foreground border-foreground/20 bg-background hover:bg-accent hover:text-foreground hover:border-foreground/40 active:bg-muted active:text-foreground"
           >
             <Trophy className="h-4 w-4" />
             Leaderboard
@@ -249,11 +249,11 @@ export default function Trivia() {
 
         {/* Title */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
+          <h1 className="text-4xl font-bold flex items-center justify-center gap-3 text-foreground">
             <Brain className="h-10 w-10 text-primary" />
             Daily African Trivia
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-foreground/90 font-medium">
             Test your knowledge and earn coins!
           </p>
         </div>
