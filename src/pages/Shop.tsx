@@ -115,11 +115,11 @@ export default function Shop() {
       (requiredTier === 'gold' && userTier === 'gold');
 
     return (
-      <Card className={`p-4 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all ${!hasRequiredTier || !meetsSpecificTier ? 'opacity-75' : ''}`}>
+      <Card className={`p-4 sm:p-5 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all ${!hasRequiredTier || !meetsSpecificTier ? 'opacity-90' : ''}`}>
         <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between gap-2 mb-3">
             <div className="relative">
-              <div className="text-4xl">{item.icon}</div>
+              <div className="text-4xl leading-none">{item.icon}</div>
               {isVipOnly && (
                 <div className="absolute -top-2 -right-2">
                   <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs px-1.5 py-0">
@@ -135,15 +135,16 @@ export default function Shop() {
                 </div>
               )}
             </div>
-            <Badge className={rarityColors[item.rarity]}>
+            <Badge className={`${rarityColors[item.rarity]} text-white font-semibold capitalize shrink-0`}>
               {item.rarity}
             </Badge>
           </div>
 
-          <h3 className="font-bold text-lg mb-1">{item.name}</h3>
-          <p className="text-sm text-muted-foreground mb-4 flex-grow">
+          <h3 className="font-bold text-base sm:text-lg mb-1 text-card-foreground break-words">{item.name}</h3>
+          <p className="text-sm text-card-foreground/75 mb-4 flex-grow break-words">
             {item.description}
           </p>
+
 
           {isSeasonal && availableUntil && (
             <div className="mb-3">
