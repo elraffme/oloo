@@ -80,6 +80,8 @@ export default function Trivia() {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [showCoinAnimation, setShowCoinAnimation] = useState(false);
   const [coinsToAnimate, setCoinsToAnimate] = useState(0);
+  const { refreshBalance } = useCurrency();
+  const [dailyInfo, setDailyInfo] = useState<{ daily_limit: number; daily_earned: number } | null>(null);
 
   useEffect(() => {
     if (user) {
