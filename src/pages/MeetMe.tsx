@@ -430,20 +430,35 @@ const MeetMe = () => {
           </Button>
         </div>
 
-        {/* Tips */}
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-          <div className="flex items-start gap-3">
-            <Zap className="w-5 h-5 text-primary mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Quick Tips</p>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Say Yes to 10 profiles = 5 coins! 🪙</li>
-                <li>• 5-day streak = 15 coins bonus! 🔥</li>
-                <li>• Both say Yes = Instant connection! 💫</li>
-              </ul>
+        {/* Quick Tips */}
+        <Card className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Zap className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-3">
+                <h3 className="font-afro-heading text-base font-semibold tracking-wide text-card-foreground">
+                  Quick Tips
+                </h3>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2 text-sm leading-relaxed text-card-foreground/80">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    Say Yes to 10 profiles = 5 coins! 🪙
+                  </li>
+                  <li className="flex items-start gap-2 text-sm leading-relaxed text-card-foreground/80">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    5-day streak = 15 coins bonus! 🔥
+                  </li>
+                  <li className="flex items-start gap-2 text-sm leading-relaxed text-card-foreground/80">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    Both say Yes = Instant connection! 💫
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Reward Notification */}
