@@ -10,6 +10,7 @@ import { Loader2, Brain, Coins, Flame, Trophy, ArrowLeft, CheckCircle2, XCircle 
 import { toast } from 'sonner';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useUserLevel } from '@/hooks/useUserLevel';
+import { useCurrency } from '@/hooks/useCurrency';
 import CoinRewardAnimation from '@/components/CoinRewardAnimation';
 
 interface TriviaQuestion {
@@ -28,6 +29,10 @@ interface TriviaResult {
   correct_answer: string;
   coins_earned: number;
   current_streak: number;
+  daily_limit?: number;
+  daily_earned?: number;
+  daily_remaining?: number;
+  daily_limit_reached?: boolean;
   error?: string;
   xp_result?: {
     xp_awarded: number;
@@ -75,6 +80,8 @@ export default function Trivia() {
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [showCoinAnimation, setShowCoinAnimation] = useState(false);
   const [coinsToAnimate, setCoinsToAnimate] = useState(0);
+  const { refreshBalance } = useCurrency();
+  const [dailyInfo, setDailyInfo] = useState<{ daily_limit: number; daily_earned: number } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -117,6 +124,12 @@ export default function Trivia() {
       } else if (statsData) {
         setStats(statsData);
       }
+
+      // Load today's trivia earning allowance
+      const { data: dailyData } = await (supabase.rpc as any)('get_trivia_daily_earnings', {
+        p_user_id: user?.id,
+      });
+      if (dailyData) setDailyInfo(dailyData as any);
     } catch (error) {
       console.error('Error loading trivia:', error);
       toast.error('Failed to load trivia question');
@@ -149,19 +162,35 @@ export default function Trivia() {
       if (typedResult.is_correct) {
         const xpResult = typedResult.xp_result as any;
         const xpAwarded = xpResult?.xp_awarded || 0;
-        
-        // Trigger coin animation
-        setCoinsToAnimate(typedResult.coins_earned);
-        setShowCoinAnimation(true);
-        
-        toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
-          description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
-          duration: 5000,
-        });
+
+        if (typedResult.coins_earned > 0) {
+          // Trigger coin animation
+          setCoinsToAnimate(typedResult.coins_earned);
+          setShowCoinAnimation(true);
+
+          toast.success(`Correct! +${typedResult.coins_earned} coins & +${xpAwarded} XP! 🎉`, {
+            description: typedResult.current_streak > 1 ? `${typedResult.current_streak} day streak! 🔥` : undefined,
+            duration: 5000,
+          });
+          // Update the wallet everywhere (header included) right away
+          await refreshBalance();
+        } else {
+          toast.success(`Correct! +${xpAwarded} XP 🎉`, {
+            description: "You've reached today's trivia coin limit — come back tomorrow for more coins!",
+            duration: 5000,
+          });
+        }
         checkAchievements();
       } else {
         toast.error('Incorrect answer', {
           description: `The correct answer is: ${typedResult.correct_answer}`,
+        });
+      }
+
+      if (typeof typedResult.daily_limit === 'number') {
+        setDailyInfo({
+          daily_limit: typedResult.daily_limit,
+          daily_earned: typedResult.daily_earned ?? 0,
         });
       }
 
@@ -228,6 +257,20 @@ export default function Trivia() {
             Test your knowledge and earn coins!
           </p>
         </div>
+
+        {/* Daily earning limit notice */}
+        {dailyInfo && dailyInfo.daily_earned >= dailyInfo.daily_limit && (
+          <Card className="border-2 border-yellow-500/40 bg-yellow-500/10">
+            <CardContent className="pt-6 text-center text-card-foreground">
+              <p className="font-medium">
+                You've reached today's trivia limit of {dailyInfo.daily_limit} coins 🎯
+              </p>
+              <p className="text-sm text-card-foreground/80 mt-1">
+                You can keep playing, but no more coins today. Your limit resets tomorrow.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         {stats && (

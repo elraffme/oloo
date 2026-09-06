@@ -1715,6 +1715,33 @@ export type Database = {
           },
         ]
       }
+      trivia_daily_earnings: {
+        Row: {
+          coins_earned: number
+          created_at: string
+          earn_date: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_earned?: number
+          created_at?: string
+          earn_date?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_earned?: number
+          created_at?: string
+          earn_date?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trivia_questions: {
         Row: {
           active: boolean | null
@@ -2610,6 +2637,7 @@ export type Database = {
         Args: { p_stream_id: string }
         Returns: boolean
       }
+      get_trivia_daily_earnings: { Args: { p_user_id: string }; Returns: Json }
       get_trivia_leaderboard: {
         Args: { p_limit?: number }
         Returns: {
