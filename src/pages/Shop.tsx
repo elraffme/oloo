@@ -115,11 +115,11 @@ export default function Shop() {
       (requiredTier === 'gold' && userTier === 'gold');
 
     return (
-      <Card className={`p-4 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all ${!hasRequiredTier || !meetsSpecificTier ? 'opacity-75' : ''}`}>
+      <Card className={`p-4 sm:p-5 border-2 ${rarityBorderColors[item.rarity]} hover:shadow-lg transition-all ${!hasRequiredTier || !meetsSpecificTier ? 'opacity-90' : ''}`}>
         <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-start justify-between gap-2 mb-3">
             <div className="relative">
-              <div className="text-4xl">{item.icon}</div>
+              <div className="text-4xl leading-none">{item.icon}</div>
               {isVipOnly && (
                 <div className="absolute -top-2 -right-2">
                   <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs px-1.5 py-0">
@@ -135,15 +135,16 @@ export default function Shop() {
                 </div>
               )}
             </div>
-            <Badge className={rarityColors[item.rarity]}>
+            <Badge className={`${rarityColors[item.rarity]} text-white font-semibold capitalize shrink-0`}>
               {item.rarity}
             </Badge>
           </div>
 
-          <h3 className="font-bold text-lg mb-1">{item.name}</h3>
-          <p className="text-sm text-muted-foreground mb-4 flex-grow">
+          <h3 className="font-bold text-base sm:text-lg mb-1 text-card-foreground break-words">{item.name}</h3>
+          <p className="text-sm text-card-foreground/75 mb-4 flex-grow break-words">
             {item.description}
           </p>
+
 
           {isSeasonal && availableUntil && (
             <div className="mb-3">
@@ -157,17 +158,18 @@ export default function Shop() {
 
           {requiredTier && (
             <div className="mb-3">
-              <Badge variant="outline" className="text-xs capitalize">
+              <Badge variant="outline" className="text-xs capitalize font-medium text-card-foreground border-border">
                 Requires {requiredTier}
               </Badge>
             </div>
           )}
 
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-1 text-amber-500 font-bold">
+          <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
               <Sparkles className="w-4 h-4" />
               <span>{item.coin_price}</span>
             </div>
+
 
             {purchased ? (
               <Button
@@ -232,23 +234,23 @@ export default function Shop() {
   };
 
   return (
-    <div className="container max-w-6xl mx-auto py-8 px-4">
+    <div className="container max-w-6xl mx-auto py-6 sm:py-8 px-3 sm:px-4 overflow-x-hidden">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <ShoppingBag className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold">Virtual Shop</h1>
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <ShoppingBag className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
+              <h1 className="text-2xl sm:text-4xl font-bold text-foreground">Virtual Shop</h1>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base font-medium text-foreground/80 leading-relaxed">
               Spend your coins on exclusive items to customize your profile
             </p>
           </div>
           <Button
             variant="outline"
             onClick={() => setInboxOpen(true)}
-            className="gap-2 relative"
+            className="gap-2 relative w-full sm:w-auto h-11 px-5 font-semibold text-foreground border-2 border-border bg-card hover:bg-muted hover:text-foreground shrink-0"
           >
             <Inbox className="w-5 h-5" />
             Gift Inbox
@@ -260,12 +262,12 @@ export default function Shop() {
           </Button>
         </div>
         
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {balance && (
-            <div className="flex items-center gap-2 text-xl font-semibold">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <span className="text-amber-500">{balance.coin_balance}</span>
-              <span className="text-muted-foreground">Coins Available</span>
+            <div className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
+              <Sparkles className="w-5 h-5 text-amber-500 shrink-0" />
+              <span className="text-amber-600 dark:text-amber-400 font-bold">{balance.coin_balance}</span>
+              <span className="text-foreground/80">Coins Available</span>
             </div>
           )}
           
@@ -273,7 +275,7 @@ export default function Shop() {
             <Button
               variant="default"
               onClick={() => navigate('/app/premium')}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              className="w-full sm:w-auto h-11 font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
             >
               <Lock className="w-4 h-4 mr-2" />
               Unlock VIP Items
@@ -284,18 +286,21 @@ export default function Shop() {
 
       {/* Categories */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 mb-8">
-          <TabsTrigger value="badge">🏆 Badges</TabsTrigger>
-          <TabsTrigger value="theme">🎨 Themes</TabsTrigger>
-          <TabsTrigger value="emoji">😊 Emojis</TabsTrigger>
-          <TabsTrigger value="customization">✨ Custom</TabsTrigger>
-          <TabsTrigger value="vip" className="bg-gradient-to-r from-amber-500/10 to-orange-500/10">
-            👑 VIP
-          </TabsTrigger>
-          <TabsTrigger value="seasonal" className="bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-            ❄️ Seasonal
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-3 sm:mx-0 px-3 sm:px-0 overflow-x-auto mb-6 sm:mb-8 no-scrollbar">
+          <TabsList className="inline-flex w-max min-w-full sm:grid sm:w-full sm:grid-cols-6 gap-1">
+            <TabsTrigger value="badge" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🏆 Badges</TabsTrigger>
+            <TabsTrigger value="theme" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🎨 Themes</TabsTrigger>
+            <TabsTrigger value="emoji" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">😊 Emojis</TabsTrigger>
+            <TabsTrigger value="customization" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">✨ Custom</TabsTrigger>
+            <TabsTrigger value="vip" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+              👑 VIP
+            </TabsTrigger>
+            <TabsTrigger value="seasonal" className="whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+              ❄️ Seasonal
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -344,8 +349,8 @@ export default function Shop() {
                   <div className="text-center py-12">
                     <div className="inline-block p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl mb-6">
                       <Lock className="w-16 h-16 mx-auto mb-4 text-amber-500" />
-                      <h3 className="text-2xl font-bold mb-2">Premium Members Only</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      <h3 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Premium Members Only</h3>
+                      <p className="text-foreground/80 mb-6 max-w-md mx-auto">
                         Unlock exclusive VIP items including legendary badges, premium themes, and special customizations
                       </p>
                       <Button
@@ -372,7 +377,7 @@ export default function Shop() {
                         <ShopItemCard key={item.id} item={item} />
                       ))
                     ) : (
-                      <div className="col-span-3 text-center py-12 text-muted-foreground">
+                      <div className="col-span-full text-center py-12 text-foreground/80 font-medium">
                         No VIP items available at the moment
                       </div>
                     )}
@@ -381,12 +386,12 @@ export default function Shop() {
               </TabsContent>
 
               <TabsContent value="seasonal" className="mt-0">
-                <div className="mb-6 p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl">
+                <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl">
                   <div className="flex items-center gap-3 mb-3">
                     <Snowflake className="w-8 h-8 text-blue-500" />
                     <div>
-                      <h3 className="text-2xl font-bold">Seasonal Collection</h3>
-                      <p className="text-muted-foreground">
+                      <h3 className="text-xl sm:text-2xl font-bold text-foreground">Seasonal Collection</h3>
+                      <p className="text-foreground/80">
                         Limited-time items available only during special events and holidays
                       </p>
                     </div>
@@ -402,8 +407,8 @@ export default function Shop() {
                 ) : (
                   <div className="text-center py-12">
                     <Snowflake className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <h3 className="text-xl font-semibold mb-2">No Seasonal Items</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-xl font-semibold mb-2 text-foreground">No Seasonal Items</h3>
+                    <p className="text-foreground/80 max-w-md mx-auto">
                       There are no seasonal items available right now. Check back during holidays and special events for exclusive limited-time items!
                     </p>
                   </div>
@@ -416,7 +421,7 @@ export default function Shop() {
         {/* My Items Section */}
         {userPurchases && userPurchases.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4">My Items</h2>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">My Items</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {userPurchases.map((purchase) => (
                 <ShopItemCard key={purchase.id} item={purchase.shop_items} />
