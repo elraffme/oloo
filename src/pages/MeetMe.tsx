@@ -401,9 +401,8 @@ const MeetMe = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
           <Button
-            size="lg"
             variant="outline"
-            className="flex-1 h-14 sm:h-16 rounded-2xl border-2 border-border bg-card text-foreground text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 hover:bg-muted hover:border-foreground/30 hover:text-foreground hover:shadow-md active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex-1 h-14 sm:h-16 min-h-14 sm:min-h-16 px-6 py-0 rounded-2xl border-2 border-border bg-card text-foreground text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 hover:bg-muted hover:border-foreground/30 hover:text-foreground hover:shadow-md active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed box-border"
             onClick={() => handleResponse('skip')}
             disabled={responding}
             aria-busy={responding}
@@ -417,8 +416,7 @@ const MeetMe = () => {
           </Button>
 
           <Button
-            size="lg"
-            className="flex-1 h-14 sm:h-16 rounded-2xl border-2 border-transparent text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 bg-primary hover:bg-primary/90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex-1 h-14 sm:h-16 min-h-14 sm:min-h-16 px-6 py-0 rounded-2xl border-2 border-transparent text-base sm:text-lg font-semibold gap-2 shadow-sm transition-all duration-200 bg-primary hover:bg-primary/90 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 disabled:cursor-not-allowed box-border"
             onClick={() => handleResponse('yes')}
             disabled={responding}
             aria-busy={responding}
