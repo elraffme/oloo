@@ -289,9 +289,9 @@ export default function Trivia() {
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-2xl font-bold text-orange-500 flex items-center justify-center gap-1">
-                  <Flame className="h-5 w-5" />
-                  {stats.current_streak}
+                <div className="text-2xl font-bold flex items-center justify-center gap-1">
+                  <Flame className="h-5 w-5 text-orange-500" />
+                  <span className="text-foreground">{stats.current_streak}</span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Day Streak</div>
               </CardContent>
