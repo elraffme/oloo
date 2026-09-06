@@ -2336,9 +2336,9 @@ export type Database = {
       award_xp: {
         Args: {
           p_amount: number
-          p_reason: string
+          p_reason?: string
           p_source_id?: string
-          p_source_type: string
+          p_source_type?: string
           p_user_id: string
         }
         Returns: Json
