@@ -277,7 +277,7 @@ export default function Trivia() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-2xl font-bold text-primary">{stats.total_questions_answered}</div>
+                <div className="text-2xl font-bold text-green-500">{stats.total_questions_answered}</div>
                 <div className="text-xs text-muted-foreground mt-1">Questions</div>
               </CardContent>
             </Card>
@@ -291,7 +291,7 @@ export default function Trivia() {
               <CardContent className="pt-6 text-center">
                 <div className="text-2xl font-bold flex items-center justify-center gap-1">
                   <Flame className="h-5 w-5 text-orange-500" />
-                  <span className="text-foreground">{stats.current_streak}</span>
+                  <span className="text-green-500">{stats.current_streak}</span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">Day Streak</div>
               </CardContent>
