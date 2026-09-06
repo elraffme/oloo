@@ -124,6 +124,12 @@ export default function Trivia() {
       } else if (statsData) {
         setStats(statsData);
       }
+
+      // Load today's trivia earning allowance
+      const { data: dailyData } = await (supabase.rpc as any)('get_trivia_daily_earnings', {
+        p_user_id: user?.id,
+      });
+      if (dailyData) setDailyInfo(dailyData as any);
     } catch (error) {
       console.error('Error loading trivia:', error);
       toast.error('Failed to load trivia question');
