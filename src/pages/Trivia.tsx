@@ -10,6 +10,7 @@ import { Loader2, Brain, Coins, Flame, Trophy, ArrowLeft, CheckCircle2, XCircle 
 import { toast } from 'sonner';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useUserLevel } from '@/hooks/useUserLevel';
+import { useCurrency } from '@/hooks/useCurrency';
 import CoinRewardAnimation from '@/components/CoinRewardAnimation';
 
 interface TriviaQuestion {
@@ -28,6 +29,10 @@ interface TriviaResult {
   correct_answer: string;
   coins_earned: number;
   current_streak: number;
+  daily_limit?: number;
+  daily_earned?: number;
+  daily_remaining?: number;
+  daily_limit_reached?: boolean;
   error?: string;
   xp_result?: {
     xp_awarded: number;
