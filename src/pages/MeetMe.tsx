@@ -118,7 +118,7 @@ const MeetMe = () => {
   };
 
   const handleResponse = async (response: 'yes' | 'skip', autoSkip = false) => {
-    // Ref guard: reliable against rapid/double clicks and timer races
+    // Ref guard: reliable against rapid/double clicks
     if (respondingRef.current) return;
 
     const currentProfile = profiles[currentIndex];
