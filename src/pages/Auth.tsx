@@ -98,9 +98,9 @@ const Auth = () => {
 
           if (error) console.error('[Auth] Profile check failed:', error);
 
-          // Redirect to /app if onboarding is complete, otherwise /onboarding
+          // Redirect to Discover if onboarding is complete, otherwise /onboarding
           if (data?.onboarding_completed === true) {
-            navigate(returnTo ?? '/app', { replace: true });
+            navigate(returnTo ?? '/app/discover', { replace: true });
           } else {
             navigate('/onboarding', { replace: true });
           }

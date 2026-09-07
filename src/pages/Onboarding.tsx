@@ -181,9 +181,9 @@ const Onboarding = () => {
     return <Navigate to="/auth/verify" replace />;
   }
 
-  // Redirect returning users to app
+  // Redirect returning users to Discover
   if (hasProfile) {
-    return <Navigate to="/app" replace />;
+    return <Navigate to="/app/discover" replace />;
   }
 
   const totalSteps = 6;
