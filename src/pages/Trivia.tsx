@@ -33,6 +33,7 @@ interface QuizState {
   collected: boolean;
   collected_coins: number;
   daily_limit: number;
+  resets_at?: string;
 }
 
 interface AnswerResult {
