@@ -165,15 +165,15 @@ const AppLayout = () => {
 
   const navItems = [
     {
+      path: '/app/discover',
+      icon: Heart,
+      label: t('navigation.discover')
+    },
+    {
       path: '/app',
       icon: Sparkles,
       label: t('navigation.feed'),
       end: true
-    },
-    {
-      path: '/app/discover',
-      icon: Heart,
-      label: t('navigation.discover')
     },
     {
       path: '/app/streaming',
