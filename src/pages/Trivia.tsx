@@ -33,6 +33,7 @@ interface QuizState {
   collected: boolean;
   collected_coins: number;
   daily_limit: number;
+  resets_at?: string;
 }
 
 interface AnswerResult {
@@ -420,6 +421,16 @@ export default function Trivia() {
                 </>
               )}
 
+              {quiz.resets_at && (
+                <p className="text-center text-xs text-muted-foreground">
+                  New questions unlock at{' '}
+                  {new Date(quiz.resets_at).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  .
+                </p>
+              )}
             </CardContent>
           </Card>
         ) : currentQuestion ? (
