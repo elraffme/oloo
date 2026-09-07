@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ProfileCard } from '@/components/ProfileCard';
 import { MatchModal } from '@/components/MatchModal';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
@@ -11,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
-import { Brain } from 'lucide-react';
 
 const Discover = () => {
   const { t } = useTranslation();
@@ -44,60 +42,75 @@ const Discover = () => {
     loadProfiles();
   }, []);
 
+  const PAGE_SIZE = 20;
+
+  const dedupeProfiles = (list: any[]) => {
+    const seen = new Set<string>();
+    return list.filter((p) => {
+      const key = p?.user_id || p?.id;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const loadProfiles = async (append = false) => {
     try {
       if (append) setLoadingNext(true);
 
       const currentOffset = append ? pageOffset : 0;
-      
+
       // Get current user to exclude them from discovery
       const { data: currentUser } = await supabase.auth.getUser();
-      
-      // Load both real user profiles and demo profiles for discovery
+      const currentUserId = currentUser?.user?.id;
+
+      // Load ONLY safe discovery fields (not all personal data)
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
-        // Load ONLY safe discovery fields (not all personal data)
-        // This implements defense-in-depth security by limiting exposure
         supabase
           .from('profiles')
           .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, is_demo_profile')
           .eq('is_demo_profile', false)
-          .neq('user_id', currentUser?.user?.id || '') // Exclude current user
-          .range(currentOffset, currentOffset + 15)
-          .limit(15),
-        // Load demo profiles for variety
-        supabase.rpc('get_demo_profiles_paginated', {
-          page_size: 15,
-          page_offset: Math.floor(currentOffset / 2)
-        })
+          .order('created_at', { ascending: false })
+          .range(currentOffset, currentOffset + PAGE_SIZE - 1),
+        // Demo profiles only supplement the very first page
+        append
+          ? Promise.resolve({ data: [] })
+          : supabase.rpc('get_demo_profiles_paginated', { page_size: PAGE_SIZE, page_offset: 0 }),
       ]);
 
       let newProfiles: any[] = [];
 
-      // Add real user profiles (both verified and unverified for better discovery)
       if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
         newProfiles = [...newProfiles, ...realProfilesRes.value.data];
       }
 
-      // Add demo profiles for variety
-      if (demoProfilesRes.status === 'fulfilled' && demoProfilesRes.value && Array.isArray(demoProfilesRes.value)) {
-        newProfiles = [...newProfiles, ...demoProfilesRes.value];
+      if (demoProfilesRes.status === 'fulfilled') {
+        const demoData = (demoProfilesRes.value as any)?.data ?? demoProfilesRes.value;
+        if (Array.isArray(demoData)) newProfiles = [...newProfiles, ...demoData];
       }
 
-      // Shuffle the new profiles for variety and better discovery experience
-      const shuffledNewProfiles = newProfiles.sort(() => Math.random() - 0.5);
+      // Never show the signed-in user their own profile
+      newProfiles = newProfiles.filter(
+        (p) => !currentUserId || (p?.user_id !== currentUserId && p?.id !== currentUserId)
+      );
+
+      const fetchedCount = newProfiles.length;
 
       if (append) {
-        // Append to existing profiles
-        if (shuffledNewProfiles.length > 0) {
-          setProfiles(prev => [...prev, ...shuffledNewProfiles]);
-          setPageOffset(prev => prev + 20);
-          
-          // Load friendship states for new profiles
-          await loadFriendshipStates(shuffledNewProfiles);
-          
+        if (fetchedCount > 0) {
+          let addedProfiles: any[] = [];
+          setProfiles((prev) => {
+            const merged = dedupeProfiles([...prev, ...newProfiles]);
+            addedProfiles = merged.slice(prev.length);
+            return merged;
+          });
+          setPageOffset((prev) => prev + PAGE_SIZE);
+
+          await loadFriendshipStates(newProfiles);
+
           toast({
             title: t('discover.moreProfilesLoaded'),
-            description: t('discover.foundMorePeople', { count: shuffledNewProfiles.length }),
+            description: t('discover.foundMorePeople', { count: fetchedCount }),
           });
         } else {
           toast({
@@ -106,13 +119,11 @@ const Discover = () => {
           });
         }
       } else {
-        // Initial load
-        if (shuffledNewProfiles.length > 0) {
-          setProfiles(shuffledNewProfiles);
-          setPageOffset(20);
-          
-          // Load friendship states for initial profiles
-          await loadFriendshipStates(shuffledNewProfiles);
+        const initial = dedupeProfiles(newProfiles);
+        if (initial.length > 0) {
+          setProfiles(initial);
+          setPageOffset(PAGE_SIZE);
+          await loadFriendshipStates(initial);
         } else {
           // Fallback to mock data if no profiles
           setProfiles(mockProfiles);
@@ -570,43 +581,7 @@ const Discover = () => {
   const targetUserId = getTargetUserId(currentProfile);
 
   return (
-    <div className="max-w-sm mx-auto">
-      {/* Quick Links */}
-      <div className="mb-4 px-4 grid grid-cols-2 gap-3">
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
-          onClick={() => navigate('/app/meet-me')}
-        >
-          <CardContent className="p-3">
-            <div className="text-center space-y-2">
-              <div className="bg-primary/10 p-2 rounded-full inline-block">
-                <span className="text-2xl">⚡</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Meet Me</h3>
-                <p className="text-xs text-muted-foreground">Quick browse</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
-          onClick={() => navigate('/app/trivia')}
-        >
-          <CardContent className="p-3">
-            <div className="text-center space-y-2">
-              <div className="bg-blue-500/10 p-2 rounded-full inline-block">
-                <Brain className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Trivia</h3>
-                <p className="text-xs text-muted-foreground">Earn coins</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="w-full max-w-sm sm:max-w-md mx-auto px-2 sm:px-0">
 
       {/* Search Bar */}
       <div className="mb-6 px-4">
