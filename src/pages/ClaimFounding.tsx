@@ -124,7 +124,7 @@ const ClaimFounding = () => {
               <p className="text-sm text-muted-foreground">
                 Your Òloo balance is {state.balance.toLocaleString()} Oloo Points.
               </p>
-              <Button className="w-full" onClick={() => navigate("/app")}>
+              <Button className="w-full" onClick={() => navigate("/app/discover")}>
                 Enter Òloo
               </Button>
               <Button variant="outline" className="w-full" onClick={() => navigate("/app/shop")}>
@@ -139,7 +139,7 @@ const ClaimFounding = () => {
               <Button variant="outline" className="w-full" onClick={() => claim()}>
                 Try again
               </Button>
-              <Button variant="ghost" className="w-full" onClick={() => navigate("/app")}>
+              <Button variant="ghost" className="w-full" onClick={() => navigate("/app/discover")}>
                 Continue to Òloo
               </Button>
             </>
