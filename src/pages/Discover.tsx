@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ProfileCard } from '@/components/ProfileCard';
 import { MatchModal } from '@/components/MatchModal';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
@@ -11,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
-import { Brain } from 'lucide-react';
 
 const Discover = () => {
   const { t } = useTranslation();
@@ -583,7 +581,7 @@ const Discover = () => {
   const targetUserId = getTargetUserId(currentProfile);
 
   return (
-    <div className="max-w-sm mx-auto">
+    <div className="w-full max-w-sm sm:max-w-md mx-auto px-2 sm:px-0">
 
       {/* Search Bar */}
       <div className="mb-6 px-4">
