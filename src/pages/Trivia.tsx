@@ -483,7 +483,7 @@ export default function Trivia() {
                 </Button>
               ) : (
                 <Button onClick={handleNextQuestion} className="w-full" size="lg">
-                  Next Question
+                  {quiz?.completed ? 'See Results' : 'Next Question'}
                 </Button>
               )}
             </CardContent>
