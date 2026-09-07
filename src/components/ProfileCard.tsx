@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send, UserPlus, Target, Globe } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send, UserPlus, Target, Globe, Ruler, Sparkles } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
 
@@ -76,6 +76,36 @@ export const ProfileCard = ({
     return personality;
   };
 
+  // Onboarding writes placeholder strings when a user skips a field — never show those.
+  const PLACEHOLDERS = ['not specified', 'new to òloo!', 'new to oloo!', 'n/a', '-'];
+  const provided = (value?: string | null) => {
+    const v = (value ?? '').trim();
+    return v.length > 0 && !PLACEHOLDERS.includes(v.toLowerCase()) ? v : null;
+  };
+
+  // Onboarding stores personality appended to the bio as "…\n\nPersonality: X".
+  const rawBio = provided(profile.bio);
+  const personalityFromBio = rawBio?.match(/Personality:\s*(.+)$/i)?.[1]?.trim() || null;
+  const bioText = rawBio ? provided(rawBio.replace(/\n*Personality:\s*.+$/i, '').trim()) : null;
+  const personality = provided(profile.personality) || provided(personalityFromBio);
+
+  const occupation = provided(profile.occupation);
+  const education = provided(profile.education);
+  const location = provided(profile.location);
+  const relationshipGoals = provided(profile.relationship_goals);
+  const gender = provided(profile.gender);
+  const heightLabel = profile.height_cm
+    ? `${profile.height_cm} cm (${Math.floor(profile.height_cm / 2.54 / 12)}'${Math.round((profile.height_cm / 2.54) % 12)}")`
+    : null;
+  const languages = profile.languages?.filter(Boolean) ?? [];
+  const hasKidsInfo =
+    profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined;
+  const hasAbout = Boolean(
+    relationshipGoals || heightLabel || languages.length > 0 || gender || personality || hasKidsInfo
+  );
+
+
+
   return (
     <>
       <Card 
@@ -142,52 +172,47 @@ export const ProfileCard = ({
           </div>
 
           {/* Profile Info */}
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             <div>
-              <h3 className="text-2xl font-bold font-afro-heading flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-bold font-afro-heading flex items-center gap-2">
                 {profile.display_name}
-                <span className="text-lg text-muted-foreground font-normal">
+                <span className="text-base sm:text-lg text-muted-foreground font-normal">
                   {profile.age}
                 </span>
               </h3>
               
-              {profile.location && (
-                <p className="text-muted-foreground flex items-center gap-1 mt-1">
-                  <MapPin className="w-4 h-4" />
-                  {profile.location}
+              {location && (
+                <p className="text-muted-foreground flex items-center gap-1 mt-1 text-sm">
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  {location}
                 </p>
               )}
             </div>
 
-            {profile.bio && (
-              <p className="text-sm leading-relaxed line-clamp-3">
-                {profile.bio}
+            {bioText && (
+              <p className="text-sm leading-relaxed text-foreground whitespace-pre-line break-words">
+                {bioText}
               </p>
             )}
 
             {/* Quick Info */}
-            <div className="space-y-2">
-              {profile.occupation && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Briefcase className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.occupation}</span>
-                </div>
-              )}
-              
-              {profile.education && (
-                <div className="flex items-center gap-2 text-sm">
-                  <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                  <span>{profile.education}</span>
-                </div>
-              )}
+            {(occupation || education) && (
+              <div className="space-y-2">
+                {occupation && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Briefcase className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <span className="break-words">{occupation}</span>
+                  </div>
+                )}
 
-              {profile.personality && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span>{getPersonalityDisplay(profile.personality)}</span>
-                </div>
-              )}
-            </div>
+                {education && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <GraduationCap className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <span className="capitalize break-words">{education.replace(/-/g, ' ')}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Interests */}
             {profile.interests && profile.interests.length > 0 && (
@@ -214,36 +239,43 @@ export const ProfileCard = ({
             )}
 
             {/* Additional Profile Details */}
-            {(profile.relationship_goals || profile.height_cm || (profile.languages && profile.languages.length > 0) || profile.gender || profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
+            {hasAbout && (
               <div className="pt-4 border-t border-border/60 space-y-3">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   About
                 </h4>
                 <div className="space-y-2">
-                  {profile.relationship_goals && (
+                  {relationshipGoals && (
                     <div className="flex items-start gap-2 text-sm">
                       <Target className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                      <span className="text-foreground leading-relaxed">{profile.relationship_goals}</span>
+                      <span className="text-foreground leading-relaxed break-words">{relationshipGoals}</span>
                     </div>
                   )}
-                  {profile.height_cm && (
+                  {heightLabel && (
                     <div className="flex items-center gap-2 text-sm">
-                      <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="text-foreground">{profile.height_cm} cm</span>
+                      <Ruler className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-foreground">{heightLabel}</span>
                     </div>
                   )}
-                  {profile.languages && profile.languages.length > 0 && (
+                  {languages.length > 0 && (
                     <div className="flex items-start gap-2 text-sm">
                       <Globe className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                      <span className="text-foreground leading-relaxed">{profile.languages.join(', ')}</span>
+                      <span className="text-foreground leading-relaxed break-words">{languages.join(', ')}</span>
                     </div>
                   )}
-                  {profile.gender && (
+                  {gender && (
                     <div className="flex items-center gap-2 text-sm">
                       <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="capitalize text-foreground">{profile.gender}</span>
+                      <span className="capitalize text-foreground">{gender}</span>
                     </div>
                   )}
+                  {personality && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Sparkles className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <span className="text-foreground leading-relaxed break-words">{getPersonalityDisplay(personality)}</span>
+                    </div>
+                  )}
+
                   {(profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
                     <div className="flex flex-wrap gap-2 text-sm">
                       {profile.have_kids === true && (
