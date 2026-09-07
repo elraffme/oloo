@@ -212,6 +212,60 @@ export const ProfileCard = ({
                 )}
               </div>
             )}
+
+            {/* Additional Profile Details */}
+            {(profile.relationship_goals || profile.height_cm || (profile.languages && profile.languages.length > 0) || profile.gender || profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
+              <div className="pt-4 border-t border-border/60 space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  About
+                </h4>
+                <div className="space-y-2">
+                  {profile.relationship_goals && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Target className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <span className="text-foreground leading-relaxed">{profile.relationship_goals}</span>
+                    </div>
+                  )}
+                  {profile.height_cm && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-foreground">{profile.height_cm} cm</span>
+                    </div>
+                  )}
+                  {profile.languages && profile.languages.length > 0 && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <Globe className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <span className="text-foreground leading-relaxed">{profile.languages.join(', ')}</span>
+                    </div>
+                  )}
+                  {profile.gender && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="capitalize text-foreground">{profile.gender}</span>
+                    </div>
+                  )}
+                  {(profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
+                    <div className="flex flex-wrap gap-2 text-sm">
+                      {profile.have_kids === true && (
+                        <Badge variant="secondary" className="text-xs">Has kids</Badge>
+                      )}
+                      {profile.have_kids === false && (
+                        <Badge variant="secondary" className="text-xs">No kids</Badge>
+                      )}
+                      {profile.want_kids === true && (
+                        <Badge variant="secondary" className="text-xs">Wants kids</Badge>
+                      )}
+                      {profile.want_kids === false && (
+                        <Badge variant="secondary" className="text-xs">Doesn't want kids</Badge>
+                      )}
+                      {profile.open_to_kids === true && (
+                        <Badge variant="secondary" className="text-xs">Open to kids</Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
