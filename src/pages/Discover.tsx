@@ -597,7 +597,7 @@ const Discover = () => {
           <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
             <div className="flex items-center space-x-2">
               <span className="text-primary font-medium">Search Result:</span>
-              <span className="font-semibold">{searchedProfile.display_name}</span>
+              <span className="font-semibold text-primary-foreground">{searchedProfile.display_name}</span>
             </div>
             <Button
               variant="ghost"
