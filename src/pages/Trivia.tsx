@@ -393,6 +393,12 @@ export default function Trivia() {
                     Come back tomorrow for 5 new questions!
                   </p>
                 </div>
+              ) : quiz.pending_coins <= 0 ? (
+                <div className="text-center p-4 bg-muted rounded-lg space-y-1">
+                  <p className="font-medium text-foreground">
+                    You didn't earn any Òloo Points today. Keep practicing and come back tomorrow! 🎉
+                  </p>
+                </div>
               ) : (
                 <>
                   <Button onClick={handleCollect} disabled={collecting} className="w-full gap-2" size="lg">
@@ -413,6 +419,7 @@ export default function Trivia() {
                   </p>
                 </>
               )}
+
             </CardContent>
           </Card>
         ) : currentQuestion ? (
