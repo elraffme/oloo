@@ -1742,6 +1742,51 @@ export type Database = {
         }
         Relationships: []
       }
+      trivia_daily_quiz: {
+        Row: {
+          answered_count: number
+          collected_at: string | null
+          collected_coins: number
+          completed_at: string | null
+          correct_count: number
+          created_at: string
+          id: string
+          pending_coins: number
+          question_ids: string[]
+          quiz_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answered_count?: number
+          collected_at?: string | null
+          collected_coins?: number
+          completed_at?: string | null
+          correct_count?: number
+          created_at?: string
+          id?: string
+          pending_coins?: number
+          question_ids: string[]
+          quiz_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answered_count?: number
+          collected_at?: string | null
+          collected_coins?: number
+          completed_at?: string | null
+          correct_count?: number
+          created_at?: string
+          id?: string
+          pending_coins?: number
+          question_ids?: string[]
+          quiz_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trivia_questions: {
         Row: {
           active: boolean | null
@@ -2402,6 +2447,7 @@ export type Database = {
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       cleanup_stale_streams: { Args: never; Returns: undefined }
       cleanup_stale_viewer_sessions: { Args: never; Returns: undefined }
+      collect_trivia_rewards: { Args: { p_user_id: string }; Returns: Json }
       complete_withdrawal: {
         Args: { p_admin_notes?: string; p_withdrawal_id: string }
         Returns: boolean
@@ -2505,6 +2551,7 @@ export type Database = {
           question: string
         }[]
       }
+      get_daily_trivia_quiz: { Args: { p_user_id: string }; Returns: Json }
       get_demo_profiles_paginated: {
         Args: { page_offset?: number; page_size?: number }
         Returns: {
