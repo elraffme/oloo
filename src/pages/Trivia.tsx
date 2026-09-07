@@ -135,7 +135,10 @@ export default function Trivia() {
     if (user) loadQuiz();
   }, [user, loadQuiz]);
 
-  const currentQuestion = quiz && !quiz.completed ? quiz.questions[quiz.answered_count] : null;
+  // While showing feedback, keep the question the user just answered on screen
+  const currentQuestion = quiz
+    ? quiz.questions[result ? Math.max(quiz.answered_count - 1, 0) : quiz.answered_count]
+    : null;
 
   const handleSubmitAnswer = async () => {
     if (!selectedAnswer || !currentQuestion || !user) return;
@@ -353,7 +356,7 @@ export default function Trivia() {
         )}
 
         {/* Completed quiz — results */}
-        {quiz?.completed ? (
+        {quiz?.completed && !result ? (
           <Card className="border-2">
             <CardHeader>
               <CardTitle className="text-xl text-center text-card-foreground">
