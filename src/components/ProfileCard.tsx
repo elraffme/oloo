@@ -99,7 +99,7 @@ export const ProfileCard = ({
     : null;
   const languages = profile.languages?.filter(Boolean) ?? [];
   const hasKidsInfo =
-    profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined;
+    profile.have_kids === true || profile.want_kids === true || profile.open_to_kids === true;
   const hasAbout = Boolean(
     relationshipGoals || heightLabel || languages.length > 0 || gender || personality || hasKidsInfo
   );
@@ -276,19 +276,13 @@ export const ProfileCard = ({
                     </div>
                   )}
 
-                  {(profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
+                  {hasKidsInfo && (
                     <div className="flex flex-wrap gap-2 text-sm">
                       {profile.have_kids === true && (
                         <Badge variant="secondary" className="text-xs">Has kids</Badge>
                       )}
-                      {profile.have_kids === false && (
-                        <Badge variant="secondary" className="text-xs">No kids</Badge>
-                      )}
                       {profile.want_kids === true && (
                         <Badge variant="secondary" className="text-xs">Wants kids</Badge>
-                      )}
-                      {profile.want_kids === false && (
-                        <Badge variant="secondary" className="text-xs">Doesn't want kids</Badge>
                       )}
                       {profile.open_to_kids === true && (
                         <Badge variant="secondary" className="text-xs">Open to kids</Badge>
@@ -472,19 +466,13 @@ export const ProfileCard = ({
                   </div>
                 )}
 
-                {(profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined) && (
+                {hasKidsInfo && (
                   <div className="flex flex-wrap gap-2">
                     {profile.have_kids === true && (
                       <Badge variant="secondary">Has kids</Badge>
                     )}
-                    {profile.have_kids === false && (
-                      <Badge variant="secondary">No kids</Badge>
-                    )}
                     {profile.want_kids === true && (
                       <Badge variant="secondary">Wants kids</Badge>
-                    )}
-                    {profile.want_kids === false && (
-                      <Badge variant="secondary">Doesn't want kids</Badge>
                     )}
                     {profile.open_to_kids === true && (
                       <Badge variant="secondary">Open to kids</Badge>
