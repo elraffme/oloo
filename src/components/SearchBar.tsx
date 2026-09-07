@@ -178,7 +178,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
+                    <p className="font-medium text-primary-foreground truncate">
                       {profile.display_name}
                       {profile.is_demo_profile && (
                         <span className="ml-2 text-xs text-muted-foreground">(Demo)</span>
