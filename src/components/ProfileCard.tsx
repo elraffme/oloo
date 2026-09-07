@@ -76,6 +76,36 @@ export const ProfileCard = ({
     return personality;
   };
 
+  // Onboarding writes placeholder strings when a user skips a field — never show those.
+  const PLACEHOLDERS = ['not specified', 'new to òloo!', 'new to oloo!', 'n/a', '-'];
+  const provided = (value?: string | null) => {
+    const v = (value ?? '').trim();
+    return v.length > 0 && !PLACEHOLDERS.includes(v.toLowerCase()) ? v : null;
+  };
+
+  // Onboarding stores personality appended to the bio as "…\n\nPersonality: X".
+  const rawBio = provided(profile.bio);
+  const personalityFromBio = rawBio?.match(/Personality:\s*(.+)$/i)?.[1]?.trim() || null;
+  const bioText = rawBio ? provided(rawBio.replace(/\n*Personality:\s*.+$/i, '').trim()) : null;
+  const personality = provided(profile.personality) || provided(personalityFromBio);
+
+  const occupation = provided(profile.occupation);
+  const education = provided(profile.education);
+  const location = provided(profile.location);
+  const relationshipGoals = provided(profile.relationship_goals);
+  const gender = provided(profile.gender);
+  const heightLabel = profile.height_cm
+    ? `${profile.height_cm} cm (${Math.floor(profile.height_cm / 2.54 / 12)}'${Math.round((profile.height_cm / 2.54) % 12)}")`
+    : null;
+  const languages = profile.languages?.filter(Boolean) ?? [];
+  const hasKidsInfo =
+    profile.want_kids !== undefined || profile.have_kids !== undefined || profile.open_to_kids !== undefined;
+  const hasAbout = Boolean(
+    relationshipGoals || heightLabel || languages.length > 0 || gender || personality || hasKidsInfo
+  );
+
+
+
   return (
     <>
       <Card 
