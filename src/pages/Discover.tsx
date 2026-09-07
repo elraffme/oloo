@@ -584,42 +584,6 @@ const Discover = () => {
 
   return (
     <div className="max-w-sm mx-auto">
-      {/* Quick Links */}
-      <div className="mb-4 px-4 grid grid-cols-2 gap-3">
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
-          onClick={() => navigate('/app/meet-me')}
-        >
-          <CardContent className="p-3">
-            <div className="text-center space-y-2">
-              <div className="bg-primary/10 p-2 rounded-full inline-block">
-                <span className="text-2xl">⚡</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Meet Me</h3>
-                <p className="text-xs text-muted-foreground">Quick browse</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card 
-          className="cursor-pointer hover:shadow-lg transition-all hover:border-primary"
-          onClick={() => navigate('/app/trivia')}
-        >
-          <CardContent className="p-3">
-            <div className="text-center space-y-2">
-              <div className="bg-blue-500/10 p-2 rounded-full inline-block">
-                <Brain className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Trivia</h3>
-                <p className="text-xs text-muted-foreground">Earn coins</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Search Bar */}
       <div className="mb-6 px-4">
