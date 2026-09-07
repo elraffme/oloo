@@ -68,7 +68,7 @@ const Discover = () => {
       const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
         supabase
           .from('profiles')
-          .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, is_demo_profile')
+          .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, is_demo_profile, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids')
           .eq('is_demo_profile', false)
           .order('created_at', { ascending: false })
           .range(currentOffset, currentOffset + PAGE_SIZE - 1),
