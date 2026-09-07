@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send, UserPlus } from 'lucide-react';
+import { Heart, X, MapPin, Briefcase, GraduationCap, Info, User, MessageCircle, RotateCcw, Star, Send, UserPlus, Target, Globe } from 'lucide-react';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { PhotoGallery } from '@/components/PhotoGallery';
 
@@ -22,6 +22,13 @@ interface Profile {
   profile_photos?: string[];
   main_profile_photo_index?: number;
   personality?: string;
+  relationship_goals?: string;
+  height_cm?: number;
+  languages?: string[];
+  gender?: string;
+  want_kids?: boolean;
+  have_kids?: boolean;
+  open_to_kids?: boolean;
 }
 
 interface ProfileCardProps {
