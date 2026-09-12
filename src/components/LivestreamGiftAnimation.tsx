@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { GiftVisual } from '@/components/GiftVisual';
 
 export interface GiftAnimation {
   id: string;
@@ -42,7 +43,7 @@ export default function LivestreamGiftAnimation({ animations }: LivestreamGiftAn
             animationDelay: `${index * 100}ms`
           }}
         >
-          <span className="text-3xl animate-bounce">{animation.giftEmoji}</span>
+          <GiftVisual asset={animation.giftEmoji} name={animation.giftName} className="h-14 w-14 shrink-0" animated eager />
           <div className="flex flex-col text-xs">
             <span className="font-semibold text-foreground">{animation.senderName}</span>
             <span className="text-muted-foreground">{animation.giftName}</span>

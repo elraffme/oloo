@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useCurrency } from '@/hooks/useCurrency';
 import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { GiftVisual } from './GiftVisual';
 
 interface Gift {
   id: number;
@@ -155,7 +156,7 @@ export const GiftSelector = ({
           {selectedGift && (
             <div className="space-y-3 border-t pt-4">
               <div className="flex items-center gap-3">
-                <div className="text-4xl">{selectedGift.asset_url || '🎁'}</div>
+                <GiftVisual asset={selectedGift.asset_url} name={selectedGift.name} className="h-20 w-20 shrink-0" animated />
                 <div className="flex-1">
                   <h4 className="font-semibold">{selectedGift.name}</h4>
                   <p className="text-sm text-muted-foreground">
@@ -239,7 +240,7 @@ const GiftGrid = ({
                 : 'border-border opacity-50 cursor-not-allowed'
             } ${RARITY_COLORS[gift.rarity as keyof typeof RARITY_COLORS]}`}
           >
-            <div className="text-3xl mb-2">{gift.asset_url || '🎁'}</div>
+            <GiftVisual asset={gift.asset_url} name={gift.name} className="h-20 w-20 mx-auto mb-2" animated />
             <div className="text-xs font-semibold truncate">{gift.name}</div>
             <div className="text-xs text-primary font-semibold mt-1">
               {gift.cost_tokens} coins
