@@ -21,6 +21,10 @@ import { ItemPreviewModal } from '@/components/ItemPreviewModal';
 import { ShoppingBag, Sparkles, Check, Lock, Gift, Inbox, Snowflake, Heart, Eye, Zap, Package } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { GiftVisual } from '@/components/GiftVisual';
+import { SendRoyalGiftModal, RoyalGift } from '@/components/SendRoyalGiftModal';
 
 const rarityColors = {
   common: 'bg-slate-500',
