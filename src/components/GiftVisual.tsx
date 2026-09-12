@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import ankaraHandFan from '@/assets/gifts/ankara-hand-fan.png';
-import regalia from '@/assets/gifts/regalia.jpg';
+import regalia from '@/assets/gifts/regalia.png';
 import silverFlywhisk from '@/assets/gifts/silver-flywhisk.png';
 import coralBeads from '@/assets/gifts/coral-beads.png';
 import beadedCrown from '@/assets/gifts/beaded-crown.png';
