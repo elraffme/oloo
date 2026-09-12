@@ -10,11 +10,11 @@ import {
 } from './ui/popover';
 
 const VIP_TIER_CONFIG = {
-  free: { icon: null, color: 'text-muted-foreground', label: 'Free' },
+  free: { icon: null, color: 'text-muted-foreground', label: 'Chief' },
   bronze: { icon: Crown, color: 'text-amber-700', label: 'Bronze VIP' },
-  silver: { icon: Crown, color: 'text-gray-400', label: 'Silver VIP' },
-  gold: { icon: Crown, color: 'text-yellow-500', label: 'Gold VIP' },
-  platinum: { icon: Crown, color: 'text-purple-500', label: 'Platinum VIP' },
+  silver: { icon: Crown, color: 'text-gray-400', label: 'Priest' },
+  gold: { icon: Crown, color: 'text-yellow-500', label: 'King' },
+  platinum: { icon: Crown, color: 'text-yellow-500', label: 'King' },
 };
 
 export const CurrencyWallet = ({ onBuyCoins }: { onBuyCoins: () => void }) => {

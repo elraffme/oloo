@@ -11,6 +11,7 @@ import { Skeleton } from './ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { formatDistanceToNow } from 'date-fns';
 import { GiftAnimation } from './GiftAnimation';
+import { GiftVisual } from './GiftVisual';
 
 interface GiftTransaction {
   id: string;
@@ -181,7 +182,7 @@ const GiftCard = ({
   return (
     <div className={`p-4 rounded-lg border ${opened ? 'bg-muted/30' : 'bg-card'}`}>
       <div className="flex items-start gap-3">
-        <div className="text-4xl">{gift.gift.asset_url || '🎁'}</div>
+        <GiftVisual asset={gift.gift.asset_url} name={gift.gift.name} className="h-16 w-16 shrink-0" animated={!opened} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold">{gift.sender_profile.display_name}</span>

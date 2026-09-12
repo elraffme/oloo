@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
+import { GiftVisual } from './GiftVisual';
 
 interface GiftAnimationProps {
   gift: {
@@ -44,8 +45,8 @@ export const GiftAnimation = ({ gift, onComplete }: GiftAnimationProps) => {
       >
         {/* Animated gift */}
         <div className="text-center relative">
-          <div className="inline-block relative animate-bounce">
-            <div className="text-9xl mb-4">{gift.gift.asset_url || '🎁'}</div>
+          <div className="inline-block relative">
+            <GiftVisual asset={gift.gift.asset_url} name={gift.gift.name} className="h-56 w-56 mx-auto mb-4" animated eager />
             {/* Sparkle effects */}
             <div className="absolute inset-0 flex items-center justify-center">
               <Sparkles className="absolute -top-4 -left-4 h-8 w-8 text-yellow-500 animate-pulse" />

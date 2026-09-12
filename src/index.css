@@ -238,6 +238,11 @@ body {
     color: hsl(var(--silver-foreground));
   }
 
+  .membership-card.chief {
+    background: linear-gradient(135deg, hsl(var(--muted)), hsl(var(--card)));
+    color: hsl(var(--card-foreground));
+  }
+
   .membership-card.gold {
     background: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold) / 0.9));
     color: hsl(var(--gold-foreground));
@@ -247,6 +252,55 @@ body {
   .membership-card.platinum {
     background: linear-gradient(135deg, hsl(var(--platinum)), hsl(var(--platinum) / 0.8));
     color: hsl(var(--platinum-foreground));
+  }
+
+  .gift-visual {
+    @apply relative inline-flex items-center justify-center overflow-visible;
+    perspective: 700px;
+    transform-style: preserve-3d;
+  }
+
+  .gift-visual__image {
+    @apply h-full w-full object-contain;
+    filter: drop-shadow(0 12px 10px hsl(var(--foreground) / 0.24));
+    transform: rotateX(5deg) rotateY(-8deg) translateZ(8px);
+  }
+
+  .gift-visual__emoji {
+    @apply text-4xl;
+    filter: drop-shadow(0 8px 6px hsl(var(--foreground) / 0.2));
+  }
+
+  .gift-visual__shine {
+    @apply pointer-events-none absolute inset-[8%] rounded-full;
+    background: linear-gradient(115deg, transparent 30%, hsl(var(--primary-foreground) / 0.65) 48%, transparent 66%);
+    background-size: 220% 100%;
+    mix-blend-mode: screen;
+    animation: gift-shine 2.2s ease-in-out infinite;
+  }
+
+  .gift-visual--animated .gift-visual__image,
+  .gift-visual--animated .gift-visual__emoji {
+    animation: gift-dimensional-float 2.8s ease-in-out infinite;
+  }
+
+  @keyframes gift-dimensional-float {
+    0%, 100% { transform: rotateX(5deg) rotateY(-9deg) translateY(0) translateZ(8px) scale(1); }
+    50% { transform: rotateX(-2deg) rotateY(9deg) translateY(-5px) translateZ(16px) scale(1.04); }
+  }
+
+  @keyframes gift-shine {
+    0%, 28% { background-position: 180% 0; opacity: 0; }
+    45% { opacity: 0.75; }
+    68%, 100% { background-position: -80% 0; opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gift-visual--animated .gift-visual__image,
+    .gift-visual--animated .gift-visual__emoji,
+    .gift-visual__shine {
+      animation: none;
+    }
   }
 
   .floating-hearts {

@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Coins } from 'lucide-react';
+import { GiftVisual } from '@/components/GiftVisual';
 
 interface Gift {
   id: number;
@@ -182,7 +183,7 @@ export default function LivestreamGiftSelector({
                         : 'border-border hover:border-primary/50 hover:bg-accent'
                     } ${!canSendFreeGift ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <span className="text-4xl">{gift.asset_url}</span>
+                    <GiftVisual asset={gift.asset_url} name={gift.name} className="h-14 w-14" animated />
                     <span className="text-xs font-medium text-foreground">{gift.name}</span>
                     <span className="text-xs text-primary font-semibold">FREE</span>
                   </button>
@@ -207,7 +208,7 @@ export default function LivestreamGiftSelector({
                         : 'border-border hover:border-primary/50 hover:bg-accent'
                     } ${!canAfford ? 'opacity-60' : ''}`}
                   >
-                    <span className="text-4xl">{gift.asset_url}</span>
+                    <GiftVisual asset={gift.asset_url} name={gift.name} className="h-16 w-16" animated />
                     <span className="text-xs font-medium text-foreground">{gift.name}</span>
                     <div className="flex items-center gap-1">
                       <Coins className="w-3 h-3 text-primary" />

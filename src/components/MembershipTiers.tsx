@@ -4,7 +4,7 @@ import { Check, Crown, Gem, Sparkles, Video, Heart, Star } from "lucide-react";
 
 const membershipTiers = [
   {
-    name: "Free",
+    name: "Chief",
     price: "Free",
     period: "",
     description: "Start your cultural journey",
@@ -20,7 +20,7 @@ const membershipTiers = [
     tier: "free"
   },
   {
-    name: "Silver",
+    name: "Priest",
     price: "$4.99",
     period: "/month",
     description: "Enhanced connections and streaming",
@@ -37,12 +37,12 @@ const membershipTiers = [
     tier: "silver"
   },
   {
-    name: "Gold",
+    name: "King",
     price: "$9.99",
     period: "/month",
     description: "Premium streaming and exclusive access",
     features: [
-      "All Silver perks",
+      "All Priest perks",
       "Unlimited HD streaming",
       "Priority profile placement",
       "Exclusive members-only events/streams",
@@ -53,24 +53,6 @@ const membershipTiers = [
     gradient: "membership-card gold",
     popular: true,
     tier: "gold"
-  },
-  {
-    name: "Platinum",
-    price: "$19.99",
-    period: "/month",
-    description: "Ultimate luxury dating experience",
-    features: [
-      "All Gold perks",
-      "Verified badge",
-      "Profile boosting every week",
-      "1:1 private video chats without matching",
-      "Personal matchmaker access",
-      "Luxury concierge service"
-    ],
-    icon: Gem,
-    gradient: "membership-card platinum",
-    popular: false,
-    tier: "platinum"
   }
 ];
 

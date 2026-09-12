@@ -7,11 +7,27 @@ import { Crown, Heart, Zap, Eye, Star, Check, Loader2 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { membershipDisplayName } from "@/lib/membership";
 
 const plans = [
   {
+    key: "free",
+    name: "Chief",
+    price: "Free",
+    period: "",
+    description: "Begin your cultural journey",
+    features: [
+      "Core matching experience",
+      "Standard chat after matching",
+      "Access to public streams",
+      "Essential profile features",
+    ],
+    color: "chief",
+    icon: Heart,
+  },
+  {
     key: "silver",
-    name: "Silver",
+    name: "Priest",
     price: "$9.99",
     period: "/month",
     description: "Enhanced dating experience",
@@ -27,12 +43,12 @@ const plans = [
   },
   {
     key: "gold",
-    name: "Gold",
+    name: "King",
     price: "$19.99",
     period: "/month",
     description: "Premium cultural connections",
     features: [
-      "Everything in Silver",
+      "Everything in Priest",
       "Unlimited Super Likes",
       "5 Boosts per month",
       "Priority likes",
@@ -42,23 +58,6 @@ const plans = [
     color: "gold",
     icon: Crown,
     popular: true,
-  },
-  {
-    key: "platinum",
-    name: "Platinum",
-    price: "$34.99",
-    period: "/month",
-    description: "Elite dating experience",
-    features: [
-      "Everything in Gold",
-      "Unlimited Boosts",
-      "Message before matching",
-      "Priority customer support",
-      "Exclusive events access",
-      "Advanced filters",
-    ],
-    color: "platinum",
-    icon: Zap,
   },
 ];
 
@@ -83,7 +82,7 @@ const Premium = () => {
         const { data } = await supabase.functions.invoke("check-subscription");
         if (data?.isPremium) {
           setVerifying(false);
-          toast.success(`Welcome to ${data.tier ? data.tier.charAt(0).toUpperCase() + data.tier.slice(1) : "Premium"}!`);
+          toast.success(`Welcome to ${membershipDisplayName(data.tier)}!`);
           await refresh();
           // If user came from a specific page (e.g. livestream), send them back
           if (returnTo && returnTo.startsWith("/")) {
@@ -162,7 +161,7 @@ const Premium = () => {
             <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-amber-300/40 bg-amber-500/10 px-4 py-2">
               <Crown className="h-4 w-4 text-amber-500" />
               <span className="text-sm font-medium">
-                Active plan: <span className="capitalize">{tier}</span>
+                 Active plan: <span>{membershipDisplayName(tier)}</span>
               </span>
               <Button size="sm" variant="outline" onClick={openPortal}>
                 Manage
@@ -174,7 +173,8 @@ const Premium = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {plans.map((plan) => {
             const Icon = plan.icon;
-            const isCurrent = isPremium && tier === plan.key;
+            const isFreePlan = plan.key === 'free';
+            const isCurrent = isFreePlan ? !isPremium : isPremium && (tier === plan.key || (plan.key === 'gold' && tier === 'platinum'));
             const isLoading = loadingPlan === plan.key;
             return (
               <Card
@@ -212,7 +212,7 @@ const Premium = () => {
                   <Button
                     className="w-full bg-white/20 hover:bg-white/30 text-current border-0"
                     disabled={isLoading || isCurrent}
-                    onClick={() => (isCurrent ? openPortal() : handleChoose(plan.key))}
+                    onClick={() => (isCurrent && !isFreePlan ? openPortal() : !isFreePlan && handleChoose(plan.key))}
                   >
                     {isLoading ? (
                       <>
