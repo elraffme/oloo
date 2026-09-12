@@ -264,6 +264,13 @@ body {
     @apply h-full w-full object-contain;
     filter: drop-shadow(0 12px 10px hsl(var(--foreground) / 0.24));
     transform: rotateX(5deg) rotateY(-8deg) translateZ(8px);
+    transition: transform 240ms ease, filter 240ms ease;
+  }
+
+  .gift-visual--animated:hover .gift-visual__image {
+    animation-play-state: paused;
+    filter: drop-shadow(0 18px 14px hsl(var(--foreground) / 0.32));
+    transform: rotateX(-5deg) rotateY(12deg) translateY(-6px) translateZ(22px) scale(1.08);
   }
 
   .gift-visual__emoji {
@@ -300,6 +307,10 @@ body {
     .gift-visual--animated .gift-visual__emoji,
     .gift-visual__shine {
       animation: none;
+    }
+
+    .gift-visual--animated:hover .gift-visual__image {
+      transform: rotateX(5deg) rotateY(-8deg) translateZ(8px);
     }
   }
 
