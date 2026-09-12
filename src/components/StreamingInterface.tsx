@@ -39,6 +39,7 @@ import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
 import { PeerBroadcastManager, type PeerViewerMedia } from '@/lib/peerLivestream';
 import { streamFormSchema } from '@/lib/validation';
+import { membershipDisplayName } from '@/lib/membership';
 import { z } from 'zod';
 interface StreamingInterfaceProps {
   onBack?: () => void;

@@ -187,7 +187,7 @@ const Premium = () => {
                   </Badge>
                 )}
                 {isCurrent && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-amber-500 text-white">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-amber-500 text-primary-foreground">
                     Your Plan
                   </Badge>
                 )}
