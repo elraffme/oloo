@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import ankaraHandFan from '@/assets/gifts/ankara-hand-fan.png';
-import ankaraRobe from '@/assets/gifts/ankara-robe.png';
+import regalia from '@/assets/gifts/regalia.jpg';
 import silverFlywhisk from '@/assets/gifts/silver-flywhisk.png';
 import coralBeads from '@/assets/gifts/coral-beads.png';
 import beadedCrown from '@/assets/gifts/beaded-crown.png';
@@ -10,7 +10,7 @@ import goldenCrown from '@/assets/gifts/golden-crown.png';
 
 const giftArtwork: Record<string, string> = {
   'gift:ankara-hand-fan': ankaraHandFan,
-  'gift:ankara-robe': ankaraRobe,
+  'gift:regalia': regalia,
   'gift:silver-flywhisk': silverFlywhisk,
   'gift:coral-beads': coralBeads,
   'gift:beaded-crown': beadedCrown,
