@@ -54,7 +54,7 @@ export default function Shop() {
   const { wishlistCount, toggleWishlist, isInWishlist } = useWishlist();
   const { bundles } = useBundles();
   const { featuredItems } = useFeaturedItems();
-  const [selectedCategory, setSelectedCategory] = useState<string>('featured');
+  const [selectedCategory, setSelectedCategory] = useState<string>('gifts');
   const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [selectedGiftItem, setSelectedGiftItem] = useState<ShopItem | null>(null);
   const [inboxOpen, setInboxOpen] = useState(false);
@@ -532,6 +532,11 @@ export default function Shop() {
         isOpen={giftModalOpen}
         onClose={() => setGiftModalOpen(false)}
         item={selectedGiftItem}
+      />
+      <SendRoyalGiftModal
+        isOpen={royalGiftOpen}
+        onClose={() => setRoyalGiftOpen(false)}
+        gift={royalGift}
       />
       <ShopGiftInbox
         isOpen={inboxOpen}
