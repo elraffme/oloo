@@ -306,7 +306,8 @@ export default function Shop() {
       {/* Categories */}
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
         <div className="w-full min-w-0 overflow-x-clip mb-6 sm:mb-8">
-          <TabsList className="grid h-auto w-full min-w-0 grid-cols-2 gap-2 p-1 sm:grid-cols-6">
+          <TabsList className="grid h-auto w-full min-w-0 grid-cols-2 gap-2 p-1 sm:grid-cols-4 lg:grid-cols-7">
+            <TabsTrigger value="gifts" className="h-11 w-full min-w-0 px-2 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70 bg-gradient-to-r from-amber-500/10 to-yellow-500/10">🎁 Gifts</TabsTrigger>
             <TabsTrigger value="badge" className="h-11 w-full min-w-0 px-2 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🏆 Badges</TabsTrigger>
             <TabsTrigger value="theme" className="h-11 w-full min-w-0 px-2 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">🎨 Themes</TabsTrigger>
             <TabsTrigger value="emoji" className="h-11 w-full min-w-0 px-2 whitespace-nowrap font-semibold data-[state=inactive]:text-foreground/70">😊 Emojis</TabsTrigger>
