@@ -61,7 +61,22 @@ export default function Shop() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [royalGift, setRoyalGift] = useState<RoyalGift | null>(null);
+  const [royalGiftOpen, setRoyalGiftOpen] = useState(false);
   const navigate = useNavigate();
+
+  const { data: royalGifts, isLoading: giftsLoading } = useQuery({
+    queryKey: ['shop-royal-gifts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gifts')
+        .select('id, name, description, cost_tokens, asset_url, rarity, category')
+        .gt('cost_tokens', 0)
+        .order('cost_tokens');
+      if (error) throw error;
+      return (data || []) as RoyalGift[];
+    },
+  });
 
   const filteredItems = selectedCategory === 'vip' 
     ? shopItems?.filter((item) => (item as any).vip_only === true) || []
