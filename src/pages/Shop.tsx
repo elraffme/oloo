@@ -322,6 +322,83 @@ export default function Shop() {
         </div>
 
 
+          <TabsContent value="gifts" className="mt-0">
+            <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-amber-500/10 to-yellow-500/10 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <Gift className="w-8 h-8 text-amber-500 shrink-0" />
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-foreground">Royal Gifts</h3>
+                  <p className="text-foreground/80">
+                    Send a royal gift to a friend or during a livestream
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {giftsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="p-4">
+                    <Skeleton className="h-40 w-full" />
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(royalGifts || []).map((gift) => {
+                  const affordable = !!balance && balance.coin_balance >= gift.cost_tokens;
+                  const rarity = (gift.rarity || 'common') as keyof typeof rarityColors;
+                  return (
+                    <Card
+                      key={gift.id}
+                      className={`p-4 sm:p-5 border-2 ${rarityBorderColors[rarity] || rarityBorderColors.common} hover:shadow-lg transition-all`}
+                    >
+                      <div className="flex flex-col h-full">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <GiftVisual
+                            asset={gift.asset_url}
+                            name={gift.name}
+                            className="h-24 w-24"
+                            animated
+                          />
+                          <Badge className={`${rarityColors[rarity] || rarityColors.common} text-white font-semibold capitalize shrink-0`}>
+                            {gift.rarity || 'common'}
+                          </Badge>
+                        </div>
+
+                        <h3 className="font-bold text-base sm:text-lg mb-1 text-card-foreground break-words">
+                          {gift.name}
+                        </h3>
+                        <p className="text-sm text-card-foreground/75 mb-4 flex-grow break-words">
+                          {gift.description}
+                        </p>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 mt-auto">
+                          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
+                            <Sparkles className="w-4 h-4" />
+                            <span>{gift.cost_tokens}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="gap-1"
+                            disabled={!affordable}
+                            onClick={() => {
+                              setRoyalGift(gift);
+                              setRoyalGiftOpen(true);
+                            }}
+                          >
+                            <Gift className="w-4 h-4" />
+                            {affordable ? 'Send Gift' : 'Need coins'}
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
