@@ -82,7 +82,18 @@ export default function LivestreamGiftSelector({
     }
 
     setFreeGifts(data.filter((g) => g.cost_tokens === 0 && g.category === 'free_livestream'));
-    setPointGifts(data.filter((g) => g.cost_tokens > 0 && g.category === 'stream'));
+    setPointGifts(
+      data
+        .filter((g) => g.cost_tokens > 0 && g.category === 'stream')
+        .sort((a, b) => {
+          const order = (gift: typeof a) => {
+            if (gift.asset_url === 'gift:silver-flywhisk') return 250;
+            if (gift.asset_url === 'gift:regalia') return 500;
+            return gift.cost_tokens;
+          };
+          return order(a) - order(b);
+        }),
+    );
   };
 
   const handleSendGift = async () => {

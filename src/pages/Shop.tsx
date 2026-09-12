@@ -74,7 +74,15 @@ export default function Shop() {
         .gt('cost_tokens', 0)
         .order('cost_tokens');
       if (error) throw error;
-      return (data || []) as RoyalGift[];
+      const gifts = (data || []) as RoyalGift[];
+      return gifts.sort((a, b) => {
+        const order = (gift: RoyalGift) => {
+          if (gift.asset_url === 'gift:silver-flywhisk') return 250;
+          if (gift.asset_url === 'gift:regalia') return 500;
+          return gift.cost_tokens;
+        };
+        return order(a) - order(b);
+      });
     },
   });
 

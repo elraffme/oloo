@@ -56,7 +56,14 @@ export const GiftSelector = ({
         .order('cost_tokens');
 
       if (error) throw error;
-      return data as Gift[];
+      return (data as Gift[]).sort((a, b) => {
+        const order = (gift: Gift) => {
+          if (gift.asset_url === 'gift:silver-flywhisk') return 250;
+          if (gift.asset_url === 'gift:regalia') return 500;
+          return gift.cost_tokens;
+        };
+        return order(a) - order(b);
+      });
     },
   });
 
