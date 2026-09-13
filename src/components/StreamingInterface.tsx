@@ -1017,6 +1017,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       streamStartedAtRef.current = null;
       durationWarnedRef.current = false;
       setStreamElapsedSec(0);
+      setDurationEndsAt(null);
       return;
     }
     streamStartedAtRef.current = Date.now();
