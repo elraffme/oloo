@@ -2088,6 +2088,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vibe_checks: {
+        Row: {
+          created_at: string
+          id: string
+          target_user_id: string
+          updated_at: string
+          user_id: string
+          vibe: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_user_id: string
+          updated_at?: string
+          user_id: string
+          vibe: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_user_id?: string
+          updated_at?: string
+          user_id?: string
+          vibe?: string
+        }
+        Relationships: []
+      }
       video_calls: {
         Row: {
           answered_at: string | null
@@ -2900,6 +2927,10 @@ export type Database = {
           p_receiver_id: string
           p_stream_id?: string
         }
+        Returns: Json
+      }
+      set_vibe_check: {
+        Args: { _target_user_id: string; _vibe: string }
         Returns: Json
       }
       submit_trivia_answer: {
