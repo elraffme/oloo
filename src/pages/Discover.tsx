@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useCallback, useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Loader2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ProfileCard } from '@/components/ProfileCard';
-import { MatchModal } from '@/components/MatchModal';
+import { DiscoverProfileCard, type DiscoverProfile } from '@/components/DiscoverProfileCard';
 import { PublicProfileViewer } from '@/components/PublicProfileViewer';
 import { SearchBar } from '@/components/SearchBar';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,787 +10,223 @@ import { useToast } from '@/hooks/use-toast';
 import { sendFriendRequest } from '@/utils/friendsUtils';
 import { useAuth } from '@/contexts/AuthContext';
 
+const PAGE_SIZE = 12;
+type FriendState = 'idle' | 'loading' | 'sent' | 'friends' | 'error';
+
 const Discover = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
+  const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalProfiles, setTotalProfiles] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [matchModal, setMatchModal] = useState<{ isOpen: boolean; profile: any | null }>({
+  const [searchedProfile, setSearchedProfile] = useState<DiscoverProfile | null>(null);
+  const [friendRequestStates, setFriendRequestStates] = useState<Record<string, FriendState>>({});
+  const [profileViewer, setProfileViewer] = useState<{ isOpen: boolean; profileId: string | null }>({
     isOpen: false,
-    profile: null
+    profileId: null,
   });
-  const [profileViewerModal, setProfileViewerModal] = useState<{ isOpen: boolean; profileId: string | null }>({
-    isOpen: false,
-    profileId: null
-  });
-  const [searchMode, setSearchMode] = useState(false);
-  const [searchedProfile, setSearchedProfile] = useState<any>(null);
-  const [friendRequestStates, setFriendRequestStates] = useState<Record<string, 'idle' | 'loading' | 'sent' | 'friends' | 'error'>>({});
-  const [loadingNext, setLoadingNext] = useState(false);
-  const [pageOffset, setPageOffset] = useState(0);
 
-  // Helpers for interaction validation
-  const isValidUuid = (id: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
-  const getTargetUserId = (profile: any) => (profile?.user_id && isValidUuid(profile.user_id)) ? (profile.user_id as string) : null;
+  const totalPages = Math.max(1, Math.ceil(totalProfiles / PAGE_SIZE));
+
+  const loadFriendshipStates = useCallback(async (visibleProfiles: DiscoverProfile[]) => {
+    if (!user?.id) return;
+
+    const entries = await Promise.all(visibleProfiles.map(async (profile): Promise<[string, FriendState]> => {
+      try {
+        const { data, error } = await supabase
+          .from('user_connections')
+          .select('connection_type')
+          .or(`and(user_id.eq.${user.id},connected_user_id.eq.${profile.user_id}),and(user_id.eq.${profile.user_id},connected_user_id.eq.${user.id})`)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (data?.connection_type === 'friend') return [profile.user_id, 'friends'];
+        if (data?.connection_type === 'friend_request') return [profile.user_id, 'sent'];
+        return [profile.user_id, 'idle'];
+      } catch (error) {
+        console.error('Error loading friendship state:', error);
+        return [profile.user_id, 'idle'];
+      }
+    }));
+
+    setFriendRequestStates((current) => ({ ...current, ...Object.fromEntries(entries) }));
+  }, [user?.id]);
+
+  const loadProfiles = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+
+    try {
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
+        .from('profiles')
+        .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids', { count: 'exact' })
+        .eq('is_demo_profile', false)
+        .eq('show_profile', true)
+        .eq('onboarding_completed', true)
+        .neq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .order('user_id', { ascending: true })
+        .range(from, to);
+
+      if (error) throw error;
+
+      const uniqueProfiles = Array.from(
+        new Map((data ?? []).filter((profile) => profile.user_id !== user.id).map((profile) => [profile.user_id, profile])).values(),
+      ) as DiscoverProfile[];
+
+      setProfiles(uniqueProfiles);
+      setTotalProfiles(count ?? uniqueProfiles.length);
+      await loadFriendshipStates(uniqueProfiles);
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+      setProfiles([]);
+      setTotalProfiles(0);
+      toast({
+        title: 'Unable to load profiles',
+        description: 'Please try again in a moment.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [loadFriendshipStates, page, toast, user?.id]);
 
   useEffect(() => {
     loadProfiles();
-  }, []);
+  }, [loadProfiles]);
 
-  const PAGE_SIZE = 20;
-
-  const dedupeProfiles = (list: any[]) => {
-    const seen = new Set<string>();
-    return list.filter((p) => {
-      const key = p?.user_id || p?.id;
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  };
-
-  const loadProfiles = async (append = false) => {
-    try {
-      if (append) setLoadingNext(true);
-
-      const currentOffset = append ? pageOffset : 0;
-
-      // Get current user to exclude them from discovery
-      const { data: currentUser } = await supabase.auth.getUser();
-      const currentUserId = currentUser?.user?.id;
-
-      // Load ONLY safe discovery fields (not all personal data)
-      const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
-        supabase
-          .from('profiles')
-          .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, is_demo_profile, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids')
-          .eq('is_demo_profile', false)
-          .order('created_at', { ascending: false })
-          .range(currentOffset, currentOffset + PAGE_SIZE - 1),
-        // Demo profiles only supplement the very first page
-        append
-          ? Promise.resolve({ data: [] })
-          : supabase.rpc('get_demo_profiles_paginated', { page_size: PAGE_SIZE, page_offset: 0 }),
-      ]);
-
-      let newProfiles: any[] = [];
-
-      if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
-        newProfiles = [...newProfiles, ...realProfilesRes.value.data];
-      }
-
-      if (demoProfilesRes.status === 'fulfilled') {
-        const demoData = (demoProfilesRes.value as any)?.data ?? demoProfilesRes.value;
-        if (Array.isArray(demoData)) newProfiles = [...newProfiles, ...demoData];
-      }
-
-      // Never show the signed-in user their own profile
-      newProfiles = newProfiles.filter(
-        (p) => !currentUserId || (p?.user_id !== currentUserId && p?.id !== currentUserId)
-      );
-
-      const fetchedCount = newProfiles.length;
-
-      if (append) {
-        if (fetchedCount > 0) {
-          let addedProfiles: any[] = [];
-          setProfiles((prev) => {
-            const merged = dedupeProfiles([...prev, ...newProfiles]);
-            addedProfiles = merged.slice(prev.length);
-            return merged;
-          });
-          setPageOffset((prev) => prev + PAGE_SIZE);
-
-          await loadFriendshipStates(newProfiles);
-
-          toast({
-            title: t('discover.moreProfilesLoaded'),
-            description: t('discover.foundMorePeople', { count: fetchedCount }),
-          });
-        } else {
-          toast({
-            title: t('discover.noMoreProfilesAvailable'),
-            description: t('discover.seenAllProfiles'),
-          });
-        }
-      } else {
-        const initial = dedupeProfiles(newProfiles);
-        if (initial.length > 0) {
-          setProfiles(initial);
-          setPageOffset(PAGE_SIZE);
-          await loadFriendshipStates(initial);
-        } else {
-          // Fallback to mock data if no profiles
-          setProfiles(mockProfiles);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading profiles:', error);
-      if (!append) {
-        setProfiles(mockProfiles);
-      } else {
-        toast({
-          title: t('errors.error'),
-          description: t('discover.errorLoadingProfiles'),
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setLoading(false);
-      setLoadingNext(false);
-    }
-  };
-
-  // Load friendship states for profiles
-  const loadFriendshipStates = async (profiles: any[]) => {
-    const states: Record<string, 'idle' | 'loading' | 'sent' | 'friends' | 'error'> = {};
-    
-    for (const profile of profiles) {
-      const targetUserId = getTargetUserId(profile);
-      if (targetUserId) {
-        try {
-          // Check existing connections
-          const { data, error } = await supabase
-            .from('user_connections')
-            .select('connection_type')
-            .or(`and(user_id.eq.${user?.id},connected_user_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},connected_user_id.eq.${user?.id})`)
-            .maybeSingle();
-          
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error checking friendship status:', error);
-            states[targetUserId] = 'idle';
-            continue;
-          }
-          
-          if (data) {
-            if (data.connection_type === 'friend') {
-              states[targetUserId] = 'friends';
-            } else if (data.connection_type === 'friend_request') {
-              states[targetUserId] = 'sent';
-            } else {
-              states[targetUserId] = 'idle';
-            }
-          } else {
-            states[targetUserId] = 'idle';
-          }
-        } catch (error) {
-          console.error('Error loading friendship state:', error);
-          states[targetUserId] = 'idle';
-        }
-      }
-    }
-    
-    setFriendRequestStates(prev => ({ ...prev, ...states }));
-  };
-
-  const handleSuperLike = async () => {
-    const currentProfile = profiles[currentIndex];
-    
-    console.log('Super liking profile:', currentProfile.id);
-    
-    try {
-      // Record super like (treat as special like)
-      if (!user) {
-        toast({
-          title: t('discover.authRequired'),
-          description: t('discover.signInToSuperLike'),
-          variant: "destructive",
-        });
-        navigate('/auth');
-        return;
-      }
-
-      const targetUserId = getTargetUserId(currentProfile);
-      if (!targetUserId) {
-        toast({
-          title: t('discover.demoProfile'),
-          description: t('discover.demoProfileInteractions'),
-        });
-        return;
-      }
-
-      const { error } = await supabase.from('user_connections').insert({
-        user_id: user.id,
-        connected_user_id: targetUserId,
-        connection_type: 'super_like'
-      });
-
-      if (error && error.code !== '23505') {
-        throw error;
-      }
-
-      toast({
-        title: t('discover.superLikeSent'),
-        description: t('discover.youSuperLiked', { name: currentProfile.display_name }),
-      });
-
-      setSwipeDirection('right');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setSwipeDirection(null);
-      }, 600);
-    } catch (error) {
-      console.error('Error recording super like:', error);
-      toast({
-        title: t('errors.error'),
-        description: t('discover.errorSuperLike'),
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUndo = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
-      toast({
-        title: t('discover.undone'),
-        description: t('discover.backToPrevious'),
-      });
-    }
-  };
-
-  const handleViewProfile = (profileId: string) => {
-    setProfileViewerModal({ isOpen: true, profileId });
-  };
-
-  const handleBoost = () => {
-    toast({
-      title: t('discover.boostComingSoon'),
-      description: t('discover.boostDesc'),
-    });
-  };
-
-  const handleSwipe = async (direction: 'left' | 'right') => {
-    const currentProfile = profiles[currentIndex];
-    
-    console.log('Swiping:', direction, 'on profile:', currentProfile.id);
-    
-    if (direction === 'right') {
-      // Record like and check for mutual match
-      try {
-        // First, record the like
-        if (!user) {
-          toast({ title: t('discover.authRequired'), description: t('discover.signInToLike'), variant: "destructive" });
-          navigate('/auth');
-          return;
-        }
-        const targetUserId = getTargetUserId(currentProfile);
-        if (!targetUserId) {
-          toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileLikes') });
-          return;
-        }
-        const { error } = await supabase.from('user_connections').insert({
-          user_id: user.id,
-          connected_user_id: targetUserId,
-          connection_type: 'like'
-        });
-
-        if (error && error.code !== '23505') { // Ignore duplicate key errors
-          throw error;
-        }
-
-        // Check if this creates a mutual match
-          const { data: authUser } = await supabase.auth.getUser();
-          if (authUser?.user?.id) {
-            const { data: isMatch, error: matchError } = await supabase
-              .rpc('check_mutual_match', {
-                user1_id: authUser.user.id,
-                user2_id: targetUserId
-              });
-
-          if (matchError) {
-            console.error('Error checking match:', matchError);
-          }
-
-          if (isMatch) {
-            setTimeout(() => {
-              setMatchModal({ isOpen: true, profile: currentProfile });
-            }, 700);
-          } else {
-            toast({
-              title: t('discover.profileLiked'),
-              description: t('discover.theyLikeBack', { name: currentProfile.display_name }),
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error recording like:', error);
-        toast({
-          title: t('errors.error'),
-          description: t('discover.errorLike'),
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Record dislike/pass
-      try {
-        if (!user) {
-          toast({ title: t('discover.authRequired'), description: t('discover.signInToContinue'), variant: "destructive" });
-          navigate('/auth');
-          return;
-        }
-        const targetUserId = getTargetUserId(currentProfile);
-        if (!targetUserId) return;
-        await supabase.from('user_connections').insert({
-          user_id: user.id,
-          connected_user_id: targetUserId,
-          connection_type: 'pass'
-        });
-      } catch (error) {
-        if (error.code !== '23505') { // Ignore duplicate key errors
-          console.error('Error recording pass:', error);
-        }
-      }
-    }
-
-    setSwipeDirection(direction);
-    
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
-      setSwipeDirection(null);
-    }, 600);
-  };
-
-  const handleMessage = (profileId: string) => {
-    console.log(`Starting conversation with profile ${profileId}`);
-    if (!isValidUuid(profileId)) {
-      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileMessaging') });
-      return;
-    }
-    navigate('/app/messages', { state: { selectedUser: profileId, newConversation: profileId } });
-  };
-
-  const handleStartChat = (userId: string) => {
-    navigate('/app/messages', { state: { selectedUser: userId } });
-  };
-
-  const handleSendMessage = (profileId: string, message: string) => {
-    console.log(`Sending message to ${profileId}: ${message}`);
-    if (!isValidUuid(profileId)) {
-      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileMessaging') });
-      return;
-    }
-    navigate('/app/messages', { 
-      state: { 
-        newConversation: profileId,
-        initialMessage: message 
-      } 
-    });
-    toast({ title: t('discover.messageSent'), description: t('discover.messageSentSuccess') });
-  };
-
-  const handleAddFriend = async () => {
-    const currentProfile = profiles[currentIndex];
-    const targetUserId = getTargetUserId(currentProfile);
-    
-    if (!user) {
-      toast({
-        title: t('discover.authRequired'),
-        description: t('discover.signInToAddFriends'),
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-    
-    if (!targetUserId) {
-      toast({ title: t('discover.demoProfile'), description: t('discover.demoProfileFriends') });
-      return;
-    }
-
-    // Set loading state
-    setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'loading' }));
-    
-    try {
-      const result = await sendFriendRequest(targetUserId);
-      
-      if (result.success) {
-        if (result.type === 'accepted') {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'friends' }));
-          toast({
-            title: t('discover.nowFriends'),
-            description: t('discover.youAndFriends', { name: currentProfile.display_name }),
-          });
-        } else {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'sent' }));
-          toast({
-            title: t('discover.friendRequestSent'),
-            description: t('discover.friendRequestSentTo', { name: currentProfile.display_name }),
-          });
-        }
-      } else {
-        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
-        toast({
-          title: t('errors.info'),
-          description: result.message,
-        });
-        // Reset to idle after 3 seconds for retry
-        setTimeout(() => {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
-        }, 3000);
-      }
-    } catch (error) {
-      console.error('Error sending friend request:', error);
-      setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
-      toast({
-        title: t('errors.error'),
-        description: t('errors.tryAgain'),
-        variant: "destructive",
-      });
-      // Reset to idle after 3 seconds for retry
-      setTimeout(() => {
-        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
-      }, 3000);
-    }
-  };
-
-  const handleSearchSelect = (profile: any) => {
-    setSearchedProfile(profile);
-    setSearchMode(true);
-  };
-
-  const exitSearchMode = () => {
-    setSearchMode(false);
-    setSearchedProfile(null);
-  };
-
-  const getCurrentProfile = () => {
-    return searchMode ? searchedProfile : profiles[currentIndex];
-  };
-
-  const handleSearchAddFriend = async () => {
+  useEffect(() => {
     if (!searchedProfile) return;
-    const targetUserId = getTargetUserId(searchedProfile);
-    
+    loadFriendshipStates([searchedProfile]);
+  }, [loadFriendshipStates, searchedProfile]);
+
+  const handleViewProfile = (profile: DiscoverProfile) => {
+    setProfileViewer({ isOpen: true, profileId: profile.user_id });
+  };
+
+  const handleMessage = (profile: DiscoverProfile) => {
+    navigate('/app/messages', { state: { selectedUser: profile.user_id, newConversation: profile.user_id } });
+  };
+
+  const handleAddFriend = async (profile: DiscoverProfile) => {
+    const targetUserId = profile.user_id;
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to add friends.",
-        variant: "destructive",
-      });
       navigate('/auth');
       return;
     }
-    
-    if (!targetUserId) {
-      toast({ title: "Demo profile", description: "You can only add real users as friends." });
-      return;
-    }
 
-    // Set loading state
-    setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'loading' }));
-    
+    setFriendRequestStates((current) => ({ ...current, [targetUserId]: 'loading' }));
     try {
       const result = await sendFriendRequest(targetUserId);
-      
       if (result.success) {
-        if (result.type === 'accepted') {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'friends' }));
-          toast({
-            title: "Now Friends! 🎉",
-            description: `You and ${searchedProfile.display_name} are now friends!`,
-          });
-        } else {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'sent' }));
-          toast({
-            title: "Friend Request Sent! 👋",
-            description: `Friend request sent to ${searchedProfile.display_name}`,
-          });
-        }
-      } else {
-        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
+        const nextState: FriendState = result.type === 'accepted' ? 'friends' : 'sent';
+        setFriendRequestStates((current) => ({ ...current, [targetUserId]: nextState }));
         toast({
-          title: "Info",
-          description: result.message,
+          title: result.type === 'accepted' ? "You're now friends" : 'Friend request sent',
+          description: result.type === 'accepted'
+            ? `You and ${profile.display_name} are now friends.`
+            : `Your request was sent to ${profile.display_name}.`,
         });
-        // Reset to idle after 3 seconds for retry
-        setTimeout(() => {
-          setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
-        }, 3000);
+        return;
       }
+
+      setFriendRequestStates((current) => ({ ...current, [targetUserId]: 'error' }));
+      toast({ title: 'Friend request', description: result.message });
     } catch (error) {
       console.error('Error sending friend request:', error);
-      setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'error' }));
-      toast({
-        title: "Error",
-        description: "Failed to send friend request. Please try again.",
-        variant: "destructive",
-      });
-      // Reset to idle after 3 seconds for retry
-      setTimeout(() => {
-        setFriendRequestStates(prev => ({ ...prev, [targetUserId]: 'idle' }));
-      }, 3000);
+      setFriendRequestStates((current) => ({ ...current, [targetUserId]: 'error' }));
+      toast({ title: 'Unable to send request', description: 'Please try again.', variant: 'destructive' });
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-96">
-        <div className="text-center">
-          <div className="animate-pulse mb-4">
-            <div className="heart-logo mx-auto">
-              <span className="logo-text">Ò</span>
-            </div>
-          </div>
-          <p className="text-muted-foreground">Finding amazing people for you...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (currentIndex >= profiles.length) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-96 text-center space-y-4">
-        <div className="heart-logo mb-4">
-          <span className="logo-text">Ò</span>
-        </div>
-        <h2 className="text-2xl font-bold font-afro-heading">That's everyone for now!</h2>
-        <p className="text-muted-foreground max-w-md">
-          You've seen all available profiles. Check back later for new connections, 
-          or expand your search preferences.
-        </p>
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => {
-              setCurrentIndex(0);
-              loadProfiles();
-            }}
-            className="bg-primary hover:bg-primary/90"
-          >
-            Start Over
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/app/browse-interest')}
-            className="gap-2"
-          >
-            <span className="text-lg">✨</span>
-            Browse by Interest
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentProfile = profiles[currentIndex];
-  const targetUserId = getTargetUserId(currentProfile);
+  const visibleProfiles = searchedProfile ? [searchedProfile] : profiles;
 
   return (
-    <div className="w-full max-w-sm sm:max-w-md mx-auto px-2 sm:px-0">
-
-      {/* Search Bar */}
-      <div className="mb-6 px-4">
-        <SearchBar 
-          onSelectProfile={handleSearchSelect}
-          className="mx-auto"
-        />
+    <section className="mx-auto w-full max-w-7xl" aria-labelledby="discover-title">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 id="discover-title" className="font-afro-heading text-3xl font-bold text-foreground">Discover</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Meet people and explore meaningful connections.</p>
+        </div>
+        <SearchBar onSelectProfile={(profile) => setSearchedProfile(profile as DiscoverProfile)} className="sm:max-w-sm" />
       </div>
 
-      {/* Search Mode Header */}
-      {searchMode && searchedProfile && (
-        <div className="mb-4 px-4">
-          <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
-            <div className="flex items-center space-x-2">
-              <span className="text-primary font-medium">Search Result:</span>
-              <span className="font-semibold text-primary-foreground">{searchedProfile.display_name}</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={exitSearchMode}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              ✕
-            </Button>
-          </div>
+      {searchedProfile && (
+        <div className="mb-5 flex items-center justify-between gap-3 border-y border-border bg-card px-3 py-3 sm:rounded-md sm:border">
+          <p className="min-w-0 truncate text-sm text-foreground">
+            <span className="font-medium text-primary">Search Result:</span>{' '}
+            <span className="font-semibold">{searchedProfile.display_name}</span>
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => setSearchedProfile(null)}>Show all</Button>
         </div>
       )}
 
-      <div className="relative">
-        <ProfileCard
-          profile={getCurrentProfile()}
-          onSwipe={searchMode ? undefined : handleSwipe}
-          onSuperLike={searchMode ? undefined : handleSuperLike}
-          onUndo={searchMode ? undefined : (currentIndex > 0 ? handleUndo : undefined)}
-          onBoost={searchMode ? undefined : handleBoost}
-          onMessage={() => handleMessage(getTargetUserId(getCurrentProfile()) || '')}
-          onViewProfile={handleViewProfile}
-          onAddFriend={searchMode ? handleSearchAddFriend : handleAddFriend}
-          friendRequestState={friendRequestStates[getTargetUserId(getCurrentProfile()) || ''] || 'idle'}
-          swipeDirection={searchMode ? null : swipeDirection}
-        />
-
-        {/* Profile Counter and Next Button - Only show in browse mode */}
-        {!searchMode && (
-          <div className="text-center mt-6 space-y-3">
-            <p className="text-xs text-black">
-              {currentIndex + 1} of {profiles.length}
-            </p>
-            
-            {/* Next Profile Button */}
-            <div className="flex justify-center">
-              {currentIndex < profiles.length - 1 ? (
-                <Button
-                  onClick={() => {
-                    setSwipeDirection('right');
-                    setTimeout(() => {
-                      setCurrentIndex(prev => prev + 1);
-                      setSwipeDirection(null);
-                    }, 600);
-                  }}
-                  size="sm"
-                  variant="secondary"
-                  className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200 text-sm border border-border"
-                  disabled={loadingNext}
-                >
-                  Next Profile →
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => loadProfiles(true)}
-                  disabled={loadingNext}
-                  size="sm"
-                  variant="outline"
-                  className="px-4 py-2 rounded-full flex items-center gap-2 transition-all duration-200 text-sm border border-border"
-                >
-                  {loadingNext ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full" />
-                      Loading...
-                    </>
-                  ) : (
-                    'Load More'
-                  )}
-                </Button>
-              )}
-            </div>
+      {loading && !searchedProfile ? (
+        <div className="flex min-h-80 items-center justify-center" role="status">
+          <div className="text-center text-muted-foreground">
+            <Loader2 className="mx-auto mb-3 h-7 w-7 animate-spin text-primary" />
+            <p>Finding amazing people for you...</p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : visibleProfiles.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            {visibleProfiles.map((profile) => (
+              <DiscoverProfileCard
+                key={profile.user_id}
+                profile={profile}
+                friendState={friendRequestStates[profile.user_id] ?? 'idle'}
+                onView={handleViewProfile}
+                onMessage={handleMessage}
+                onAddFriend={handleAddFriend}
+              />
+            ))}
+          </div>
 
-      {/* Match Modal */}
-      <MatchModal
-        isOpen={matchModal.isOpen}
-        onClose={() => setMatchModal({ isOpen: false, profile: null })}
-        matchedProfile={matchModal.profile}
-        onSendMessage={handleSendMessage}
+          {!searchedProfile && totalPages > 1 && (
+            <nav className="mt-8 flex flex-wrap items-center justify-center gap-3" aria-label="Discover profiles pagination">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                disabled={page === 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <span className="min-w-24 text-center text-sm font-medium text-foreground">Page {page} of {totalPages}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                disabled={page === totalPages || loading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </nav>
+          )}
+        </>
+      ) : (
+        <div className="flex min-h-80 flex-col items-center justify-center border-y border-border text-center sm:rounded-md sm:border">
+          <Users className="mb-3 h-9 w-9 text-primary" />
+          <h2 className="font-afro-heading text-xl font-bold text-foreground">No profiles available right now</h2>
+          <p className="mt-2 max-w-md px-4 text-sm text-muted-foreground">Check back later for new connections.</p>
+        </div>
+      )}
+
+      <PublicProfileViewer
+        profileId={profileViewer.profileId ?? ''}
+        isOpen={profileViewer.isOpen}
+        onClose={() => setProfileViewer({ isOpen: false, profileId: null })}
+        onStartChat={(userId) => navigate('/app/messages', { state: { selectedUser: userId } })}
       />
-      {/* Public Profile Viewer */}
-      <PublicProfileViewer 
-        profileId={profileViewerModal.profileId || ''}
-        isOpen={profileViewerModal.isOpen}
-        onClose={() => setProfileViewerModal({ isOpen: false, profileId: null })}
-        onSwipe={handleSwipe}
-        onStartChat={handleStartChat}
-      />
-    </div>
+    </section>
   );
 };
-
-// Mock data for demonstration
-const mockProfiles = [
-    {
-      id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-      display_name: 'Amara',
-      age: 28,
-      location: 'Lagos, Nigeria',
-      bio: 'Passionate about art, culture, and meaningful connections. Love exploring new places and trying authentic cuisines. Always up for spontaneous adventures and deep conversations over coffee.',
-      occupation: 'Creative Director',
-      education: 'Bachelor of Fine Arts',
-      interests: ['Art', 'Travel', 'Photography', 'Music', 'Cooking', 'Cultural Events'],
-      verified: true,
-      height_cm: 165,
-      languages: ['English', 'Yoruba', 'French'],
-      personality: 'ENFP',
-      relationship_goals: 'Looking for someone who shares my passion for creativity and adventure. I believe in building meaningful connections based on mutual respect and shared experiences.',
-      profile_photos: [
-        'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=400&h=600&fit=crop&crop=face'
-      ]
-    },
-    {
-      id: 'b2c3d4e5-f6g7-8901-2345-678901bcdefg', 
-      display_name: 'Kwame',
-      age: 32,
-      location: 'Accra, Ghana',
-      bio: 'Entrepreneur with a love for music and community building. Always down for good conversation and dancing. Building something meaningful in the tech space while staying connected to my roots.',
-      occupation: 'Tech Entrepreneur',
-      education: 'MBA, Computer Science',
-      interests: ['Music', 'Dancing', 'Business', 'Community', 'Fitness', 'Afrobeats'],
-      verified: true,
-      height_cm: 182,
-      languages: ['English', 'Twi', 'French'],
-      personality: 'ENTJ',
-      relationship_goals: 'Seeking a partner who is ambitious, family-oriented, and shares my vision for making a positive impact. Love is partnership in every sense.',
-      profile_photos: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1615109398623-88346a601842?w=400&h=600&fit=crop&crop=face'
-      ]
-    },
-    {
-      id: 'c3d4e5f6-g7h8-9012-3456-789012cdefgh',
-      display_name: 'Zara',
-      age: 25,
-      location: 'Cape Town, South Africa',
-      bio: 'Writer and cultural enthusiast. Exploring the beauty of African stories and traditions through my writing. Poetry is my love language, and I find magic in everyday moments.',
-      occupation: 'Author & Journalist',
-      education: 'Masters in Literature',
-      interests: ['Writing', 'Culture', 'Literature', 'History', 'Nature', 'Poetry'],
-      verified: false,
-      height_cm: 158,
-      languages: ['English', 'Afrikaans', 'Xhosa'],
-      personality: 'INFP',
-      relationship_goals: 'Looking for someone who appreciates depth, creativity, and authentic connection. I value emotional intelligence and shared growth.',
-      profile_photos: [
-        'https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?w=400&h=600&fit=crop&crop=face'
-      ]
-    },
-    {
-      id: 'd4e5f6g7-h8i9-0123-4567-890123defghi',
-      display_name: 'Kofi',
-      age: 29,
-      location: 'Nairobi, Kenya',
-      bio: 'Wildlife photographer and conservation enthusiast. Spent the last 5 years documenting the beauty of East African wildlife. When I\'m not behind the camera, you\'ll find me hiking or trying new restaurants.',
-      occupation: 'Wildlife Photographer',
-      education: 'Bachelors in Environmental Science',
-      interests: ['Photography', 'Wildlife', 'Conservation', 'Hiking', 'Travel', 'Documentary'],
-      verified: true,
-      height_cm: 177,
-      languages: ['English', 'Swahili', 'Spanish'],
-      personality: 'ISFP',
-      relationship_goals: 'Seeking someone who loves adventure and has a passion for making the world a better place. Let\'s explore life together!',
-      profile_photos: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?w=400&h=600&fit=crop&crop=face'
-      ]
-    },
-    {
-      id: 'e5f6g7h8-i9j0-1234-5678-901234efghij',
-      display_name: 'Asha',
-      age: 26,
-      location: 'Addis Ababa, Ethiopia',
-      bio: 'Doctor by day, dancer by night! Working in pediatrics and passionate about community health. Love traditional Ethiopian coffee ceremonies and modern dance. Life is about balance and joy.',
-      occupation: 'Pediatrician',
-      education: 'Medical Degree',
-      interests: ['Medicine', 'Dancing', 'Coffee', 'Community Health', 'Traditional Music', 'Fitness'],
-      verified: true,
-      height_cm: 162,
-      languages: ['Amharic', 'English', 'French'],
-      personality: 'ESFJ',
-      relationship_goals: 'Looking for someone kind, family-oriented, and supportive. I believe in growing together and supporting each other\'s dreams.',
-      profile_photos: [
-        'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=600&fit=crop&crop=face',
-        'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=400&h=600&fit=crop&crop=face'
-      ]
-    }
-];
 
 export default Discover;
