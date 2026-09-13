@@ -150,7 +150,7 @@ const Discover = () => {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 id="discover-title" className="font-afro-heading text-3xl font-bold text-foreground">Discover</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Meet people and explore meaningful connections.</p>
+          <p className="mt-1 text-sm text-foreground">Meet people and explore meaningful connections.</p>
         </div>
         <SearchBar onSelectProfile={(profile) => setSearchedProfile(profile as DiscoverProfile)} className="sm:max-w-sm" />
       </div>
