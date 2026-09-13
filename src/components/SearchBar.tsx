@@ -149,10 +149,12 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
           ) : results.length > 0 ? (
             <div className="p-2">
               {results.map((profile) => (
-                <button
+                <Button
                   key={profile.id}
+                  type="button"
+                  variant="ghost"
                   onClick={() => handleSelectProfile(profile)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-muted rounded-lg transition-colors text-left"
+                  className="h-auto w-full justify-start space-x-3 rounded-lg p-3 text-left hover:bg-muted"
                 >
                   <div className="relative">
                     <img
@@ -185,7 +187,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
                       </p>
                     )}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           ) : query.trim().length >= 2 ? (
