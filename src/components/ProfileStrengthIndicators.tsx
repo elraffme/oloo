@@ -43,15 +43,15 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
   const indicators = calculateProfileIndicators(profile);
 
   return (
-    <div className="space-y-3 border-y border-border/70 py-3" aria-label="Profile strengths">
+    <div className="space-y-1.5 border-y border-border/70 py-2 sm:space-y-3 sm:py-3" aria-label="Profile strengths">
       {indicators.map((indicator) => {
         const available = indicator.score !== null;
         const colors = indicatorColorClass[indicator.key];
 
         return (
-          <div key={indicator.key} className="space-y-1.5">
-            <div className="flex min-w-0 items-center justify-between gap-2 text-xs sm:text-sm">
-              <span className={cn('flex min-w-0 items-center gap-1.5 font-semibold', colors.text)}>
+          <div key={indicator.key} className="space-y-1 sm:space-y-1.5">
+            <div className="flex min-w-0 items-center justify-between gap-2 text-[10px] sm:text-xs">
+              <span className={cn('flex min-w-0 items-center gap-1 font-semibold sm:gap-1.5', colors.text)}>
                 {indicatorIcon[indicator.key]}
                 <span className="truncate">{indicator.label}</span>
                 <Tooltip>
@@ -61,7 +61,7 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
                       aria-label={`How ${indicator.label} is calculated`}
                       tabIndex={0}
                     >
-                      <Info className="h-3.5 w-3.5" />
+                      <Info className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-64">
@@ -77,7 +77,7 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
               value={indicator.score ?? 0}
               aria-label={`${indicator.label}: ${available ? `${indicator.score} percent` : 'not enough data'}`}
               aria-valuetext={available ? `${indicator.score} percent` : 'Not enough data'}
-              className={cn('h-3 rounded-full', colors.track)}
+              className={cn('h-2 rounded-full sm:h-3', colors.track)}
               indicatorClassName={colors.indicator}
             />
           </div>

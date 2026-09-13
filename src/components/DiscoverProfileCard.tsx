@@ -75,7 +75,7 @@ export const DiscoverProfileCard = ({
       <Button
         variant="ghost"
         onClick={() => onView(profile)}
-        className="relative block h-auto aspect-[4/5] w-full overflow-hidden rounded-none bg-muted p-0 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="relative block h-auto aspect-square w-full overflow-hidden rounded-none bg-muted p-0 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:aspect-[4/5]"
         aria-label={`View ${profile.display_name}'s profile`}
       >
         {photo ? (
@@ -90,34 +90,34 @@ export const DiscoverProfileCard = ({
             <span className="heart-logo scale-125"><span className="logo-text">Ò</span></span>
           </span>
         )}
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/90 to-transparent px-3 pb-3 pt-12 text-background">
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/90 to-transparent px-2 pb-2 pt-10 text-background sm:px-3 sm:pb-3 sm:pt-12">
           <span className="flex min-w-0 items-center gap-1.5">
-            <span className="truncate font-afro-heading text-lg font-bold">{profile.display_name}</span>
-            <span className="shrink-0 text-sm font-medium">{profile.age}</span>
+            <span className="truncate font-afro-heading text-base font-bold sm:text-lg">{profile.display_name}</span>
+            <span className="shrink-0 text-xs font-medium sm:text-sm">{profile.age}</span>
             {profile.verified && <VerifiedBadge verified size="sm" />}
           </span>
           {location && (
-            <span className="mt-1 flex items-center gap-1 text-xs text-background/90">
-              <MapPin className="h-3 w-3 shrink-0" />
+            <span className="mt-1 flex items-center gap-1 text-[10px] text-background/90 sm:text-xs">
+              <MapPin className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3" />
               <span className="truncate">{location}</span>
             </span>
           )}
         </span>
       </Button>
 
-      <CardContent className="flex flex-1 flex-col gap-3 p-3 sm:p-4">
+      <CardContent className="flex flex-1 flex-col gap-2 p-2 sm:gap-3 sm:p-4">
         {occupation && (
           <p className="flex items-center gap-1.5 text-xs font-medium text-foreground sm:text-sm">
-            <Briefcase className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <Briefcase className="h-3 w-3 shrink-0 text-primary sm:h-3.5 sm:w-3.5" />
             <span className="truncate">{occupation}</span>
           </p>
         )}
-        {bio && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{bio}</p>}
+        {bio && <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:line-clamp-2 sm:text-sm">{bio}</p>}
         <ProfileStrengthIndicators profile={profile} />
         {interests.length > 0 && (
-          <div className="mt-auto flex flex-wrap gap-1.5">
+          <div className="mt-auto flex flex-wrap gap-1 sm:gap-1.5">
             {interests.map((interest) => (
-              <Badge key={interest} variant="secondary" className="max-w-full truncate text-[11px] font-medium">
+              <Badge key={interest} variant="secondary" className="max-w-full truncate text-[10px] font-medium sm:text-[11px]">
                 {interest}
               </Badge>
             ))}
@@ -125,7 +125,7 @@ export const DiscoverProfileCard = ({
         )}
       </CardContent>
 
-      <CardFooter className="grid grid-cols-3 gap-1.5 border-t border-border p-2 sm:gap-2 sm:p-3">
+      <CardFooter className="grid grid-cols-3 gap-1 border-t border-border p-2 sm:gap-2 sm:p-3">
         <Button variant="ghost" size="sm" className="min-w-0 px-1" onClick={() => onView(profile)} title="View profile">
           <User className="h-4 w-4" />
           <span className="sr-only">View profile</span>
