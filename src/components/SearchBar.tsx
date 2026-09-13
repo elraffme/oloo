@@ -27,6 +27,7 @@ interface SearchResult {
   want_kids?: boolean;
   have_kids?: boolean;
   open_to_kids?: boolean;
+  onboarding_completed?: boolean;
 }
 
 interface SearchBarProps {
@@ -67,7 +68,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
         
         let request = supabase
           .from('profiles')
-          .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile, bio, occupation, education, interests, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids')
+          .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile, bio, occupation, education, interests, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids, onboarding_completed')
           .eq('is_demo_profile', false)
           .eq('show_profile', true)
           .eq('onboarding_completed', true)
