@@ -1429,6 +1429,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         is_private: false,
         host_is_premium: isPremium,
         max_viewers: limits.maxViewers,
+        // Requested length; the database trigger clamps it to the plan allowance.
+        planned_duration_sec: effectiveDurationSec > 0 ? effectiveDurationSec : null,
         ar_space_data: {
           category: streamCategory || 'General',
           host_tier: limits.tier,
