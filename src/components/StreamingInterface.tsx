@@ -33,7 +33,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { limitsForTier, formatDuration } from '@/lib/streamLimits';
+import { limitsForTier, formatDuration, DURATION_OPTIONS, isDurationAllowed, clampDuration, defaultDurationSec } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
