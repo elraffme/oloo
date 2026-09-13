@@ -135,6 +135,12 @@
     --platinum: 240 5.9% 70%;
     --platinum-foreground: 240 10% 3.9%;
 
+    /* Dark profile strength indicator colors */
+    --indicator-smart: 195 90% 60%;
+    --indicator-attractive: 18 95% 65%;
+    --indicator-trustworthy: 220 90% 65%;
+
+
     /* Dark Mode Dark Juniper Green Gradients */
     --gradient-romantic: linear-gradient(135deg, hsl(135 55% 16%), hsl(135 60% 18%), hsl(132 55% 20%));
     --gradient-luxury: linear-gradient(135deg, hsl(135 55% 16%), hsl(132 50% 14%), hsl(138 60% 17%));
