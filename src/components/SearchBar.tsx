@@ -18,6 +18,15 @@ interface SearchResult {
   bio?: string;
   occupation?: string;
   interests?: string[];
+  education?: string;
+  main_profile_photo_index?: number;
+  relationship_goals?: string;
+  height_cm?: number;
+  languages?: string[];
+  gender?: string;
+  want_kids?: boolean;
+  have_kids?: boolean;
+  open_to_kids?: boolean;
 }
 
 interface SearchBarProps {
@@ -56,40 +65,23 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
         // Get current user to exclude them from search results
         const { data: currentUser } = await supabase.auth.getUser();
         
-        // Search in both real profiles and demo profiles
-        const [realProfilesRes, demoProfilesRes] = await Promise.allSettled([
-          supabase
-            .from('profiles')
-            .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile, bio, occupation, interests')
-            .eq('is_demo_profile', false)
-            .neq('user_id', currentUser?.user?.id || '') // Exclude current user
-            .or(`display_name.ilike.%${query}%,location.ilike.%${query}%,bio.ilike.%${query}%,occupation.ilike.%${query}%`)
-            .limit(15),
-          supabase
-            .from('demo_profiles')
-            .select('id, display_name, age, location, profile_photos')
-            .or(`display_name.ilike.%${query}%,location.ilike.%${query}%`)
-            .limit(5)
-        ]);
+        let request = supabase
+          .from('profiles')
+          .select('id, user_id, display_name, age, location, avatar_url, profile_photos, verified, is_demo_profile, bio, occupation, education, interests, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids')
+          .eq('is_demo_profile', false)
+          .eq('show_profile', true)
+          .eq('onboarding_completed', true)
+          .or(`display_name.ilike.%${query}%,location.ilike.%${query}%,bio.ilike.%${query}%,occupation.ilike.%${query}%`)
+          .order('created_at', { ascending: false })
+          .limit(15);
 
-        let searchResults: SearchResult[] = [];
+        if (currentUser?.user?.id) request = request.neq('user_id', currentUser.user.id);
 
-        // Add real profiles
-        if (realProfilesRes.status === 'fulfilled' && realProfilesRes.value.data) {
-          searchResults = [...searchResults, ...realProfilesRes.value.data];
-        }
+        const { data, error } = await request;
+        if (error) throw error;
 
-        // Add demo profiles
-        if (demoProfilesRes.status === 'fulfilled' && demoProfilesRes.value.data) {
-          const demoResults = demoProfilesRes.value.data.map(profile => ({
-            ...profile,
-            is_demo_profile: true,
-            verified: false
-          }));
-          searchResults = [...searchResults, ...demoResults];
-        }
-
-        setResults(searchResults);
+        const unique = Array.from(new Map((data ?? []).map((profile) => [profile.user_id, profile])).values());
+        setResults(unique);
         setShowResults(true);
       } catch (error) {
         console.error('Search error:', error);
@@ -157,10 +149,12 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
           ) : results.length > 0 ? (
             <div className="p-2">
               {results.map((profile) => (
-                <button
+                <Button
                   key={profile.id}
+                  type="button"
+                  variant="ghost"
                   onClick={() => handleSelectProfile(profile)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-muted rounded-lg transition-colors text-left"
+                  className="h-auto w-full justify-start space-x-3 rounded-lg p-3 text-left hover:bg-muted"
                 >
                   <div className="relative">
                     <img
@@ -180,10 +174,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-primary-foreground truncate">
                       {profile.display_name}
-                      {profile.is_demo_profile && (
-                        <span className="ml-2 text-xs text-muted-foreground">(Demo)</span>
-                      )}
-                      {!profile.verified && !profile.is_demo_profile && (
+                      {!profile.verified && (
                         <span className="ml-2 text-xs text-amber-500">⏳</span>
                       )}
                     </p>
@@ -196,7 +187,7 @@ export const SearchBar = ({ onSelectProfile, className }: SearchBarProps) => {
                       </p>
                     )}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           ) : query.trim().length >= 2 ? (
