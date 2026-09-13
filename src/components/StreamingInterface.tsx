@@ -2135,7 +2135,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                           : `Your plan allows up to ${limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}`}
                       </span>
                     </div>
-                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="mt-2 grid grid-cols-3 gap-2">
                       {DURATION_OPTIONS.map(option => {
                         const allowed = isDurationAllowed(limits, option.seconds);
                         const selected = effectiveDurationSec === option.seconds;
@@ -2164,7 +2164,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </div>
                     {!isPremium && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Chief streams end automatically after 15 minutes. Upgrade for longer sessions.
+                        Chief streams can run up to 30 minutes. Upgrade to Priest for 45 and 60 minute sessions.
                       </p>
                     )}
                   </div>
