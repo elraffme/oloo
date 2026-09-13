@@ -2079,14 +2079,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
                   </div>
 
-                  {/* Unlock HD streaming — directly after the title */}
-                  {!isPremium && (
-                    <UpgradePrompt
-                      variant="banner"
-                      title="Unlock HD streaming & replays"
-                      description="Premium gives you 1080p, longer sessions, more viewers and saved replays."
-                    />
-                  )}
 
 
                   {/* Step 2 — Category */}
@@ -2132,6 +2124,15 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     </Select>
                     {streamErrors.category && <p className="text-sm text-destructive mt-1">{streamErrors.category}</p>}
                   </div>
+
+                  {/* Unlock HD streaming — directly after category */}
+                  {!isPremium && (
+                    <UpgradePrompt
+                      variant="banner"
+                      title="Unlock HD streaming & replays"
+                      description="Premium gives you 1080p, longer sessions, more viewers and saved replays."
+                    />
+                  )}
 
                   {/* Step 3 — Stream length */}
                   <div>
