@@ -2183,13 +2183,6 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                       </span>
                     )}
                   </div>
-                  {!isPremium && (
-                    <UpgradePrompt
-                      variant="banner"
-                      title="Unlock HD streaming & replays"
-                      description="Premium gives you 1080p, longer sessions, more viewers and saved replays."
-                    />
-                  )}
 
 
                    {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
