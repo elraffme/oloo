@@ -63,7 +63,7 @@ const Discover = () => {
       const to = from + PAGE_SIZE - 1;
       const { data, error, count } = await supabase
         .from('profiles')
-        .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids', { count: 'exact' })
+        .select('id, user_id, display_name, age, location, bio, occupation, education, interests, verified, profile_photos, main_profile_photo_index, relationship_goals, height_cm, languages, gender, want_kids, have_kids, open_to_kids, onboarding_completed', { count: 'exact' })
         .eq('is_demo_profile', false)
         .eq('show_profile', true)
         .eq('onboarding_completed', true)

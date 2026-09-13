@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { ProfileStrengthIndicators } from '@/components/ProfileStrengthIndicators';
 import { Briefcase, Loader2, MapPin, MessageCircle, User, UserCheck, UserPlus } from 'lucide-react';
 
 export interface DiscoverProfile {
@@ -24,6 +25,7 @@ export interface DiscoverProfile {
   want_kids?: boolean | null;
   have_kids?: boolean | null;
   open_to_kids?: boolean | null;
+  onboarding_completed?: boolean | null;
 }
 
 type FriendState = 'idle' | 'loading' | 'sent' | 'friends' | 'error';
@@ -111,6 +113,7 @@ export const DiscoverProfileCard = ({
           </p>
         )}
         {bio && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{bio}</p>}
+        <ProfileStrengthIndicators profile={profile} />
         {interests.length > 0 && (
           <div className="mt-auto flex flex-wrap gap-1.5">
             {interests.map((interest) => (
