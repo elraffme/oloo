@@ -1507,6 +1507,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             message: `Stream marked live (${source})`, detail: { source },
           });
           console.log('✅ Stream is now live and visible to viewers');
+          // Server-anchored cut-off time (cannot be extended from the client).
+          setDurationEndsAt((liveRow as any)?.duration_ends_at ?? null);
           setStreamLifecycle('live');
           setIsBroadcastReady(true);
           setChannelStatus('connected');
