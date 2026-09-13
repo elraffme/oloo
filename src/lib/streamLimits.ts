@@ -31,7 +31,7 @@ export const FREE_LIMITS: StreamLimits = {
 
 export const SILVER_LIMITS: StreamLimits = {
   tier: 'silver',
-  maxDurationSec: 30 * 60,
+  maxDurationSec: 60 * 60,
   maxViewers: 25,
   videoWidth: 1280,
   videoHeight: 720,
