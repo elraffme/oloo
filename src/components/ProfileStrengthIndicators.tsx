@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import {
   calculateProfileIndicators,
   type ProfileIndicatorInput,
