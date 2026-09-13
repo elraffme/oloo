@@ -1488,7 +1488,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
         console.log(`🎉 Setting stream live (source: ${source})`);
         
-        const { error: updateError } = await supabase.from('streaming_sessions').update({
+        const { data: liveRow, error: updateError } = await supabase.from('streaming_sessions').update({
           status: 'live',
           started_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString()
