@@ -53,6 +53,11 @@
     --indicator-smart: 195 90% 28%;
     --indicator-attractive: 18 90% 40%;
     --indicator-trustworthy: 220 85% 32%;
+
+    /* Vibe Check green flame */
+    --vibe-flame: 145 72% 30%;
+    --vibe-flame-glow: 150 80% 42%;
+
     
     /* Verification Darkest Dark Juniper Green */
     --orange-verified: 135 75% 8%;
@@ -139,6 +144,11 @@
     --indicator-smart: 195 90% 60%;
     --indicator-attractive: 18 95% 65%;
     --indicator-trustworthy: 220 90% 65%;
+
+    /* Dark mode Vibe Check green flame */
+    --vibe-flame: 145 70% 48%;
+    --vibe-flame-glow: 150 85% 58%;
+
 
 
     /* Dark Mode Dark Juniper Green Gradients */
