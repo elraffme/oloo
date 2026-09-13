@@ -174,7 +174,7 @@ const Discover = () => {
         </div>
       ) : visibleProfiles.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
             {visibleProfiles.map((profile) => (
               <DiscoverProfileCard
                 key={profile.user_id}
@@ -186,6 +186,12 @@ const Discover = () => {
               />
             ))}
           </div>
+
+          {!searchedProfile && visibleProfiles.length >= 2 && (
+            <p className="mt-4 text-center text-xs text-muted-foreground sm:text-sm">
+              Explore more profiles below
+            </p>
+          )}
 
           {!searchedProfile && totalPages > 1 && (
             <nav className="mt-8 flex flex-wrap items-center justify-center gap-3" aria-label="Discover profiles pagination">
