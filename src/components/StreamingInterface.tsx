@@ -153,6 +153,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Premium tier + livestream limits
   const { isPremium, tier } = useSubscription();
   const limits = limitsForTier(tier ?? (isPremium ? 'premium' : 'free'));
+  // Host-selected stream length (clamped again server-side by the DB trigger).
+  const [plannedDurationSec, setPlannedDurationSec] = useState<number>(() => defaultDurationSec(limits));
+  // Authoritative end time returned by the database once the stream goes live.
+  const [durationEndsAt, setDurationEndsAt] = useState<string | null>(null);
   const [streamElapsedSec, setStreamElapsedSec] = useState(0);
   const streamStartedAtRef = useRef<number | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
