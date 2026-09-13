@@ -60,7 +60,12 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
+        <div 
+          className="flex items-center space-x-2 cursor-pointer" 
+          onClick={() => navigate('/')}
+          role="link"
+          aria-label="Go to home page"
+        >
           <div className="heart-logo">
             <span className="logo-text">Ò</span>
           </div>
