@@ -33,7 +33,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { limitsForTier, formatDuration } from '@/lib/streamLimits';
+import { limitsForTier, formatDuration, DURATION_OPTIONS, isDurationAllowed, clampDuration, defaultDurationSec } from '@/lib/streamLimits';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { PremiumBadge } from '@/components/PremiumBadge';
 import { logStreamEvent } from '@/lib/streamDiagnostics';
@@ -153,6 +153,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
   // Premium tier + livestream limits
   const { isPremium, tier } = useSubscription();
   const limits = limitsForTier(tier ?? (isPremium ? 'premium' : 'free'));
+  // Host-selected stream length (clamped again server-side by the DB trigger).
+  const [plannedDurationSec, setPlannedDurationSec] = useState<number>(() => defaultDurationSec(limits));
+  // Authoritative end time returned by the database once the stream goes live.
+  const [durationEndsAt, setDurationEndsAt] = useState<string | null>(null);
   const [streamElapsedSec, setStreamElapsedSec] = useState(0);
   const streamStartedAtRef = useRef<number | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -993,7 +997,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     return () => clearInterval(healthCheckInterval);
   }, [isStreaming, checkChannelHealth]);
-  // Enforce free-tier livestream duration limit and tick elapsed counter
+  // Keep the selected length inside the tier allowance whenever the plan loads/changes.
+  useEffect(() => {
+    setPlannedDurationSec(prev =>
+      isDurationAllowed(limits, prev) ? prev : defaultDurationSec(limits),
+    );
+  }, [limits.maxDurationSec]);
+
+  // Effective session length: the server-clamped value once live, else the selection.
+  const effectiveDurationSec = clampDuration(limits, plannedDurationSec);
+
+  // Enforce the session duration and tick the elapsed counter.
+  // The cut-off is anchored to the database `duration_ends_at` value, so a page
+  // refresh or client-side tampering cannot extend the stream.
   useEffect(() => {
     if (!isStreaming) {
       if (durationTimerRef.current) clearInterval(durationTimerRef.current);
@@ -1001,28 +1017,36 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       streamStartedAtRef.current = null;
       durationWarnedRef.current = false;
       setStreamElapsedSec(0);
+      setDurationEndsAt(null);
       return;
     }
     streamStartedAtRef.current = Date.now();
+    const deadlineMs = durationEndsAt
+      ? new Date(durationEndsAt).getTime()
+      : effectiveDurationSec > 0
+        ? Date.now() + effectiveDurationSec * 1000
+        : null;
+
     durationTimerRef.current = setInterval(() => {
       if (!streamStartedAtRef.current) return;
       const elapsed = Math.floor((Date.now() - streamStartedAtRef.current) / 1000);
       setStreamElapsedSec(elapsed);
-      if (limits.maxDurationSec > 0) {
-        const remaining = limits.maxDurationSec - elapsed;
-        if (remaining <= 60 && !durationWarnedRef.current) {
+      if (deadlineMs) {
+        const remaining = Math.floor((deadlineMs - Date.now()) / 1000);
+        if (remaining <= 60 && remaining > 0 && !durationWarnedRef.current) {
           durationWarnedRef.current = true;
           toast({
             title: '1 minute remaining',
-            description: 'Upgrade to Premium for unlimited livestream duration.',
+            description: isPremium
+              ? 'Your stream will end automatically when the time is up.'
+              : 'Upgrade your plan to stream for longer.',
           });
         }
         if (remaining <= 0) {
           if (durationTimerRef.current) clearInterval(durationTimerRef.current);
           toast({
-            title: 'Free stream limit reached',
-            description: 'Upgrade to Premium to keep streaming longer.',
-            variant: 'destructive',
+            title: 'Stream time reached',
+            description: `Your ${formatDuration(effectiveDurationSec)} stream has ended.`,
           });
           endStream();
         }
@@ -1032,7 +1056,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (durationTimerRef.current) clearInterval(durationTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStreaming, limits.maxDurationSec]);
+  }, [isStreaming, durationEndsAt, effectiveDurationSec]);
 
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean): Promise<MediaStream | null> => {
     if (requestVideo) setIsRequestingCamera(true);
@@ -1406,6 +1430,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         is_private: false,
         host_is_premium: isPremium,
         max_viewers: limits.maxViewers,
+        // Requested length; the database trigger clamps it to the plan allowance.
+        planned_duration_sec: effectiveDurationSec > 0 ? effectiveDurationSec : null,
         ar_space_data: {
           category: streamCategory || 'General',
           host_tier: limits.tier,
@@ -1463,11 +1489,12 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
         }
         console.log(`🎉 Setting stream live (source: ${source})`);
         
-        const { error: updateError } = await supabase.from('streaming_sessions').update({
+        const { data: liveRow, error: updateError } = await supabase.from('streaming_sessions').update({
           status: 'live',
           started_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString()
-        }).eq('id', data.id);
+        }).eq('id', data.id).select('duration_ends_at, planned_duration_sec').maybeSingle();
+        
         
         if (updateError) {
           console.error('Error updating stream to live:', updateError);
@@ -1481,6 +1508,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
             message: `Stream marked live (${source})`, detail: { source },
           });
           console.log('✅ Stream is now live and visible to viewers');
+          // Server-anchored cut-off time (cannot be extended from the client).
+          setDurationEndsAt((liveRow as any)?.duration_ends_at ?? null);
           setStreamLifecycle('live');
           setIsBroadcastReady(true);
           setChannelStatus('connected');
@@ -2032,8 +2061,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle>Stream Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Step 1 — Stream details */}
                   <div>
-                    <label className="text-sm font-medium">Category *</label>
+                    <label className="text-sm font-medium">
+                      <span className="text-muted-foreground mr-1">1.</span>Stream Title *
+                    </label>
+                    <Input value={streamTitle} onChange={e => {
+                      setStreamTitle(e.target.value);
+                      if (e.target.value.trim()) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.title;
+                          return next;
+                        });
+                      }
+                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
+                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
+                  </div>
+
+                  {/* Step 2 — Category */}
+                  <div>
+                    <label className="text-sm font-medium">
+                      <span className="text-muted-foreground mr-1">2.</span>Category *
+                    </label>
                     <Select onValueChange={value => {
                       setStreamCategory(value);
                       if (value) {
@@ -2073,17 +2123,63 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {streamErrors.category && <p className="text-sm text-destructive mt-1">{streamErrors.category}</p>}
                   </div>
 
-                  {/* Premium tier status banner */}
+                  {/* Step 3 — Stream length */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <label className="text-sm font-medium">
+                        <span className="text-muted-foreground mr-1">3.</span>Stream Length
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {limits.maxDurationSec === 0
+                          ? 'Your plan: unlimited'
+                          : `Your plan allows up to ${limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}`}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {DURATION_OPTIONS.map(option => {
+                        const allowed = isDurationAllowed(limits, option.seconds);
+                        const selected = effectiveDurationSec === option.seconds;
+                        return (
+                          <button
+                            key={option.seconds}
+                            type="button"
+                            disabled={isStreaming || !allowed}
+                            aria-pressed={selected}
+                            onClick={() => setPlannedDurationSec(option.seconds)}
+                            className={`relative rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                              selected
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-background text-foreground hover:bg-muted'
+                            } ${!allowed || isStreaming ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {option.label}
+                            {!allowed && (
+                              <span className="block text-[10px] font-normal text-muted-foreground">
+                                {option.requiresTierLabel}+
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!isPremium && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Chief streams end automatically after 15 minutes. Upgrade for longer sessions.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Step 4 — Quality & plan summary */}
                   <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
                     <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm min-w-0">
                       {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Chief plan</span>}
                       <span className="text-muted-foreground capitalize">
-                        {isPremium ? `· ${membershipDisplayName(limits.tier)}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}
+                        {isPremium ? `· ${membershipDisplayName(limits.tier)}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {effectiveDurationSec >= 3600 ? `${effectiveDurationSec / 3600}h` : `${Math.round(effectiveDurationSec / 60)} min`} session
                       </span>
                     </div>
-                    {isStreaming && limits.maxDurationSec > 0 && (
+                    {isStreaming && effectiveDurationSec > 0 && (
                       <span className="text-xs font-mono text-muted-foreground">
-                        {formatDuration(streamElapsedSec)} / {formatDuration(limits.maxDurationSec)}
+                        {formatDuration(streamElapsedSec)} / {formatDuration(effectiveDurationSec)}
                       </span>
                     )}
                   </div>
@@ -2091,23 +2187,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     <UpgradePrompt
                       variant="banner"
                       title="Unlock HD streaming & replays"
-                      description="Premium gives you 1080p, unlimited duration, 100 viewers and saved replays."
+                      description="Premium gives you 1080p, longer sessions, more viewers and saved replays."
                     />
                   )}
-                  <div>
-                    <label className="text-sm font-medium">Stream Title *</label>
-                    <Input value={streamTitle} onChange={e => {
-                      setStreamTitle(e.target.value);
-                      if (e.target.value.trim()) {
-                        setStreamErrors(prev => {
-                          const next = { ...prev };
-                          delete next.title;
-                          return next;
-                        });
-                      }
-                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
-                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
-                  </div>
+
 
                    {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
                       <div className="flex items-center justify-between">

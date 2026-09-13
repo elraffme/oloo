@@ -60,6 +60,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 1b. End live streams that passed their host-selected duration limit
+    let expiredStreamsEnded = 0
+    const { data: expiredCount, error: expiredError } = await supabase.rpc('end_expired_streams')
+    if (expiredError) {
+      console.error('Error ending expired streams:', expiredError)
+    } else {
+      expiredStreamsEnded = (expiredCount as number) ?? 0
+      console.log(`Ended ${expiredStreamsEnded} streams past their duration limit`)
+    }
+
     // 2. Clean up orphaned viewer sessions for ended/non-live streams
     // First, get IDs of all live streams
     const { data: liveStreams, error: liveError } = await supabase
@@ -174,6 +184,7 @@ Deno.serve(async (req) => {
       success: true,
       timestamp: now.toISOString(),
       staleStreamsEnded: staleStreams?.length ?? 0,
+      expiredStreamsEnded,
       orphanedSessionsCleaned,
       archivedStreamsDeleted: deletedArchivedCount,
       config: {

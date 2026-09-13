@@ -31,7 +31,7 @@ export const FREE_LIMITS: StreamLimits = {
 
 export const SILVER_LIMITS: StreamLimits = {
   tier: 'silver',
-  maxDurationSec: 30 * 60,
+  maxDurationSec: 60 * 60,
   maxViewers: 25,
   videoWidth: 1280,
   videoHeight: 720,
@@ -89,6 +89,38 @@ export const limitsForTier = (tier: string | null | undefined): StreamLimits => 
 // Legacy helper kept for backwards compatibility.
 export const limitsFor = (isPremium: boolean): StreamLimits =>
   isPremium ? PREMIUM_LIMITS : FREE_LIMITS;
+
+// Selectable stream lengths offered on the Go Live page.
+// Availability per option is decided by the host's tier allowance.
+export interface DurationOption {
+  seconds: number;
+  label: string;
+  /** Shortest tier that unlocks this option (for the UI hint). */
+  requiresTierLabel: string;
+}
+
+export const DURATION_OPTIONS: DurationOption[] = [
+  { seconds: 15 * 60, label: '15 min', requiresTierLabel: 'Chief' },
+  { seconds: 30 * 60, label: '30 min', requiresTierLabel: 'Priest' },
+  { seconds: 45 * 60, label: '45 min', requiresTierLabel: 'Priest' },
+  { seconds: 60 * 60, label: '1 hour', requiresTierLabel: 'Priest' },
+];
+
+/** True when a tier's allowance covers the requested length (0 = unlimited). */
+export const isDurationAllowed = (limits: StreamLimits, seconds: number): boolean =>
+  limits.maxDurationSec === 0 || seconds <= limits.maxDurationSec;
+
+/** Clamp a requested length to the tier allowance (mirrors the DB trigger). */
+export const clampDuration = (limits: StreamLimits, seconds: number): number => {
+  if (limits.maxDurationSec === 0) return seconds;
+  return Math.min(seconds, limits.maxDurationSec);
+};
+
+/** Default selection: longest allowed option, capped at 1 hour. */
+export const defaultDurationSec = (limits: StreamLimits): number => {
+  const allowed = DURATION_OPTIONS.filter(o => isDurationAllowed(limits, o.seconds));
+  return allowed.length ? allowed[allowed.length - 1].seconds : clampDuration(limits, 15 * 60);
+};
 
 export const formatDuration = (seconds: number): string => {
   if (seconds <= 0) return '∞';

@@ -1587,6 +1587,7 @@ export type Database = {
           created_at: string
           current_viewers: number | null
           description: string | null
+          duration_ends_at: string | null
           ended_at: string | null
           host_is_premium: boolean
           host_user_id: string | null
@@ -1594,6 +1595,7 @@ export type Database = {
           is_private: boolean | null
           last_activity_at: string | null
           max_viewers: number | null
+          planned_duration_sec: number | null
           started_at: string | null
           status: string
           stream_key: string | null
@@ -1606,6 +1608,7 @@ export type Database = {
           created_at?: string
           current_viewers?: number | null
           description?: string | null
+          duration_ends_at?: string | null
           ended_at?: string | null
           host_is_premium?: boolean
           host_user_id?: string | null
@@ -1613,6 +1616,7 @@ export type Database = {
           is_private?: boolean | null
           last_activity_at?: string | null
           max_viewers?: number | null
+          planned_duration_sec?: number | null
           started_at?: string | null
           status?: string
           stream_key?: string | null
@@ -1625,6 +1629,7 @@ export type Database = {
           created_at?: string
           current_viewers?: number | null
           description?: string | null
+          duration_ends_at?: string | null
           ended_at?: string | null
           host_is_premium?: boolean
           host_user_id?: string | null
@@ -1632,6 +1637,7 @@ export type Database = {
           is_private?: boolean | null
           last_activity_at?: string | null
           max_viewers?: number | null
+          planned_duration_sec?: number | null
           started_at?: string | null
           status?: string
           stream_key?: string | null
@@ -2478,6 +2484,7 @@ export type Database = {
         Args: { field_type: string; plaintext: string }
         Returns: string
       }
+      end_expired_streams: { Args: never; Returns: number }
       generate_afrocentric_profiles: {
         Args: { batch_size?: number }
         Returns: number
@@ -2840,6 +2847,7 @@ export type Database = {
         Returns: undefined
       }
       make_user_admin: { Args: { target_email: string }; Returns: boolean }
+      max_stream_duration_sec: { Args: { _user_id: string }; Returns: number }
       open_gift: { Args: { p_transaction_id: string }; Returns: Json }
       process_withdrawal_request: {
         Args: { p_conversion_rate?: number; p_token_amount: number }
