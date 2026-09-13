@@ -1,39 +1,59 @@
-import { Info } from 'lucide-react';
+import { Info, Sparkles, Heart, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import {
   calculateProfileIndicators,
   type ProfileIndicatorInput,
+  type ProfileIndicatorKey,
 } from '@/lib/profileIndicators';
 
 interface ProfileStrengthIndicatorsProps {
   profile: ProfileIndicatorInput;
 }
 
+const indicatorIcon: Record<ProfileIndicatorKey, React.ReactNode> = {
+  smart: <Sparkles className="h-3.5 w-3.5" />,
+  attractive: <Heart className="h-3.5 w-3.5" />,
+  trustworthy: <ShieldCheck className="h-3.5 w-3.5" />,
+};
+
 const indicatorColorClass: Record<
-  import('@/lib/profileIndicators').ProfileIndicatorKey,
-  { text: string; indicator: string }
+  ProfileIndicatorKey,
+  { text: string; indicator: string; track: string }
 > = {
-  smart: { text: 'text-primary', indicator: 'bg-primary' },
-  attractive: { text: 'text-gold', indicator: 'bg-gold' },
-  trustworthy: { text: 'text-accent', indicator: 'bg-accent' },
+  smart: {
+    text: 'text-indicator-smart',
+    indicator: 'bg-indicator-smart',
+    track: 'bg-indicator-smart/15',
+  },
+  attractive: {
+    text: 'text-indicator-attractive',
+    indicator: 'bg-indicator-attractive',
+    track: 'bg-indicator-attractive/15',
+  },
+  trustworthy: {
+    text: 'text-indicator-trustworthy',
+    indicator: 'bg-indicator-trustworthy',
+    track: 'bg-indicator-trustworthy/15',
+  },
 };
 
 export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicatorsProps) => {
   const indicators = calculateProfileIndicators(profile);
 
   return (
-    <div className="space-y-2.5 border-y border-border/70 py-3" aria-label="Profile strengths">
+    <div className="space-y-3 border-y border-border/70 py-3" aria-label="Profile strengths">
       {indicators.map((indicator) => {
         const available = indicator.score !== null;
         const colors = indicatorColorClass[indicator.key];
 
         return (
-          <div key={indicator.key} className="space-y-1">
-            <div className="flex min-w-0 items-center justify-between gap-2 text-[11px] sm:text-xs">
-              <span className={cn("flex min-w-0 items-center gap-1 font-semibold", colors.text)}>
-                {indicator.label}
+          <div key={indicator.key} className="space-y-1.5">
+            <div className="flex min-w-0 items-center justify-between gap-2 text-xs sm:text-sm">
+              <span className={cn('flex min-w-0 items-center gap-1.5 font-semibold', colors.text)}>
+                {indicatorIcon[indicator.key]}
+                <span className="truncate">{indicator.label}</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
@@ -41,7 +61,7 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
                       aria-label={`How ${indicator.label} is calculated`}
                       tabIndex={0}
                     >
-                      <Info className="h-3 w-3" />
+                      <Info className="h-3.5 w-3.5" />
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-64">
@@ -49,7 +69,7 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
                   </TooltipContent>
                 </Tooltip>
               </span>
-              <span className={cn("shrink-0 font-semibold tabular-nums", colors.text)}>
+              <span className={cn('shrink-0 font-bold tabular-nums', colors.text)}>
                 {available ? `${indicator.score}%` : 'Not enough data'}
               </span>
             </div>
@@ -57,7 +77,7 @@ export const ProfileStrengthIndicators = ({ profile }: ProfileStrengthIndicators
               value={indicator.score ?? 0}
               aria-label={`${indicator.label}: ${available ? `${indicator.score} percent` : 'not enough data'}`}
               aria-valuetext={available ? `${indicator.score} percent` : 'Not enough data'}
-              className="h-1.5 bg-muted"
+              className={cn('h-3 rounded-full', colors.track)}
               indicatorClassName={colors.indicator}
             />
           </div>

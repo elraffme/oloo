@@ -49,9 +49,15 @@
     /* FAQ Question Color */
     --faq-question: 45 92% 24%;
     
+    /* Profile strength indicator colors */
+    --indicator-smart: 195 90% 28%;
+    --indicator-attractive: 18 90% 40%;
+    --indicator-trustworthy: 220 85% 32%;
+    
     /* Verification Darkest Dark Juniper Green */
     --orange-verified: 135 75% 8%;
     --orange-verified-foreground: 0 0% 98%;
+
 
     /* Darkest Dark Juniper Green Gradients */
     --gradient-romantic: linear-gradient(135deg, hsl(135 75% 8%), hsl(135 65% 15%), hsl(130 70% 12%));
@@ -128,6 +134,12 @@
     --gold-foreground: 240 10% 3.9%;
     --platinum: 240 5.9% 70%;
     --platinum-foreground: 240 10% 3.9%;
+
+    /* Dark profile strength indicator colors */
+    --indicator-smart: 195 90% 60%;
+    --indicator-attractive: 18 95% 65%;
+    --indicator-trustworthy: 220 90% 65%;
+
 
     /* Dark Mode Dark Juniper Green Gradients */
     --gradient-romantic: linear-gradient(135deg, hsl(135 55% 16%), hsl(135 60% 18%), hsl(132 55% 20%));
