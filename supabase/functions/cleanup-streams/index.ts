@@ -184,6 +184,7 @@ Deno.serve(async (req) => {
       success: true,
       timestamp: now.toISOString(),
       staleStreamsEnded: staleStreams?.length ?? 0,
+      expiredStreamsEnded,
       orphanedSessionsCleaned,
       archivedStreamsDeleted: deletedArchivedCount,
       config: {
