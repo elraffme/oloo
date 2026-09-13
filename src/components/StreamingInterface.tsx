@@ -1492,7 +1492,8 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
           status: 'live',
           started_at: new Date().toISOString(),
           last_activity_at: new Date().toISOString()
-        }).eq('id', data.id);
+        }).eq('id', data.id).select('duration_ends_at, planned_duration_sec').maybeSingle();
+        
         
         if (updateError) {
           console.error('Error updating stream to live:', updateError);
