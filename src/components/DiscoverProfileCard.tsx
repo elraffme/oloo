@@ -70,10 +70,10 @@ export const DiscoverProfileCard = ({
 
   return (
     <Card className="group flex h-full min-w-0 flex-col overflow-hidden border-border bg-card shadow-sm transition-shadow hover:shadow-md">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={() => onView(profile)}
-        className="relative block aspect-[4/5] w-full overflow-hidden bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="relative block h-auto aspect-[4/5] w-full overflow-hidden rounded-none bg-muted p-0 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         aria-label={`View ${profile.display_name}'s profile`}
       >
         {photo ? (
@@ -101,7 +101,7 @@ export const DiscoverProfileCard = ({
             </span>
           )}
         </span>
-      </button>
+      </Button>
 
       <CardContent className="flex flex-1 flex-col gap-3 p-3 sm:p-4">
         {occupation && (
