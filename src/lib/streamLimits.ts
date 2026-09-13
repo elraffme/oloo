@@ -18,7 +18,7 @@ export interface StreamLimits {
 
 export const FREE_LIMITS: StreamLimits = {
   tier: 'free',
-  maxDurationSec: 15 * 60,
+  maxDurationSec: 30 * 60,
   maxViewers: 10,
   videoWidth: 854,
   videoHeight: 480,
@@ -100,8 +100,7 @@ export interface DurationOption {
 }
 
 export const DURATION_OPTIONS: DurationOption[] = [
-  { seconds: 15 * 60, label: '15 min', requiresTierLabel: 'Chief' },
-  { seconds: 30 * 60, label: '30 min', requiresTierLabel: 'Priest' },
+  { seconds: 30 * 60, label: '30 min', requiresTierLabel: 'Chief' },
   { seconds: 45 * 60, label: '45 min', requiresTierLabel: 'Priest' },
   { seconds: 60 * 60, label: '1 hour', requiresTierLabel: 'Priest' },
 ];
