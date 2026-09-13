@@ -89,8 +89,13 @@ export default {
 					foreground: 'hsl(var(--orange-verified-foreground))'
 				},
 				// FAQ question color
-				'faq-question': 'hsl(var(--faq-question))'
+				'faq-question': 'hsl(var(--faq-question))',
+				// Profile strength indicator colors
+				'indicator-smart': 'hsl(var(--indicator-smart) / <alpha-value>)',
+				'indicator-attractive': 'hsl(var(--indicator-attractive) / <alpha-value>)',
+				'indicator-trustworthy': 'hsl(var(--indicator-trustworthy) / <alpha-value>)'
 			},
+
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
