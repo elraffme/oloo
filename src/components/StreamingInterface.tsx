@@ -2060,8 +2060,29 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                   <CardTitle>Stream Setup</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Step 1 — Stream details */}
                   <div>
-                    <label className="text-sm font-medium">Category *</label>
+                    <label className="text-sm font-medium">
+                      <span className="text-muted-foreground mr-1">1.</span>Stream Title *
+                    </label>
+                    <Input value={streamTitle} onChange={e => {
+                      setStreamTitle(e.target.value);
+                      if (e.target.value.trim()) {
+                        setStreamErrors(prev => {
+                          const next = { ...prev };
+                          delete next.title;
+                          return next;
+                        });
+                      }
+                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
+                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
+                  </div>
+
+                  {/* Step 2 — Category */}
+                  <div>
+                    <label className="text-sm font-medium">
+                      <span className="text-muted-foreground mr-1">2.</span>Category *
+                    </label>
                     <Select onValueChange={value => {
                       setStreamCategory(value);
                       if (value) {
@@ -2101,17 +2122,63 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     {streamErrors.category && <p className="text-sm text-destructive mt-1">{streamErrors.category}</p>}
                   </div>
 
-                  {/* Premium tier status banner */}
+                  {/* Step 3 — Stream length */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <label className="text-sm font-medium">
+                        <span className="text-muted-foreground mr-1">3.</span>Stream Length
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {limits.maxDurationSec === 0
+                          ? 'Your plan: unlimited'
+                          : `Your plan allows up to ${limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}`}
+                      </span>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {DURATION_OPTIONS.map(option => {
+                        const allowed = isDurationAllowed(limits, option.seconds);
+                        const selected = effectiveDurationSec === option.seconds;
+                        return (
+                          <button
+                            key={option.seconds}
+                            type="button"
+                            disabled={isStreaming || !allowed}
+                            aria-pressed={selected}
+                            onClick={() => setPlannedDurationSec(option.seconds)}
+                            className={`relative rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                              selected
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-background text-foreground hover:bg-muted'
+                            } ${!allowed || isStreaming ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {option.label}
+                            {!allowed && (
+                              <span className="block text-[10px] font-normal text-muted-foreground">
+                                {option.requiresTierLabel}+
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {!isPremium && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Chief streams end automatically after 15 minutes. Upgrade for longer sessions.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Step 4 — Quality & plan summary */}
                   <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-muted/50 border">
                     <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm min-w-0">
                       {isPremium ? <PremiumBadge showLabel /> : <span className="font-medium">Chief plan</span>}
                       <span className="text-muted-foreground capitalize">
-                        {isPremium ? `· ${membershipDisplayName(limits.tier)}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {limits.maxDurationSec === 0 ? 'unlimited' : limits.maxDurationSec >= 3600 ? `${limits.maxDurationSec / 3600}h` : `${limits.maxDurationSec / 60} min`}
+                        {isPremium ? `· ${membershipDisplayName(limits.tier)}` : ''} · {limits.videoHeight}p · {limits.maxViewers >= 1000 ? 'unlimited' : limits.maxViewers} viewers · {effectiveDurationSec >= 3600 ? `${effectiveDurationSec / 3600}h` : `${Math.round(effectiveDurationSec / 60)} min`} session
                       </span>
                     </div>
-                    {isStreaming && limits.maxDurationSec > 0 && (
+                    {isStreaming && effectiveDurationSec > 0 && (
                       <span className="text-xs font-mono text-muted-foreground">
-                        {formatDuration(streamElapsedSec)} / {formatDuration(limits.maxDurationSec)}
+                        {formatDuration(streamElapsedSec)} / {formatDuration(effectiveDurationSec)}
                       </span>
                     )}
                   </div>
@@ -2119,23 +2186,10 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
                     <UpgradePrompt
                       variant="banner"
                       title="Unlock HD streaming & replays"
-                      description="Premium gives you 1080p, unlimited duration, 100 viewers and saved replays."
+                      description="Premium gives you 1080p, longer sessions, more viewers and saved replays."
                     />
                   )}
-                  <div>
-                    <label className="text-sm font-medium">Stream Title *</label>
-                    <Input value={streamTitle} onChange={e => {
-                      setStreamTitle(e.target.value);
-                      if (e.target.value.trim()) {
-                        setStreamErrors(prev => {
-                          const next = { ...prev };
-                          delete next.title;
-                          return next;
-                        });
-                      }
-                    }} placeholder="What's your stream about?" className={`mt-1 ${streamErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`} />
-                    {streamErrors.title && <p className="text-sm text-destructive mt-1">{streamErrors.title}</p>}
-                  </div>
+
 
                    {isStreaming && <div className="hidden p-4 bg-muted rounded-lg space-y-3">
                       <div className="flex items-center justify-between">
