@@ -71,7 +71,7 @@ export function LevelProgress({ level, compact = false }: LevelProgressProps) {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="text-primary">•</span>
-              <span>Daily Trivia: 20-50 XP</span>
+              <span>Daily African Trivia: 20-50 XP</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-primary">•</span>
