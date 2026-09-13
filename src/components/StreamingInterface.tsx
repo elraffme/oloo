@@ -997,7 +997,19 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
 
     return () => clearInterval(healthCheckInterval);
   }, [isStreaming, checkChannelHealth]);
-  // Enforce free-tier livestream duration limit and tick elapsed counter
+  // Keep the selected length inside the tier allowance whenever the plan loads/changes.
+  useEffect(() => {
+    setPlannedDurationSec(prev =>
+      isDurationAllowed(limits, prev) ? prev : defaultDurationSec(limits),
+    );
+  }, [limits.maxDurationSec]);
+
+  // Effective session length: the server-clamped value once live, else the selection.
+  const effectiveDurationSec = clampDuration(limits, plannedDurationSec);
+
+  // Enforce the session duration and tick the elapsed counter.
+  // The cut-off is anchored to the database `duration_ends_at` value, so a page
+  // refresh or client-side tampering cannot extend the stream.
   useEffect(() => {
     if (!isStreaming) {
       if (durationTimerRef.current) clearInterval(durationTimerRef.current);
@@ -1008,25 +1020,32 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       return;
     }
     streamStartedAtRef.current = Date.now();
+    const deadlineMs = durationEndsAt
+      ? new Date(durationEndsAt).getTime()
+      : effectiveDurationSec > 0
+        ? Date.now() + effectiveDurationSec * 1000
+        : null;
+
     durationTimerRef.current = setInterval(() => {
       if (!streamStartedAtRef.current) return;
       const elapsed = Math.floor((Date.now() - streamStartedAtRef.current) / 1000);
       setStreamElapsedSec(elapsed);
-      if (limits.maxDurationSec > 0) {
-        const remaining = limits.maxDurationSec - elapsed;
-        if (remaining <= 60 && !durationWarnedRef.current) {
+      if (deadlineMs) {
+        const remaining = Math.floor((deadlineMs - Date.now()) / 1000);
+        if (remaining <= 60 && remaining > 0 && !durationWarnedRef.current) {
           durationWarnedRef.current = true;
           toast({
             title: '1 minute remaining',
-            description: 'Upgrade to Premium for unlimited livestream duration.',
+            description: isPremium
+              ? 'Your stream will end automatically when the time is up.'
+              : 'Upgrade your plan to stream for longer.',
           });
         }
         if (remaining <= 0) {
           if (durationTimerRef.current) clearInterval(durationTimerRef.current);
           toast({
-            title: 'Free stream limit reached',
-            description: 'Upgrade to Premium to keep streaming longer.',
-            variant: 'destructive',
+            title: 'Stream time reached',
+            description: `Your ${formatDuration(effectiveDurationSec)} stream has ended.`,
           });
           endStream();
         }
@@ -1036,7 +1055,7 @@ const StreamingInterface: React.FC<StreamingInterfaceProps> = ({
       if (durationTimerRef.current) clearInterval(durationTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStreaming, limits.maxDurationSec]);
+  }, [isStreaming, durationEndsAt, effectiveDurationSec]);
 
   const initializeMedia = async (requestVideo: boolean, requestAudio: boolean): Promise<MediaStream | null> => {
     if (requestVideo) setIsRequestingCamera(true);
